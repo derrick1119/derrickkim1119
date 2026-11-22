@@ -86,6 +86,18 @@
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
       await X.TALK.say('leo', '그래. 약속.');
       await X.vow(1, 'write');
+      /* ---- that night on the quay: what you do while you wait ---- */
+      await X.TALK.say('kid', '기다릴 땐 별을 봐.\n엄마가 그랬어. 별을 이으면 그림이 된대.');
+      await X.TALK.say('kid', '오늘 밤에 부두에서 같이 보자.\n내가 그림 그려 줄 테니까, 아저씨가 하늘에서 찾아.');
+      T.announce('그날 밤, 부두. 피피가 종이에 그린 모양을 별들 사이에서 찾는다. 갈수록 별이 많아지고, 마지막 별자리는 기울어져 있다.');
+      await X.play(T.puzzle.stars({ rounds: [
+        { name: '집', pts: [[-50, 40], [50, 40], [50, -10], [0, -60], [-50, -10]], edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [4, 2]], at: [180, 330], scale: 1.3, filler: 10 },
+        { name: '배', pts: [[-70, 0], [70, 0], [-45, 30], [45, 30], [0, 0], [0, -80]], edges: [[0, 2], [2, 3], [3, 1], [1, 4], [4, 0], [4, 5], [5, 1]], at: [-150, 300], scale: 1.25, filler: 18 },
+        { name: '아나의 냄비', pts: [[-60, -10], [60, -10], [45, 40], [-45, 40], [-88, -18], [88, -18], [0, -70]], edges: [[4, 0], [0, 1], [1, 5], [1, 2], [2, 3], [3, 0], [0, 6], [6, 1]], at: [250, 350], scale: 1.15, rot: 0.5, filler: 24 },
+      ] }));
+      await X.TALK.say('kid', '마지막 건 아저씨가 그렸지?\n그거 냄비 맞아?');
+      await X.TALK.say('leo', '아나가 스튜 끓이던 냄비.\n…그 앞에 있을 때 제일 좋아 보였거든.');
+      await X.TALK.say('kid', '그럼 이제 저 별 보면,\n아나 아줌마 생각나겠다.');
       pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
       X.tween(bram, 'sit', 0, 0.6); X.tween(leo, 'sit', 0, 0.6);
       await X.wait(0.6);

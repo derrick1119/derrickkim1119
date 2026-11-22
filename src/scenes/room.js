@@ -164,6 +164,26 @@
       P.fill(g, P.box(WIN.x - 34, WIN.y + WIN.h + 21, WIN.w + 68, 5, 0.5, 14), '#c4bfae');
       /* curtain rod */
       P.line(g, WIN.x - 110, WIN.y - 34, WIN.x + WIN.w + 40, WIN.y - 34, 5, '#8e8779');
+      const DT = T.detail;
+      if (DT && DT.on()) {
+        /* a faint leaf pattern on the paper, panels on the lower wall, seams in the floor */
+        const r = T.rng(71);
+        g.save(); g.beginPath(); g.rect(x0, -30, w, 628); g.clip();
+        for (let yy = 20; yy < 590; yy += 64) for (let xx = x0 + ((yy / 64) % 2) * 40; xx < x0 + w; xx += 80) {
+          if (xx > WIN.x - 40 && xx < WIN.x + WIN.w + 40 && yy > WIN.y - 40 && yy < WIN.y + WIN.h + 40) continue;
+          g.save(); g.translate(xx + r() * 6, yy); g.rotate(-0.5 + r()); P.fill(g, P.ellipse(0, 0, 4, 9), 'rgba(150,120,170,0.13)'); P.fill(g, P.ellipse(5, 4, 3, 7, 0.8), 'rgba(150,120,170,0.1)'); g.restore();
+        }
+        g.restore();
+        for (let xx = Math.floor(x0 / 170) * 170 + 20; xx < x0 + w; xx += 170) { g.strokeStyle = 'rgba(70,84,90,0.22)'; g.lineWidth = 2.4; g.strokeRect(xx, 620, 140, 66); g.strokeStyle = 'rgba(255,255,250,0.22)'; g.lineWidth = 1.2; g.strokeRect(xx + 3, 623, 140, 66); }
+        g.save(); g.beginPath(); g.rect(x0, 714, w, 230); g.clip();
+        for (let k = 0; k < 9; k++) { const yy = 716 + k * k * 3.4 + k * 6; g.fillStyle = 'rgba(60,70,80,' + (0.1 + k * 0.01) + ')'; g.fillRect(x0, yy, w, 1.4); }
+        for (let xx = x0; xx < x0 + w; xx += 120) { g.strokeStyle = 'rgba(60,70,80,0.1)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(xx, 714); g.lineTo(xx + (xx - 0) * 0.5, 944); g.stroke(); }
+        g.restore();
+        /* on the sill: the flowers Ana brings, and the books he did not finish */
+        DT.flowers(g, WIN.x + 54, WIN.y + WIN.h + 6, 1.15, 72);
+        DT.books(g, WIN.x + WIN.w - 40, WIN.y + WIN.h + 6, 3, 73);
+        DT.clock(g, 470, 170, 30, 7, 10);
+      }
     });
 
     /* ---- bed ---- */

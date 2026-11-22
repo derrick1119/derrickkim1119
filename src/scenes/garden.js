@@ -108,14 +108,16 @@
     g.restore();
     void t;
   }
-  function bed(g, b, fill, k, t, i, bad) {
+  function bed(g, b, fill, k, t, i, bad, still) {
     const y = rim(b), gy = ground(b.x);
     P.fill(g, P.rr(b.x - 36, y, 72, gy - y + 4, 6), '#8a5e3c');
     P.fill(g, P.rr(b.x - 32, y + 4, 64, 14, 5), T.mix('#7a5236', '#4a3426', T.clamp(fill / Math.max(1, b.n))));
     P.fill(g, P.rr(b.x - 36, y - 2, 72, 7, 3), '#a77b52');
     plant(g, b.x - 8, y + 4, k, t, i * 1.7);
+    if (!still) {
     P.line(g, b.x + 30, y + 2, b.x + 30, y - 40, 3, '#7d5a3b'); P.fill(g, P.rr(b.x + 30 - (b.n * 15 + 8), y - 66, b.n * 30 + 16, 34, 6), '#f3e6c8');
     for (let j = 0; j < b.n; j++) drip(g, b.x + 30 - ((b.n - 1) * 30) / 2 + j * 30, y - 50, 10, T.clamp(fill - j), bad && fill > b.n ? '#ef8a70' : null);
+    }
     if (fill > b.n + 0.05) { for (let j = 0; j < 4; j++) { const ph = (t * 1.6 + j / 4) % 1; P.fill(g, P.circle(b.x + (j % 2 ? 40 : -40) + (j % 2 ? 1 : -1) * ph * 18, y + ph * 30, 3), T.rgba(WATER, 1 - ph)); } }
   }
 
@@ -227,7 +229,7 @@
     g.save(); g.translate(AX, WY()); g.scale(SC, SC);
     frame(g, L);
     L.pieces.forEach((p, i) => board(g, p, (SOL[i] || 0) * TIP, 0, t));
-    L.beds.forEach((b, i) => bed(g, b, 0, ps.fruit == null ? 1 : ps.fruit, t, i, false));
+    L.beds.forEach((b, i) => bed(g, b, 0, ps.fruit == null ? 1 : ps.fruit, t, i, false, true));
     barrel(g, L, 1, false, t);
     g.restore();
   };

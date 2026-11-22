@@ -394,6 +394,25 @@ T = [
     ("…토마토네?", "...Tomatoes?"),
     ("피피라는 아이랑 같이 키웠어.\n당신 오면 제일 먼저 얘기해 주기로 했거든.", "I grew them with a little girl called Pippi.\nI promised to tell you about her first thing."),
     ("그럼 오늘 밤에 다 들려줘.\n천천히.", "Then tell me all of it tonight.\nSlowly."),
+    # ---- evenings: the stars (chapter 2) and the story blanket (last chapter)
+    ("기다릴 땐 별을 봐.\n엄마가 그랬어. 별을 이으면 그림이 된대.", "When you're waiting, look at the stars.\nMom said if you join them up they make pictures."),
+    ("오늘 밤에 부두에서 같이 보자.\n내가 그림 그려 줄 테니까, 아저씨가 하늘에서 찾아.", "Let's look together on the quay tonight.\nI'll draw a picture, and you find it in the sky."),
+    ("마지막 건 아저씨가 그렸지?\n그거 냄비 맞아?", "You drew the last one, didn't you?\nIs that a pot?"),
+    ("아나가 스튜 끓이던 냄비.\n…그 앞에 있을 때 제일 좋아 보였거든.", "The pot Ana made her stew in.\n...She always looked happiest in front of it."),
+    ("그럼 이제 저 별 보면,\n아나 아줌마 생각나겠다.", "Then whenever you see those stars,\nyou'll think of Ana."),
+    ("집", "House"), ("배", "Boat"), ("아나의 냄비", "Ana's pot"),
+    ("그림이랑 모양이 달라요. 피피의 그림을 다시 봐요", "That's not the same shape. Look at Pippi's drawing again"),
+    ("이번 별자리는 기울어져 있어요. 그림과 같은 모양이 되는 별을 눌러 고르세요", "This one is tilted. Tap the stars that make the same shape as the drawing"),
+    ("피피가 그린 모양을 하늘에서 찾아, 그 별들을 눌러 고르세요", "Find Pippi's drawing in the sky, and tap the stars that make it"),
+    ("이거, 로사라는 이웃이 남긴 실이야.\n당신 오면 같이 뜨라고.", "This is yarn a neighbor called Rosa left.\nShe said to knit it with you when you came."),
+    ("당신이 뜨개질을 해?", "You knit?"),
+    ("45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.", "Forty-five years is long enough to learn.\nOne row, one story."),
+    ("…다 듣는 데 한참 걸리겠다.", "...This is going to take a while."),
+    ("괜찮아.\n이제 시간 많잖아.", "That's all right.\nWe have time now."),
+    ("주춧돌", "Foundation"), ("반딧불", "Firefly"), ("빈이 온 날", "Bean came"), ("지붕", "The roof"), ("릴리 결혼식", "Lily's wedding"), ("토마토", "Tomatoes"), ("오로라", "Aurora"),
+    ("아나: \"어, 그게 먼저였어?\" 있었던 차례를 다시 떠올려 봐요", "Ana: \"Oh, did that come first?\" Think back to the order it happened"),
+    ("아나가 \"처음부터\" 들려 달래요. 있었던 차례대로 실을 골라 한 줄씩 뜨세요", "Ana wants it \"from the beginning.\" Pick the yarn in the order things happened, a row at a time"),
+    ("아나가 묻는다: \"그다음엔?\"", "Ana asks: \"And then?\""),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

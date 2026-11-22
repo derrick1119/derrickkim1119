@@ -33,7 +33,9 @@
   }
   function paintHouse(g, h) {
     const seed = h.seed || 1, w = h.w, wh = h.h, rh = h.roofH, x0 = -w / 2, st = h.stage == null ? 1 : h.stage;
+    const DT = T.detail, rich = DT && DT.on();
     P.fill(g, P.box(x0 - 8, -12, w + 16, 20, 0.8, seed), '#b3a08c');
+    if (rich) DT.masonry(g, x0 - 8, -14, w + 16, 22, seed + 90, { rowH: 11, c: '#b8a894' });
     const rp = roofPts(h);
     if (st >= 1) {
       const wall = P.box(x0, -wh, w, wh - 8, 0.8, seed + 1);
@@ -41,6 +43,15 @@
       /* low sun from the right: a warm side and a cool side */
       P.tint(g, wall, x0, 0, x0 + w, 0, [[0, 'rgba(70,60,120,0.22)'], [0.55, 'rgba(70,60,120,0)'], [1, 'rgba(255,214,150,0.25)']]);
       P.tint(g, wall, 0, -wh, 0, -wh + 34, [[0, 'rgba(60,50,90,0.3)'], [1, 'rgba(60,50,90,0)']]);
+      if (rich) {   /* the painted look: a stone plinth, corner stones, and here and there the stone showing through */
+        g.save(); g.clip(wall);
+        DT.masonry(g, x0, -36, w, 30, seed + 91, { rowH: 10, c: '#c2b3a0' });
+        DT.quoins(g, x0, -wh, -34, seed + 92, '#d2c4b0', -1); DT.quoins(g, x0 + w, -wh, -34, seed + 93, '#d2c4b0', 1);
+        const pr = T.rng(seed + 94);
+        if (pr() < 0.75) DT.patch(g, x0 + 30 + pr() * 16, -58 - pr() * 20, 20 + pr() * 8, 12 + pr() * 5, seed + 95, '#c8b8a2');
+        if (w > 180 && pr() < 0.6) DT.patch(g, x0 + w - 40, -wh + 34 + pr() * 20, 16, 10, seed + 96, '#c8b8a2');
+        g.restore();
+      }
       if (h.chim != null) { P.fill(g, P.box(h.chim - 13, -wh - rh * 0.62 - 44, 26, 70, 0.6, seed + 4), '#c9a78a'); P.fill(g, P.box(h.chim - 16, -wh - rh * 0.62 - 50, 32, 9, 0.5, seed + 5), '#a98a70'); }
       const roof = P.rough(rp, 1, seed + 6);
       P.wash(g, roof, h.roofC, [x0 - 20, -wh - rh, w + 40, rh + 6], { seed: seed + 7, n: 14, tone: 0.06, len: 80, wid: 14 });
@@ -48,6 +59,7 @@
       g.save(); g.clip(roof); g.strokeStyle = 'rgba(40,30,50,0.13)'; g.lineWidth = 2;
       for (let y = -wh - rh + 16; y < -wh; y += 16) { g.beginPath(); g.moveTo(x0 - 20, y); g.lineTo(x0 + w + 20, y + 2); g.stroke(); }
       g.restore();
+      if (rich) DT.tiles(g, roof, x0, x0 + w, -wh - rh, -wh, seed + 97);
       P.fill(g, P.box(x0 - 20, -wh - 2, w + 40, 7, 0.6, seed + 8), T.shade(h.roofC, -0.2));
       if (h.door) {
         const d = h.door;
@@ -56,6 +68,9 @@
         P.tint(g, P.rr(d.x - 22, -95, 44, 95, 3), d.x - 22, 0, d.x + 22, 0, [[0, 'rgba(0,0,30,0.2)'], [1, 'rgba(255,255,255,0.1)']]);
         P.fill(g, P.circle(d.x + 13, -46, 3.4), '#e9c25a');
         P.fill(g, P.box(d.x - 34, -8, 68, 12, 0.6, seed + 11), '#c9b8a2');
+        if (rich) {   /* a stone arch over the door */
+          for (let i = 0; i < 7; i++) { const a = Math.PI + (i / 6) * Math.PI, cx = d.x + Math.cos(a) * 31, cy = -100 + Math.sin(a) * 14; g.save(); g.translate(cx, cy); g.rotate(a + Math.PI / 2); P.fill(g, P.rr(-6, -5, 12, 10, 2), T.shade('#cdbfaa', (i % 2) * 0.06)); g.restore(); }
+        }
       }
       (h.win || []).forEach((q, i) => windowAt(g, q[0], q[1], q[2] || 46, q[3] || 54, q[4] !== 0, seed + 20 + i * 5, q[5]));
       if (h.round) { const q = h.round; P.fill(g, P.circle(q[0], q[1], 24), '#fff4dc'); P.fill(g, P.circle(q[0], q[1], 18), LIT); g.fillStyle = '#fff4dc'; g.fillRect(q[0] - 1.5, q[1] - 18, 3, 36); g.fillRect(q[0] - 18, q[1] - 1.5, 36, 3); }
@@ -65,6 +80,7 @@
         P.fill(g, P.rr(sx + 8, -wh + 32, 46, 32, 3), '#fff4dc');
         P.strokePts(g, [[sx + 10, -wh + 34], [sx + 31, -wh + 50], [sx + 52, -wh + 34]], 2.6, '#c9573f');
       }
+      if (rich && !h.roses && seed % 3 === 1) DT.ivy(g, x0 + 18, -6, wh * 0.85, seed + 98, 46);
       if (h.roses) {
         const r = T.rng(seed + 40);
         g.strokeStyle = '#5f8f62'; g.lineWidth = 4; g.lineCap = 'round';
@@ -123,6 +139,7 @@
   /* ---------- small things, drawn live ---------- */
   K.lantern = function (g, x, y, t, o = {}) {
     const s = o.s || 1, lit = o.lit == null ? 1 : o.lit, seed = o.seed || 0;
+    if (T.detail && T.detail.on()) return T.detail.lantern(g, x, y, t, o, s, lit, 0.9 + 0.1 * Math.sin(t * 5.3 + seed * 3) * Math.sin(t * 1.7 + seed));
     if (!o.bare) {
       P.line(g, x, y, x, y - 92 * s, 4.5 * s, '#5d5066');
       P.line(g, x, y - 92 * s, x + 16 * s, y - 92 * s, 4 * s, '#5d5066');

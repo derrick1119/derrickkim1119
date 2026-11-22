@@ -82,6 +82,16 @@
 
       /* floor */
       P.wash(g, P.box(x0, FLOORY, w, 90, 0, 30), '#b98a5a', [x0, FLOORY, w, 90], { seed: 31, len: 300, wid: 16, tone: 0.06, spread: 0.04 });
+      const DT = T.detail;
+      if (DT && DT.on()) {
+        DT.boards(g, x0, FLOORY, w, 90, 34, { bh: 18 });
+        DT.herbs(g, 330, 302, 4, 35);   /* drying under the shelf */
+        g.save(); g.beginPath(); g.rect(x0, 452, w, 172); g.clip();   /* glaze on the tiles */
+        for (let x = Math.floor(x0 / 58) * 58; x < x0 + w; x += 58) for (let y = 452; y < 624; y += 58) { g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(x + 6, y + 6, 16, 4); }
+        g.restore();
+        /* the recipe card pinned up by the window */
+        g.save(); g.translate(-640, 300); g.rotate(0.05); P.fill(g, P.rr(-34, -42, 68, 84, 3), '#fbf4e2'); g.fillStyle = 'rgba(51,64,92,0.45)'; for (let i = 0; i < 5; i++) g.fillRect(-24, -26 + i * 13, 40 - (i % 2) * 12, 1.6); P.fill(g, P.circle(0, -38, 4), '#c9573f'); g.restore();
+      }
       /* cabinets */
       const cab = P.box(x0, COUNTER, w, FLOORY - COUNTER + 4, 0.6, 32);
       P.wash(g, cab, '#4f7d7c', [x0, COUNTER, w, 210], { seed: 33, len: 180, wid: 30, tone: 0.05, dir: Math.PI / 2, spread: 0.12 });

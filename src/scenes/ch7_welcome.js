@@ -251,6 +251,23 @@
       X.bed(5, 0.14, 'night');
       T.announce('밤. 오로라 아래, 둘이 앉게 넓힌 그네에 레오와 아나가 나란히 앉아 있다.');
       await X.wait(4.4);
+      /* Rosa's yarn: a stripe for every story, in the order it happened */
+      await TALK.say('leo', '이거, 로사라는 이웃이 남긴 실이야.\n당신 오면 같이 뜨라고.');
+      ana.look = true;
+      await TALK.say('ana', '당신이 뜨개질을 해?');
+      ana.look = false;
+      await TALK.say('leo', '45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.');
+      T.announce('이야기 담요. 아나가 처음부터 들려 달라고 한다. 그 일이 있었던 차례대로 실을 골라 한 줄씩 뜬다.');
+      await X.play(T.puzzle.story({
+        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '반딧불', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
+          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
+        order: [3, 0, 5, 1, 6, 2, 4],
+      }));
+      ana.look = true;
+      await TALK.say('ana', '…다 듣는 데 한참 걸리겠다.');
+      ana.look = false;
+      await TALK.say('leo', '괜찮아.\n이제 시간 많잖아.');
+      await X.wait(0.8);
       ana.look = true;
       await TALK.say('ana', '릴리 방도 만들어야지.');
       ana.look = false;
