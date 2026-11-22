@@ -123,7 +123,7 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(하늘의 큰 물건) */
 export const PERKS: { name: string; line: string }[][] = [
-  [{ name: '황금 이빨', line: '한 입에 둘 더 꿀꺽' }, { name: '용의 알 껍데기', line: '부위가 두 배 튼튼' }],
+  [{ name: '황금 이빨', line: '한 입에 둘 더 꿀꺽' }, { name: '용의 알 껍데기', line: '맞아도 반만 아파요' }],
   [{ name: '무지개 비늘', line: '떨어진 부위가 큰 폭죽' }, { name: '꿀단지', line: '같은 걸 또 먹으면 두 단계' }],
 ];
 /** 배우는 판은 너그럽게: 적이 주는 피해 배수 */
@@ -387,6 +387,7 @@ function hurtMe(s: DrState, dmg: number, x: number, y: number) {
   const me = s.me;
   if (me.inv > 0 || s.phase !== 'play') return;
   dmg *= EZ[s.stage];
+  if (s.perk[0] === 2) dmg *= 0.5;
   if (has(s, 'rock')) dmg *= 0.3;
   else if (has(s, 'storm')) dmg *= 0.5;
   me.hurtT = s.t;
@@ -501,7 +502,7 @@ function arrive(s: DrState) {
 /** 먹은 것의 부위가 돋는다: 옛 부위는 폭죽처럼 펑 떨어져 나가고, 같은 것이면 한 단계 커진다 */
 function attach(s: DrState, p: P, k: K, power: boolean) {
   const me = s.me, d = PD[p], slot = d.slot, old = me.parts[slot];
-  const max = (p === 'rock' ? 44 : 18) * (s.perk[0] === 2 ? 2 : 1) * (d.boss ? 2 : 1);
+  const max = (p === 'rock' ? 44 : 18) * (d.boss ? 2 : 1);
   let g = power ? 3 : 1;
   const first = !s.dex.includes(p);
   if (old && old.p === p) {
@@ -1543,6 +1544,8 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
       if ((tap && s.pt >= RES_MIN) || s.pt >= RES_AUTO) advance(s);
     } else if (s.phase === 'pick') {
       const ch = STAGES[s.stage].ch;
+      // 용은 두 선물 사이 위쪽으로 날아와 구경한다 (선물을 가리지 않게)
+      (s.me.x += (0.5 - s.me.x) * 0.1), (s.me.y += (0.56 - s.me.y) * 0.1);
       if (s.picked < 0) {
         if (tap && p && s.pt >= PICK_MIN) s.picked = p.x < 0.5 ? 0 : 1;
         else if (s.pt >= PICK_AUTO) s.picked = 0;
@@ -4072,7 +4075,7 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
       case 'popn': if (e.n >= 2) say(ex, ey - R(0.12), `폭죽 ${e.n}마리!`, '#ffd0f0', 16 + Math.min(6, e.n)); break;
       case 'power': fx.sound('thud', 0.5, 1.3); fx.sound('chime', 0.9, 1); fx.blink('#fff3a8', 0.45); fx.kick(12); puff(ex, ey, '#ffd84a', 20, 6, 3.6); break;
       case 'combo': fx.sound('chime', 1.5, 0.9); say(ex, ey - R(0.04), e.text, '#ff9ee0', 17); break;
-      case 'full': fx.sound('ding', 1.8, 0.5); puff(ex, ey, PD[e.text as P].col, 6, 2.5, 2.4); if (t - (fx.memo.fullT ?? -999) > 240) (fx.memo.fullT = t), say(ex, ey - R(0.05), '기운 가득!', '#fff3a8', 14); break;
+      case 'full': fx.sound('ding', 1.8, 0.5); puff(ex, ey, '#ff9ee0', 8, 2.5, 2.4); if (t - (fx.memo.fullT ?? -999) > 240 && (!s.big || t - s.big.t > 60)) (fx.memo.fullT = t), say(ex, ey + R(0.26), '먹으면 폭죽!', '#fff3a8', 14); break;
       case 'fire': fx.sound('whoosh', 0.6 + 0.08 * (3 - e.n), 0.9 + e.n * 0.15); fx.sound('splash', 1.8, 0.35); fx.kick(1 + e.n); break;
       case 'ice': fx.sound('ding', 1.6, 0.6); fx.sound('crack', 1.9, 0.45); break;
       case 'zap': fx.sound('zap', 1 + Math.min(10, e.n) * 0.08, 0.7); puff(ex, ey, '#fff07a', 4, 3, 2.2); break;

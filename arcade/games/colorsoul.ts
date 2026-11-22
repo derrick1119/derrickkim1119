@@ -23,6 +23,7 @@
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
+import type { SfxName } from '../sfx.ts';
 
 const A = 1.5, TAU = Math.PI * 2;
 /** 판 띠(화면 y, 가로 폭 = 1): 위 HUD 아래 ~ 아래 HUD 위 · 정령이 머무는 높이 */
@@ -2853,7 +2854,7 @@ const SPR = new Map<string, HTMLCanvasElement>();
 function bake(key: string, q: number, paint: (g: C2) => void): HTMLCanvasElement {
   let c = SPR.get(key);
   if (!c) {
-    if (SPR.size > 420) SPR.clear();
+    if (SPR.size > 520) for (const k of [...SPR.keys()].slice(0, 80)) SPR.delete(k);
     c = layer(SW * q, SH * q, 1, (g) => {
       g.translate(SOX * q, SOY * q);
       g.scale(q, q);
@@ -2861,9 +2862,35 @@ function bake(key: string, q: number, paint: (g: C2) => void): HTMLCanvasElement
       g.lineCap = 'round';
       paint(g);
     });
+    crop(c);
     SPR.set(key, c);
+    ((globalThis as any).__miss ??= []).push(key);
   }
   return c;
+}
+/** 스티커의 빈 가장자리를 잘라 둔다 (찍을 때 투명한 칸까지 섞지 않게 — 느린 폰에서 그리기가 반으로) */
+const CROP = new WeakMap<HTMLCanvasElement, [number, number, number, number]>();
+function crop(c: HTMLCanvasElement) {
+  const g = c.getContext('2d');
+  if (!g || typeof g.getImageData !== 'function') return;
+  const W = c.width, H = c.height, a = g.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) {
+    const row = y * W * 4;
+    let l = -1;
+    for (let x = 0; x < W; x++) if (a[row + x * 4 + 3]) { l = x; break; }
+    if (l < 0) continue;
+    let r = l;
+    for (let x = W - 1; x > l; x--) if (a[row + x * 4 + 3]) { r = x; break; }
+    if (l < x0) x0 = l;
+    if (r > x1) x1 = r;
+    if (y < y0) y0 = y;
+    y1 = y;
+  }
+  if (x1 < 0) return CROP.set(c, [0, 0, 1, 1]);
+  // 두 칸 여유 (가장자리 섞기가 그대로 나오게)
+  (x0 = Math.max(0, x0 - 2)), (y0 = Math.max(0, y0 - 2)), (x1 = Math.min(W, x1 + 3)), (y1 = Math.min(H, y1 + 3));
+  CROP.set(c, [x0, y0, x1 - x0, y1 - y0]);
 }
 /** 스티커 해상도는 약 15%씩 끊어서 (단계가 바뀔 때마다 새로 굽지 않게) */
 const qOf = (px: number) => Math.max(6, Math.round(Math.pow(2, Math.round(Math.log2(Math.max(6, px)) * 5) / 5)));
@@ -2904,6 +2931,17 @@ function warmList(stage: number, lv: number, w: number, sc: number): [string, ()
       for (const [c, pose] of [[col, 0], [col, 1], [0, 2]]) push(`e:${k}:${c}:${pose}:${qOf(px)}`, () => foeSprite(k, c, pose, px));
     }
   const forms = DEX.filter((f) => UNLOCK_AT[f] <= Math.min(STAGES.length - 1, stage + 1));
+  // 띠의 작은 그림 · 머리 위 말풍선 실루엣
+  for (const f of ['white' as FK, ...forms])
+    for (const u of [0.016, 0.018]) {
+      const px = w * u * sc * 1.05;
+      push(`f:${f}:0:${qOf(px)}`, () => formSprite(f, 0, px));
+    }
+  for (const f of forms) {
+    const fill = CHEX[FD[f].mask === RAIN ? 8 : FD[f].mask][0], px = w * 0.036 * 0.46 * sc * 2;
+    push(`s:${f}:${fill}:${qOf(px)}`, () => silhouette(f, fill, px));
+    push(`w:${f}`, () => (bigWord(`${FD[f].name}!`, FD[f].mask, w, sc), subWord(FD[f].does, w, sc)));
+  }
   for (let tier = 1; tier <= 5; tier++) for (const f of forms) for (const pose of [0, 1, 2]) form(f, tier, pose);
   WARM.set(wkey, list);
   return list;
@@ -2926,13 +2964,18 @@ function silhouette(f: FK, fill: string, px: number): HTMLCanvasElement {
       g.fillStyle = fill;
       g.fillRect(0, 0, SW * q, SH * q);
     });
+    crop(c);
     SPR.set(key, c);
   }
   return c;
 }
 /** 스티커 찍기: 지금 원점 = 발 가운데, u = 화면에서 몸 반지름 px */
 function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
-  ctx.drawImage(c, -SOX * u, -SOY * u, SW * u, SH * u);
+  if ((globalThis as any).__X & 32) return;
+  const k = CROP.get(c);
+  if (!k) return void ctx.drawImage(c, -SOX * u, -SOY * u, SW * u, SH * u);
+  const fx = (SW * u) / c.width, fy = (SH * u) / c.height;
+  ctx.drawImage(c, k[0], k[1], k[2], k[3], -SOX * u + k[0] * fx, -SOY * u + k[1] * fy, k[2] * fx, k[3] * fy);
 }
 
 // ───────────────────────────── 그리기: 회색 그림책 마을 (색 그림을 굽고 회색으로 보이다가, 물감이 닿은 자리만 색이 돌아온다) ─────────────────────────────
@@ -3138,11 +3181,38 @@ function paintTile(g: C2, ch: number, stage: number, i: number, w: number, plaza
 }
 interface Tile { col: HTMLCanvasElement; rev: HTMLCanvasElement; i: number }
 /** 판(상태 객체)마다 따로: 다른 판의 골목이 섞이지 않게 */
-const TILESETS = new WeakMap<object, { run: number; map: Map<string, Tile> }>();
-function tilesOf(s: SoulState): Map<string, Tile> {
+const TILESETS = new WeakMap<object, { run: number; map: Map<string, Tile>; pend: Map<string, HTMLCanvasElement> }>();
+function tileSet(s: SoulState) {
   let ts = TILESETS.get(s);
-  if (!ts || ts.run !== s.runId) TILESETS.set(s, (ts = { run: s.runId, map: new Map() }));
-  return ts.map;
+  if (!ts || ts.run !== s.runId) TILESETS.set(s, (ts = { run: s.runId, map: new Map(), pend: new Map() }));
+  return ts;
+}
+const tilesOf = (s: SoulState): Map<string, Tile> => tileSet(s).map;
+/** 굽기만 하고 아직 쓰지 않은 그림을 지금 다 그려 둔다 (1×1에 한 번 찍으면 밀린 그리기가 다 끝난다) */
+let FLUSH: C2 | null = null;
+function flushNow(c: HTMLCanvasElement) {
+  if (typeof document === 'undefined') return;
+  FLUSH ??= (() => {
+    const f = document.createElement('canvas');
+    f.width = f.height = 1;
+    return f.getContext('2d');
+  })();
+  FLUSH?.drawImage(c, 0, 0, 1, 1);
+}
+/** 위쪽 골목 미리 굽기를 두 프레임에 나눠서: 첫 프레임엔 색 그림, 다음 프레임엔 회색 자국 (느린 폰에서 한 프레임이 길어지지 않게) */
+function prepTile(s: SoulState, i: number, w: number, sc: number) {
+  const ts = tileSet(s), key = `${i}:${w}:${sc}`;
+  if (ts.map.has(key)) return;
+  if (!ts.pend.has(key)) {
+    const col = tileCol(s, i, w, sc);
+    flushNow(col);
+    return void ts.pend.set(key, col);
+  }
+  flushNow(getTile(s, i, w, sc).rev);
+}
+function tileCol(s: SoulState, i: number, w: number, sc: number) {
+  const d = STAGES[s.stage], plaza = i === Math.floor((-d.D + 0.3) / TH) ? 1 : 0;
+  return layer(w, TH * w, sc, (g) => ((g.lineJoin = 'round'), paintTile(g, d.ch, s.stage, i, w, plaza)));
 }
 function splat(g: C2, x: number, y: number, r: number, seed: number) {
   splatPath(g, x, y, r, seed, 8);
@@ -3191,11 +3261,11 @@ function bloomSpots(p: Paint, r: number): [number, number, number][] {
   return out;
 }
 function getTile(s: SoulState, i: number, w: number, sc: number): Tile {
-  const TILES = tilesOf(s), key = `${i}:${w}:${sc}`;
+  const ts = tileSet(s), TILES = ts.map, key = `${i}:${w}:${sc}`;
   let t = TILES.get(key);
   if (!t) {
-    const d = STAGES[s.stage], plaza = i === Math.floor((-d.D + 0.3) / TH) ? 1 : 0;
-    const col = layer(w, TH * w, sc, (g) => ((g.lineJoin = 'round'), paintTile(g, d.ch, s.stage, i, w, plaza)));
+    const col = ts.pend.get(key) ?? tileCol(s, i, w, sc);
+    ts.pend.delete(key);
     const rev = document.createElement('canvas');
     rev.width = col.width;
     rev.height = col.height;
@@ -3351,8 +3421,6 @@ export const starWords = (s: SoulState): string[] => {
   return ['마을 되살리기', '하트 안 잃기', third];
 };
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
-/** 멈춘 카메라의 배경 한 장 */
-const BGC = new WeakMap<object, { c: HTMLCanvasElement | null; camY: number; pa: number; run: number; w: number; dev: number; t: number }>();
 /** 칠해진 자리에서 피어나는 중인 꽃·풀 */
 const BLOOMS = new WeakMap<object, { x: number; y: number; r: number; c: number; seed: number; t: number }[]>();
 /** 도둑 그림은 판의 셈보다 조금 크게 (카메라를 가깝게) */
@@ -3384,8 +3452,21 @@ function drawGear(ctx: C2, x: number, y: number, k: number, lv: number, t: numbe
 }
 const __P: Record<string, number[]> = ((globalThis as any).__P = {});
 let __t0 = 0;
-const __T = (k: string) => { const n = performance.now(); if (k !== 'a') (__P[k] ??= []).push(n - __t0); __t0 = n; };
+const __T = (k: string) => { const n = performance.now(); if (k !== 'a') { (__P[k] ??= []).push(n - __t0); const F = (globalThis as any).__F; if (F) F[k] = +(n - __t0).toFixed(1); } __t0 = n; };
+/** 이 프레임 그리기를 시작한 시각 (그리기 전용 — 시뮬레이션은 쓰지 않는다) */
+let FRAME_T0 = 0;
+const spare = (ms: number) => typeof performance === 'undefined' || performance.now() - FRAME_T0 < ms;
+/** 한 프레임에 소리 하나는 바로, 나머지는 줄을 세웠다가 다음 프레임들에 (0.1초 넘게 밀리면 버린다) */
+const SNDQ = new WeakMap<object, [SfxName, number | undefined, number | undefined, number][]>();
+function playQueued(s: SoulState, fx: ReturnType<typeof juice>, t: number) {
+  const q = SNDQ.get(s);
+  while (q && q.length && spare(5)) {
+    const [n, p, v, qt] = q.shift()!;
+    if (t - qt <= 6) return fx.sound(n, p, v);
+  }
+}
 function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
+  FRAME_T0 = typeof performance === 'undefined' ? 0 : performance.now();
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => (y - s.camY) * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const me = s.me, seenT = fx.memo.t ?? -1;
@@ -3423,55 +3504,8 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
   __T('a');
   // ── 마을: 보이는 타일 + 새로 떨어진 물감 ──
   const i0 = Math.floor(s.camY / TH), i1 = Math.floor((s.camY + A) / TH), ww = Math.round(w), tsc = Math.min(1.5, sc);
-  {
-    const base = s.paintN - s.paints.length;
-    let k = Math.max(fx.memo.pa ?? 0, base);
-    // 한 프레임에 8방울까지 (큰 한 방에 한꺼번에 몰려도 끊기지 않게 — 나머지는 다음 프레임)
-    for (const end = Math.min(s.paintN, k + 2); k < end; k++) {
-      const p = s.paints[k - base];
-      for (let i = Math.floor((p.y - p.r) / TH); i <= Math.floor((p.y + p.r) / TH); i++) {
-        const tl = tilesOf(s).get(`${i}:${ww}:${tsc}`);
-        if (tl) applyPaint(tl, p, ww, tsc);
-      }
-      let bl = BLOOMS.get(s);
-      if (!bl) BLOOMS.set(s, (bl = []));
-      bl.push({ x: p.x, y: p.y, r: p.r, c: p.c === RAIN ? R_ : p.c, seed: p.seed, t });
-      if (bl.length > 7) bl.shift();
-    }
-    fx.memo.pa = k;
-  }
   __T('paint');
-  // 미리 굽기: 이 판에 나올 스티커를 프레임마다 둘씩
-  {
-    const rest = s.phase === 'result' || s.phase === 'pick', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
-    const list = warmList(ws, s.lv, w, sc), mk = `wm${ws}:${s.lv}`;
-    let i = fx.memo[mk] ?? 0, did = 0;
-    // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
-    if (!(rest && s.pt < 12)) for (; i < list.length && did < (rest ? 3 : 1); i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
-    fx.memo[mk] = i;
-  }
-  __T('warm');
-  {
-    // 카메라가 멈춰 있으면(대장 광장 · 붐벼서 멈춤) 배경을 화면 해상도로 한 장 구워 두고 그대로 찍는다 — 새 물감은 8프레임마다 다시 굽는다
-    const dev = typeof ctx.getTransform === 'function' ? ctx.getTransform().a || 1 : 1, prev = BGC.get(s);
-    const still = !!prev && prev.camY === s.camY && prev.run === s.runId;
-    if (!still) {
-      for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
-      BGC.set(s, { c: prev?.c ?? null, camY: s.camY, pa: -1, run: s.runId, w, dev, t: -99 });
-    } else {
-      const bg = prev!;
-      if (!bg.c || bg.w !== w || bg.dev !== dev || (bg.pa !== fx.memo.pa && t - bg.t >= 8)) {
-        if (!bg.c || bg.w !== w || bg.dev !== dev) (bg.c = document.createElement('canvas')), (bg.c.width = Math.ceil(w * dev)), (bg.c.height = Math.ceil(h * dev));
-        const g = bg.c.getContext('2d')!;
-        g.setTransform(dev, 0, 0, dev, 0, 0);
-        for (let i = i0; i <= i1; i++) g.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
-        (bg.pa = fx.memo.pa), (bg.t = t), (bg.w = w), (bg.dev = dev);
-      }
-      ctx.drawImage(bg.c, 0, 0, w, h);
-    }
-  }
-  // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에)
-  if (s.phase === 'play' && t % 4 === 0) getTile(s, i0 - 1, ww, tsc);
+  { const X = (globalThis as any).__X ?? 0; if (X & 2) ctx.imageSmoothingEnabled = false; if (!(X & 1)) for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5); ctx.imageSmoothingEnabled = true; }
   __T('tiles');
   // 되살아나는 순간: 풀이 쑥, 꽃이 퐁 (0.3초)
   {
@@ -3777,7 +3811,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     },
   });
   items.sort((a, b) => a.y - b.y);
-  for (const it of items) it.f();
+  if (!((globalThis as any).__X & 4)) for (const it of items) it.f();
   __T('items');
   // 이름표: 두 번째부터는 가운데 띠 대신 머리 위 작은 이름표 0.6초
   if (s.phase === 'play' && !s.eat && t - (fx.memo.nmT ?? -99) < 36 && me.f !== 'white') {
@@ -4025,7 +4059,16 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     }
 
   __T('gray');
-  // ── 방금 일어난 일: 소리 · 물감 · 흔들림 · 글자 (한 번만) ──
+  // ── 방금 일어난 일: 소리 · 물감 · 흔들림 · 글자 (한 번만) — 소리는 한 프레임에 넷까지 (느린 폰에서 여러 틱이 한 프레임에 몰려도) ──
+  let nsnd = 0;
+  const snd0 = fx.sound;
+  fx.sound = (n, p, v) => {
+    if (nsnd++ < 1) return snd0.call(fx, n, p, v);
+    let q = SNDQ.get(s);
+    if (!q) SNDQ.set(s, (q = []));
+    if (q.length < 4) q.push([n, p, v, t]);
+  };
+  try {
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const ex = X(e.x), ey = Y(e.y), col = Number(e.text);
@@ -4139,19 +4182,77 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       case 'retry': fx.sound('boing', 1, 0.7); break;
     }
   }
+  } finally {
+    delete (fx as { sound?: unknown }).sound;
+  }
   __T('events');
   if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1, 1), fx.blink('#fff6c8', 0.22), fx.kick(6);
   ctx.restore();
-  drawHud(ctx, s, w, h);
+  if (!((globalThis as any).__X & 8)) drawHud(ctx, s, w, h);
   __T('hud');
+  // ── 미룰 수 있는 일은 이 프레임에 여유가 있을 때만 (느린 폰에서 한 프레임에 몰리지 않게) ──
+  playQueued(s, fx, t);
+  // 새로 떨어진 물감을 골목 그림에 (다음 프레임부터 보인다)
+  {
+    const base = s.paintN - s.paints.length;
+    let k = Math.max(fx.memo.pa ?? 0, base);
+    // 한 프레임에 한두 방울 (둘째는 여유가 있을 때만 — 큰 한 방에 몰려도 끊기지 않게, 나머지는 다음 프레임)
+    for (const end = Math.min(s.paintN, k + 2); k < end && (k === Math.max(fx.memo.pa ?? 0, base) || spare(5)); k++) {
+      const p = s.paints[k - base];
+      for (let i = Math.floor((p.y - p.r) / TH); i <= Math.floor((p.y + p.r) / TH); i++) {
+        const tl = tilesOf(s).get(`${i}:${ww}:${tsc}`);
+        if (tl) applyPaint(tl, p, ww, tsc);
+      }
+      let bl = BLOOMS.get(s);
+      if (!bl) BLOOMS.set(s, (bl = []));
+      bl.push({ x: p.x, y: p.y, r: p.r, c: p.c === RAIN ? R_ : p.c, seed: p.seed, t });
+      if (bl.length > 7) bl.shift();
+    }
+    fx.memo.pa = k;
+  }
+  // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에 · 더 올라갈 골목이 있을 때만)
+  if (s.phase === 'play' && t % 3 === 0 && i0 * TH > -STAGES[s.stage].D + 1e-9 && spare(4)) prepTile(s, i0 - 1, ww, tsc);
+  // 미리 굽기: 이 판에 나올 스티커를 프레임마다 둘씩
+  {
+    const rest = s.phase === 'result' || s.phase === 'pick', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
+    const list = warmList(ws, s.lv, w, sc), mk = `wm${ws}:${s.lv}`;
+    let i = fx.memo[mk] ?? 0, did = 0;
+    // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
+    if (!(rest && s.pt < 12)) for (; i < list.length && did < (rest ? 3 : 1) && spare(rest ? 8 : 5); i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
+    fx.memo[mk] = i;
+  }
+  __T('warm');
   fx.memo.t = t;
 }
 /** 소용돌이 띠 굵기 차례 */
 const u0 = (j: number) => j * 0.18;
 
 // ───────────────────────────── 그리기: 띠 · 결과 · 선물 · 끝 ─────────────────────────────
+/** 테두리 굵은 글자를 한 번 구워 둔 것 (큰 순간 띠) — 미리 굽기 목록에도 들어간다 */
+type Word = { c: HTMLCanvasElement; tw: number; th: number };
+const WORDS = new Map<string, Word>();
+function word(str: string, px: number, fill: string, stroke: string, lw: number, res: number): Word {
+  const key = `${str}|${px}|${fill}|${stroke}|${lw}|${res}`;
+  let wd = WORDS.get(key);
+  if (!wd) {
+    if (WORDS.size > 60) WORDS.delete(WORDS.keys().next().value!);
+    const f = `900 ${px}px system-ui, sans-serif`, m = document.createElement('canvas').getContext('2d')!;
+    m.font = f;
+    const tw = m.measureText(str).width + lw * 2 + 4, th = px * 1.5 + lw * 2;
+    const c = layer(tw, th, res, (g) => {
+      (g.font = f), (g.textAlign = 'center'), (g.textBaseline = 'middle'), (g.lineJoin = 'round');
+      (g.lineWidth = lw), (g.strokeStyle = stroke), g.strokeText(str, tw / 2, th / 2);
+      (g.fillStyle = fill), g.fillText(str, tw / 2, th / 2);
+    });
+    WORDS.set(key, (wd = { c, tw, th }));
+  }
+  return wd;
+}
+const bigWord = (str: string, col: number, w: number, sc: number) => word(str, Math.max(12, Math.round(w * 0.06)), '#ffffff', col ? CHEX[col === RAIN ? 8 : col][2] : '#ff5a2e', 6, sc * 1.5);
+const subWord = (str: string, w: number, sc: number) => word(str, Math.max(12, Math.round(w * 0.034)), '#3b3150', '#ffffff', 4, sc * 1.5);
+const drawWord = (ctx: C2, wd: Word, x: number, y: number) => ctx.drawImage(wd.c, x - wd.tw / 2, y - wd.th / 2, wd.tw, wd.th);
 /** 위·아래 띠 (글자가 많아 매 프레임 다시 그리지 않고, 내용이 바뀔 때만 굽는다) — 돌려주는 값: 모습 시간 막대 자리 */
-function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss: Foe | undefined): [number, number, number, number] | null {
+function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss: Foe | undefined, part: 0 | 1): [number, number, number, number] | null {
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const d = STAGES[s.stage], me = s.me;
   let bar: [number, number, number, number] | null = null;
@@ -4164,6 +4265,7 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
   };
   const INK = '#3b3150', MUTED = '#9a8fb0', CREAM = '#ffeed2', LINE = '#ebc98e';
   ctx.textBaseline = 'middle';
+  if (part === 0) {
   // ── 위 띠: 판 · 이름 · 하트 · 별 · 정령 레벨 ──
   ctx.fillStyle = CREAM;
   ctx.fillRect(0, 0, w, Y(0.1));
@@ -4206,6 +4308,8 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
   ctx.restore();
   font(0.035, 900);
   text(`Lv${s.lv}`, X(0.888), Y(0.053), '#6a74a8');
+  return null;
+  }
 
   // ── 아래 띠: 별 셋 · 지금 모습 · 한 줄 도움말 ──
   ctx.fillStyle = CREAM;
@@ -4279,7 +4383,10 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
   text(tip, w / 2, Y(1.452), INK);
   return bar;
 }
-const BANDS = new WeakMap<object, { key: string; c: HTMLCanvasElement; bar: [number, number, number, number] | null; w: number; sc: number }>();
+type Bar = [number, number, number, number] | null;
+type Cv2 = [HTMLCanvasElement | null, HTMLCanvasElement | null];
+/** 띠 캔버스: c 앞(보이는 것) · b 뒤(새로 굽는 것) · ph 뒤 상태(0 없음 · 1 그림 · 2 다 그림) · p 바뀐 줄 안 시각 */
+const BANDS = new WeakMap<object, { k: [string, string]; c: Cv2; b: Cv2; bk: [string, string]; ph: [number, number]; bb: Bar; p: [number, number]; bar: Bar; w: number; sc: number; t: number }>();
 function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
@@ -4295,20 +4402,53 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
   ctx.textBaseline = 'middle';
   const boss = s.foes.find((m) => ED[m.k].boss && !m.dead);
   {
-    const st = d.star, hk = [s.stage, s.hearts, s.stars, s.lv, s.phase, me.f, me.tier, me.mask, s.multi[-1] ?? 0, s.star3, s.lostHeart, st.k === 'time' && s.stageT > st.n * 60, s.tapped, s.taps < 4, s.newDex.length, s.got, s.patches.some((p) => p.loose && !p.gone), !!boss, s.stageT < 900, s.won, s.starOk.join()].join('|');
+    const st = d.star, kTop = [s.stage, s.hearts, s.stars, s.lv].join('|');
+    const kBot = [s.stage, s.phase, me.f, me.tier, me.mask, s.multi[-1] ?? 0, s.star3, s.lostHeart, st.k === 'time' && s.stageT > st.n * 60, s.tapped, s.taps < 4, s.newDex.length, s.got, s.patches.some((p) => p.loose && !p.gone), !!boss, s.stageT < 900, s.won, s.starOk.join()].join('|');
     let hb = BANDS.get(s);
-    if (!hb || hb.key !== hk || hb.w !== w || hb.sc !== sc) {
-      const reuse = !!hb && hb.w === w && hb.sc === sc, c = reuse ? hb!.c : document.createElement('canvas');
-      if (!reuse) (c.width = Math.ceil(w * sc)), (c.height = Math.ceil(h * sc));
+    if (!hb || hb.w !== w || hb.sc !== sc) BANDS.set(s, (hb = { k: ['', ''], c: [null, null], b: [null, null], bk: ['', ''], ph: [0, 0], bb: null, p: [-1, -1], bar: null, w, sc, t: -99 }));
+    // 위·아래 띠는 따로 작은 캔버스에 — 바뀐 쪽만, 뒤 캔버스에 그리고(1) → 여유 있는 프레임에 다 그려 두고(2) → 바꿔 끼운다
+    // (느린 폰에서 톡 하는 순간 글자 그리기가 한 프레임에 몰리지 않게 · 빠른 폰에선 2프레임 늦을 뿐)
+    const yb = Y(1.31) - 2, keys = [kTop, kBot];
+    for (const part of [1, 0] as const) {
+      const front = !hb.c[part];
+      if (hb.ph[part] === 2) {
+        const c = hb.c[part];
+        (hb.c[part] = hb.b[part]), (hb.b[part] = c), (hb.k[part] = hb.bk[part]), (hb.ph[part] = 0);
+        if (part) hb.bar = hb.bb;
+        continue;
+      }
+      if (hb.ph[part] === 1) {
+        if (hb.t !== t && (spare(5) || t - hb.p[part] >= 6)) flushNow(hb.b[part]!), (hb.ph[part] = 2), (hb.t = t);
+        continue;
+      }
+      if (hb.k[part] === keys[part]) {
+        hb.p[part] = -1;
+        continue;
+      }
+      if (hb.p[part] < 0) hb.p[part] = t;
+      if (!front && (hb.t === t || (!spare(5) && t - hb.p[part] < 6))) continue;
+      const ch = part ? h - yb : Y(0.1);
+      let c = front ? hb.c[part] : hb.b[part];
+      if (!c) ((c = document.createElement('canvas')), (c.width = Math.ceil(w * sc)), (c.height = Math.ceil(ch * sc)));
       const g = c.getContext('2d')!;
       g.setTransform(1, 0, 0, 1, 0, 0);
-      if (reuse) g.clearRect(0, 0, c.width, Math.ceil(Y(0.1) * sc) + 2), g.clearRect(0, Math.floor(Y(1.31) * sc) - 4, c.width, c.height);
-      g.setTransform(sc, 0, 0, sc, 0, 0);
-      BANDS.set(s, (hb = { key: hk, c, bar: hudBands(g, s, w, h, sc, boss), w, sc }));
+      g.clearRect(0, 0, c.width, c.height);
+      g.setTransform(sc, 0, 0, sc, 0, part ? -yb * sc : 0);
+      const q0 = performance.now();
+      const bar = hudBands(g, s, w, h, sc, boss, part);
+      const F = (globalThis as any).__F; if (F) F.hb = +(performance.now() - q0).toFixed(1);
+      hb.t = t;
+      if (front) {
+        (hb.c[part] = c), (hb.k[part] = keys[part]);
+        if (part) hb.bar = bar;
+      } else (hb.b[part] = c), (hb.bk[part] = keys[part]), (hb.ph[part] = 1), part && (hb.bb = bar);
     }
-    const top = Math.ceil(Y(0.1) * sc), y0 = Math.floor(Y(1.31) * sc) - 2;
-    ctx.drawImage(hb.c, 0, 0, hb.c.width, top, 0, 0, w, top / sc);
-    ctx.drawImage(hb.c, 0, y0, hb.c.width, hb.c.height - y0, 0, y0 / sc, w, (hb.c.height - y0) / sc);
+    const q1 = performance.now();
+    for (const part of [0, 1] as const) {
+      const c = hb.c[part];
+      if (c) ctx.drawImage(c, 0, part ? yb : 0, c.width / sc, c.height / sc);
+    }
+    { const F = (globalThis as any).__F; if (F) F.hblit = +(performance.now() - q1).toFixed(1); }
     if (hb.bar) {
       const [bx, by, bw, bh] = hb.bar, q = clamp(me.T / Math.max(1, me.Tmax), 0, 1);
       rr(ctx, bx, by, Math.max(bh, bw * q), bh, bh / 2);
@@ -4401,10 +4541,9 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.restore();
-    font(0.06, 900);
     ctx.save();
     ctx.scale(pop, pop);
-    text(s.big.text, 0, -R(0.018), '#ffffff', s.big.col ? c[2] : '#ff5a2e', 6);
+    drawWord(ctx, bigWord(s.big.text, s.big.col, w, sc), 0, -R(0.018));
     ctx.restore();
     font(0.034, 900);
     if (s.big.star) {
@@ -4416,7 +4555,7 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
       ctx.strokeStyle = '#a06a12';
       ctx.lineWidth = 2;
       ctx.stroke();
-    } else if (s.big.sub) text(s.big.sub, 0, R(0.04), INK, '#ffffff', 4);
+    } else if (s.big.sub) drawWord(ctx, subWord(s.big.sub, w, sc), 0, R(0.04));
     ctx.restore();
   }
 
@@ -4635,3 +4774,5 @@ export const __bot = { fit, burstEst, toward, cands, bestForm };
 export const __morph = (s: SoulState, col: number, bonus = 0) => transform(s, col, bonus, ++s.aid);
 /** 스크린샷용: 정령이 맞은 것처럼 */
 export const __hit = (s: SoulState, u: number) => hitMe(s, u, s.me.x + 0.05, s.me.y - 0.1);
+export const __hudB = (...a: Parameters<typeof hudBands>) => hudBands(...a);
+export const __tileB = (s: SoulState, i: number, w: number, sc: number) => getTile(s, i, w, sc);
