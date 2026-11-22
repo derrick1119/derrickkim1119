@@ -5,11 +5,11 @@
  * 조작은 톡 하나: 톡한 곳에서 가장 가까운 떼를 먹으러 간다. 먹은 뒤 0.6초는 꼭꼭 씹는다. 싸움은 몸이 저절로 한다.
  * 정답 판이 아니다: 어떤 부위든 어떤 짐승에게나 제 몫(×0.8~1)은 한다. 그림으로 짐작되는 어울림(딱딱한 것엔 망치·박치기,
  *   빠른 것엔 얼음, 작은 떼엔 불·회오리 …)이면 두 배로 크게 터지고 곁의 같은 짐승에게 줄줄이 번진다.
- * 딱 맞아(분홍 숫자): 어울리는 공격으로 쓰러뜨릴 때마다 하나씩 쌓이고 그만큼 점수가 커진다 — 먹으면 그 숫자만큼 큰 폭죽으로 터지고 0부터.
- *   3초 동안 어울리게 못 쓰러뜨려도 끊긴다. 그래서 '지금 몸을 지킬까, 바꿀까'가 매 순간의 판단이다.
- * 판 12개(장 3 × 3판 + 대장), 판마다 새 짐승 하나 = 새로 돋을 수 있는 부위 하나. 대장은 못 먹는다 — 대장이 흘려 멀리 날아가는
- *   깃털·꼬리·뿔을 톡 하면 그 대장의 힘(천둥·폭풍·물결)이 내 몸에: 화면 전체를 쓸고, 대장도 크게 다친다.
- * 별: 하늘 비우기(대장 이기기) · 하트 안 잃고 · 셋째(1·2판 줄줄이 N, 대장 판 대장의 힘 3번, 나머지 딱 맞아 N). 판 점수는 별 수로 곱해진다.
+ * 딱 맞아(분홍 숫자): 어울리는 공격으로 쓰러뜨릴 때마다 쌓인다(큰 부위일수록 더 많이) — 판 내내 절대 줄지 않는다.
+ *   먹을 때마다 '최근 3초 사이 딱 맞아 수'만큼 덤 폭죽이 터진다(모아 두는 저금이 아니다). 바꾸는 것은 손해가 아니다.
+ * 판 12개(장 3 × 3판 + 대장), 판마다 새 짐승 하나 = 새로 돋을 수 있는 부위 하나. 대장은 못 먹는다 — 대장이 흘린
+ *   깃털·꼬리·뿔(용과 대장 사이로 떨어져 9초 떠 있다)을 톡 하면 그 대장의 힘이 내 몸에: 화면 전체를 쓸고, 대장에게는 ×3 한 방.
+ * 별: 하늘 비우기(대장 이기기) · 하트 안 잃고 · 셋째(1·2판 줄줄이 N, 대장 판 N초 안에 이기기, 나머지 판 누적 딱 맞아 N). 판 점수 = (깬 몫 + 빨리 깬 몫 + 싸움 몫) × 별.
  * 둘이 만나면 새 모습: 불꽃 회오리 · 얼음 깨기 · 번개 가시 · 거품 바람 · 쿵쾅 박치기. 도감 = 돋아 본 부위 12 + 만든 조합.
  * 성장(저절로): 판을 깨면 용 레벨 +1(몸이 크고 뿔이 자라고 힘이 세진다) · 장 끝에 하늘의 큰 물건 둘 중 하나를 톡.
  * 글자는 숫자만: 한 번에 쓰러뜨린 수가 그 자리에서 숫자 하나로 커진다. 가운데 이름표 카드(0.9초)는 처음 돋은 부위 · 별 셋째 · 대장 순간에만.
@@ -31,7 +31,7 @@ const CHEW_T = 36, GULP_T = 8;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나 · 실패 · 끝 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210, FAIL_MIN = 70, FAIL_AUTO = 260;
 /** 큰 띠(판 최고 기록) 문턱 · 판 깸 점수 · 별 곱 · 마지막 판 보너스 */
-const WOW_N = 5, CLEAR_PTS = 20, STAR_MUL = [1, 1, 2, 6], WIN_PTS = 100;
+const WOW_N = 5, CLEAR_PTS = 150, STAR_MUL = [1, 1, 2, 8], WIN_PTS = 100;
 
 /** 몸의 자리: 0 머리 · 1 등 · 2 꼬리 */
 type Slot = 0 | 1 | 2;
@@ -84,9 +84,9 @@ export const KD: Record<K, KDef> = {
   spark: { name: '번개 참새', p: 'bolt', r: 0.033, hp: 18, spd: 0.0035, beh: 'snipe', dmg: 6, per: 110, col: '#ffd93a', small: true, shoot: true },
   puff: { name: '가시 복어', p: 'spike', r: 0.056, hp: 55, spd: 0.0022, beh: 'float', dmg: 11, per: 60, col: '#ffc34a', big: true },
   owl: { name: '바람 부엉이', p: 'wing', r: 0.052, hp: 40, spd: 0.003, beh: 'snipe', dmg: 7, per: 140, col: '#b9a3ff', shoot: true },
-  eagle: { name: '대장 폭풍 독수리', p: 'storm', r: 0.115, hp: 4000, spd: 0.004, beh: 'boss', dmg: 14, per: 200, col: '#9fd0ff', boss: true, big: true },
-  whale: { name: '대장 구름 고래', p: 'wave', r: 0.15, hp: 5000, spd: 0.0016, beh: 'boss', dmg: 12, per: 220, col: '#9fd8ff', boss: true, big: true },
-  drake: { name: '대장 번개 용', p: 'thunder', r: 0.13, hp: 5800, spd: 0.0028, beh: 'boss', dmg: 16, per: 190, col: '#ffd84a', boss: true, big: true },
+  eagle: { name: '대장 폭풍 독수리', p: 'storm', r: 0.115, hp: 2800, spd: 0.004, beh: 'boss', dmg: 14, per: 200, col: '#9fd0ff', boss: true, big: true },
+  whale: { name: '대장 구름 고래', p: 'wave', r: 0.15, hp: 1900, spd: 0.0016, beh: 'boss', dmg: 12, per: 220, col: '#9fd8ff', boss: true, big: true },
+  drake: { name: '대장 번개 용', p: 'thunder', r: 0.13, hp: 2800, spd: 0.0028, beh: 'boss', dmg: 16, per: 190, col: '#ffd84a', boss: true, big: true },
 };
 /** 왕: 크기·체력·세기 배수 */
 const KING_R = 1.75, KING_HP = 5, KING_DMG = 1.5;
@@ -96,7 +96,7 @@ const DROP_NAME: Partial<Record<K, string>> = { eagle: '폭풍 깃털', whale: '
 interface Fl { k: K; n: number; king?: boolean }
 interface Wave { need: number; wait: number; fl: Fl[] }
 /** 별 셋째: chain = 줄줄이 N마리(약점 연쇄) · pop = 폭죽 한 번에 N마리(기운 찬 부위를 바꿀 때) · sky = 대장 힘으로 한 번에 N마리 */
-interface StageDef { key: K; ch: number; name: string; news: string; n: number; star: 'chain' | 'pop' | 'sky' | 'combo'; waves: Wave[]; summon?: Fl[][] }
+interface StageDef { key: K; ch: number; name: string; news: string; n: number; star: 'chain' | 'pop' | 'sky' | 'combo' | 'fast'; waves: Wave[]; summon?: Fl[][] }
 const W = (need: number, wait: number, ...fl: Fl[]): Wave => ({ need, wait, fl });
 const F = (k: K, n: number, king = false): Fl => ({ k, n, king });
 export const CHAPTERS = ['아침 구름 들판', '무지개 폭포 섬', '노을 번개 성'];
@@ -107,16 +107,16 @@ export const CHAPTERS = ['아침 구름 들판', '무지개 폭포 섬', '노을
 export const STAGES: StageDef[] = [
   { key: 'bat', ch: 0, name: '불꽃 박쥐', news: '박쥐를 톡 — 꿀꺽 먹으면 불을 뿜어요', n: 6, star: 'chain', waves: [W(0, 0, F('bat', 8)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6))] },
   { key: 'beetle', ch: 0, name: '바위 딱정벌레', news: '딱정벌레를 먹으면 바위 갑옷 — 쿵 박치기', n: 4, star: 'chain', waves: [W(0, 0, F('beetle', 4), F('bat', 6)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4))] },
-  { key: 'fly', ch: 0, name: '바람개비 잠자리', news: '잠자리를 먹으면 바람개비 꼬리 — 빙글빙글', n: 25, star: 'combo', waves: [W(0, 0, F('fly', 6), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7))] },
-  { key: 'eagle', ch: 0, name: '대장 폭풍 독수리', news: '대장은 못 먹어요 — 흘린 깃털을 톡!', n: 3, star: 'sky', waves: [W(0, 0, F('eagle', 1), F('bat', 6))], summon: [[F('bat', 7)], [F('fly', 6)], [F('beetle', 3), F('bat', 4)]] },
-  { key: 'bfly', ch: 1, name: '얼음 나비', news: '나비를 먹으면 얼음 숨결 — 쭉 뻗는 얼음', n: 40, star: 'combo', waves: [W(0, 0, F('bfly', 6), F('fly', 5)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4))] },
-  { key: 'jelly', ch: 1, name: '거품 해파리', news: '해파리를 먹으면 거품 숨결 — 가둬서 펑', n: 30, star: 'combo', waves: [W(0, 0, F('jelly', 2), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('beetle', 3), F('jelly', 2))] },
-  { key: 'squir', ch: 1, name: '돌망치 다람쥐', news: '다람쥐를 먹으면 망치 꼬리 — 쾅!', n: 9, star: 'combo', waves: [W(0, 0, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2))] },
-  { key: 'whale', ch: 1, name: '대장 구름 고래', news: '대장은 못 먹어요 — 흘린 꼬리를 톡!', n: 3, star: 'sky', waves: [W(0, 0, F('whale', 1), F('jelly', 2), F('bfly', 3))], summon: [[F('bfly', 6), F('fly', 3)], [F('fly', 6)], [F('jelly', 2), F('bfly', 3)], [F('bat', 7)]] },
-  { key: 'spark', ch: 2, name: '번개 참새', news: '참새를 먹으면 번개 숨결 — 찌릿 줄줄이', n: 20, star: 'combo', waves: [W(0, 0, F('spark', 5), F('fly', 4)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3))] },
-  { key: 'puff', ch: 2, name: '가시 복어', news: '복어를 먹으면 가시 등 — 사방으로 퓽퓽', n: 11, star: 'combo', waves: [W(0, 0, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3))] },
-  { key: 'owl', ch: 2, name: '바람 부엉이', news: '부엉이를 먹으면 큰 날개 — 휙 바람', n: 18, star: 'combo', waves: [W(0, 0, F('owl', 2), F('spark', 4), F('bat', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4))] },
-  { key: 'drake', ch: 2, name: '대장 번개 용', news: '마지막 대장 — 흘린 뿔을 먹으면 천둥이 내 것', n: 3, star: 'sky', waves: [W(0, 0, F('drake', 1), F('spark', 4))], summon: [[F('spark', 6)], [F('fly', 6)], [F('spark', 4), F('fly', 3)], [F('bfly', 5)], [F('owl', 2), F('spark', 4)]] },
+  { key: 'fly', ch: 0, name: '바람개비 잠자리', news: '잠자리를 먹으면 바람개비 꼬리 — 빙글빙글', n: 215, star: 'combo', waves: [W(0, 0, F('fly', 6), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7))] },
+  { key: 'eagle', ch: 0, name: '대장 폭풍 독수리', news: '대장은 못 먹어요 — 흘린 깃털을 톡!', n: 28, star: 'fast', waves: [W(0, 0, F('eagle', 1), F('bat', 6))], summon: [[F('bat', 7)], [F('fly', 6)], [F('beetle', 3), F('bat', 4)]] },
+  { key: 'bfly', ch: 1, name: '얼음 나비', news: '나비를 먹으면 얼음 숨결 — 쭉 뻗는 얼음', n: 265, star: 'combo', waves: [W(0, 0, F('bfly', 6), F('fly', 5)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4))] },
+  { key: 'jelly', ch: 1, name: '거품 해파리', news: '해파리를 먹으면 거품 숨결 — 가둬서 펑', n: 150, star: 'combo', waves: [W(0, 0, F('jelly', 2), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('beetle', 3), F('jelly', 2))] },
+  { key: 'squir', ch: 1, name: '돌망치 다람쥐', news: '다람쥐를 먹으면 망치 꼬리 — 쾅!', n: 88, star: 'combo', waves: [W(0, 0, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2))] },
+  { key: 'whale', ch: 1, name: '대장 구름 고래', news: '대장은 못 먹어요 — 흘린 꼬리를 톡!', n: 20, star: 'fast', waves: [W(0, 0, F('whale', 1), F('jelly', 2), F('bfly', 3))], summon: [[F('bfly', 6), F('fly', 3)], [F('fly', 6)], [F('jelly', 2), F('bfly', 3)], [F('bat', 7)]] },
+  { key: 'spark', ch: 2, name: '번개 참새', news: '참새를 먹으면 번개 숨결 — 찌릿 줄줄이', n: 135, star: 'combo', waves: [W(0, 0, F('spark', 5), F('fly', 4)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3))] },
+  { key: 'puff', ch: 2, name: '가시 복어', news: '복어를 먹으면 가시 등 — 사방으로 퓽퓽', n: 100, star: 'combo', waves: [W(0, 0, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3))] },
+  { key: 'owl', ch: 2, name: '바람 부엉이', news: '부엉이를 먹으면 큰 날개 — 휙 바람', n: 165, star: 'combo', waves: [W(0, 0, F('owl', 2), F('spark', 4), F('bat', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4))] },
+  { key: 'drake', ch: 2, name: '대장 번개 용', news: '마지막 대장 — 흘린 뿔을 먹으면 천둥이 내 것', n: 24, star: 'fast', waves: [W(0, 0, F('drake', 1), F('spark', 4))], summon: [[F('spark', 6)], [F('fly', 6)], [F('spark', 4), F('fly', 3)], [F('bfly', 5)], [F('owl', 2), F('spark', 4)]] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(하늘의 큰 물건) */
@@ -127,7 +127,7 @@ export const PERKS: { name: string; line: string }[][] = [
 /** 배우는 판은 너그럽게: 적이 주는 피해 배수 */
 const EZ = [0.35, 0.6, 0.85, 0.85, 1.2, 1.3, 1.25, 0.9, 1.2, 0.8, 1.4, 1.1];
 /** 대장이 흘린 것: 잡히는 거리 · 머무는 틱 */
-const ITEM_R = 0.13, ITEM_T = 360;
+const ITEM_R = 0.13, ITEM_T = 540;
 /** 대장이 제 부위를 흘리는 체력 */
 const DROP_AT = [0.85, 0.6, 0.35, 0.12];
 /** 가운데 이름표 카드가 머무는 틱 (0.9초) */
@@ -182,7 +182,7 @@ interface Shed { p: P; g: number; x: number; y: number; vx: number; vy: number; 
 export interface DrState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result' | 'pick' | 'fail' | 'end'; pt: number;
   /** 하트 · 지난 판까지 점수 · 이번 판 점수(별로 곱해지기 전) · 별 · 이번 판 별 */
-  hearts: number; hp: number; pts: number; sp: number; stars: number; got: number; starOk: boolean[]; combo: number; comboT: number; comboBest: number; popBest: number; popN: number; popT: number; skyBest: number; skyE: number; skyC: number; dead: boolean; won: boolean; lostHeart: boolean;
+  hearts: number; hp: number; pts: number; sp: number; stars: number; got: number; starOk: boolean[]; combo: number; comboT: number; /** 최근 딱 맞아 틱들 (먹을 때 덤 폭죽 크기) */ rec: number[]; comboBest: number; popBest: number; popN: number; popT: number; skyBest: number; skyE: number; skyC: number; dead: boolean; won: boolean; lostHeart: boolean;
   /** 용 레벨 · 장 끝에 고른 것(0 아직 · 1 왼쪽 · 2 오른쪽) · 방금 고른 것 · 도감(부위) · 이번 판에 새로 돋은 것 · 만든 조합 */
   lv: number; perk: number[]; picked: number; dex: P[]; newDex: P[]; combos: string[]; newCombo: string[]; forms: string[];
   me: Me; mons: Mon[]; flocks: Flock[]; nid: number; shots: Shot[]; mines: Mine[]; twisters: Twister[]; items: Item[]; q: Q[];
@@ -256,7 +256,7 @@ function keepIn(m: { x: number; y: number; r: number }) {
 
 // ───────────────────────────── 쓰러뜨리기 ─────────────────────────────
 /** 쓰러뜨리기 — weak: 약점을 찌른 공격(딱 맞아!)이면 10점 + 줄줄이 n번째는 ⌈n²/4⌉점 더, 아니면 1점 */
-function kill(s: DrState, m: Mon, eid: number, how = 0, weak = false) {
+function kill(s: DrState, m: Mon, eid: number, how = 0, weak = false, gw = 1) {
   if (m.dead) return;
   m.dead = true;
   s.kills++;
@@ -266,13 +266,16 @@ function kill(s: DrState, m: Mon, eid: number, how = 0, weak = false) {
     s.evN.set(eid, n);
     if (s.evN.size > 40) s.evN.delete(s.evN.keys().next().value as number);
     // 딱 맞아 이어 가기: 맞는 공격으로 쓰러뜨릴 때마다 하나씩 쌓이고, 그만큼 점수
-    s.combo++;
+    const c0 = s.combo;
+    s.combo += gw;
     s.comboT = s.t;
+    s.rec.push(s.t);
+    if (s.rec.length > 24) s.rec.shift();
     s.hp = Math.min(HP_MAX, s.hp + 0.7);
     if (s.combo > s.comboBest) s.comboBest = s.combo;
     const d = STAGES[s.stage];
-    if (d.star === 'combo' && s.combo === d.n) card(s, '별 셋째!', `딱 맞아 ${d.n}`, 3, '#ffb800', null, true), ev(s, 'star3', m.x, m.y);
-    s.sp += (4 + s.combo) * stMul(s);
+    if (d.star === 'combo' && c0 < d.n && s.combo >= d.n) card(s, '별 셋째!', `딱 맞아 ${d.n}`, 3, '#ffb800', null, true), ev(s, 'star3', m.x, m.y);
+    s.sp += gw * 2 * stMul(s);
     s.wkills++;
     if (n > s.best) {
       const star = d.star === 'chain' && s.best < d.n && n >= d.n;
@@ -307,8 +310,8 @@ export const WEAK: Record<K, Atk[]> = {
   squir: ['bubble', 'gust'], spark: ['twist', 'gust'], puff: ['hammer'], owl: ['bolt'], eagle: [], whale: [], drake: [],
 };
 const WEAK_MUL = 2;
-/** 딱 맞아 이어 가기: 이만큼(3초) 딱 맞게 못 쓰러뜨리면 끊긴다 */
-const COMBO_T = 180;
+/** 먹을 때 덤 폭죽이 세는 '최근' (3초) */
+const REC_T = 180;
 /** 용의 체력(하트 하나만큼) */
 const HP_MAX = 30;
 /** 연쇄 불티 빛깔 (공격 종류마다) */
@@ -328,7 +331,8 @@ function hurt(s: DrState, m: Mon, amt: number, eid: number, kind: Atk, kx = 0, k
   amt *= resOf(m.k, kind);
   if (m.frozen > 0) amt *= 1.8;
   // 대장은 대장의 힘에 크게 다친다 (다른 공격은 조금)
-  if (kd.boss) amt *= kind === 'sky' ? 1 : 0.6;
+  // 대장은 무엇에나 제대로 다치고, 대장의 힘은 큰 한 방(×3)
+  if (kd.boss && kind === 'sky') amt *= 1.5;
   if (weak && eid > 0 && left !== 0) {
     // 딱 맞는 공격은 맞힌 순간 곁의 같은 약점으로 번진다 (부위가 클수록 멀리·많이)
     const g = s.me.parts[ATK_SLOT[kind]]?.g ?? 1, n = left < 0 ? [0, 3, 5, 8][g] : left - 1;
@@ -340,7 +344,7 @@ function hurt(s: DrState, m: Mon, amt: number, eid: number, kind: Atk, kx = 0, k
   if (kd.boss) bossHurt(s, m);
   if (m.hp <= 0) {
     // 싸운 부위에 기운이 찬다 (딱 맞게 쓰러뜨리면 두 배)
-    kill(s, m, eid, 0, weak);
+    kill(s, m, eid, 0, weak, kind === 'sky' ? 3 : s.me.parts[ATK_SLOT[kind]]?.g ?? 1);
     if (kind === 'sky' && eid > 0) skyScore(s, eid);
     return true;
   }
@@ -481,7 +485,7 @@ function arrive(s: DrState) {
   // 꿀꺽 하고 뒤로 통 — 새 부위가 날뛸 자리를 만든다
   me.vx = -me.face * 0.012;
   me.vy = -0.003;
-  if (s.combo >= 2) firework(s);
+  if (recentN(s) >= 2) firework(s);
   if (!p || !k) return void ev(s, 'miss', me.x, me.y);
   ev(s, 'gulp', me.x, me.y, n, 0, 0, k);
   attach(s, p, k, power);
@@ -540,20 +544,17 @@ function shed(s: DrState, old: Part, slot: number) {
   ev(s, 'shed', x, y, 2, R, 0, old.p);
   blast(s, me.x, me.y, R, dmg, 0, 0.014, 'shed');
 }
-/** 먹는 순간, 쌓인 딱 맞아가 폭죽으로 펑 — 많이 쌓을수록 크고 세다 (붐비는 떼에서 먹으면 한꺼번에) */
+/** 최근 3초 사이의 딱 맞아 수 */
+const recentN = (s: DrState) => s.rec.reduce((a, q) => a + (s.t - q <= REC_T ? 1 : 0), 0);
+/** 먹는 순간 덤 폭죽: 최근 3초 사이 딱 맞아 수만큼 크고 세다 (딱 맞아 자체는 줄지 않는다 — 모아 두는 저금이 아니다) */
 function firework(s: DrState) {
-  const me = s.me, n0 = Math.min(s.combo, 16), R = (0.07 + 0.02 * n0) * (s.perk[1] === 1 ? 1.25 : 1), dmg = (16 + 10 * n0) * pw(s, 1);
+  const me = s.me, n0 = Math.min(recentN(s), 16), R = (0.07 + 0.02 * n0) * (s.perk[1] === 1 ? 1.25 : 1), dmg = (16 + 10 * n0) * pw(s, 1);
+  s.rec = [];
   ev(s, 'boom', me.x, me.y, n0, R);
   if (n0 >= 6) see(s, 'bigboom');
-  s.combo = 0;
   const k0 = s.kills;
   blast(s, me.x, me.y, R, dmg, ++s.eid, 0.02, 'pop');
   popScore(s, s.kills - k0, me.x, me.y);
-}
-/** 딱 맞아 이어 가기가 끊긴다 (맞았거나 3초 동안 딱 맞게 못 쓰러뜨림) */
-function comboBreak(s: DrState) {
-  if (s.combo >= 3) ev(s, 'cbreak', s.me.x, s.me.y, s.combo);
-  s.combo = 0;
 }
 /** 대장의 힘(천둥·폭풍·고래 물결) 한 번에 쓰러뜨린 수 */
 function skyScore(s: DrState, eid: number) {
@@ -638,12 +639,14 @@ function move(s: DrState) {
     if (Math.sqrt(cx * cx + cy * cy) < r + q.r + 0.02) dodge += cy > 0 ? -1 : 1;
   }
   if (dodge) ty = me.y + Math.sign(dodge) * 0.14;
-  tx = clamp(tx, 0.07, 0.8);
+  // 대장 판: 용은 왼쪽(15~45%), 대장은 오른쪽 — 둘 다 화면 안에
+  const bossSt = !!KD[STAGES[s.stage].key].boss;
+  tx = clamp(tx, bossSt ? 0.36 : 0.07, bossSt ? 0.45 : 0.8);
   ty = clamp(ty, ME_Y0, ME_Y1);
   const spd = (dodge ? 1.6 : 1) * 0.0062 * (b?.p === 'wing' ? 1.9 : b?.p === 'storm' ? 1.7 : b?.p === 'rock' ? 0.85 : 1);
   const dx = tx - me.x, dy = ty - me.y, d = hyp(dx, dy), v = Math.min(spd, d * 0.09);
   if (d > 1e-4) (me.vx += ((dx / d) * v - me.vx) * 0.25), (me.vy += ((dy / d) * v - me.vy) * 0.25);
-  me.x = clamp(me.x + me.vx, 0.05, 0.9);
+  me.x = clamp(me.x + me.vx, bossSt ? 0.33 : 0.05, bossSt ? 0.48 : 0.9);
   me.y = clamp(me.y + me.vy, ME_Y0 - 0.06, ME_Y1 + 0.06);
   if (tgt && Math.abs(tgt.x - me.x) > 0.04) me.face = tgt.x > me.x ? 1 : -1;
 }
@@ -1033,7 +1036,7 @@ function spawnFlock(s: DrState, fl: Fl, pre: boolean) {
     if (near > bd) (bd = near), (tx = x), (ty = y);
   }
   if (s.stage === 0 && pre && !s.flocks.length) (tx = 0.64), (ty = 0.66);
-  if (kd.boss) (tx = 0.76), (ty = 0.5);
+  if (kd.boss) (tx = 0.7), (ty = 0.5);
   s.flocks.push({ id, k: fl.k, x: tx, y: ty, tx, ty, t: 0, king: !!fl.king, n0: fl.n, oy: ty });
   const first: Mon[] = [];
   for (let i = 0; i < fl.n; i++) {
@@ -1080,7 +1083,7 @@ function home(s: DrState, m: Mon): [number, number] {
       return [s.me.x + Math.cos(m.ang) * R, s.me.y + Math.sin(m.ang) * R * 0.85];
     }
     case 'snipe': case 'ram': return [m.px, m.py + Math.sin(s.t * 0.05 + m.seed) * 0.012];
-    case 'boss': return [0.76, 0.5];
+    case 'boss': return [0.7, 0.5];
     default: return [fx + m.ox, fy + m.oy + Math.sin(s.t * 0.09 + m.seed) * 0.012];
   }
 }
@@ -1274,15 +1277,17 @@ function bossHurt(s: DrState, m: Mon) {
 }
 function dropItem(s: DrState, m: Mon) {
   if (s.items.length >= 2) return;
-  // 흘린 것은 용과 먼 쪽으로 둥실 날아간다 — 보고 톡해야 잡힌다
-  s.items.push({ id: ++s.nid, k: m.k, p: KD[m.k].p, x: clamp(m.x - 0.05, 0.3, 0.8), y: m.y + m.r * 0.3, vy: 0, t: 0, tx: 0.84, ty: s.me.y < 0.75 ? 1.04 : 0.4 });
+  // 흘린 것은 용과 대장 사이 화면 가운데쯤으로 둥실 — 9초 동안 떠 있다
+  s.items.push({ id: ++s.nid, k: m.k, p: KD[m.k].p, x: clamp(m.x - 0.05, 0.3, 0.8), y: m.y + m.r * 0.3, vy: 0, t: 0, tx: clamp((s.me.x + m.x) / 2, 0.42, 0.58), ty: clamp(s.me.y + (s.rng() - 0.5) * 0.3, 0.5, 1.0) });
   s.dropT = 0;
   ev(s, 'drop', m.x, m.y, 0, 0, 0, m.k);
   see(s, 'drop:' + m.k);
   if (!s.spot || s.t - s.spot.t > 60) s.spot = { id: -s.items[s.items.length - 1].id, t: s.t, label: `NEW ${DROP_NAME[m.k]}` };
 }
 function bossDown(s: DrState, m: Mon) {
-  card(s, '대장을 이겼다!', `${KD[m.k].name} 와르르`, 5, '#ffb800', KD[m.k].p);
+  const d = STAGES[s.stage], fast = d.star === 'fast' && (s.t - s.stT) / 60 <= d.n;
+  if (fast) card(s, '별 셋째!', `대장을 ${d.n}초 안에`, 5, '#ffb800', null, true), ev(s, 'star3', m.x, m.y);
+  else card(s, '대장을 이겼다!', `${KD[m.k].name} 와르르`, 5, '#ffb800', KD[m.k].p);
   ev(s, 'bossdown', m.x, m.y, 0, m.r, 0, m.k);
   see(s, 'down:' + m.k);
   const eid = ++s.eid;
@@ -1293,9 +1298,9 @@ function bossDown(s: DrState, m: Mon) {
 }
 function bossStep(s: DrState, m: Mon) {
   const me = s.me, kd = KD[m.k], ag = aggressive(s), mr = meR(s);
-  let hx = 0.76, hy = 0.5;
+  let hx = 0.7, hy = 0.5;
   if (m.k === 'eagle') hy = 0.45 + Math.sin(s.t * 0.012) * 0.16;
-  else if (m.k === 'whale') (hx = 0.74), (hy = 0.8 + Math.sin(s.t * 0.008) * 0.16);
+  else if (m.k === 'whale') (hx = 0.66), (hy = 0.8 + Math.sin(s.t * 0.008) * 0.16);
   else hy = clamp(me.y + Math.sin(s.t * 0.01) * 0.12, 0.38, 1.02);
   if (m.cool > 0) m.cool--;
   const alt = m.drops + Math.floor(s.t / 200);
@@ -1408,7 +1413,7 @@ function newStage(s: DrState) {
   s.lines = [];
   s.sheds = [];
   Object.assign(me, { x: HOME_X, y: HOME_Y, vx: 0, vy: 0, face: 1, parts: [null, null, null], tint: BARE_TINT, chew: 0, fly: null, inv: 0, cd: [0, 0, 0], ram: 0, nib: 0, foc: 0 });
-  Object.assign(s, { hp: HP_MAX, combo: 0, comboT: -999, comboBest: 0, best: 0, popBest: 0, popN: 0, skyBest: 0, skyE: 0, skyC: 0, sp: 0, wave: 0, waveT: 0, summonT: 0, summonI: 0, dropT: 0, clearT: 0, started: s.stage > 0, calm: s.stage > 0 ? 110 : 0, phase: 'play', pt: 0, got: 0, lostHeart: false, big: null });
+  Object.assign(s, { hp: HP_MAX, combo: 0, comboT: -999, rec: [], comboBest: 0, best: 0, popBest: 0, popN: 0, skyBest: 0, skyE: 0, skyC: 0, sp: 0, wave: 0, waveT: 0, summonT: 0, summonI: 0, dropT: 0, clearT: 0, started: s.stage > 0, calm: s.stage > 0 ? 110 : 0, phase: 'play', pt: 0, got: 0, lostHeart: false, big: null });
   s.starOk = [false, false, false];
   s.newDex = [];
   s.newCombo = [];
@@ -1425,11 +1430,12 @@ function clearStage(s: DrState) {
   const d = STAGES[s.stage];
   s.phase = 'result';
   s.pt = 0;
-  s.starOk = [true, !s.lostHeart, starNow(s) >= d.n];
+  s.starOk = [true, !s.lostHeart, d.star === 'fast' ? (s.t - s.stT) / 60 <= d.n : starNow(s) >= d.n];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
-  s.fast = Math.max(0, Math.round((50 - (s.t - s.stT) / 60) * 2 * stMul(s)));
-  s.gain = (s.sp + CLEAR_PTS + s.fast) * STAR_MUL[s.got];
+  // 판 점수: 깬 몫 + 빨리 깬 몫 + 싸움 몫, 별 수로 곱한다
+  s.fast = Math.max(0, Math.round((((KD[d.key].boss ? 70 : 50) - (s.t - s.stT) / 60) * 8 * stMul(s))));
+  s.gain = Math.round(s.sp + CLEAR_PTS * stMul(s) + s.fast) * STAR_MUL[s.got];
   s.pts += s.gain;
   s.sp = 0;
   s.lv++;
@@ -1462,7 +1468,6 @@ function playStep(s: DrState) {
   if (s.cardQ.length && (!s.big || s.t - s.big.t >= 34)) (s.big = s.cardQ.shift()!), (s.big.t = s.t);
   const d = STAGES[s.stage];
   if (s.calm > 0) s.calm--;
-  if (s.combo > 0 && s.t - s.comboT > COMBO_T) comboBreak(s);
   myStep(s);
   for (const f of s.flocks) flockStep(s, f);
   for (const m of s.mons) if (!m.dead) foeStep(s, m);
@@ -1497,7 +1502,7 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
   rules: [
     '떼를 톡 하면 아기 용이 날아가 꿀꺽! 먹은 짐승의 부위가 내 몸에 돋아요.',
     '머리·등·꼬리가 저절로 싸워요. 어울리는 부위면 두 배로 터지고 줄줄이 번져요.',
-    '분홍 숫자(딱 맞아)는 먹으면 폭죽으로 터져요. 대장이 흘린 것을 톡 하면 대장의 힘!',
+    '분홍 숫자(딱 맞아)는 줄지 않고 쌓여요. 먹을 때마다 방금 딱 맞은 만큼 덤 폭죽! 대장이 흘린 것은 대장의 힘.',
   ],
   controls: 'touch',
   hint: '떼를 톡 — 아기 용이 날아가 꿀꺽 / 화살표로 고르고 스페이스',
@@ -1517,7 +1522,7 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
       cd: [0, 0, 0], atkT: [-99, -99, -99], aim: [0, 0, 0], reach: [0, 0, 0], ram: 0, ramA: 0, ramE: 0, eatT: -99, nib: 0, tx: 0, ty: 0, foc: 0,
     };
     const s: DrState = {
-      rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], hp: HP_MAX, combo: 0, comboT: -999, comboBest: 0, popBest: 0, popN: 0, popT: -99, skyBest: 0, skyE: 0, skyC: 0, dead: false, won: false, lostHeart: false,
+      rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], rec: [], hp: HP_MAX, combo: 0, comboT: -999, comboBest: 0, popBest: 0, popN: 0, popT: -99, skyBest: 0, skyE: 0, skyC: 0, dead: false, won: false, lostHeart: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], combos: [], newCombo: [], forms: [],
       me, mons: [], flocks: [], nid: 0, shots: [], mines: [], twisters: [], items: [], q: [],
       eid: 0, chE: 0, evN: new Map(), best: 0, kills: 0, wkills: 0, eats: 0, gain: 0, fast: 0, stT: 0,
@@ -1543,7 +1548,7 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
     } else if (s.phase === 'pick') {
       const ch = STAGES[s.stage].ch;
       // 용은 두 선물 사이 위쪽으로 날아와 구경한다 (선물을 가리지 않게)
-      (s.me.x += (0.5 - s.me.x) * 0.1), (s.me.y += (0.47 - s.me.y) * 0.1);
+      (s.me.x += (0.5 - s.me.x) * 0.1), (s.me.y += (0.59 - s.me.y) * 0.1);
       if (s.picked < 0) {
         if (tap && p && s.pt >= PICK_MIN) s.picked = p.x < 0.5 ? 0 : 1;
         else if (s.pt >= PICK_AUTO) s.picked = 0;
@@ -1591,46 +1596,31 @@ function candidates(s: DrState): Mon[] {
 }
 /** 지금 몸에 이 짐승과 어울리는 부위가 있나 */
 const fits = (p: P, k: K) => ATK_OF[p] === 'sky' || WEAK[k].includes(ATK_OF[p]);
-const covered = (s: DrState, k: K) => s.me.parts.some((q) => q && fits(q.p, k));
 /**
- * 봇(잘하는): 한 줄 판단 — 대장이 흘린 것이 있으면 그것, 아니면 '지금 하늘에 가장 많은(남은 체력 합) 짐승'과 어울리는 부위를 주는 떼를 톡.
- * 이미 어울리는 부위가 있으면 먹지 않고 싸운다(같은 부위 떼가 있으면 먹어 키운다).
+ * 봇(잘하는): 한 줄 판단 — 대장이 흘린 것이 보이면 그것, 아니면 '지금 하늘에서 가장 많이(남은 체력) 딱 맞을 부위'를 주는 떼를 톡.
+ * 지금 그 자리 부위보다 나아지면(같은 부위면 한 단계 커지면) 먹는다 — 먹어도 딱 맞아는 줄지 않는다.
  */
+const GK = [0, 1, 1.6, 2.4];
 export const eatdragonSmart: Bot<DrState> = {
-  name: '가장 많은 짐승에 어울리는 부위로',
+  name: '가장 많이 딱 맞을 부위로',
   act(s) {
     const mid = between(s, true);
     if (mid) return mid;
     if (!canEat(s)) return NO;
     const me = s.me;
-    // 대장이 흘린 것이 보이면 곧장 톡 (대장의 힘)
     if (s.items.length) return tapOn(s.items[0]);
     const cand = candidates(s);
     if (!cand.length) return NO;
-    if (me.parts.every((q) => !q)) return tapOn(cand[0]);
-    // 딱 맞아가 쌓였으면 가장 붐비는 떼에 뛰어들어 폭죽으로 터뜨린다
-    if (STAGES[s.stage].star === 'pop' && s.popBest < STAGES[s.stage].n && s.combo >= 8) {
-      const crowd = (m: Mon) => s.mons.filter((o) => hittable(o) && !isBoss(o) && dist(o.x, o.y, m.x, m.y) < 0.09 + 0.02 * s.combo).length;
-      let bm: Mon | null = null, bn = 3;
-      for (const m of cand) { const n = crowd(m); if (n > bn) (bn = n), (bm = m); }
-      if (bm) return tapOn(bm);
+    const foes = s.mons.filter((m) => hittable(m) && !isBoss(m));
+    const worth = (p: P) => foes.reduce((a, m) => a + (fits(p, m.k) ? Math.max(0, m.hp) : 0), 0);
+    let best: Mon | null = null, bv = 0;
+    for (const c of cand) {
+      const p = KD[c.k].p, slot = PD[p].slot, cur = me.parts[slot];
+      const g = cur && cur.p === p ? Math.min(3, cur.g + 1) : 1, now = cur ? worth(cur.p) * GK[cur.g] : 0;
+      const v = worth(p) * GK[g] - now + (cur && cur.p === p && cur.g < 3 ? 1 : 0) + (!cur ? 1 : 0);
+      if (v > bv) (bv = v), (best = c);
     }
-    const cnt = new Map<K, number>();
-    for (const m of s.mons) if (hittable(m) && !isBoss(m)) cnt.set(m.k, (cnt.get(m.k) ?? 0) + Math.max(0, m.hp));
-    const kinds = [...cnt.keys()].sort((a, b) => cnt.get(b)! - cnt.get(a)! || a.localeCompare(b));
-    // 덮인 자리는 지킨다: 위쪽(많은) 짐승을 덮고 있는 부위는 바꾸지 않는다
-    const keep = new Set<number>();
-    for (const k of kinds) {
-      if (covered(s, k)) {
-        me.parts.forEach((q, i) => q && fits(q.p, k) && keep.add(i));
-        continue;
-      }
-      const c = cand.find((m) => WEAK[k].includes(ATK_OF[KD[m.k].p]) && !keep.has(PD[KD[m.k].p].slot));
-      if (c) return tapOn(c);
-    }
-    // 다 덮였으면 지금 부위를 키운다
-    const grow = cand.find((m) => { const q = me.parts[PD[KD[m.k].p].slot]; return !!q && q.p === KD[m.k].p && q.g < 3; });
-    return grow ? tapOn(grow) : NO;
+    return best ? tapOn(best) : NO;
   },
 };
 
@@ -1653,6 +1643,7 @@ export const eatdragonHabit: Bot<DrState> = {
     const me = s.me;
     let best: { x: number; y: number } | null = null, bd = 1e9;
     for (const m of s.mons) if (hittable(m) && !isBoss(m) && dist(me.x, me.y, m.x, m.y) < bd) (bd = dist(me.x, me.y, m.x, m.y)), (best = m);
+    for (const it of s.items) if (dist(me.x, me.y, it.x, it.y) < bd) (bd = dist(me.x, me.y, it.x, it.y)), (best = it);
     return best ? tapOn(best) : NO;
   },
 };
@@ -1672,6 +1663,7 @@ export const eatdragonHabit2: Bot<DrState> = {
       const v = (cnt.get(m.fid) ?? 0) * 10 - dist(me.x, me.y, m.x, m.y);
       if (v > bv) (bv = v), (best = m);
     }
+    for (const it of s.items) if (bv < 0) best = it;
     return best ? tapOn(best) : NO;
   },
 };
@@ -3297,7 +3289,7 @@ function crowdKid(col: number, mood: number, px: number): HTMLCanvasElement {
 const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const STAR_WORDS = (s: DrState) => {
   const d = STAGES[s.stage];
-  return [KD[d.key].boss ? '대장 이기기' : '하늘 비우기', '하트 안 잃고', d.star === 'pop' ? `폭죽 한 번에 ${d.n}` : d.star === 'sky' ? `대장의 힘 ${d.n}번` : d.star === 'combo' ? `딱 맞아 ${d.n}` : `줄줄이 ${d.n}`];
+  return [KD[d.key].boss ? '대장 이기기' : '하늘 비우기', '하트 안 잃고', d.star === 'pop' ? `폭죽 한 번에 ${d.n}` : d.star === 'sky' ? `대장의 힘 ${d.n}번` : d.star === 'fast' ? `${d.n}초 안에` : d.star === 'combo' ? `딱 맞아 ${d.n}` : `줄줄이 ${d.n}`];
 };
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 /** 화면에 쓰는 글꼴(크기·굵기) — 처음 쓰는 순간 끊기지 않게 판 초반에 하나씩 미리 불러 둔다 */
@@ -4260,9 +4252,10 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
   ctx.fillStyle = LINE;
   ctx.fillRect(0, Y(1.3), w, 2);
   const words = STAR_WORDS(s), res = s.phase === 'result', bestNow = starNow(s);
-  const state = [res ? 1 : 0, s.lostHeart ? -1 : res ? 1 : 0, bestNow >= d.n ? 1 : res ? -1 : 0];
+  const late = d.star === 'fast' && (s.t - s.stT) / 60 > d.n;
+  const state = [res ? 1 : 0, s.lostHeart ? -1 : res ? 1 : 0, d.star === 'fast' ? (res ? (s.starOk[2] ? 1 : -1) : late ? -1 : 0) : bestNow >= d.n ? 1 : res ? -1 : 0];
   font(0.033, 800);
-  const prog = bestNow > 0 && bestNow < d.n && !res ? ` ${bestNow}/${d.n}` : '';
+  const prog = d.star === 'fast' ? (!res && !late && s.phase === 'play' ? ` ${Math.max(0, Math.ceil(d.n - (s.t - s.stT) / 60))}` : '') : bestNow > 0 && bestNow < d.n && !res ? ` ${bestNow}/${d.n}` : '';
   const labels = words.map((q, i) => q + (i === 2 ? prog : ''));
   const gap = R(0.012), pad = Math.min(R(0.065), (w - R(0.03) - gap * 2 - labels.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
   const ws = labels.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, c) => a + c, 0) + gap * 2;

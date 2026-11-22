@@ -5,10 +5,16 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`bodyhop.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { shellswap, shellswapRandom, shellswapSmart, shellswapHabit, shellswapHabit2 } from './games/shellswap.ts';
+import { colorsoul, colorsoulRandom, colorsoulSmart, colorsoulHabit, colorsoulHabit2 } from './games/colorsoul.ts';
+import { eatdragon, eatdragonRandom, eatdragonSmart, eatdragonHabit, eatdragonHabit2 } from './games/eatdragon.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 41라운드 판정(2026-11-21): 전체 폐기(해 봐도 재미가 없음) — 42라운드 준비 중(공장이 알아서)
+  // 42라운드(2026-11-22): 톡마다 내가 바뀐다 — 공장이 고른 셋(41 전체 폐기 뒤 '공장이 알아서')
+  { game: shellswap, dumb: shellswapRandom, smart: shellswapSmart, habits: [shellswapHabit, shellswapHabit2] },
+  { game: colorsoul, dumb: colorsoulRandom, smart: colorsoulSmart, habits: [colorsoulHabit, colorsoulHabit2] },
+  { game: eatdragon, dumb: eatdragonRandom, smart: eatdragonSmart, habits: [eatdragonHabit, eatdragonHabit2] },
 ];

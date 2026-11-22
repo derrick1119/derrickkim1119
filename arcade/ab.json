@@ -595,6 +595,21 @@
       "machinePick": "trapdoor",
       "machinePick2": "rugpull",
       "decidedAt": "2026-11-21"
+    },
+    {
+      "round": 42,
+      "openedAt": "2026-11-22",
+      "A": null,
+      "B": null,
+      "games": [
+        "shellswap",
+        "colorsoul",
+        "eatdragon"
+      ],
+      "winner": null,
+      "note": "41 전체 폐기(해 봐도 재미가 없음) 뒤 '공장이 알아서'. 되짚기: 40의 졸업은 방향이 아니라 동사(몸 갈아타기) 덕 — 톡마다 내가 바뀐다 · 바뀐 내가 저절로 싸우는 구경 · 센 것을 내 것으로 · 모으기. 그 재미를 다른 소재로 셋: 소라게 껍데기(바닷가, 껍데기 = 몸이자 무기, 버린 껍데기는 날아가 쾅) · 색 먹는 정령(그림책 골목, 색 = 모습, 섞으면 새 모습, 지나간 자리가 되살아남) · 먹고 바뀌는 아기 용(하늘 길, 머리·등·꼬리 자리가 먹은 것으로 갈림). 브리프 v23(바뀜이 눈에 띄게·모습 ≥ 10·힘의 맛·밝은 그림). 오너가 고른다",
+      "machinePick": "eatdragon",
+      "machinePick2": "colorsoul"
     }
   ],
   "graduated": [
