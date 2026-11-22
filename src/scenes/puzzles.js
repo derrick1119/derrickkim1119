@@ -42,39 +42,57 @@
   /* ---------- the bell asks, the lamps answer ---------- */
   /* o: { rounds: [[lamp, lamp, …], …], beat } — four lamps, the four notes of the call */
   Z.bell = function (o) {
-    /* the call, a syllable to a lamp; in English the last lamp is the note held */
-    const NOTE = [69, 67, 65, 72], WORD = T.lang === 'en' ? ['Take', 'your', 'time', '...'] : ['천', '천', '히', '와'];
-    const G = make({ quiet: true, rounds: o.rounds, r: 0, i: 0, phase: 'listen', lit: [0.12, 0.12, 0.12, 0.12], pos: [0, 1, 2, 3], vis: [0, 1, 2, 3] });
-    /* where each lamp stands: with o.shuffle they change places after the bell has asked */
-    const lx = (n) => (G.vis[n] - 1.5) * 196, LY = 300;
+    /* The bell asks with a few notes, each lighting a lamp; the lamps answer in the same order.
+       Every lamp has its own colour, which travels with it when the lamps change places; dots under them
+       show how long the question is. Miss once and the dots keep their colours, as a guide.
+       The bell itself can be tapped to hear the question again, at no cost. */
+    const NOTE = [69, 67, 65, 72], COL = ['#ffcf6a', '#f39ab4', '#8fc8ff', '#9ee39a'];
+    const G = make({ quiet: true, rounds: o.rounds, r: 0, i: 0, phase: 'listen', lit: [0.12, 0.12, 0.12, 0.12], pos: [0, 1, 2, 3], vis: [0, 1, 2, 3], marks: [], miss: 0, ring: 0 });
+    const lx = (n) => (G.vis[n] - 1.5) * 196, LY = 300, BELL = [0, 138];
     const want = (seq, i) => (o.reverse ? seq[seq.length - 1 - i] : seq[i]);
     const glow = (n) => { G.lit[n] = 1; G.clock.tween(G.lit, n, 0.12, 1.1, T.ease.out); };
     async function ask() {
       const k = G.clock, seq = G.rounds[G.r];
       G.phase = 'listen'; G.i = 0;
+      G.marks = seq.map((n) => ({ n, a: 0, done: 0 }));
       await k.wait(0.9);
       G.say = '';
       G.pos = [0, 1, 2, 3]; G.vis = [0, 1, 2, 3];
-      for (const n of seq) { glow(n); T.audio.note({ m: NOTE[n] - 12, vel: 0.34, voice: 'bell', dur: 5 }); await k.wait(o.beat || 0.85); }
-      if (o.shuffle) {   /* the lamps drift to new places: follow the one you heard, not the place it stood */
+      G.ring = 1; k.tween(G, 'ring', 0, 0.8);
+      for (let i = 0; i < seq.length; i++) { const n = seq[i]; glow(n); G.marks[i].a = 1; T.audio.note({ m: NOTE[n] - 12, vel: 0.34, voice: 'bell', dur: 5 }); await k.wait(o.beat || 1.0); }
+      if (o.shuffle) {   /* the lamps drift to new places: follow the colour you heard, not the place it stood */
         const sh = [[1, 0, 3, 2], [2, 3, 0, 1], [3, 0, 1, 2]][G.r % 3];
         G.pos = sh.slice(); T.audio.sfx('whoosh');
-        for (let n = 0; n < 4; n++) k.tween(G.vis, n, sh[n], 0.9, T.ease.io);
-        await k.wait(1.0);
+        for (let n = 0; n < 4; n++) k.tween(G.vis, n, sh[n], 1.2, T.ease.io);
+        await k.wait(1.3);
       }
+      /* the first time, the dots go pale and it is a memory; after a miss they stay as a guide */
+      G.marks.forEach((m) => k.tween(m, 'a', G.miss ? 0.6 : 0, 0.7));
       G.phase = 'answer'; G.idle = 0;
     }
     G.start = ask;
-    G.hit = (x, y) => { for (let n = 0; n < 4; n++) if (Math.hypot(x - lx(n), y - (LY + 80)) < 92) return n; return -1; };
+    G.keyOf = (key) => (key === 'r' || key === 'R' || key === '0' ? 9 : key >= '1' && key <= '4' ? +key - 1 : -1);
+    G.hit = (x, y) => {
+      if (Math.hypot(x - BELL[0], y - BELL[1]) < 64) return 9;
+      for (let n = 0; n < 4; n++) if (Math.hypot(x - lx(n), y - (LY + 80)) < 92) return n;
+      return -1;
+    };
     G.tap = function (n) {
+      if (n === 9) { if (G.phase === 'answer') { G.idle = 0; ask(); } return; }
       if (G.phase !== 'answer' || n > 3) return;
       const seq = G.rounds[G.r];
       G.idle = 0;
-      if (n !== want(seq, G.i)) { G.wrong(o.reverse ? '떠나보낼 때는 거꾸로예요. 마지막에 울린 등불부터' : o.shuffle ? '등불이 자리를 바꿨어요. 울린 등불을 따라가 보세요' : '종이 부르는 차례를 한 번 더 들어 보세요'); G.phase = 'listen'; ask(); return; }
+      if (n !== want(seq, G.i)) {
+        G.miss++;
+        G.wrong(o.reverse ? '떠나보낼 때는 거꾸로예요. 마지막에 울린 등불부터. 종이 한 번 더 물어요' : o.shuffle ? '등불이 자리를 바꿨어요. 울린 색을 따라가 보세요. 종이 한 번 더 물어요' : '종이 부르는 차례를 한 번 더 들어 보세요');
+        ask(); return;
+      }
       glow(n); T.audio.note({ m: NOTE[n], vel: 0.42, voice: 'felt', dur: 4 });
+      const mi = o.reverse ? seq.length - 1 - G.i : G.i;
+      if (G.marks[mi]) { G.marks[mi].done = 1; G.marks[mi].a = 1; }
       if (++G.i < seq.length) return;
-      G.phase = 'pause'; G.r++;
-      if (G.r >= G.rounds.length) { T.audio.sfx('join'); G.finish(1.1); } else ask();
+      G.phase = 'pause'; G.r++; G.miss = 0;
+      if (G.r >= G.rounds.length) { T.audio.sfx('join'); G.finish(1.1); } else G.clock.wait(0.6).then(ask);
     };
     G.next = () => (G.phase === 'answer' && !G.done ? String(want(G.rounds[G.r], G.i) + 1) : null);
     G.hintAt = () => (G.phase === 'answer' ? [lx(want(G.rounds[G.r], G.i)), LY + 80] : null);
@@ -82,16 +100,35 @@
       if (G.a < 0.005) return;
       G.dim(g, 0.5);
       g.save(); g.globalAlpha = G.a;
+      /* the bell, which can be asked again */
+      g.save(); g.translate(BELL[0], BELL[1]); g.rotate(Math.sin(t * 14) * 0.18 * G.ring);
+      P.line(g, 0, -56, 0, -40, 4, '#6f5346');
+      P.fill(g, P.soft([[-30, 18], [-24, -16], [-12, -38], [12, -38], [24, -16], [30, 18]]), '#d7a23c');
+      P.fill(g, P.rr(-36, 14, 72, 9, 4), '#b8862c'); P.fill(g, P.circle(0, 28, 7), '#8a6420');
+      g.restore();
       g.strokeStyle = '#6f5346'; g.lineWidth = 4;
       g.beginPath(); g.moveTo(lx(0) - 170, LY - 40); g.quadraticCurveTo(0, LY + 44, lx(3) + 170, LY - 40); g.stroke();
       for (let n = 0; n < 4; n++) {
         const x = lx(n) + G.jig(t, n), y = LY + [4, 20, 20, 4][n];
+        P.glow(g, x, y + 76, 100, COL[n], 0.38 + 0.5 * G.lit[n]);
         K.lantern(g, x, y, t, { bare: true, s: 4, lit: G.lit[n], seed: n + 1 });
+        /* a coloured tassel, so each lamp can be told apart */
+        P.line(g, x, y + 136, x, y + 156, 4, COL[n]);
+        P.fill(g, P.circle(x, y + 158, 7), COL[n]);
+        P.fill(g, P.poly([[x - 13, y + 160], [x + 13, y + 160], [x + 8, y + 204], [x - 8, y + 204]]), COL[n]);
       }
+      /* the question, as dots */
+      const M = G.marks, gap = 46;
+      M.forEach((m, i) => {
+        const x = (i - (M.length - 1) / 2) * gap, y = 560;
+        P.fill(g, P.circle(x, y, 15), 'rgba(243,234,216,0.2)');
+        if (m.a > 0.01) P.fill(g, P.circle(x, y, 14), T.rgba(COL[m.n], m.a));
+        if (m.done) { g.strokeStyle = '#fff6e0'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 19, 0, Math.PI * 2); g.stroke(); }
+      });
       for (let i = 0; i < G.rounds.length; i++) P.fill(g, P.circle((i - (G.rounds.length - 1) / 2) * 28, 640, 6), i < G.r ? '#ffd98a' : 'rgba(243,234,216,0.3)');
       g.restore();
       G.hintRing(g, t);
-      G.caption(g, G.phase === 'answer' ? (o.reverse ? '떠나보낼 때는 거꾸로, 마지막에 울린 등불부터 눌러 주세요' : o.shuffle ? '등불이 자리를 바꿨어요. 울린 등불을 따라 같은 차례로 눌러 주세요' : '같은 차례로 등불을 눌러 대답해 주세요') : G.done ? '' : '종이 부르는 차례를 들어 보세요');
+      G.caption(g, G.phase === 'answer' ? (o.reverse ? '떠나보낼 때는 거꾸로, 마지막에 울린 등불부터 눌러 주세요 · 종을 누르면 다시 들려줘요' : o.shuffle ? '등불이 자리를 바꿨어요. 울린 색을 따라 같은 차례로 눌러 주세요 · 종을 누르면 다시 들려줘요' : '같은 차례로 등불을 눌러 대답해 주세요 · 종을 누르면 다시 들려줘요') : G.done ? '' : '종이 부르는 차례를 들어 보세요');
     };
     return G;
   };
