@@ -28,7 +28,7 @@ const A = 1.5, TAU = Math.PI * 2;
 /** 판 띠(화면 y, 가로 폭 = 1): 위 HUD 아래 ~ 아래 HUD 위 · 정령이 머무는 높이 */
 const TOP = 0.1, BOT = 1.31, HOME_SY = 1.03;
 /** 카메라: 빠르기 · 이만큼 붐비면 멈춤 · 적이 모자라면 빨리 */
-const CAM_V = 0.00125, CAM_STOP = 10;
+const CAM_V = 0.0011, CAM_STOP = 10;
 /** 한 화면 상한: 적 · 총알 · 독구름 */
 const CAP = 24, SHOT_CAP = 110, CLOUD_CAP = 10;
 /** 톡: 날아가기(최소) · 빨기 · 쉼 (틱) */
@@ -83,21 +83,21 @@ const UNLOCK_AT: Record<FK, number> = { white: 0, lion: 0, whale: 1, bird: 2, dr
 const AIR_OK = new Set<AK>(['spark', 'jet', 'chain', 'fire', 'poison', 'vine', 'bolt', 'rain', 'pop']);
 const SHIELD_OK = new Set<AK>(['poison', 'quake', 'rain', 'wave']);
 const ARMOR_OK = new Set<AK>(['slam', 'quake', 'rain']);
-const FAST_MUL: Record<AK, number> = { spark: 0.5, pounce: 0.25, jet: 0.3, chain: 0.8, fire: 0.45, poison: 0.55, slam: 0.25, vine: 1.6, quake: 1, wave: 0.6, bolt: 0.9, rain: 1, pop: 0.6 };
-const BIG_MUL: Record<AK, number> = { spark: 0.5, pounce: 0.55, jet: 2.1, chain: 0.5, fire: 0.65, poison: 0.9, slam: 1.35, vine: 0.55, quake: 1, wave: 1.8, bolt: 1.1, rain: 1, pop: 0.8 };
+const FAST_MUL: Record<AK, number> = { spark: 0.4, pounce: 0.2, jet: 0.22, chain: 0.75, fire: 0.4, poison: 0.5, slam: 0.2, vine: 1.7, quake: 1, wave: 0.5, bolt: 0.9, rain: 1, pop: 0.5 };
+const BIG_MUL: Record<AK, number> = { spark: 0.4, pounce: 0.45, jet: 2.2, chain: 0.45, fire: 0.6, poison: 0.8, slam: 1.35, vine: 0.5, quake: 1, wave: 1.8, bolt: 1.1, rain: 1, pop: 0.7 };
 
 // ───────────────────────────── 색 도둑 ─────────────────────────────
 export type EK = 'blob' | 'bucket' | 'kite' | 'crayon' | 'shell' | 'brush' | 'balloon' | 'tower' | 'rainbow' | 'inkboss' | 'giant' | 'king';
 interface EDef { name: string; r: number; hp: number; spd: number; air?: boolean; shield?: boolean; armor?: number; fast?: boolean; big?: boolean; boss?: boolean; line: string }
 export const ED: Record<EK, EDef> = {
   blob: { name: '먹물 꼬마', r: 0.034, hp: 10, spd: 0.0034, line: '작고 많아요 — 떼로 몰려와요' },
-  bucket: { name: '물감 통 도깨비', r: 0.07, hp: 70, spd: 0.0017, big: true, line: '크고 세요 — 내려찍으면 색을 몽땅 빼앗겨요' },
+  bucket: { name: '물감 통 도깨비', r: 0.07, hp: 90, spd: 0.0017, big: true, line: '크고 세요 — 내려찍으면 색을 몽땅 빼앗겨요' },
   kite: { name: '연 도둑', r: 0.046, hp: 16, spd: 0.004, air: true, line: '하늘을 날아요 — 땅 공격이 안 닿아요' },
-  crayon: { name: '크레용 병정', r: 0.046, hp: 30, spd: 0.0019, shield: true, line: '방패로 막아요 — 줄지어 행진해요' },
-  shell: { name: '굳은 물감 달팽이', r: 0.056, hp: 22, spd: 0.0012, armor: 55, line: '굳은 껍데기는 내려찍어야 깨져요' },
-  brush: { name: '붓 도깨비', r: 0.04, hp: 18, spd: 0.0032, fast: true, line: '휙휙 피해요 — 묶어야 잡혀요' },
-  balloon: { name: '풍선 도둑', r: 0.042, hp: 12, spd: 0.0015, air: true, line: '풍선 타고 흩어져 물감 폭탄을 떨궈요' },
-  tower: { name: '먹물 굴뚝', r: 0.08, hp: 70, spd: 0, armor: 70, big: true, line: '먹물 꼬마를 자꾸 뿜어요 — 단단해요' },
+  crayon: { name: '크레용 병정', r: 0.046, hp: 40, spd: 0.0019, shield: true, line: '방패로 막아요 — 줄지어 행진해요' },
+  shell: { name: '굳은 물감 달팽이', r: 0.056, hp: 28, spd: 0.0013, armor: 70, line: '굳은 껍데기는 내려찍어야 깨져요' },
+  brush: { name: '붓 도깨비', r: 0.04, hp: 24, spd: 0.0032, fast: true, line: '휙휙 피해요 — 묶어야 잡혀요' },
+  balloon: { name: '풍선 도둑', r: 0.042, hp: 14, spd: 0.0015, air: true, line: '풍선 타고 흩어져 물감 폭탄을 떨궈요' },
+  tower: { name: '먹물 굴뚝', r: 0.08, hp: 80, spd: 0, armor: 90, big: true, line: '먹물 꼬마를 자꾸 뿜어요 — 단단해요' },
   rainbow: { name: '무지개 도둑', r: 0.042, hp: 20, spd: 0.0046, fast: true, line: '드문 무지개! 놓치면 달아나요' },
   inkboss: { name: '대장 먹물 문어', r: 0.17, hp: 1, spd: 0, big: true, boss: true, line: '큰 놈 — 물줄기에 약해요' },
   giant: { name: '대장 물감 통 거인', r: 0.18, hp: 1, spd: 0, big: true, armor: 1, boss: true, line: '단단해요 — 내려찍기·쿵쿵에 약해요' },
@@ -118,32 +118,32 @@ const G = (at: number, form: 0 | 1 | 2 | 3, ...f: [EK, number][]): Grp => ({ at,
  * 사람 기준 한 판 30~45초. 판마다 새 모습 하나 + 그 모습이 빛날 도둑 하나.
  */
 export const STAGES: StageDef[] = [
-  { ch: 0, name: '불 사자', news: '빨강을 먹으면 불 사자! 떼에 뛰어들어 펑', unlock: 'lion', newFoe: 'blob', D: 1.5, cols: [R], star: { k: 'multi', n: 6 },
-    groups: [G(0.22, 2, ['blob', 8]), G(0.42, 0, ['blob', 6], ['bucket', 1]), G(0.62, 2, ['blob', 9]), G(0.8, 3, ['blob', 8]), { at: 1, f: [['blob', 6]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.8, cols: [R, B, B], star: { k: 'form', f: 'whale', n: 10 },
-    groups: [G(0, 0, ['bucket', 1], ['blob', 6]), G(0.2, 2, ['blob', 7], ['bucket', 1]), G(0.4, 0, ['bucket', 2], ['blob', 4]), G(0.6, 2, ['blob', 8], ['bucket', 1]), G(0.8, 0, ['bucket', 2], ['blob', 5]), { at: 1, f: [['blob', 6], ['bucket', 1]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.9, cols: [R, B, Y, Y], star: { k: 'form', f: 'bird', n: 12 },
-    groups: [G(0, 0, ['kite', 3], ['blob', 5]), G(0.2, 0, ['kite', 4], ['blob', 4]), G(0.4, 2, ['blob', 8], ['bucket', 1]), G(0.58, 0, ['kite', 5], ['blob', 3]), G(0.78, 0, ['kite', 4], ['bucket', 1], ['blob', 4]), { at: 1, f: [['kite', 4], ['blob', 5]], form: 3, champ: 'kite' }] },
-  { ch: 0, name: '대장 먹물 문어', news: '빨강 셋을 이어 먹으면 불 용! 대장의 색을 뜯어 먹어요', unlock: 'dragon', newFoe: 'inkboss', D: 0, cols: [R, B, Y], star: { k: 'time', n: 45 },
-    boss: 'inkboss', patches: [R, B, R, Y], seg: 230, summon: [['blob', 5], ['kite', 1], ['bucket', 1]],
+  { ch: 0, name: '불 사자', news: '빨강을 먹으면 불 사자! 떼에 뛰어들어 펑', unlock: 'lion', newFoe: 'blob', D: 1.4, cols: [R], star: { k: 'multi', n: 7 },
+    groups: [G(0.16, 2, ['blob', 9]), G(0.34, 0, ['blob', 8], ['bucket', 1]), G(0.52, 2, ['blob', 10]), G(0.7, 3, ['blob', 9], ['bucket', 1]), G(0.86, 2, ['blob', 10]), { at: 1, f: [['blob', 8]], form: 3, champ: 'bucket' }] },
+  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.8, cols: [R, B, B], star: { k: 'form', f: 'whale', n: 22 },
+    groups: [G(0, 0, ['bucket', 2], ['blob', 6]), G(0.17, 0, ['bucket', 2], ['blob', 6]), G(0.34, 2, ['blob', 10], ['bucket', 1]), G(0.51, 0, ['bucket', 3], ['blob', 5]), G(0.68, 0, ['bucket', 2], ['blob', 8]), G(0.85, 0, ['bucket', 3], ['blob', 4]), { at: 1, f: [['blob', 6], ['bucket', 1]], form: 3, champ: 'bucket' }] },
+  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.9, cols: [R, B, Y, Y], star: { k: 'form', f: 'bird', n: 24 },
+    groups: [G(0, 0, ['kite', 4], ['blob', 5]), G(0.17, 0, ['kite', 5], ['blob', 4]), G(0.34, 2, ['blob', 9], ['bucket', 1]), G(0.51, 0, ['kite', 6], ['blob', 3]), G(0.68, 0, ['kite', 5], ['bucket', 1], ['blob', 4]), G(0.85, 0, ['kite', 6], ['blob', 4]), { at: 1, f: [['kite', 4], ['blob', 4]], form: 3, champ: 'kite' }] },
+  { ch: 0, name: '대장 먹물 문어', news: '빨강 셋을 이어 먹으면 불 용! 대장의 색을 뜯어 먹어요', unlock: 'dragon', newFoe: 'inkboss', D: 0, cols: [R, B, Y], star: { k: 'time', n: 40 },
+    boss: 'inkboss', patches: [R, B, R, Y], seg: 260, summon: [['blob', 5], ['kite', 2], ['bucket', 1]],
     groups: [G(0, 2, ['blob', 6], ['kite', 2])] },
-  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 14 },
-    groups: [G(0, 1, ['crayon', 4], ['blob', 4]), G(0.2, 1, ['crayon', 5], ['blob', 3]), G(0.4, 2, ['blob', 7], ['kite', 2]), G(0.6, 1, ['crayon', 5], ['bucket', 1]), G(0.8, 1, ['crayon', 6], ['blob', 3]), { at: 1, f: [['crayon', 4], ['blob', 4]], form: 3, champ: 'crayon' }] },
-  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 12 },
-    groups: [G(0, 0, ['shell', 3], ['blob', 5]), G(0.2, 0, ['shell', 3], ['crayon', 2], ['blob', 3]), G(0.4, 2, ['blob', 7], ['kite', 2]), G(0.6, 0, ['shell', 4], ['blob', 4]), G(0.8, 1, ['shell', 3], ['crayon', 3]), { at: 1, f: [['shell', 3], ['blob', 4]], form: 3, champ: 'shell' }] },
-  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 12 },
-    groups: [G(0, 0, ['brush', 4], ['blob', 4]), G(0.2, 0, ['brush', 4], ['shell', 1], ['blob', 3]), G(0.4, 1, ['crayon', 4], ['kite', 2]), G(0.6, 0, ['brush', 5], ['blob', 3]), G(0.8, 0, ['brush', 4], ['kite', 2], ['bucket', 1]), { at: 1, f: [['brush', 4], ['blob', 4]], form: 3, champ: 'brush' }] },
-  { ch: 1, name: '대장 물감 통 거인', news: '세 색을 다 섞으면 진흙 골렘! 쿵쿵쿵', unlock: 'golem', newFoe: 'giant', D: 0, cols: [R, B, Y], star: { k: 'time', n: 50 },
-    boss: 'giant', patches: [R, Y, B, R, Y], seg: 190, summon: [['shell', 1], ['crayon', 2], ['brush', 2], ['blob', 3]],
+  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 24 },
+    groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 7], ['blob', 3]), G(0.85, 1, ['crayon', 6], ['kite', 2]), { at: 1, f: [['crayon', 5]], form: 3, champ: 'crayon' }] },
+  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 22 },
+    groups: [G(0, 0, ['shell', 3], ['blob', 5]), G(0.17, 0, ['shell', 3], ['crayon', 2], ['blob', 3]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 0, ['shell', 4], ['blob', 4]), G(0.68, 1, ['shell', 3], ['crayon', 3], ['blob', 2]), G(0.85, 0, ['shell', 4], ['blob', 4]), { at: 1, f: [['shell', 3], ['blob', 3]], form: 3, champ: 'shell' }] },
+  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 22 },
+    groups: [G(0, 0, ['brush', 4], ['blob', 4]), G(0.17, 0, ['brush', 5], ['shell', 1], ['blob', 2]), G(0.34, 1, ['crayon', 4], ['kite', 2], ['blob', 2]), G(0.51, 0, ['brush', 5], ['blob', 3]), G(0.68, 0, ['brush', 4], ['kite', 2], ['bucket', 1]), G(0.85, 0, ['brush', 5], ['blob', 4]), { at: 1, f: [['brush', 4]], form: 3, champ: 'brush' }] },
+  { ch: 1, name: '대장 물감 통 거인', news: '세 색을 다 섞으면 진흙 골렘! 쿵쿵쿵', unlock: 'golem', newFoe: 'giant', D: 0, cols: [R, B, Y], star: { k: 'time', n: 45 },
+    boss: 'giant', patches: [R, Y, B, R, Y], seg: 220, summon: [['shell', 1], ['crayon', 2], ['brush', 2], ['blob', 3]],
     groups: [G(0, 2, ['crayon', 3], ['shell', 2], ['blob', 3])] },
-  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 18 },
-    groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.2, 1, ['crayon', 5], ['bucket', 1]), G(0.4, 2, ['blob', 7], ['shell', 2]), G(0.6, 1, ['crayon', 6], ['bucket', 1]), G(0.8, 1, ['crayon', 5], ['brush', 2], ['bucket', 1]), { at: 1, f: [['crayon', 6], ['bucket', 1]], form: 3, champ: 'bucket' }] },
-  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 18 },
-    groups: [G(0, 0, ['balloon', 5], ['kite', 2], ['blob', 2]), G(0.2, 0, ['balloon', 5], ['brush', 2]), G(0.4, 0, ['kite', 4], ['balloon', 3], ['blob', 3]), G(0.6, 0, ['balloon', 6], ['shell', 1]), G(0.8, 0, ['balloon', 4], ['kite', 3], ['brush', 2]), { at: 1, f: [['balloon', 5], ['kite', 2]], form: 3, champ: 'kite' }] },
-  { ch: 2, name: '무지개 고래', news: '무지개 도둑을 잡으면 무지개 고래! 놓치면 달아나요', unlock: 'rainbow', newFoe: 'rainbow', D: 2.0, cols: [R, B, Y], star: { k: 'form', f: 'rainbow', n: 14 },
-    groups: [G(0, 0, ['tower', 1], ['blob', 5], ['rainbow', 1]), G(0.2, 0, ['crayon', 3], ['shell', 2], ['brush', 2]), G(0.4, 0, ['tower', 1], ['balloon', 3], ['rainbow', 1]), G(0.6, 2, ['blob', 6], ['bucket', 1], ['kite', 2]), G(0.8, 0, ['tower', 1], ['crayon', 3], ['rainbow', 1]), { at: 1, f: [['shell', 2], ['brush', 2], ['balloon', 2]], form: 3, champ: 'bucket' }] },
-  { ch: 2, name: '대장 회색 왕', news: '마지막 대장! 왕의 색을 다 뜯으면 마을이 무지개로', unlock: null, newFoe: 'king', D: 0, cols: [R, B, Y], star: { k: 'time', n: 60 },
-    boss: 'king', patches: [R, B, Y, B, R, RAIN], seg: 170, summon: [['crayon', 2], ['brush', 1], ['balloon', 2], ['shell', 1], ['blob', 2]],
+  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 26 },
+    groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6], ['bucket', 1]), G(0.34, 2, ['blob', 8], ['shell', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 6], ['brush', 2], ['bucket', 1]), G(0.85, 1, ['crayon', 6], ['bucket', 2]), { at: 1, f: [['crayon', 6]], form: 3, champ: 'bucket' }] },
+  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 26 },
+    groups: [G(0, 0, ['balloon', 5], ['kite', 2], ['blob', 2]), G(0.17, 0, ['balloon', 6], ['brush', 2]), G(0.34, 0, ['kite', 4], ['balloon', 3], ['blob', 3]), G(0.51, 0, ['balloon', 6], ['shell', 1], ['blob', 2]), G(0.68, 0, ['balloon', 5], ['kite', 3], ['brush', 2]), G(0.85, 0, ['balloon', 6], ['kite', 2]), { at: 1, f: [['balloon', 5]], form: 3, champ: 'kite' }] },
+  { ch: 2, name: '무지개 고래', news: '무지개 도둑을 잡으면 무지개 고래! 놓치면 달아나요', unlock: 'rainbow', newFoe: 'rainbow', D: 2.0, cols: [R, B, Y], star: { k: 'form', f: 'rainbow', n: 20 },
+    groups: [G(0, 0, ['tower', 1], ['blob', 5], ['rainbow', 1]), G(0.17, 0, ['crayon', 3], ['shell', 2], ['brush', 2]), G(0.34, 0, ['tower', 1], ['balloon', 3], ['rainbow', 1], ['blob', 2]), G(0.51, 2, ['blob', 6], ['bucket', 1], ['kite', 2]), G(0.68, 0, ['tower', 1], ['crayon', 3], ['rainbow', 1], ['brush', 2]), G(0.85, 0, ['shell', 2], ['brush', 2], ['balloon', 2], ['rainbow', 1]), { at: 1, f: [['crayon', 3], ['brush', 2]], form: 3, champ: 'bucket' }] },
+  { ch: 2, name: '대장 회색 왕', news: '마지막 대장! 왕의 색을 다 뜯으면 마을이 무지개로', unlock: null, newFoe: 'king', D: 0, cols: [R, B, Y], star: { k: 'time', n: 55 },
+    boss: 'king', patches: [R, B, Y, B, R, RAIN], seg: 200, summon: [['crayon', 2], ['brush', 1], ['balloon', 2], ['shell', 1], ['blob', 2]],
     groups: [G(0, 2, ['crayon', 3], ['balloon', 2], ['brush', 2])] },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -469,7 +469,7 @@ function hurt(s: SoulState, m: Foe, base: number, ak: AK, aid: number, kx = 0, k
   if (m.sh) {
     if (ak === 'quake' || ak === 'rain') (m.sh = false), ev(s, 'shieldbreak', m.x, m.y - m.r);
     else if (!SHIELD_OK.has(ak)) {
-      amt *= 0.14;
+      amt *= 0.1;
       if (s.t - m.blockT > 14) (m.blockT = s.t), ev(s, 'block', m.x, m.y - m.r);
     }
   }
@@ -479,7 +479,7 @@ function hurt(s: SoulState, m: Foe, base: number, ak: AK, aid: number, kx = 0, k
   }
   if (d.big) amt *= BIG_MUL[ak];
   if (m.arm > 0) {
-    const hit = ARMOR_OK.has(ak) ? amt * 2.6 : amt * 0.14;
+    const hit = ARMOR_OK.has(ak) ? amt * 2.6 : amt * 0.1;
     m.arm -= hit;
     m.hurtT = s.t;
     if (m.arm <= 0) (m.arm = 0), ev(s, 'armorbreak', m.x, m.y - m.r), see(s, 'armorbreak');
@@ -615,7 +615,7 @@ function eatStep(s: SoulState) {
   s.eat = null;
   s.rest = REST_T;
   const aid = ++s.aid;
-  let col: number, bonus = 0;
+  let col: number, bonus = 0, src = 1;
   if (e.patch >= 0) {
     const p = s.patches[e.patch];
     p.gone = true;
@@ -640,19 +640,20 @@ function eatStep(s: SoulState) {
     } else wow(s, '대장 색을 뜯었다!', `${CNAME[col]} — 대장은 작아지고 나는 커져요`, 0, col);
   } else {
     col = m.col;
-    if (m.champ) bonus = 1;
+    if (m.champ) (bonus = 1), (src = 1.4);
+    else if (m.k === 'blob') src = 0.7;
     m.held = false;
     ev(s, 'shatter', m.x, m.y, 0, m.r, 0, m.k);
     kill(s, m, aid);
   }
-  transform(s, col, bonus, aid);
+  transform(s, col, bonus, aid, src);
 }
-function transform(s: SoulState, col: number, bonus: number, aid: number) {
+function transform(s: SoulState, col: number, bonus: number, aid: number, src = 1) {
   const me = s.me, was = me.f, res = mixRes(s, col, bonus);
   me.mask = res.mask;
   me.tier = res.tier;
   me.f = res.f;
-  me.T = me.Tmax = durOf(s, me.f, me.tier);
+  me.T = me.Tmax = me.f === 'golem' || me.f === 'rainbow' ? durOf(s, me.f, me.tier) : Math.round(durOf(s, me.f, me.tier) * src);
   me.bornT = s.t;
   me.aid = aid;
   me.st = 0;
@@ -690,8 +691,8 @@ export function worth(m: Foe, ak: AK): number {
   if (d.boss) return bossMul(m.k, ak) * 2;
   if (d.air && !AIR_OK.has(ak)) return 0;
   let v = 1;
-  if (m.sh && !SHIELD_OK.has(ak) && ak !== 'quake') v *= 0.14;
-  if (m.arm > 0) v *= ARMOR_OK.has(ak) ? 1.4 : 0.14;
+  if (m.sh && !SHIELD_OK.has(ak) && ak !== 'quake') v *= 0.1;
+  if (m.arm > 0) v *= ARMOR_OK.has(ak) ? 1.4 : 0.1;
   if (d.fast && m.bind <= 0) v *= FAST_MUL[ak];
   if (d.big) v *= BIG_MUL[ak];
   return v;
@@ -699,15 +700,15 @@ export function worth(m: Foe, ak: AK): number {
 function burst(s: SoulState, aid: number) {
   const me = s.me, f = me.f, P = powOf(s), K = reachK(s);
   switch (f) {
-    case 'lion': blast(s, me.x, me.y, 0.17 * K, 26 * P, 'pounce', aid, 0.02); paint(s, me.x, me.y, 0.13 * K, R); ev(s, 'roar', me.x, me.y, 0, 0.17 * K); break;
-    case 'dragon': blast(s, me.x, me.y, 0.3 * K, 40 * P, 'fire', aid, 0.025); paint(s, me.x, me.y, 0.2 * K, R); ev(s, 'nova', me.x, me.y, 0, 0.3 * K); break;
-    case 'whale': blast(s, me.x, me.y, 0.15 * K, 22 * P, 'jet', aid, 0.03); pushAll(s, me.x, me.y, 0.34 * K, 0.035); paint(s, me.x, me.y, 0.13 * K, B); ev(s, 'splashdown', me.x, me.y, 0, 0.15 * K); break;
+    case 'lion': blast(s, me.x, me.y, 0.15 * K, 20 * P, 'pounce', aid, 0.02); paint(s, me.x, me.y, 0.12 * K, R); ev(s, 'roar', me.x, me.y, 0, 0.15 * K); break;
+    case 'dragon': blast(s, me.x, me.y, 0.27 * K, 34 * P, 'fire', aid, 0.025); paint(s, me.x, me.y, 0.2 * K, R); ev(s, 'nova', me.x, me.y, 0, 0.27 * K); break;
+    case 'whale': blast(s, me.x, me.y, 0.13 * K, 18 * P, 'jet', aid, 0.03); pushAll(s, me.x, me.y, 0.34 * K, 0.035); paint(s, me.x, me.y, 0.13 * K, B); ev(s, 'splashdown', me.x, me.y, 0, 0.13 * K); break;
     case 'narwhal': s.waves.push({ y: me.y, t: 0, aid, hit: [], big: true }); paint(s, me.x, me.y, 0.16 * K, B); ev(s, 'bigwave', me.x, me.y); break;
-    case 'bird': chain(s, me.x, me.y - 0.03, 9, 16 * P, 0.36, aid); ev(s, 'clap', me.x, me.y); break;
-    case 'eagle': for (let i = 0; i < 9; i++) s.q.push({ t: s.t + 4 + i * 4, k: 'bolt', x: 0, y: 0, r: 0.06, dmg: 30 * P, aid, id: 0 }); paint(s, me.x, me.y, 0.14 * K, Y); ev(s, 'storm', me.x, me.y); break;
-    case 'octo': addCloud(s, me.x, me.y - 0.02, 0.2 * K, 200, aid); ev(s, 'cloud', me.x, me.y, 1, 0.2 * K); break;
-    case 'turtle': blast(s, me.x, me.y, 0.2 * K, 40 * P, 'slam', aid, 0.022); paint(s, me.x, me.y, 0.15 * K, 5); ev(s, 'slam', me.x, me.y, 1, 0.2 * K); break;
-    case 'snake': for (const m of nearFoes(s, me.x, me.y, 0.27 * K).slice(0, 8)) vineHit(s, m, 14 * P, aid); ev(s, 'net', me.x, me.y, 0, 0.27 * K); break;
+    case 'bird': chain(s, me.x, me.y - 0.03, 7, 13 * P, 0.36, aid); ev(s, 'clap', me.x, me.y); break;
+    case 'eagle': for (let i = 0; i < 7; i++) s.q.push({ t: s.t + 4 + i * 4, k: 'bolt', x: 0, y: 0, r: 0.06, dmg: 26 * P, aid, id: 0 }); paint(s, me.x, me.y, 0.14 * K, Y); ev(s, 'storm', me.x, me.y); break;
+    case 'octo': addCloud(s, me.x, me.y - 0.02, 0.18 * K, 200, aid); ev(s, 'cloud', me.x, me.y, 1, 0.18 * K); break;
+    case 'turtle': blast(s, me.x, me.y, 0.17 * K, 32 * P, 'slam', aid, 0.022); paint(s, me.x, me.y, 0.13 * K, 5); ev(s, 'slam', me.x, me.y, 1, 0.17 * K); break;
+    case 'snake': for (const m of nearFoes(s, me.x, me.y, 0.24 * K).slice(0, 7)) vineHit(s, m, 10 * P, aid); ev(s, 'net', me.x, me.y, 0, 0.24 * K); break;
     case 'golem': stomp(s, aid, 1); break;
     case 'rainbow': me.st = 1; me.tm = 0; ev(s, 'rainbow', me.x, me.y); break;
     default: break;
@@ -1532,7 +1533,8 @@ export const colorsoulSmart: Bot<SoulState> = {
     if (!free(s)) return NO;
     const me = s.me, d = STAGES[s.stage], list = cands(s);
     if (!list.length) return NO;
-    const need = d.star.k === 'form' && (s.multi[-1] ?? 0) < d.star.n ? d.star.f : null;
+    const need = d.star.k === 'form' && (s.multi[-1] ?? 0) < d.star.n ? d.star.f : null, needMask = need ? FD[need].mask : -1;
+    const evo = need === 'dragon' || need === 'narwhal' || need === 'eagle';
     const curFit = me.f === 'white' ? -9 : fit(s, me.f) * (1 + 0.12 * (me.tier - 1)) * (me.T > 110 ? 1 : 0.4) + (need && me.f === need ? 4 : 0);
     let best: Cand | null = null, bv = -1e9;
     const fits = new Map<string, number>();
@@ -1541,7 +1543,7 @@ export const colorsoulSmart: Bot<SoulState> = {
       let fv = fits.get(key);
       if (fv === undefined) fits.set(key, (fv = fit(s, res.f) * (1 + 0.12 * (res.tier - 1))));
       let v = fv + 0.7 * burstEst(s, res.f, c.x, c.y, res.tier);
-      if (need) v += res.f === need ? 5 : me.f === need ? -5 : 0;
+      if (need) v += res.f === need ? 5 + (me.f === need ? 1 : 0) : me.f === need ? -5 : evo && res.mask === needMask ? 2.5 + res.tier : evo && me.mask === needMask ? -3 : 0;
       if (!s.dex.includes(res.f)) v += 1.5;
       if (c.patch >= 0) v += 8;
       if (c.m.k === 'rainbow') v += 4;

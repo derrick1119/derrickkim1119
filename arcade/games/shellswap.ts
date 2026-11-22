@@ -30,9 +30,9 @@ const A = 1.5, TAU = Math.PI * 2;
 /** 모래밭(놀이 자리): 화면 좌표(가로 폭 = 1, 세로 0~1.5). 세로는 YS배로 눌린 3/4 시점 — 거리는 늘 dist()로. 물가(SHORE) 위는 바다 */
 const YS = 0.84, BX0 = 0.06, BX1 = 0.94, BY0 = 0.47, BY1 = 1.235, SHORE = 0.43;
 /** 화면의 놈 상한 · 모래밭 껍데기 최대/최소 · 이사 뒤 쉼 · 들어가서 첫 공격까지 · 처음 10초 · 맨몸 무적 */
-const CAP = 24, SH_MAX = 6, SH_MIN = 3, REST_T = 30, ENTRY_T = 15, SAFE_T = 600, NAKED_INV = 45;
+const CAP = 24, SH_MAX = 5, SH_MIN = 3, REST_T = 30, ENTRY_T = 15, SAFE_T = 600, NAKED_INV = 45;
 /** 물결(껍데기 배달): 평소 간격 · 껍데기가 모자랄 때 · 한 번 들고 나는 틱 */
-const SURGE_T = 165, SURGE_FAST = 45, SURGE_LEN = 84;
+const SURGE_T = 200, SURGE_FAST = 90, SURGE_LEN = 84;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210;
 const CLEAR_PTS = 30, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 100;
@@ -70,24 +70,24 @@ export const DEX: SK[] = ['conch', 'teapot', 'can', 'castle', 'rocket', 'helmet'
 export type EK = 'flea' | 'star' | 'goblin' | 'gull' | 'gang' | 'shield' | 'lobster' | 'jelly' | 'clam' | 'captain' | 'octo' | 'shark';
 interface EDef { name: string; tag: Tag; r: number; hp: number; spd: number; dmg: number; rest: number; boss?: boolean; fly?: boolean }
 export const ED: Record<EK, EDef> = {
-  flea: { name: '모래 벼룩', tag: 'swarm', r: 0.025, hp: 7, spd: 0.0042, dmg: 2, rest: 48 },
-  star: { name: '불가사리 굴렁쇠', tag: 'roll', r: 0.035, hp: 16, spd: 0.0082, dmg: 5, rest: 40 },
-  goblin: { name: '모래 도깨비', tag: 'big', r: 0.074, hp: 110, spd: 0.0015, dmg: 12, rest: 80 },
-  gull: { name: '갈매기', tag: 'fly', r: 0.042, hp: 18, spd: 0.0045, dmg: 5, rest: 170, fly: true },
-  gang: { name: '집게 갱', tag: 'gang', r: 0.037, hp: 24, spd: 0.0034, dmg: 4, rest: 54 },
-  shield: { name: '방패 게', tag: 'shield', r: 0.047, hp: 44, spd: 0.0022, dmg: 6, rest: 70 },
-  lobster: { name: '바닷가재', tag: 'charge', r: 0.056, hp: 56, spd: 0.0018, dmg: 15, rest: 70 },
-  jelly: { name: '해파리', tag: 'jelly', r: 0.041, hp: 20, spd: 0.0014, dmg: 3, rest: 44 },
-  clam: { name: '숨은 조개', tag: 'hide', r: 0.037, hp: 24, spd: 0, dmg: 5, rest: 200 },
-  captain: { name: '해적 갈매기 선장', tag: 'fly', r: 0.1, hp: 420, spd: 0.0022, dmg: 9, rest: 150, boss: true, fly: true },
-  octo: { name: '모래성 문어 왕', tag: 'big', r: 0.12, hp: 640, spd: 0, dmg: 13, rest: 125, boss: true },
-  shark: { name: '장난감 상어 잠수함', tag: 'big', r: 0.12, hp: 760, spd: 0.0022, dmg: 10, rest: 105, boss: true },
+  flea: { name: '모래 벼룩', tag: 'swarm', r: 0.025, hp: 12, spd: 0.0042, dmg: 3, rest: 48 },
+  star: { name: '불가사리 굴렁쇠', tag: 'roll', r: 0.035, hp: 24, spd: 0.0082, dmg: 7, rest: 40 },
+  goblin: { name: '모래 도깨비', tag: 'big', r: 0.074, hp: 170, spd: 0.0015, dmg: 16, rest: 80 },
+  gull: { name: '갈매기', tag: 'fly', r: 0.042, hp: 28, spd: 0.0045, dmg: 7, rest: 170, fly: true },
+  gang: { name: '집게 갱', tag: 'gang', r: 0.037, hp: 40, spd: 0.0034, dmg: 5, rest: 54 },
+  shield: { name: '방패 게', tag: 'shield', r: 0.047, hp: 60, spd: 0.0022, dmg: 8, rest: 70 },
+  lobster: { name: '바닷가재', tag: 'charge', r: 0.056, hp: 80, spd: 0.0018, dmg: 20, rest: 70 },
+  jelly: { name: '해파리', tag: 'jelly', r: 0.041, hp: 30, spd: 0.0014, dmg: 4, rest: 44 },
+  clam: { name: '숨은 조개', tag: 'hide', r: 0.037, hp: 36, spd: 0, dmg: 7, rest: 200 },
+  captain: { name: '해적 갈매기 선장', tag: 'fly', r: 0.1, hp: 1000, spd: 0.0022, dmg: 9, rest: 150, boss: true, fly: true },
+  octo: { name: '모래성 문어 왕', tag: 'big', r: 0.12, hp: 1400, spd: 0, dmg: 13, rest: 125, boss: true },
+  shark: { name: '장난감 상어 잠수함', tag: 'big', r: 0.12, hp: 1700, spd: 0.0022, dmg: 10, rest: 105, boss: true },
 };
 
 /** 놈들이 들어오는 곳: 1 바다 · 2 왼쪽 덤불 · 3 오른쪽 덤불 · 4 아래 덤불 · 5 섞어서 */
 type From = 1 | 2 | 3 | 4 | 5;
 interface Grp { need: number; wait: number; from: From; mons: [EK, number][] }
-type StarK = 'multi' | 'kinds' | 'throw' | 'fast';
+type StarK = 'multi' | 'throw' | 'fast';
 interface StageDef {
   key: SK; ch: number; name: string; news: string; foe: EK | null; start: SK;
   /** 물결이 가져올 껍데기 무게 */
@@ -104,21 +104,21 @@ export const STAGES: StageDef[] = [
     groups: [G(0, 0, 1, ['flea', 12]), G(4, 420, 1, ['flea', 12]), G(4, 460, 2, ['flea', 10]), G(4, 460, 3, ['flea', 11]), G(3, 460, 1, ['flea', 12])] },
   { key: 'can', ch: 0, name: '깡통', news: '데굴데굴 굴러 줄 선 놈들을 볼링처럼', foe: 'star', start: 'teapot', supply: [['can', 3], ['teapot', 2], ['conch', 1]], star: { k: 'multi', n: 5 },
     groups: [G(0, 0, 1, ['flea', 8]), G(5, 300, 2, ['star', 5]), G(5, 420, 1, ['flea', 9], ['star', 4]), G(5, 420, 3, ['star', 6]), G(5, 420, 5, ['flea', 8], ['star', 5]), G(4, 420, 2, ['star', 6])] },
-  { key: 'castle', ch: 0, name: '모래성', news: '느리지만 대포 — 큰 도깨비에게 쾅', foe: 'goblin', start: 'can', supply: [['castle', 3], ['teapot', 2], ['can', 2], ['conch', 1]], star: { k: 'fast', n: 50 },
+  { key: 'castle', ch: 0, name: '모래성', news: '느리지만 대포 — 큰 도깨비에게 쾅', foe: 'goblin', start: 'can', supply: [['castle', 3], ['teapot', 2], ['can', 2], ['conch', 1]], star: { k: 'fast', n: 45 },
     groups: [G(0, 0, 1, ['goblin', 1], ['flea', 8]), G(5, 360, 4, ['goblin', 2], ['flea', 6]), G(5, 420, 2, ['star', 5], ['flea', 6]), G(5, 420, 1, ['goblin', 2], ['flea', 8]), G(4, 420, 3, ['goblin', 1], ['star', 4], ['flea', 6])] },
-  { key: 'rocket', ch: 0, name: '해적 갈매기 선장', news: '대장! 로켓으로 하늘을 — 투구가 떨어지면 차지해요', foe: 'gull', start: 'castle', supply: [['rocket', 4], ['teapot', 1], ['can', 1], ['castle', 1]], star: { k: 'fast', n: 55 },
+  { key: 'rocket', ch: 0, name: '해적 갈매기 선장', news: '대장! 로켓으로 하늘을 — 투구가 떨어지면 차지해요', foe: 'gull', start: 'castle', supply: [['rocket', 4], ['teapot', 1], ['can', 1], ['castle', 1]], star: { k: 'fast', n: 60 },
     boss: 'captain', bossShell: 'helmet', groups: [G(0, 0, 1, ['captain', 1], ['gull', 3], ['flea', 6])] },
   { key: 'urchin', ch: 1, name: '성게', news: '가시! 둘러싸일수록 세져요', foe: 'gang', start: 'conch', supply: [['urchin', 3], ['teapot', 1], ['can', 1], ['castle', 1], ['rocket', 1]], star: { k: 'multi', n: 5 },
     groups: [G(0, 0, 5, ['gang', 6]), G(4, 360, 2, ['gang', 6], ['flea', 6]), G(4, 420, 3, ['gang', 6], ['gull', 2]), G(4, 420, 5, ['gang', 7], ['goblin', 1]), G(4, 420, 1, ['gang', 6], ['star', 4])] },
-  { key: 'bottle', ch: 1, name: '유리병', news: '햇빛 레이저가 방패를 뚫어요', foe: 'shield', start: 'urchin', supply: [['bottle', 3], ['urchin', 2], ['teapot', 1], ['castle', 1], ['can', 1]], star: { k: 'kinds', n: 4 },
+  { key: 'bottle', ch: 1, name: '유리병', news: '햇빛 레이저가 방패를 뚫어요', foe: 'shield', start: 'urchin', supply: [['bottle', 3], ['urchin', 2], ['teapot', 1], ['castle', 1], ['can', 1]], star: { k: 'throw', n: 4 },
     groups: [G(0, 0, 1, ['shield', 3], ['flea', 6]), G(4, 360, 2, ['shield', 3], ['gang', 4]), G(4, 420, 1, ['shield', 3], ['flea', 8]), G(4, 420, 3, ['shield', 4], ['gull', 2]), G(4, 420, 5, ['shield', 3], ['gang', 5])] },
-  { key: 'skull', ch: 1, name: '해골', news: '으스스 — 돌진하던 바닷가재가 도망쳐요', foe: 'lobster', start: 'bottle', supply: [['skull', 3], ['urchin', 1], ['bottle', 1], ['teapot', 1], ['castle', 1], ['rocket', 1]], star: { k: 'throw', n: 3 },
+  { key: 'skull', ch: 1, name: '해골', news: '으스스 — 돌진하던 바닷가재가 도망쳐요', foe: 'lobster', start: 'bottle', supply: [['skull', 3], ['urchin', 1], ['bottle', 1], ['teapot', 1], ['castle', 1], ['rocket', 1]], star: { k: 'fast', n: 45 },
     groups: [G(0, 0, 1, ['lobster', 2], ['flea', 8]), G(4, 360, 2, ['lobster', 2], ['gang', 4]), G(4, 420, 3, ['lobster', 2], ['shield', 2], ['flea', 6]), G(4, 420, 1, ['lobster', 3], ['gull', 2]), G(4, 420, 5, ['lobster', 2], ['goblin', 1], ['gang', 4])] },
   { key: 'anchor', ch: 1, name: '모래성 문어 왕', news: '대장! 반쯤 다치면 왕 닻을 떨어뜨려요', foe: null, start: 'skull', supply: [['urchin', 2], ['bottle', 2], ['skull', 2], ['castle', 2], ['teapot', 1]], star: { k: 'fast', n: 60 },
     boss: 'octo', bossShell: 'anchor', groups: [G(0, 0, 1, ['octo', 1], ['gang', 4], ['shield', 2])] },
   { key: 'bulb', ch: 2, name: '전구', news: '번쩍! 기절 — 해파리는 줄줄이 펑', foe: 'jelly', start: 'conch', supply: [['bulb', 3], ['teapot', 1], ['urchin', 1], ['bottle', 1], ['skull', 1], ['rocket', 1]], star: { k: 'multi', n: 6 },
     groups: [G(0, 0, 1, ['jelly', 7]), G(4, 360, 1, ['jelly', 6], ['gang', 4]), G(4, 420, 5, ['jelly', 6], ['gull', 3]), G(4, 420, 1, ['jelly', 7], ['shield', 2]), G(4, 420, 2, ['jelly', 6], ['lobster', 2])] },
-  { key: 'ball', ch: 2, name: '비치볼', news: '통통 튕겨 숨은 조개까지', foe: 'clam', start: 'bulb', supply: [['ball', 3], ['bulb', 1], ['castle', 1], ['can', 1], ['skull', 1], ['urchin', 1]], star: { k: 'kinds', n: 5 },
+  { key: 'ball', ch: 2, name: '비치볼', news: '통통 튕겨 숨은 조개까지', foe: 'clam', start: 'bulb', supply: [['ball', 3], ['bulb', 1], ['castle', 1], ['can', 1], ['skull', 1], ['urchin', 1]], star: { k: 'throw', n: 4 },
     groups: [G(0, 0, 5, ['clam', 6], ['flea', 6]), G(4, 360, 5, ['clam', 5], ['jelly', 4]), G(4, 420, 2, ['clam', 4], ['star', 5]), G(4, 420, 5, ['clam', 5], ['goblin', 1], ['flea', 6]), G(4, 420, 3, ['clam', 5], ['lobster', 2])] },
   { key: 'horn', ch: 2, name: '대왕 고둥', news: '뿌우 — 큰 밀물이 모래밭을 싹', foe: null, start: 'ball', supply: [['horn', 3], ['teapot', 1], ['urchin', 1], ['bulb', 1], ['ball', 1], ['castle', 1], ['rocket', 1]], star: { k: 'multi', n: 9 },
     groups: [G(0, 0, 5, ['flea', 8], ['gang', 5], ['jelly', 4]), G(6, 360, 5, ['flea', 8], ['star', 5], ['shield', 2]), G(6, 420, 5, ['gang', 6], ['jelly', 5], ['gull', 3]), G(6, 420, 5, ['flea', 10], ['lobster', 2], ['clam', 4]), G(5, 420, 5, ['goblin', 2], ['flea', 8], ['gang', 5])] },
@@ -209,7 +209,7 @@ const crabR = (c: Crab) => (c.k ? SD[c.k].r : 0.045);
 /** 딱 맞는 껍데기인가: 꼬리표가 같으면 세 배 · 고둥은 놈이 많을 때 1.6배 · 꼬마 소라는 몇 놈 안 남았을 때 두 배 */
 function matchMul(s: ShellState, k: SK, f: Foe) {
   const b = SD[k].best;
-  if (b === ED[f.k].tag) return 3;
+  if (b === ED[f.k].tag) return ED[f.k].boss ? 2 : 3;
   if (b === 'many') return alive(s) >= 8 ? 1.6 : 1;
   if (b === 'few') return alive(s) <= 5 && !s.inbox.length ? 2 : 1;
   return 1;
@@ -251,7 +251,7 @@ function spotFor(s: ShellState, from: From): [number, number, number, number] {
   }
 }
 function addFoe(s: ShellState, k: EK, x: number, y: number, from: number, ox = x, oy = y): Foe {
-  const d = ED[k], hp = Math.round(d.hp * (1 + 0.06 * s.stage));
+  const d = ED[k], hp = Math.round(d.hp * (d.boss ? 1 : 1 + 0.05 * s.stage));
   const f: Foe = {
     id: ++s.nid, k, x, y, r: d.r, hp, max: hp, st: from ? ENTER : IDLE, tm: 0, cool: 40 + Math.floor(s.rng() * 70), ang: 0, ax: x, ay: y, et: 1, fx0: x, fy0: y,
     vx: 0, vy: 0, alt: d.fly ? 0.15 + s.rng() * 0.04 : 0, stun: 0, scared: 0, open: -Math.floor(s.rng() * 120), slot: s.nid * 2.4, cd: 0, rid: 0,
@@ -481,7 +481,8 @@ function kill(s: ShellState, f: Foe, aid: number, mul: number) {
   const a = act(s, aid);
   a.n++;
   a.t = s.t;
-  const pts = Math.ceil((a.n * a.n) / 4) * (mul > 1.5 ? 2 : 1);
+  // 딱 맞는 껍데기로 쓰러뜨리면 한 번에 n번째는 ⌈n²/4⌉점의 두 배, 아니면 ⌈n/2⌉점
+  const pts = mul >= 1.5 ? Math.ceil((a.n * a.n) / 4) * 2 : Math.ceil(a.n / 2);
   s.sp += pts;
   if (a.n > s.best) s.best = a.n;
   ev(s, 'kill', f.x, f.y - f.r, a.n, pts, mul, f.k);
@@ -588,14 +589,14 @@ function bestRay(s: ShellState, x: number, y: number, wd: number, len: number): 
 function checkStar3(s: ShellState) {
   if (s.star3T >= 0 || s.phase !== 'play') return;
   const st = STAGES[s.stage].star;
-  const ok = st.k === 'multi' ? s.best >= st.n : st.k === 'kinds' ? s.kinds.length >= st.n : st.k === 'throw' ? s.bestThrow >= st.n : false;
+  const ok = st.k === 'multi' ? s.best >= st.n : st.k === 'throw' ? s.bestThrow >= st.n : false;
   if (!ok) return;
   s.star3T = s.t;
   ev(s, 'star3', s.crab.x, s.crab.y - 0.1, st.n);
   wow(s, starWord(st, true), st.n, null, true);
 }
 const starWord = (st: { k: StarK; n: number }, done = false) =>
-  st.k === 'multi' ? `한 번에 ${st.n}마리${done ? '!' : ''}` : st.k === 'kinds' ? `껍데기 ${st.n}가지로 이사${done ? '!' : ''}` : st.k === 'throw' ? `던진 껍데기로 한 번에 ${st.n}마리${done ? '!' : ''}` : `${st.n}초 안에 쫓아내기`;
+  st.k === 'multi' ? `한 번에 ${st.n}마리${done ? '!' : ''}` : st.k === 'throw' ? `던진 껍데기로 한 번에 ${st.n}마리${done ? '!' : ''}` : `${st.n}초 안에 쫓아내기`;
 
 // ───────────────────────────── 내가 맞을 때 ─────────────────────────────
 function breakShell(s: ShellState) {
@@ -619,7 +620,9 @@ function hurtCrab(s: ShellState, amt: number, sx: number, sy: number, from: Foe 
   const ez = EZ[s.stage] * (s.firstTap < 0 && s.t < SAFE_T ? 0.3 : 1);
   if (c.k) {
     const q0 = c.hp / c.max;
-    c.hp -= amt * SD[c.k].armor * ez;
+    // 딱 맞는 껍데기는 그 놈의 공격을 잘 막는다
+    const resist = from && SD[c.k].best === ED[from.k].tag ? 0.35 : 1;
+    c.hp -= amt * SD[c.k].armor * ez * resist;
     c.hurtT = s.t;
     if (from && c.k === 'urchin' && live(from)) {
       const aid = ++s.aid;
@@ -709,7 +712,7 @@ function arrive(s: ShellState) {
   c.alt = 0;
   c.ang = -Math.PI / 2;
   ev(s, 'land', c.x, c.y, 0, 0, 0, k);
-  if (!s.kinds.includes(k)) s.kinds.push(k), checkStar3(s);
+  if (!s.kinds.includes(k)) s.kinds.push(k);
   const fresh = !s.dex.includes(k);
   if (fresh) s.dex.push(k), s.newDex.push(k);
   if (sh.boss) {
@@ -1767,7 +1770,6 @@ export const shellswapSmart: Bot<ShellState> = {
     let best: Shell | null = null, bv = -1e9;
     for (const o of s.shells) {
       let v = worth(s, o.k) * Math.sqrt(Math.max(0.15, o.hp / o.max)) - dist(c.x, c.y, o.x, o.y) * 2;
-      if (st.k === 'kinds' && s.star3T < 0 && !s.kinds.includes(o.k)) v += 4;
       if (o.boss) v += 100;
       if (v > bv) (bv = v), (best = o);
     }
