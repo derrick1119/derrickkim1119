@@ -56,8 +56,10 @@ export function paperSprite(draw, o = {}) {
   let img = c; const border = o.border === undefined ? PAPER : o.border;
   if (border) {
     const tint = col => { const k = makeCanvas(c.width, c.height), kg = k.getContext('2d'); kg.drawImage(c, 0, 0); kg.globalCompositeOperation = 'source-in'; kg.fillStyle = col; kg.fillRect(0, 0, c.width, c.height); return k; };
-    const sil = tint(border), edge = tint('rgba(96,78,52,0.5)');
+    const sil = tint(border), edge = tint('rgba(96,78,52,0.5)'), thick = tint('#bda57a');
     const out = makeCanvas(c.width, c.height), og = out.getContext('2d'); const d = (o.bw || 2.4) * SS;
+    // 두꺼운 종이 스탠디: 테두리 아래·오른쪽으로 종이의 두께(옆면)가 비친다
+    for (let i = 0; i < 16; i++) og.drawImage(thick, Math.cos(i / 16 * TAU) * d + 0.8 * SS, Math.sin(i / 16 * TAU) * d + 2 * SS);
     // 가위로 오린 종이: 크림색 테두리 바깥에 가는 그늘선을 한 번 더 두른다
     for (let i = 0; i < 24; i++) og.drawImage(edge, Math.cos(i / 24 * TAU) * (d + 1.6), Math.sin(i / 24 * TAU) * (d + 1.6));
     for (let i = 0; i < 24; i++) og.drawImage(sil, Math.cos(i / 24 * TAU) * d, Math.sin(i / 24 * TAU) * d);

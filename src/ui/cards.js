@@ -26,7 +26,9 @@ export function cardText(c, P = 1) {
 export function cardFace(g, c, x, y, w, h, o = {}) {
   const d = CARDS[c.id], k = KIND[d.kind], col = k.col, unit = isUnit(c), big = h >= 240, mini = w < 96, r = Math.max(5, w * 0.06), hh = big ? 46 : mini ? h * 0.16 : Math.max(26, h * 0.2), gilt = c.up || (c.lv || 1) > 1;
   g.save(); if (o.dim) g.globalAlpha *= 0.45;
-  rr(g, x + 2, y + 4, w, h, r, 'rgba(40,28,16,0.3)');
+  // 두꺼운 종이 패: 부드러운 그림자 위에 종이의 두께(옆면)가 비친다
+  for (const [d, a] of [[8, 0.07], [5, 0.1], [2.5, 0.13]]) rr(g, x + 1 - d * 0.4, y + 4 + d * 0.5, w + d * 0.8, h, r + d * 0.4, `rgba(30,20,10,${a})`);
+  rr(g, x + 1, y + 3, w, h, r, '#cdb88f', INK, 2);
   const pg = g.createLinearGradient(0, y, 0, y + h); pg.addColorStop(0, gilt ? '#fdf5d6' : '#fdf8ea'); pg.addColorStop(1, gilt ? '#f2e0ac' : '#eee3c7');
   rr(g, x, y, w, h, r, pg, INK, 2.4);
   g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, r - 1); g.clip();

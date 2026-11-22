@@ -6,7 +6,7 @@ import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
-import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
+import { makeGround, makeFar, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
 import { Fx } from './fx.js';
 import { icon } from '../ui/ui.js';
 
@@ -142,6 +142,8 @@ export class BattleView {
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
     for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
     for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
+    // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
+    g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(backlight(isNight(this.theme)), 0, 0, W, H); g.restore();
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
@@ -292,7 +294,7 @@ export class BattleView {
           if (e.flank && Math.random() < 0.34) fx.txt(e.x, e.y - 46, '배후!', '#c8642a', 18, 0.6);
           if (e.big && e.amt >= 60) fx.num(e.x, e.y - 42, e.amt, e.team === 0 ? RED : INK);
           break;
-        case 'melee': if (e.big || Math.random() < 0.45) fx.star(e.x, e.y, e.big ? 13 : 7); break;
+        case 'melee': { const now = performance.now(); if (e.big && now - (this.lastImpact || 0) > 280) { this.lastImpact = now; fx.impact(e.x, e.y - 14, 46); } else if (e.big || Math.random() < 0.45) fx.star(e.x, e.y, e.big ? 13 : 7); break; }
         case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
         // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
         case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: Math.min(Math.max(e.y - 56, 150), 492) - 78, vy: -8, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 22, life: 1.1 }); } sfx('card'); out.push(e); break;

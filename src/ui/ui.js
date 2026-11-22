@@ -52,21 +52,25 @@ function navyPanel(g, w, h) {
   g.save(); g.beginPath(); rrPath(g, 1.5, 1.5, w - 3, h - 3, 8); g.clip(); chilbo(g, w, h); g.restore();
   rr(g, 6, 6, w - 12, h - 12, 5, null, 'rgba(226,184,90,0.8)', 1.2); rr(g, 9, 9, w - 18, h - 18, 3.5, null, 'rgba(226,184,90,0.3)', 0.8);
 }
-// 아래쪽 패 받침: 쪽빛 옻칠 판에 금선과 붉은 선을 두른다
+// 금박: 빛을 받아 결이 이는 금빛 (띠·단추·패의 테두리)
+export const foil = (g, x0, x1) => { const gr = g.createLinearGradient(x0, 0, x1, 0); [['#a87a24', 0], ['#f6dc8a', 0.18], ['#c9962e', 0.38], ['#fbe9a8', 0.6], ['#b8862a', 0.8], ['#f0d27a', 1]].forEach(([c, t]) => gr.addColorStop(t, c)); return gr; };
+// 쪽빛 판에 깔린 한지 섬유 (옻칠 위로 비치는 종이 결)
+function fibers(g, w, h, seed, a = 0.06) { let sd = seed | 0 || 7; const R = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; }; g.lineWidth = 0.8; for (let i = 0, n = (w * h / 900) | 0; i < n; i++) { const x = R() * w, y = R() * h, an = R() * TAU, l = 4 + R() * 10; g.strokeStyle = R() < 0.6 ? `rgba(255,240,210,${a})` : `rgba(0,0,0,${a * 0.8})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(an) * l, y + Math.sin(an) * l); g.stroke(); } }
+// 아래쪽 패 받침: 쪽빛 옻칠 판에 한지 결, 금박 띠와 붉은 선을 두른다
 function trayPanel(g, w, h) {
-  g.fillStyle = vgrad(g, 0, h, '#283558', '#131a2e', [0.14, '#1f2a47']); g.fillRect(0, 0, w, h); chilbo(g, w, h, 0.055);
+  g.fillStyle = vgrad(g, 0, h, '#283558', '#131a2e', [0.14, '#1f2a47']); g.fillRect(0, 0, w, h); chilbo(g, w, h, 0.055); fibers(g, w, h, 11);
   g.fillStyle = vgrad(g, 0, 16, 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0)'); g.fillRect(0, 0, w, 16);
-  g.fillStyle = INK; g.fillRect(0, -5, w, 6); g.fillStyle = '#e2b85a'; g.fillRect(0, 1, w, 2.2); g.fillStyle = 'rgba(200,64,47,0.95)'; g.fillRect(0, 5.2, w, 1.3);
+  g.fillStyle = INK; g.fillRect(0, -5, w, 6); g.fillStyle = foil(g, 0, w); g.fillRect(0, 0.6, w, 3.2); g.fillStyle = 'rgba(255,248,220,0.55)'; g.fillRect(0, 0.6, w, 0.8); g.fillStyle = 'rgba(200,64,47,0.95)'; g.fillRect(0, 5.6, w, 1.3);
 }
 // 머리 띠: 쪽빛 바탕, 아래 단에 겹고리(칠보) 띠와 금선 (회문 번개무늬는 중국풍으로 읽혀 쓰지 않는다)
 function hudPanel(g, w, h) {
-  g.fillStyle = vgrad(g, 0, h, '#2c3c62', '#1a2440'); g.fillRect(0, 0, w, h); chilbo(g, w, h, 0.05);
+  g.fillStyle = vgrad(g, 0, h, '#2c3c62', '#1a2440'); g.fillRect(0, 0, w, h); chilbo(g, w, h, 0.05); fibers(g, w, h, 23);
   g.fillStyle = 'rgba(8,12,26,0.3)'; g.fillRect(0, h - 11, w, 11);
   g.save(); g.beginPath(); g.rect(0, h - 11, w, 11); g.clip(); g.strokeStyle = 'rgba(226,184,90,0.55)'; g.lineWidth = 1;
   for (let x = 0; x < w + 8; x += 7) { g.beginPath(); g.arc(x, h - 5.6, 4.6, 0, TAU); g.stroke(); }
   g.fillStyle = 'rgba(226,184,90,0.5)'; for (let x = 3.5; x < w; x += 7) { g.beginPath(); g.arc(x, h - 5.6, 0.9, 0, TAU); g.fill(); }
   g.restore();
-  g.fillStyle = '#e2b85a'; g.fillRect(0, h, w, 3); g.fillStyle = 'rgba(120,34,26,0.9)'; g.fillRect(0, h + 3, w, 1.4);
+  g.fillStyle = foil(g, 0, w); g.fillRect(0, h, w, 3.4); g.fillStyle = 'rgba(255,248,220,0.55)'; g.fillRect(0, h, w, 0.8); g.fillStyle = 'rgba(120,34,26,0.9)'; g.fillRect(0, h + 3.4, w, 1.4);
 }
 export function panel(g, x, y, w, h, style = 'paper') {
   if (style === 'paper') bake(g, `p:${w}:${h}`, x, y, w, h, 10, c => paperPanel(c, w, h));
@@ -85,9 +89,10 @@ export function button(g, id, x, y, w, h, label, o = {}) {
   const hit = !dis && tapped(id, x, y, w, h), dn = !dis && isDown(id, x, y, w, h), off = dn ? 3 : 0;
   const r = o.r === undefined ? Math.min(11, h * 0.2) : Math.min(o.r, 12), yy = y + off, orn = w >= 220 && h >= 50;
   g.save(); if (dis) g.globalAlpha *= 0.55;
+  for (const [d, a] of [[9, 0.08], [6, 0.11], [3, 0.14]]) rr(g, x - d * 0.4, y + 5 + d * 0.5, w + d * 0.8, h, r + d * 0.4, `rgba(10,8,20,${a})`);   // 바닥에 지는 부드러운 그림자 (흐림 효과 없이 겹쳐 그린다)
   rr(g, x, y + 5, w, h, r, sty[2], INK, 2.6); rr(g, x, yy, w, h, r, vgrad(g, yy, yy + h, sty[0], sty[1]), INK, 2.6);
   g.save(); g.beginPath(); rrPath(g, x + 1.6, yy + 1.6, w - 3.2, h - 3.2, Math.max(1, r - 1.4)); g.clip(); g.fillStyle = light ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.16)'; g.fillRect(x, yy, w, Math.max(3, h * 0.1)); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(x, yy + h - Math.max(3, h * 0.1), w, h); g.restore();
-  rr(g, x + 5, yy + 5, w - 10, h - 10, Math.max(2, r - 4), null, sty[4], 1.2);
+  rr(g, x + 5, yy + 5, w - 10, h - 10, Math.max(2, r - 4), null, light ? 'rgba(168,122,36,0.75)' : foil(g, x, x + w), light ? 1.3 : 1.6);   // 금박 안테두리
   if (orn) for (const s of [-1, 1]) { const cx = x + w / 2 + s * (w / 2 - 22), cy = yy + h / 2; poly(g, [cx - 5, cy, cx, cy - 5, cx + 5, cy, cx, cy + 5], null, sty[4], 1.2); poly(g, [cx - 2, cy, cx, cy - 2, cx + 2, cy, cx, cy + 2], sty[4]); line(g, [cx - s * 8, cy, cx - s * 15, cy], sty[4], 1.1); }
   const size = o.size || Math.min(36, h * 0.46), tx = x + w / 2, ty = yy + h / 2 + 1, tw = w - (orn ? 78 : 22);
   if (!light) text(g, label, tx, ty + 1.8, { size, font: o.font || FONT_B, fill: 'rgba(8,10,24,0.34)', maxW: tw });

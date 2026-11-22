@@ -17,6 +17,8 @@ export class Fx {
   }
   burst(x, y, n, col, spd = 120, size = 3.2) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = spd * (0.4 + Math.random() * 0.8); this.add({ k: 'dot', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30, g: 260, life: 0.3 + Math.random() * 0.25, col, size: size * (0.6 + Math.random() * 0.7) }); } }
   puff(x, y, n = 4, col = PAPER, size = 9) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = 20 + Math.random() * 40; this.add({ k: 'puff', x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 3, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6 - 18, drag: 3, life: 0.35 + Math.random() * 0.25, col, size: size * (0.7 + Math.random() * 0.6) }); } }
+  // 종이·먹물 타격: 먹으로 그은 가시가 사방으로 뻗고, 가운데에 오린 종이 별이 터진다. 종잇조각이 흩날린다
+  impact(x, y, size = 60, ink = MEOK) { const spikes = Array.from({ length: 10 }, (_, i) => ({ a: i / 10 * TAU + Math.random() * 0.45, l: 1.1 + Math.random() * 0.9, w: 0.12 + Math.random() * 0.1 })); this.add({ k: 'impact', x, y, size, ink, spikes, rot: Math.random() * TAU, life: 0.42 }); this.scraps(x, y, 7, [PAPER, '#f3e7c8', '#e9dec4']); }
   star(x, y, size = 16, col = '#f6d98a') { this.add({ k: 'star', x, y, life: 0.18, size, col, rot: Math.random() * TAU }); }
   ring(x, y, r, col = INK, life = 0.4, lw = 5) { this.add({ k: 'ring', ground: true, x, y, r, col, life, lw }); }
   // 피해 숫자: 같은 자리에 잇달아 뜨면 겹쳐 쌓지 않고 한 숫자로 더한다
@@ -58,6 +60,14 @@ export class Fx {
       switch (p.k) {
         case 'dot': g.globalAlpha = Math.min(1, a * 2); ell(g, p.x, p.y, p.size * (0.5 + a * 0.5), p.size * (0.5 + a * 0.5), p.col, INK, 1); break;
         case 'puff': g.globalAlpha = Math.min(1, a * 1.6); ell(g, p.x, p.y, p.size * (0.6 + k * 0.7), p.size * (0.6 + k * 0.7) * 0.85, p.col, INK, 1.2); break;
+        case 'impact': {
+          const e = Math.min(1, k * 5), sc = p.size * (0.55 + 0.6 * e); g.save(); g.translate(p.x, p.y); g.globalAlpha = k < 0.55 ? 1 : 1 - (k - 0.55) / 0.45;
+          { const gl = g.createRadialGradient(0, 0, 0, 0, 0, sc * 1.5); gl.addColorStop(0, 'rgba(255,214,130,0.7)'); gl.addColorStop(0.5, 'rgba(255,176,80,0.25)'); gl.addColorStop(1, 'rgba(255,176,80,0)'); g.fillStyle = gl; g.beginPath(); g.arc(0, 0, sc * 1.5, 0, TAU); g.fill(); }
+          for (const q of p.spikes) { const L = q.l * sc, b0 = sc * 0.3; g.beginPath(); g.moveTo(Math.cos(q.a - q.w) * b0, Math.sin(q.a - q.w) * b0); g.quadraticCurveTo(Math.cos(q.a - q.w * 0.3) * L * 0.6, Math.sin(q.a - q.w * 0.3) * L * 0.6, Math.cos(q.a) * L, Math.sin(q.a) * L); g.quadraticCurveTo(Math.cos(q.a + q.w * 0.25) * L * 0.55, Math.sin(q.a + q.w * 0.25) * L * 0.55, Math.cos(q.a + q.w) * b0, Math.sin(q.a + q.w) * b0); g.closePath(); g.fillStyle = p.ink; g.fill(); }
+          const burst = (r0, f) => { g.beginPath(); for (let i = 0; i < 14; i++) { const a = p.rot + i / 14 * TAU, r = (i % 2 ? 0.42 : 1) * r0 * (0.82 + ((i * 37) % 10) / 34); g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fillStyle = f; g.fill(); };
+          g.save(); g.translate(2, 4); burst(sc * 0.9, 'rgba(40,28,16,0.25)'); g.restore(); burst(sc * 0.9, '#fbf3df'); st(g, INK, 2); burst(sc * 0.5, '#fffaf0');
+          g.restore(); break;
+        }
         case 'star': { const s = p.size * (0.5 + k * 0.9); g.globalAlpha = a; g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.beginPath(); for (let i = 0; i < 8; i++) { const an = i / 8 * TAU, r = i % 2 ? s * 0.35 : s; g[i ? 'lineTo' : 'moveTo'](Math.cos(an) * r, Math.sin(an) * r); } g.closePath(); g.fillStyle = p.col; g.fill(); st(g, INK, 1.4); g.restore(); break; }
         case 'ring': g.globalAlpha = a; g.beginPath(); g.ellipse(p.x, p.y, p.r * (0.3 + k * 0.7), p.r * (0.3 + k * 0.7) * 0.8, 0, 0, TAU); st(g, p.col, p.lw * a + 1); break;
         case 'text': g.globalAlpha = p.big ? Math.min(1, a * p.life / 0.3) : Math.min(1, a * 2.5);

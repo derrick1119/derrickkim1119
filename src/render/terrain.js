@@ -113,9 +113,22 @@ export function makeGround(themeId, seed = 7) {
   const wrap = (x, r, fn) => { fn(x); if (x < r) fn(x + GW); if (x > GW - r) fn(x - GW); };
   const edge = g.createLinearGradient(0, TOP - 14, 0, TOP + 26); edge.addColorStop(0, T.paper + '00'); edge.addColorStop(1, T.paper);
   g.fillStyle = edge; g.fillRect(0, TOP - 14, GW, 40); g.fillStyle = T.paper; g.fillRect(0, TOP + 26, GW, H);
+  // 겹겹이 오려 붙인 한지 언덕 (종이 디오라마): 물결진 윗변마다 뒤쪽 종이에 옅은 그늘이 지고, 가장자리는 빛을 받아 밝다
+  // 앞(아래)으로 올수록 풀빛이 짙어진다. 사인 물결의 주기를 바닥 너비에 맞춰 이음매 없이 이어진다
+  const mixc = (a, b, t) => '#' + [1, 3, 5].map(j => Math.round(parseInt(a.slice(j, j + 2), 16) * (1 - t) + parseInt(b.slice(j, j + 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  [[124, 12, 2, 2.2], [178, 22, 2, 0.4], [262, 30, 1, 1.9], [362, 26, 2, 3.1], [462, 32, 1, 4.4], [556, 20, 3, 5.6]].forEach(([yb, amp, fq, ph], i) => {
+    const f = x => yb + Math.sin(x * k * fq + ph) * amp + Math.sin(x * k * (fq * 3 + 1) + ph * 2) * amp * 0.35;
+    const band = () => { g.beginPath(); g.moveTo(-20, H + 10); for (let x = -20; x <= GW + 20; x += 16) g.lineTo(x, f(x)); g.lineTo(GW + 20, H + 10); g.closePath(); };
+    g.save(); g.shadowColor = T.night ? 'rgba(10,12,30,0.5)' : 'rgba(70,46,20,0.42)'; g.shadowBlur = 18; g.shadowOffsetY = -3; band(); g.fillStyle = T.paper; g.fill(); g.restore();
+    // 뒤 종이는 옅고 앞 종이일수록 풀빛이 짙다. 한 장 안에서도 윗변(빛)에서 아래(그늘)로 살짝 어두워진다
+    const base = mixc(T.paper, T.wash[i % T.wash.length], 0.22 + i * 0.13), gr2 = g.createLinearGradient(0, yb - amp, 0, yb + 120);
+    gr2.addColorStop(0, lt(base, 0.18)); gr2.addColorStop(0.5, base); gr2.addColorStop(1, dk(base, 0.08));
+    g.save(); band(); g.clip(); g.fillStyle = gr2; g.fillRect(-20, yb - amp * 1.5, GW + 40, H); g.restore();
+    g.globalAlpha = 0.7; g.beginPath(); for (let x = -20; x <= GW + 20; x += 16) { if (x > -20) g.lineTo(x, f(x) + 1.2); else g.moveTo(x, f(x) + 1.2); } st(g, 'rgba(255,250,236,0.9)', 1.4); g.globalAlpha = 1;
+  });
   // 번진 풀빛: 가운데는 옅고 가장자리에 물이 고인 듯 짙다
   for (let i = 0; i < 110; i++) {
-    const x = R() * GW, y = 150 + R() * 540, rx = 100 + R() * 170, ry = rx * (0.3 + R() * 0.26), rot = (R() - 0.5) * 0.5, a = 0.22 + R() * 0.18, col = pick(T.wash);
+    const x = R() * GW, y = 150 + R() * 540, rx = 100 + R() * 170, ry = rx * (0.3 + R() * 0.26), rot = (R() - 0.5) * 0.5, a = (0.22 + R() * 0.18) * 0.35, col = pick(T.wash);   // (종이 언덕이 비치게 옅게)
     wrap(x, 260, xx => { g.save(); g.translate(xx, y); g.rotate(rot); g.scale(1, ry / rx); const gr = g.createRadialGradient(0, 0, rx * 0.2, 0, 0, rx); gr.addColorStop(0, rgba(col, a * 0.7)); gr.addColorStop(0.72, rgba(col, a)); gr.addColorStop(0.88, rgba(col, a * 0.85)); gr.addColorStop(1, rgba(col, 0)); g.fillStyle = gr; g.fillRect(-rx, -rx, rx * 2, rx * 2); g.restore(); });
   }
   // 흙길: 가운데를 따라 구불구불 이어진다
@@ -151,11 +164,12 @@ export function makeGround(themeId, seed = 7) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) {
     g.globalAlpha = 0.15; ell(g, it.x + 5, it.y + 1.5, it.kind === 'pine' ? 24 * it.s : it.r * 1.25, it.kind === 'pine' ? 4.6 : 3.6, INK); g.globalAlpha = 1;
-    if (it.kind === 'pine') pine(g, it.x, it.y, it.s, T, it.f); else if (it.kind === 'bush') bush(g, it.x, it.y, 0.9 + it.s * 0.5, T); else if (LANDMARK[it.kind]) { g.save(); g.translate(it.x, it.y + 2); g.scale(it.s * (it.f ? -1.25 : 1.25), it.s * 1.25); LANDMARK[it.kind](g, it.r > 18); g.restore(); } else boulder(g, it.x, it.y - it.r * 0.3, it.r, T);
+    standee(g, it.x, it.y, 150, 110, cg => { if (it.kind === 'pine') pine(cg, 0, 0, it.s, T, it.f); else if (it.kind === 'bush') bush(cg, 0, 0, 0.9 + it.s * 0.5, T); else if (LANDMARK[it.kind]) { cg.save(); cg.translate(0, 2); cg.scale(it.s * (it.f ? -1.25 : 1.25), it.s * 1.25); LANDMARK[it.kind](cg, it.r > 18); cg.restore(); } else boulder(cg, 0, -it.r * 0.3, it.r, T); }, T.night);
     grassTuft(g, it.x + (it.f ? 12 : -12), it.y + 3, 0.8, T.tuft, R);
   }
   // 아래쪽 가장자리: 패 놓는 자리 위로 고개를 내민 풀과 덤불
-  for (let x = 40; x < GW - 40; x += 70 + R() * 120) { const r = R(), y = 566 + R() * 9; if (r < 0.3) bush(g, x, y, 1.1 + R() * 0.4, T); else if (r < 0.44) boulder(g, x, y - 3, 9 + R() * 6, T); else grassTuft(g, x, y, 1.5 + R() * 0.6, pick([T.tuft, T.pine]), R); }
+  for (let x = 40; x < GW - 40; x += 70 + R() * 120) { const r = R(), y = 566 + R() * 9, s2 = 1.1 + R() * 0.4, rr2 = 9 + R() * 6; if (r < 0.3) standee(g, x, y, 90, 60, cg => bush(cg, 0, 0, s2, T), T.night); else if (r < 0.44) standee(g, x, y, 60, 40, cg => boulder(cg, 0, -3, rr2, T), T.night); else grassTuft(g, x, y, 1.5 + R() * 0.6, pick([T.tuft, T.pine]), R); }
+  bakeWarmth(g, TOP + 26, H, GW, T.night);   // (위쪽의 반투명 띠는 먼 산이 비치므로 건너뛴다)
   return c;
 }
 // 먼 산: 바닥보다 천천히 흐른다. 능선은 짙고 산허리는 안개에 풀린다
@@ -176,18 +190,43 @@ export function makeFar(themeId, seed = 7) {
     const f = x => yb - Math.abs(Math.sin(x * k * fq + n * 1.7 + seed)) * amp - Math.max(0, Math.sin(x * k * (fq * 2 + 1) + n * 2.3)) * amp * 0.3 - Math.sin(x * k * 11 + n) * 4;
     const shape = () => { g.beginPath(); g.moveTo(0, FAR_H); for (let x = 0; x <= FW; x += 8) g.lineTo(x, f(x)); g.lineTo(FW, FAR_H); g.closePath(); };
     const gr = g.createLinearGradient(0, yb - amp * 1.3, 0, yb + 14); gr.addColorStop(0, rgba(dk(col, 0.12), a)); gr.addColorStop(0.55, rgba(col, a * 0.92)); gr.addColorStop(1, rgba(lt(col, 0.5), a * 0.55));
-    shape(); g.fillStyle = gr; g.fill();
+    // 오려 붙인 종이 산: 윗변 둘레에 옅은 그늘이 지고, 능선 가장자리는 빛을 받는다
+    g.save(); g.shadowColor = 'rgba(50,34,18,0.32)'; g.shadowBlur = 12; g.shadowOffsetY = -2; shape(); g.fillStyle = gr; g.fill(); g.restore();
     // 산주름
     g.save(); shape(); g.clip(); g.globalAlpha = 0.16; const cd = dk(col, 0.42);
     for (let x = 0; x < FW; x += 14 + R() * 18) { const y = f(x); line(g, [x, y + 2, x - 4 - R() * 6, y + 12 + R() * 12], cd, 1); if (R() < 0.5) line(g, [x + 3, y + 3, x + 8 + R() * 5, y + 12 + R() * 10], cd, 0.8); }
     g.restore();
     // 능선에 선 솔
     if (n) { g.globalAlpha = 0.3 + n * 0.1; for (let x = 6; x < FW - 4; x += 9 + R() * 16) { const y = f(x), h = 3 + R() * 3; line(g, [x, y + 1, x, y - h], cd, 0.9); ell(g, x, y - h, 2.2 + R() * 1.4, 1.2, cd); } }
-    g.globalAlpha = 0.3; g.beginPath(); for (let x = 0; x <= FW; x += 8) { if (x) g.lineTo(x, f(x)); else g.moveTo(x, f(x)); } st(g, INK, 1.1); g.globalAlpha = 1;
+    g.globalAlpha = 0.2; g.beginPath(); for (let x = 0; x <= FW; x += 8) { if (x) g.lineTo(x, f(x)); else g.moveTo(x, f(x)); } st(g, INK, 1.1);
+    g.globalAlpha = T.night ? 0.25 : 0.6; g.beginPath(); for (let x = 0; x <= FW; x += 8) { if (x) g.lineTo(x, f(x) + 1.4); else g.moveTo(x, f(x) + 1.4); } st(g, lt(col, 0.6), 1.2); g.globalAlpha = 1;
     const m = g.createLinearGradient(0, yb - 8, 0, yb + 18); m.addColorStop(0, rgba(haze, 0)); m.addColorStop(1, rgba(haze, 0.75)); g.fillStyle = m; g.fillRect(0, yb - 8, FW, 26);
   });
+  bakeWarmth(g, 0, FAR_H, FW, T.night);
   for (let i = 0; i < 9; i++) { const x = R() * FW, y = 112 + R() * 26, rx = 90 + R() * 130; const mg = g.createRadialGradient(x, y, 0, x, y, rx); mg.addColorStop(0, 'rgba(255,252,240,0.55)'); mg.addColorStop(1, 'rgba(255,252,240,0)'); for (const xx of [x, x - FW, x + FW]) { g.save(); g.translate(xx, y); g.scale(1, 0.2); g.translate(-x, -y); g.fillStyle = mg; g.fillRect(x - rx, y - rx, rx * 2, rx * 2); g.restore(); } }
   return c;
+}
+// 종이 스탠디: 따로 그린 뒤 부드러운 그림자를 드리워 붙인다 (그림자가 겹친 조각마다 지지 않게 한 장으로)
+function standee(g, x, y, w, h, fn, night) {
+  const S2 = 2, c = makeCanvas(w * S2, (h + 16) * S2), cg = c.getContext('2d'); cg.scale(S2, S2); cg.translate(w / 2, h); fn(cg);
+  g.save(); g.shadowColor = night ? 'rgba(8,10,26,0.42)' : 'rgba(54,36,18,0.34)'; g.shadowBlur = 9; g.shadowOffsetX = 4; g.shadowOffsetY = 5; g.drawImage(c, x - w / 2, y - h, w, h + 16); g.restore();
+}
+// 지평선에서 비치는 역광: 따뜻한 빛 무리와 옅은 빛살 (밤에는 서늘한 달빛). 화면에 고정되어 흐르지 않는다
+const bcache = new Map();
+export function backlight(night) {
+  let c = bcache.get(!!night); if (c) return c;
+  c = makeCanvas(W / 2, H / 2); const g = c.getContext('2d'); g.scale(0.5, 0.5);
+  const col = night ? [190, 200, 255] : [255, 222, 160], cx = 640, cy = 86;
+  const gl = g.createRadialGradient(cx, cy, 10, cx, cy, 520); gl.addColorStop(0, `rgba(${col},${night ? 0.26 : 0.5})`); gl.addColorStop(0.4, `rgba(${col},${night ? 0.08 : 0.14})`); gl.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gl; g.fillRect(0, 0, W, H);
+  if (!night) for (let i = 0; i < 9; i++) { const a = Math.PI * (0.16 + i * 0.085), w2 = 0.026 + (i % 3) * 0.01, L = 900; const ry = g.createLinearGradient(cx, cy, cx + Math.cos(a) * L * 0.6, cy + Math.sin(a) * L * 0.6); ry.addColorStop(0, 'rgba(255,236,190,0.2)'); ry.addColorStop(1, 'rgba(255,236,190,0)'); g.fillStyle = ry; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a - w2) * L, cy + Math.sin(a - w2) * L); g.lineTo(cx + Math.cos(a + w2) * L, cy + Math.sin(a + w2) * L); g.closePath(); g.fill(); }
+  bcache.set(!!night, c); return c;
+}
+// 빛의 결: 지평선 쪽은 옅게, 앞(아래)으로 올수록 따뜻한 그늘로 눌러 깊이를 준다. 세로로만 바뀌므로 바닥·먼 산 그림에 한 번 구워 넣는다
+function bakeWarmth(g, y0, y1, w, night) {
+  const gr = g.createLinearGradient(0, 60, 0, H);
+  if (night) { gr.addColorStop(0, 'rgba(210,214,240,0.3)'); gr.addColorStop(1, 'rgba(120,124,170,0.45)'); }
+  else { gr.addColorStop(0, 'rgba(255,238,206,0.4)'); gr.addColorStop(0.4, 'rgba(244,214,170,0.5)'); gr.addColorStop(1, 'rgba(196,150,100,0.55)'); }
+  g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = gr; g.fillRect(0, y0, w, y1 - y0); g.restore();
 }
 // 가장자리로 갈수록 바랜 종이 (흐르지 않는다)
 const vcache = new Map();
