@@ -75,18 +75,18 @@ export const DEX: SK[] = ['conch', 'teapot', 'can', 'castle', 'rocket', 'helmet'
 export type EK = 'flea' | 'star' | 'goblin' | 'gull' | 'gang' | 'shield' | 'lobster' | 'jelly' | 'clam' | 'captain' | 'octo' | 'shark';
 interface EDef { name: string; tag: Tag; r: number; hp: number; spd: number; dmg: number; rest: number; boss?: boolean; fly?: boolean }
 export const ED: Record<EK, EDef> = {
-  flea: { name: '모래 벼룩', tag: 'swarm', r: 0.039, hp: 14, spd: 0.0042, dmg: 6, rest: 40 },
-  star: { name: '불가사리 굴렁쇠', tag: 'roll', r: 0.049, hp: 24, spd: 0.0082, dmg: 14, rest: 40 },
-  goblin: { name: '모래 도깨비', tag: 'big', r: 0.104, hp: 170, spd: 0.0015, dmg: 32, rest: 80 },
-  gull: { name: '갈매기', tag: 'fly', r: 0.059, hp: 28, spd: 0.0045, dmg: 14, rest: 120, fly: true },
-  gang: { name: '집게 갱', tag: 'gang', r: 0.052, hp: 40, spd: 0.0034, dmg: 10, rest: 54 },
-  shield: { name: '방패 게', tag: 'shield', r: 0.063, hp: 60, spd: 0.0022, dmg: 16, rest: 70 },
-  lobster: { name: '바닷가재', tag: 'charge', r: 0.076, hp: 80, spd: 0.0018, dmg: 40, rest: 70 },
-  jelly: { name: '해파리', tag: 'jelly', r: 0.057, hp: 30, spd: 0.0014, dmg: 8, rest: 44 },
-  clam: { name: '숨은 조개', tag: 'hide', r: 0.051, hp: 36, spd: 0, dmg: 14, rest: 200 },
-  captain: { name: '해적 갈매기 선장', tag: 'fly', r: 0.112, hp: 800, spd: 0.0022, dmg: 18, rest: 150, boss: true, fly: true },
-  octo: { name: '모래성 문어 왕', tag: 'big', r: 0.134, hp: 1400, spd: 0, dmg: 26, rest: 125, boss: true },
-  shark: { name: '장난감 상어 잠수함', tag: 'big', r: 0.134, hp: 1700, spd: 0.0022, dmg: 20, rest: 105, boss: true },
+  flea: { name: '모래 벼룩', tag: 'swarm', r: 0.039, hp: 20, spd: 0.0042, dmg: 6, rest: 40 },
+  star: { name: '불가사리 굴렁쇠', tag: 'roll', r: 0.049, hp: 34, spd: 0.0082, dmg: 14, rest: 40 },
+  goblin: { name: '모래 도깨비', tag: 'big', r: 0.104, hp: 238, spd: 0.0015, dmg: 32, rest: 80 },
+  gull: { name: '갈매기', tag: 'fly', r: 0.059, hp: 39, spd: 0.0045, dmg: 14, rest: 120, fly: true },
+  gang: { name: '집게 갱', tag: 'gang', r: 0.052, hp: 56, spd: 0.0034, dmg: 10, rest: 54 },
+  shield: { name: '방패 게', tag: 'shield', r: 0.063, hp: 84, spd: 0.0022, dmg: 16, rest: 70 },
+  lobster: { name: '바닷가재', tag: 'charge', r: 0.076, hp: 112, spd: 0.0018, dmg: 40, rest: 70 },
+  jelly: { name: '해파리', tag: 'jelly', r: 0.057, hp: 42, spd: 0.0014, dmg: 8, rest: 44 },
+  clam: { name: '숨은 조개', tag: 'hide', r: 0.051, hp: 50, spd: 0, dmg: 14, rest: 200 },
+  captain: { name: '해적 갈매기 선장', tag: 'fly', r: 0.112, hp: 1200, spd: 0.0022, dmg: 18, rest: 150, boss: true, fly: true },
+  octo: { name: '모래성 문어 왕', tag: 'big', r: 0.134, hp: 2100, spd: 0, dmg: 26, rest: 125, boss: true },
+  shark: { name: '장난감 상어 잠수함', tag: 'big', r: 0.134, hp: 2550, spd: 0.0022, dmg: 20, rest: 105, boss: true },
 };
 
 /** 놈들이 들어오는 곳: 1 바다 · 2 왼쪽 덤불 · 3 오른쪽 덤불 · 4 아래 덤불 · 5 섞어서 */
@@ -105,27 +105,27 @@ const G = (need: number, wait: number, from: From, ...mons: [EK, number][]): Grp
  */
 export const STAGES: StageDef[] = [
   { key: 'teapot', ch: 0, name: '찻주전자', news: '앞으로 김을 칙 — 벼룩 떼가 한꺼번에', foe: 'flea', start: 'conch', supply: [], star: { k: 'pair', n: 30, say: '찻주전자로 벼룩' },
-    groups: [G(0, 0, 1, ['flea', 12]), G(4, 420, 2, ['flea', 10]), G(4, 420, 3, ['flea', 10]), G(4, 420, 1, ['flea', 10])] },
+    groups: [G(0, 0, 1, ['flea', 12]), G(4, 420, 2, ['flea', 10]), G(4, 420, 3, ['flea', 10]), G(4, 420, 1, ['flea', 12]), G(4, 420, 2, ['flea', 10], ['star', 3]), G(4, 420, 1, ['flea', 12]), G(4, 420, 3, ['flea', 10]), G(4, 420, 5, ['flea', 12])] },
   { key: 'can', ch: 0, name: '깡통', news: '데굴데굴 굴러 줄 선 놈들을 볼링처럼', foe: 'star', start: 'teapot', supply: [], star: { k: 'pair', n: 14, say: '깡통으로 굴렁쇠' },
-    groups: [G(0, 0, 1, ['flea', 9]), G(5, 420, 2, ['star', 5]), G(5, 420, 1, ['flea', 10]), G(5, 420, 3, ['star', 6]), G(4, 420, 5, ['star', 5], ['flea', 6])] },
+    groups: [G(0, 0, 1, ['flea', 9]), G(5, 420, 2, ['star', 5]), G(5, 420, 1, ['flea', 10]), G(5, 420, 3, ['star', 6]), G(5, 420, 4, ['flea', 10]), G(4, 420, 5, ['star', 5], ['flea', 6]), G(4, 420, 2, ['star', 6]), G(4, 420, 3, ['flea', 10], ['star', 4])] },
   { key: 'castle', ch: 0, name: '모래성', news: '느리지만 대포 — 큰 도깨비에게 쾅', foe: 'goblin', start: 'can', supply: [], star: { k: 'pair', n: 6, say: '모래성으로 도깨비' },
-    groups: [G(0, 0, 1, ['goblin', 1], ['flea', 6]), G(4, 420, 2, ['star', 5]), G(4, 420, 4, ['goblin', 2]), G(4, 420, 1, ['flea', 10], ['goblin', 1]), G(4, 420, 3, ['goblin', 2], ['star', 4])] },
+    groups: [G(0, 0, 1, ['goblin', 1], ['flea', 6]), G(4, 420, 2, ['star', 5]), G(4, 420, 4, ['goblin', 2]), G(4, 420, 1, ['flea', 10], ['goblin', 1]), G(4, 420, 3, ['goblin', 2], ['star', 4]), G(4, 420, 1, ['flea', 10]), G(4, 420, 4, ['goblin', 2], ['flea', 6]), G(4, 420, 3, ['star', 5], ['goblin', 1])] },
   { key: 'rocket', ch: 0, name: '해적 갈매기 선장', news: '대장! 로켓으로 하늘을 — 투구가 떨어지면 차지해요', foe: 'gull', start: 'castle', supply: [], star: { k: 'boss', n: 1 },
     boss: 'captain', bossShell: 'helmet', groups: [G(0, 0, 1, ['captain', 1], ['gull', 3], ['flea', 6])] },
   { key: 'urchin', ch: 1, name: '성게', news: '가시! 둘러싸일수록 세져요', foe: 'gang', start: 'conch', supply: [], star: { k: 'pair', n: 16, say: '성게로 집게 갱' },
-    groups: [G(0, 0, 5, ['gang', 6]), G(4, 420, 1, ['flea', 10]), G(4, 420, 2, ['gang', 6], ['gull', 2]), G(4, 420, 4, ['goblin', 2]), G(4, 420, 3, ['gang', 7]), G(4, 420, 5, ['star', 5], ['gang', 4])] },
+    groups: [G(0, 0, 5, ['gang', 6]), G(4, 420, 1, ['flea', 10]), G(4, 420, 2, ['gang', 6], ['gull', 2]), G(4, 420, 4, ['goblin', 2]), G(4, 420, 3, ['gang', 7]), G(4, 420, 5, ['star', 5], ['gang', 4]), G(4, 420, 1, ['gang', 6], ['flea', 6]), G(4, 420, 2, ['gang', 7])] },
   { key: 'bottle', ch: 1, name: '유리병', news: '햇빛 레이저가 방패를 뚫어요', foe: 'shield', start: 'urchin', supply: [], star: { k: 'pair', n: 8, say: '유리병으로 방패 게' },
-    groups: [G(0, 0, 1, ['shield', 3], ['flea', 6]), G(4, 420, 2, ['gang', 6]), G(4, 420, 1, ['shield', 4]), G(4, 420, 5, ['flea', 10], ['gull', 2]), G(4, 420, 3, ['shield', 4], ['goblin', 1]), G(4, 420, 4, ['gang', 6], ['shield', 2])] },
+    groups: [G(0, 0, 1, ['shield', 3], ['flea', 6]), G(4, 420, 2, ['gang', 6]), G(4, 420, 1, ['shield', 4]), G(4, 420, 5, ['flea', 10], ['gull', 2]), G(4, 420, 3, ['shield', 4], ['goblin', 1]), G(4, 420, 4, ['gang', 6], ['shield', 2]), G(4, 420, 1, ['shield', 3], ['flea', 8]), G(4, 420, 3, ['gang', 5], ['shield', 2])] },
   { key: 'skull', ch: 1, name: '해골', news: '으스스 — 돌진하던 바닷가재가 도망쳐요', foe: 'lobster', start: 'bottle', supply: [], star: { k: 'pair', n: 7, say: '해골로 가재' },
-    groups: [G(0, 0, 1, ['lobster', 2], ['flea', 6]), G(4, 420, 2, ['shield', 3]), G(4, 420, 3, ['lobster', 3]), G(4, 420, 5, ['gang', 6]), G(4, 420, 1, ['lobster', 2], ['star', 5]), G(4, 420, 4, ['goblin', 1], ['lobster', 2])] },
+    groups: [G(0, 0, 1, ['lobster', 2], ['flea', 6]), G(4, 420, 2, ['shield', 3]), G(4, 420, 3, ['lobster', 3]), G(4, 420, 5, ['gang', 6]), G(4, 420, 1, ['lobster', 2], ['star', 5]), G(4, 420, 4, ['goblin', 1], ['lobster', 2]), G(4, 420, 2, ['lobster', 2], ['flea', 8]), G(4, 420, 5, ['shield', 2], ['lobster', 2])] },
   { key: 'anchor', ch: 1, name: '모래성 문어 왕', news: '대장! 반쯤 다치면 왕 닻을 떨어뜨려요', foe: null, start: 'skull', supply: [], star: { k: 'boss', n: 1 },
     boss: 'octo', bossShell: 'anchor', groups: [G(0, 0, 1, ['octo', 1], ['gang', 4], ['shield', 2])] },
   { key: 'bulb', ch: 2, name: '전구', news: '번쩍! 기절 — 해파리는 줄줄이 펑', foe: 'jelly', start: 'conch', supply: [], star: { k: 'pair', n: 14, say: '전구로 해파리' },
-    groups: [G(0, 0, 1, ['jelly', 7]), G(4, 420, 2, ['lobster', 2], ['gang', 4]), G(4, 420, 1, ['jelly', 7]), G(4, 420, 5, ['gull', 3], ['shield', 3]), G(4, 420, 1, ['jelly', 8]), G(4, 420, 3, ['goblin', 2], ['jelly', 4])] },
+    groups: [G(0, 0, 1, ['jelly', 7]), G(4, 420, 2, ['lobster', 2], ['gang', 4]), G(4, 420, 1, ['jelly', 7]), G(4, 420, 5, ['gull', 3], ['shield', 3]), G(4, 420, 1, ['jelly', 8]), G(4, 420, 3, ['goblin', 2], ['jelly', 4]), G(4, 420, 1, ['jelly', 7], ['flea', 6]), G(4, 420, 5, ['jelly', 6], ['gull', 2])] },
   { key: 'ball', ch: 2, name: '비치볼', news: '통통 튕겨 숨은 조개까지', foe: 'clam', start: 'bulb', supply: [], star: { k: 'pair', n: 12, say: '비치볼로 조개' },
-    groups: [G(0, 0, 5, ['clam', 6], ['flea', 6]), G(4, 420, 1, ['jelly', 6]), G(4, 420, 5, ['clam', 5], ['star', 5]), G(4, 420, 2, ['goblin', 2], ['gang', 4]), G(4, 420, 5, ['clam', 6]), G(4, 420, 3, ['lobster', 2], ['clam', 3])] },
+    groups: [G(0, 0, 5, ['clam', 6], ['flea', 6]), G(4, 420, 1, ['jelly', 6]), G(4, 420, 5, ['clam', 5], ['star', 5]), G(4, 420, 2, ['goblin', 2], ['gang', 4]), G(4, 420, 5, ['clam', 6]), G(4, 420, 3, ['lobster', 2], ['clam', 3]), G(4, 420, 5, ['clam', 5], ['jelly', 4])] },
   { key: 'horn', ch: 2, name: '대왕 고둥', news: '뿌우 — 큰 밀물이 모래밭을 싹', foe: null, start: 'ball', supply: [], star: { k: 'pair', n: 30, say: '대왕 고둥으로' },
-    groups: [G(0, 0, 5, ['flea', 8], ['gang', 5], ['jelly', 4]), G(6, 420, 5, ['flea', 8], ['star', 5], ['shield', 2]), G(6, 420, 5, ['gang', 6], ['jelly', 5], ['gull', 3]), G(6, 420, 5, ['flea', 10], ['lobster', 2], ['clam', 4]), G(5, 420, 5, ['goblin', 2], ['flea', 8], ['gang', 5])] },
+    groups: [G(0, 0, 5, ['flea', 8], ['gang', 5], ['jelly', 4]), G(6, 420, 5, ['flea', 8], ['star', 5], ['shield', 2]), G(6, 420, 5, ['gang', 6], ['jelly', 5], ['gull', 3]), G(6, 420, 5, ['flea', 10], ['lobster', 2], ['clam', 4]), G(5, 420, 5, ['goblin', 2], ['flea', 8], ['gang', 5]), G(6, 420, 5, ['flea', 10], ['jelly', 5], ['gang', 4]), G(5, 420, 5, ['star', 5], ['shield', 2], ['flea', 8])] },
   { key: 'sub', ch: 2, name: '장난감 상어 잠수함', news: '마지막 대장! 잠망경을 떨어뜨리면 차지해요', foe: null, start: 'horn', supply: [], star: { k: 'boss', n: 1 },
     boss: 'shark', bossShell: 'sub', groups: [G(0, 0, 1, ['shark', 1], ['jelly', 4], ['clam', 3])] },
 ];
@@ -1701,7 +1701,7 @@ function playStep(s: ShellState) {
   if (s.phase !== 'play') return;
   if (s.foes.some((f) => f.dead)) s.foes = s.foes.filter((f) => !f.dead);
   // 줄 선 떼가 한 마리씩 들어온다
-  if (s.inbox.length && --s.gateT <= 0 && s.foes.length < CAP) (s.gateT = 6), admit(s);
+  if (s.inbox.length && --s.gateT <= 0 && s.foes.length < CAP) (s.gateT = 8), admit(s);
   const n = s.foes.length + s.inbox.length;
   if (s.firstTap >= 0 || s.t > 300) s.grpT++;
   if (s.grp < d.groups.length && (n <= d.groups[s.grp].need || s.grpT >= d.groups[s.grp].wait)) spawnGroup(s);

@@ -3351,6 +3351,8 @@ export const starWords = (s: SoulState): string[] => {
   return ['마을 되살리기', '하트 안 잃기', third];
 };
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+/** 멈춘 카메라의 배경 한 장 */
+const BGC = new WeakMap<object, { c: HTMLCanvasElement | null; camY: number; pa: number; run: number; w: number; dev: number; t: number }>();
 /** 칠해진 자리에서 피어나는 중인 꽃·풀 */
 const BLOOMS = new WeakMap<object, { x: number; y: number; r: number; c: number; seed: number; t: number }[]>();
 /** 도둑 그림은 판의 셈보다 조금 크게 (카메라를 가깝게) */
@@ -3449,7 +3451,25 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     fx.memo[mk] = i;
   }
   __T('warm');
-  for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
+  {
+    // 카메라가 멈춰 있으면(대장 광장 · 붐벼서 멈춤) 배경을 화면 해상도로 한 장 구워 두고 그대로 찍는다 — 새 물감은 8프레임마다 다시 굽는다
+    const dev = typeof ctx.getTransform === 'function' ? ctx.getTransform().a || 1 : 1, prev = BGC.get(s);
+    const still = !!prev && prev.camY === s.camY && prev.run === s.runId;
+    if (!still) {
+      for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
+      BGC.set(s, { c: prev?.c ?? null, camY: s.camY, pa: -1, run: s.runId, w, dev, t: -99 });
+    } else {
+      const bg = prev!;
+      if (!bg.c || bg.w !== w || bg.dev !== dev || (bg.pa !== fx.memo.pa && t - bg.t >= 8)) {
+        if (!bg.c || bg.w !== w || bg.dev !== dev) (bg.c = document.createElement('canvas')), (bg.c.width = Math.ceil(w * dev)), (bg.c.height = Math.ceil(h * dev));
+        const g = bg.c.getContext('2d')!;
+        g.setTransform(dev, 0, 0, dev, 0, 0);
+        for (let i = i0; i <= i1; i++) g.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
+        (bg.pa = fx.memo.pa), (bg.t = t), (bg.w = w), (bg.dev = dev);
+      }
+      ctx.drawImage(bg.c, 0, 0, w, h);
+    }
+  }
   // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에)
   if (s.phase === 'play' && t % 4 === 0) getTile(s, i0 - 1, ww, tsc);
   __T('tiles');
