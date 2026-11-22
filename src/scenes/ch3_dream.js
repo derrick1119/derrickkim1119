@@ -39,6 +39,7 @@
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const [px, py] = X.place.plot();
       S.fallen = 0; S.storm = 0; S.flash = 0;
+      T.state.dream = Object.assign({ scent: true }, T.state.dream || {});   /* the scent came up out of the lake in chapter 2 */
       X.cam(px, py, 1); X.camSnap();
       const leo = X.actor('leo', { x: PL.HX + 30, style: F.leoAt(0) });
       leo.pose = (o, a, t) => { if (!a.moving && !a.push && !a.sit) { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = 0.1; } };
@@ -132,6 +133,8 @@
       await X.wait(2.4);
       crew.forEach((a) => { a.pose = null; });
       await TALK.say('leo', '…고맙습니다.');
+      await TALK.say('kid', '아저씨, 이거.\n밤에 잡은 반딧불이야. 어두운 데 갈 때 쓰래.');
+      await X.gift('light', [0, 520]);
       await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n오늘은 혼자 보기가 좀 그래서.');
 
       /* ---- Rosa's son ---- */
@@ -177,6 +180,8 @@
       await TALK.say('rosa', '아직도 갖고 있었네.', { slow: true });
       await TALK.say('leo', '그 사람도 언젠가 오겠죠.');
       await TALK.say('rosa', '다 늙어서 오겠지.\n그래도 난 단번에 알아볼 거야.');
+      await TALK.say('rosa', '이거 가져가. 저 자장가 한 소절.\n아나도 아이 재울 때 부를 테니까.');
+      await X.gift('sound', [lake.things[1].x, 160]);
       await X.wait(0.8);
 
       /* ---- Ana ---- */
@@ -189,7 +194,10 @@
       T.announce('호수에 비친 아나는 지쳐 있다. 늦게까지 이어지는 일, 잠든 아이, 혼자 보내는 밤.');
       await X.wait(2.6);
       let sent = false;
-      await TALK.say('mom', '꿈으로 한 번은 다녀올 수 있단다.\n평생 딱 한 번이니, 꼭 필요한 날에 쓰렴.');
+      S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
+      await TALK.say('mom', '그 사람이 아는 냄새, 아는 소리,\n그리고 길을 비출 빛. 세 가지가 모이면 꿈으로 다녀올 수 있단다.');
+      await TALK.say('mom', '쓰고 나면 또 모으면 되지.\n오늘이 쓸 날이구나.');
+      S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
       const dreamt = lake2.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {
         if (i > 0) { await X.tween(lake2.fade, 'a', 0, 0.7); lake2.i = i; lake2.amp = 1; await X.tween(lake2.fade, 'a', 1, 0.9); X.note({ voice: 'felt', vel: 0.3 }); }

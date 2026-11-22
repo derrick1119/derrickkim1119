@@ -151,6 +151,13 @@
       await X.tween(lake.reach, 'k', 1, 0.8);
       await X.wait(1.6);
       await X.TALK.say('mom', '볼 수는 있어도, 닿지는 않아.', { slow: true });
+      /* but something does come up out of the water: the steam of her pot */
+      lake.wisp = 1;
+      T.announce('물속 부엌에서 스튜 김 한 줄기가 물 위로 피어오른다.');
+      await X.TALK.say('mom', '저 김, 담아 두렴.\n아나가 아는 냄새야. 언젠가 쓸 데가 있을 거다.');
+      await X.tap(() => [17, 120, 70], { screen: true });
+      lake.wisp = 0;
+      await X.gift('scent', [17, 120]);
       await X.tween(lake.reach, 'k', 0, 1);
       await X.wait(0.8);
 

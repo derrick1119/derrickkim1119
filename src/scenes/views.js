@@ -214,6 +214,7 @@
       g.restore();
 
       if (L.shore) drawShore(g, t, W);
+      if (L.wisp) for (let k = 0; k < 6; k++) { const life = (t * 0.35 + k / 6) % 1; P.glow(g, 17 + Math.sin(t * 1.3 + k * 2) * 18, 240 - life * 200, 14 + life * 26, '#fff3dc', Math.sin(life * Math.PI) * 0.7); }
       else {
         /* the near bank, and whoever has come to look */
         const bx = -W / 2 + 250;

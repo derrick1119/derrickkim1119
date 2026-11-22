@@ -17,7 +17,7 @@
     S.enter = function (args) {
       S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
       S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
-      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } };
+      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false;
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
       Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
@@ -243,6 +243,43 @@
       P.text(g, Math.round(y.n) + '년', 0, 440, { size: 196, color: ink, alpha: a, seed: 4, glow: halo });
       P.text(g, '아나, ' + Math.round(T.lerp(y.age0, y.age, u)), 0, 566, { font: 'serif', size: 42, track: 3, color: ink, alpha: 0.9 * a, glow: halo });
     }
+    /* ---------- what a dream is made of ----------
+       To go into someone's dream takes three things they know: a scent, a sound, and a light to find the way.
+       They are given, one at a time, by the people he helps; the tray in the corner shows what he has. */
+    const DREAM = ['scent', 'sound', 'light'];
+    X.dreamHas = () => DREAM.every((k) => (T.state.dream || {})[k]);
+    X.gift = async function (name, from) {
+      const k = S.clock;
+      T.state.dream = T.state.dream || {};
+      S.tray = S.tray || { a: 0, fly: null };
+      k.tween(S.tray, 'a', 1, 0.5);
+      S.tray.fly = { name, x: from ? from[0] : 0, y: from ? from[1] : 450, k: 0 };
+      T.audio.sfx('star', 0.7); T.audio.sfx('join');
+      await k.tween(S.tray.fly, 'k', 1, 1.1, T.ease.io);
+      T.state.dream[name] = true; S.tray.fly = null;
+      T.audio.step(DREAM.indexOf(name) * 3 + 2, { voice: 'glass', vel: 0.4 });
+      T.announce(T.lang === 'en' ? 'For a dream: ' + name + '.' : '꿈 재료: ' + { scent: '냄새', sound: '소리', light: '빛' }[name] + '.');
+      await k.wait(1.8);
+      if (!S.trayHold) k.tween(S.tray, 'a', 0, 0.8);
+    };
+    X.spendDream = function () { T.state.dream = {}; };
+    function trayIcon(g, name, x, y, a, t) {
+      g.save(); g.globalAlpha *= a; g.translate(x, y);
+      if (name === 'scent') { P.fill(g, P.rr(-11, -6, 22, 22, 6), 'rgba(226,240,236,0.9)'); P.fill(g, P.rr(-9, -12, 18, 7, 3), '#b98a5a'); for (let i = 0; i < 3; i++) { const life = (t * 0.6 + i / 3) % 1; P.glow(g, Math.sin(t * 2 + i) * 4, -14 - life * 20, 5 + life * 6, '#fff3dc', Math.sin(life * Math.PI) * 0.8); } }
+      else if (name === 'sound') { P.fill(g, P.soft([[-14, 8], [-10, -8], [0, -14], [10, -8], [14, 8]]), '#f2d6c9'); for (let i = 0; i < 4; i++) P.line(g, -10 + i * 7, 8, -2 + i * 1.5, -10, 1.2, '#c9a090'); P.fill(g, P.ellipse(16, -14, 4, 3, -0.3), '#5a4a6a'); P.line(g, 19, -14, 19, -26, 1.6, '#5a4a6a'); }
+      else { P.glow(g, 0, 0, 22, '#d8ff9a', 0.6 + 0.3 * Math.sin(t * 5)); P.fill(g, P.circle(0, 0, 4), '#f4ffd6'); P.fill(g, P.ellipse(-5, -4, 5, 2.4, -0.6), 'rgba(255,255,255,0.6)'); }
+      g.restore();
+    }
+    function drawTray(g, t) {
+      const tr = S.tray, V = T.view;
+      if (!tr || tr.a < 0.01) return;
+      const x0 = -V.W / 2 + 70, y0 = 70, have = T.state.dream || {};
+      g.save(); g.globalAlpha = tr.a;
+      P.fill(g, P.rr(x0 - 34, y0 - 34, 196, 68, 34), 'rgba(20,26,44,0.5)');
+      DREAM.forEach((n, i) => { const x = x0 + i * 64; P.fill(g, P.circle(x, y0, 24), 'rgba(243,234,216,0.16)'); if (have[n]) trayIcon(g, n, x, y0, 1, t); else { g.strokeStyle = 'rgba(243,234,216,0.4)'; g.setLineDash([4, 4]); g.lineWidth = 1.6; g.beginPath(); g.arc(x, y0, 18, 0, TAU); g.stroke(); g.setLineDash([]); } });
+      if (tr.fly) { const f = tr.fly, i = DREAM.indexOf(f.name), k = T.ease.io(f.k); trayIcon(g, f.name, T.lerp(f.x, x0 + i * 64, k), T.lerp(f.y, y0, k) - Math.sin(k * Math.PI) * 80, 1, t); }
+      g.restore();
+    }
     /* a page held up to read. draw(g, c) with c: { a, w, ready } */
     X.card = async function (draw, o = {}) {
       const k = S.clock, c = Object.assign({ a: 0, w: 0, ready: false }, o.init || {});
@@ -440,6 +477,7 @@
         g.fillStyle = T.rgba(dark ? '#f1e8d6' : '#3d3a5c', 0.5 * a); g.fillRect(x + 2, 812, 150 * T.ease.out(a), 1.4);
       }
       if (S.cardO) { S.cardO.draw(g, S.cardO.c); if (S.cardO.c.ready) T.continueDot(g, 0, 866, '#f3ead8'); }
+      drawTray(g, t);
       if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
       TALK.draw(g);
       if (S.cards.end.a > 0.01) {
