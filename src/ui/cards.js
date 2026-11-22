@@ -122,7 +122,7 @@ export class DeckView {
   weapons(g, r, c, px) {
     const type = CARDS[c.id].unit, arm = ARMS[type], cur = weaponOf(c);
     if (!arm) { text(g, '무기를 바꿀 수 없는 병종입니다', px + 182, 470, { size: 17, fill: SUB, weight: 400 }); return; }
-    text(g, `${CLS_NAME[WEAPONS[cur].cls]} · ${WEAPONS[cur].name}`, px + 16, 432, { size: 18, font: FONT_B, align: 'left', fill: INDIGO }); text(g, WEAPONS[cur].desc, px + 16, 454, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 334 });
+    text(g, `${CLS_NAME[WEAPONS[cur].cls]} · ${WEAPONS[cur].name}`, px + 16, 432, { size: 18, font: FONT_B, align: 'left', fill: INDIGO }); text(g, WEAPONS[cur].desc, px + 16, 454, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 334 }); if (c.wpn) text(g, '부대가 전멸하면 이 무기도 잃습니다', px + 350, 432, { size: 13, align: 'right', fill: RED, weight: 400 });
     const slots = [{ wid: cur, on: true }]; if (c.wpn) slots.push({ wid: arm.base, base: true });
     r.items.forEach(wid => { if (canEquip(type, wid)) slots.push({ wid }); }); r.items.forEach(wid => { if (!canEquip(type, wid)) slots.push({ wid, dim: true }); });
     slots.slice(0, 8).forEach((o, k) => {

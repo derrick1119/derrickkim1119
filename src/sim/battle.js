@@ -806,8 +806,8 @@ export class Battle {
     if (t.def.porter) this.ev('porterDown', { x: t.x, y: t.y }); else if (t.def.rescue) this.ev('rescue', { x: t.x, y: t.y });
     if (t.team === 0) {
       if (!t.temp) { this.lost++; this.waveLost++; }
-      // 부대가 전멸하면 그 싸움에서는 다시 세울 수 없다 (패는 싸움이 끝나면 돌아온다)
-      const sq = t.squad; if (sq.alive <= 0 && sq.card) { const again = this.waveOn && this.mods.rally > this.rallied; if (again) { this.rallied++; this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, sq.card); } else if (this.waveOn) this.bench.push(sq.card); else this.drawPile.push(sq.card); this.ev('squadLost', { x: t.x, y: t.y, id: sq.card.id, again, hero: !!sq.hero }); sq.card = null; }
+      // 부대가 전멸하면 그 싸움에서는 다시 세울 수 없다 (패는 싸움이 끝나면 돌아온다). 끼운 무기는 부대와 함께 부서진다
+      const sq = t.squad; if (sq.alive <= 0 && sq.card) { const again = this.waveOn && this.mods.rally > this.rallied; if (again) { this.rallied++; this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, sq.card); } else if (this.waveOn) this.bench.push(sq.card); else this.drawPile.push(sq.card); const lostW = sq.card.wpn || null; if (lostW) delete sq.card.wpn; this.ev('squadLost', { x: t.x, y: t.y, id: sq.card.id, uid: sq.card.uid, wpn: lostW, again, hero: !!sq.hero }); sq.card = null; }
     } else {
       // 요괴 무리 하나를 다 물리치면 사기가 오른다 (불러낸 무리·되살아난 무리는 한 번만 친다)
       this.kills++; const sq = t.squad;

@@ -206,6 +206,8 @@ export function rollCards(kind, n = 3, keys) {
 // ───────── 무기 ─────────
 export const usersOf = wid => Object.keys(ARMS).filter(t => canEquip(t, wid)).map(t => UNITS[t].name);
 export function weaponPool() { const types = [...new Set(unitCards().map(c => CARDS[c.id].unit))]; return LOOT_WEAPONS.filter(w => types.some(t => canEquip(t, w))); }
+// 부대가 전멸하면 그 패에 끼운 무기도 함께 사라진다 (보관함으로 돌아가지 않는다)
+export function loseWeapon(uid) { const c = G.run.deck.find(q => q.uid === uid); if (!c || !c.wpn) return null; const w = c.wpn; delete c.wpn; save(); return w; }
 export const weaponOf = c => c.wpn || (ARMS[CARDS[c.id].unit] ? ARMS[CARDS[c.id].unit].base : null);
 // 병력 패에 무기를 끼운다 (wid 가 없으면 기본 무기로). 쓰던 무기는 보관함으로 돌아간다
 export function equip(uid, wid) {

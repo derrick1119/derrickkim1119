@@ -1,7 +1,7 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
 import { Battle, HAND } from '../src/sim/battle.js';
-import { G, meta, UNLOCKS, BEASTS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
+import { G, meta, UNLOCKS, BEASTS, loseWeapon, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
 import { UNITS, HEROES } from '../src/data/units.js';
@@ -81,7 +81,7 @@ for (let k = 0; k < runs; k++) {
       while (!cleared && r.alive && steps++ < 30 * 260) {
         b.step(1 / 30); if (steps % (mode === 'casual' ? 45 : 10) === 0) command(b);
         settleBattle(b);
-        for (const ev of b.events) { if (ev.type === 'waveClear') cleared = ev; else if (ev.type === 'armyDown') { r.alive = false; downs++; } else if (ev.type === 'porterDown') act.gold(30 + Math.min(10, r.ch) * 8); else if (ev.type === 'rescue') act.recruit(); }
+        for (const ev of b.events) { if (ev.type === 'waveClear') cleared = ev; else if (ev.type === 'armyDown') { r.alive = false; downs++; } else if (ev.type === 'squadLost' && ev.wpn) loseWeapon(ev.uid); else if (ev.type === 'porterDown') act.gold(30 + Math.min(10, r.ch) * 8); else if (ev.type === 'rescue') act.recruit(); }
         b.events.length = 0;
       }
       if (!cleared && r.alive) { r.alive = false; downs++; } // 끝나지 않는 싸움은 패배로 친다
