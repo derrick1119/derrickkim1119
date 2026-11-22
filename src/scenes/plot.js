@@ -36,7 +36,7 @@
     return Object.assign({
       stage: 0, stones: 0, raise: 0, board: false, cross: [0, 0, 0, 0, 0], table: false,
       food: { show: false, drop: 1, fill: 1, color: '#b9532f', burnt: false, herb: false, glow: 0 },
-      tree: 0, swing: 0, swingW: 0, swingA: 0, lantern: 1, night: 0, aurora: [], room2: 0, garden: 0,
+      tree: 0, swing: 0, swingW: 0, swingA: 0, lantern: 1, night: 0, aurora: [], room2: 0, garden: 0, patch: 0, fruit: 1,
     }, o || {});
   };
 
@@ -79,6 +79,7 @@
       for (let i = 0; i < 4; i++) { const life = (t * 0.12 + i * 0.25) % 1; P.glow(g, HX - 58 + Math.sin(t * 0.7 + i * 2) * (5 + life * 16) + life * 20, gy - 250 - life * 100, 12 + life * 22, '#fff6ea', Math.sin(life * Math.PI) * 0.3); }
       if (ps.garden > 0.01) { g.save(); g.globalAlpha = ps.garden; [-150, -128, 136].forEach((dx, i) => K.bush(g, HX + dx, y3(HX + dx) + 2, 0.7, '#5f8f62', ['#f1c04a', '#e58aa0', '#f6f0e0'])); g.restore(); }
     }
+    if (ps.patch && T.puzzle.patchDraw) T.puzzle.patchDraw(g, ps);   /* the tomato beds on the slope (garden.js) */
     /* the list, nailed up where he can see it from anywhere on the plot */
     if (ps.board) {
       const x = BOARD_X, y = y3(x);

@@ -11,6 +11,7 @@
   /* ---------- the lie of the land (world units; y grows downward) ---------- */
   const SEA = 652, PIER_Y = 640, QUAY = 520;
   const J1 = 1760, J2 = 2560;
+  const gardenOn = () => T.gardenOn && T.director.cur !== T.scenes.harbor;   /* chapters 3 on: the tomato rack on the slope */
   const SEA_LAMP = -300;                           /* the lamp that stands off the end of the pier */
   const HOUSE = 3185, DOOR = 3085, STOP = 3800, PLOT = 4060;
   const K1 = [[520, 640], [900, 630], [1400, 606], [1760, 590], [1960, 650], [2200, 900], [2600, 1500], [7000, 1500]];
@@ -717,14 +718,14 @@
       if (o.k === 'spr') T.blit(g, S.spr[o.s], o.x, y + 3);
       else if (o.k === 'lamp') K.lantern(g, o.x, y + 2, t, { s: o.s || 1, seed: o.x, lit: lampLit(h, o.x) });
       else if (o.k === 'gate') K.lantern(g, o.x, y + 2, t, { s: GATE_S, seed: o.x, lit: S.gate[o.n].k });
-      else if (o.k === 'tree') { if (!(S.hook && o.x === 4420)) K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); }   /* later on, the swing hangs where this one stood */
+      else if (o.k === 'tree') { if (!(S.hook && o.x === 4420) && !(gardenOn() && o.x === 3690)) K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); }   /* later on, the swing hangs where this one stood */
       else if (o.k === 'box') { P.fill(g, P.rr(o.x - 13, y - 58, 26, 34, 6), '#c9573f'); P.fill(g, P.rr(o.x - 8, y - 46, 16, 4, 2), '#3a3032'); P.line(g, o.x, y - 24, o.x, y + 2, 6, '#8a4a3a'); }
       else if (o.k === 'slip') { if (!(S.hook && S.hook.flags.bramGone)) drawSlip(g, o.x, y); }
       else if (o.k === 'builder') drawBuilder(g, o.x, y);
       else if (o.k === 'rosa') drawRosa(g, o.x, y);
       else if (o.k === 'sitter') drawSitter(g, o.x, y);
-      else if (o.k === 'roses') K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0']);
-      else if (o.k === 'arch') drawArch(g, o.x, y);
+      else if (o.k === 'roses') { if (!(gardenOn() && o.x === 3540)) K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0']); }
+      else if (o.k === 'arch') { if (!gardenOn()) drawArch(g, o.x, y); }   /* the tomato rack (garden.js) stands here in the later chapters */
       else if (o.k === 'home') drawHome(g);
       else if (o.k === 'plot') { if (S.hook && S.hook.plot) S.hook.plot(g, o.x); else drawPlot(g, o.x); }
     }

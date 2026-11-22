@@ -40,7 +40,7 @@
       const [px, py] = X.place.plot();
       S.fallen = 0; S.storm = 0; S.flash = 0;
       T.state.dream = Object.assign({ scent: true }, T.state.dream || {});
-      X.vowsAt([0, 1, 0, 1], [0, 0, 0, 0]);   /* the scent came up out of the lake in chapter 2 */
+      X.vowsAt([0, 1, 0, 1], [0, 0, 0, 0], []);   /* the scent came up out of the lake in chapter 2 */
       X.cam(px, py, 1); X.camSnap();
       const leo = X.actor('leo', { x: PL.HX + 30, style: F.leoAt(0) });
       leo.pose = (o, a, t) => { if (!a.moving && !a.push && !a.sit) { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = 0.1; } };
@@ -85,6 +85,30 @@
       await X.wait(2.2);
       X.walk(bram, C.PLOT - 600, 80).then(() => { bram.hidden = true; });
       await X.wait(1.6);
+
+      /* ---- Pipi's seeds: the first garden, on the slope below the plot ---- */
+      const kid0 = X.actor('kid', { x: C.PLOT - 640, style: F.styles.kidA, s: 100 });
+      kid0.pose = (o, a, t) => { if (!a.moving) { o.armF = { a: 1.4 + Math.sin(t * 6) * 0.2, b: 0.6 }; o.face.eye = 'happy'; } };
+      await X.walk(kid0, PL.HX - 110, 110);
+      leo.flip = true;
+      await TALK.say('kid', '아저씨, 이거 토마토 씨앗이야.\n우리 엄마는 베란다에서 토마토 키웠거든.');
+      await TALK.say('kid', '엄마 오면 내가 키운 거 주고 싶어.\n근데 나 혼자서는 물을 못 길어.');
+      await TALK.say('leo', '그럼 같이 키워 보자.\n물길은 아저씨가 낼게.');
+      await X.vow(4, 'write');
+      const GZ = T.puzzle;
+      await X.dip(async () => {
+        kid0.pose = null;
+        leo.x = GZ.PATCH_X + 200; leo.flip = true; kid0.x = GZ.PATCH_X + 250; kid0.flip = true;
+        const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap();
+      });
+      await TALK.say('leo', '빗물을 통에 받아서, 판자로 고랑마다 나눠 주면 돼.');
+      T.announce('텃밭 물길 내기. 판자를 눌러 기울이고, 물통을 눌러 빗물을 붓는다. 고랑마다 팻말의 물방울 수만큼만 들어가야 한다.');
+      await X.play(GZ.trough({ which: 0 }));
+      ps.patch = 1; ps.fruit = 0.35;
+      A.sfx('star', 0.4);
+      await TALK.say('kid', '싹 났다!\n아저씨, 이거 언제 빨개져?');
+      await TALK.say('leo', '여름 한 번 지나면.\n…기다리는 건 우리가 잘하잖아.');
+      await X.dip(async () => { leo.x = PL.HX + 30; leo.flip = false; kid0.hidden = true; X.cam(px, py, 1); X.camSnap(); });
 
       /* ---- that night, the storm ---- */
       X.bed(null);

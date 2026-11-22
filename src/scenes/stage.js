@@ -266,37 +266,44 @@
 
     /* ---------- the promises he makes here, in his notebook ----------
        Not the ones to Ana on the board: the ones to the neighbours. Written down when made, struck through when kept. */
-    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기'];
-    X.vowsAt = function (written, kept) { T.state.vows = { w: written.slice(), k: kept.slice() }; };
-    X.vow = async function (i, how) {
-      const k = S.clock, v = T.state.vows = T.state.vows || { w: [0, 0, 0, 0], k: [0, 0, 0, 0] };
-      S.vow = { a: 0, i, how, p: 0 };
+    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기', '피피랑 토마토 키우기', '릴리 결혼식에 같이 걷기', '로사네 건너갈 때 종 쳐 주기'];
+    const pad = (a) => VOWS.map((_, i) => (a && a[i]) || 0);
+    X.vowsAt = function (written, kept, notes) { T.state.vows = { w: pad(written), k: pad(kept), n: VOWS.map((_, i) => (notes ? notes[i] : T.state.vows && T.state.vows.n && T.state.vows.n[i]) || '') }; };
+    /* how: 'write' a new line · 'keep' strike it through · 'note' only a little line in the margin under it */
+    X.vow = async function (i, how, note) {
+      const k = S.clock, v = T.state.vows = T.state.vows || { w: pad(), k: pad(), n: VOWS.map(() => '') };
+      v.n = v.n || VOWS.map(() => '');
+      S.vow = { a: 0, i, how, p: 0, note: note || '' };
       T.audio.sfx('page');
       await k.tween(S.vow, 'a', 1, 0.6, T.ease.out3);
       T.audio.sfx('crayon');
-      T.announce((how === 'keep' ? '수첩: 지킨 약속. ' : '수첩: 새 약속. ') + VOWS[i]);
+      T.announce((how === 'keep' ? '수첩: 지킨 약속. ' : how === 'note' ? '수첩: ' : '수첩: 새 약속. ') + VOWS[i] + (note ? '. ' + note : ''));
       await k.tween(S.vow, 'p', 1, how === 'keep' ? 0.9 : 1.4, T.ease.lin);
-      if (how === 'keep') v.k[i] = 1; else v.w[i] = 1;
+      if (how === 'keep') v.k[i] = 1; else if (how === 'write') v.w[i] = 1;
+      if (note) v.n[i] = note;
       X.note();
-      await k.wait(1.6);
+      await k.wait(note ? 2.4 : 1.6);
       await k.tween(S.vow, 'a', 0, 0.6);
       S.vow = null;
     };
+    X.vowNote = (i, note) => X.vow(i, 'note', note);
     function drawVow(g) {
       const c = S.vow, V = T.view;
       if (!c || c.a < 0.01) return;
-      const v = T.state.vows || { w: [], k: [] }, a = T.ease.out3(c.a);
-      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 280, 40 + (1 - a) * -30);
+      const v = T.state.vows || { w: [], k: [], n: [] }, a = T.ease.out3(c.a), RH = 40, H = 62 + VOWS.length * RH;
+      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 300, 30 + (1 - a) * -30);
       g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
-      P.fill(g, P.rr(-20, 0, 270, 208, 10), '#fbf4e2'); g.shadowColor = 'transparent';
-      P.fill(g, P.rr(-20, 0, 16, 208, 6), '#d7a23c');
-      P.text(g, '여기서 한 약속', 115, 32, { size: 30, color: '#b54a36', seed: 2 });
+      P.fill(g, P.rr(-20, 0, 290, H, 10), '#fbf4e2'); g.shadowColor = 'transparent';
+      P.fill(g, P.rr(-20, 0, 16, H, 6), '#d7a23c');
+      P.text(g, '여기서 한 약속', 125, 30, { size: 30, color: '#b54a36', seed: 2 });
       VOWS.forEach((s, i) => {
-        const y = 70 + i * 36, writing = c.i === i && c.how === 'write', shown = v.w[i] || writing;
-        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, 200, 1.2); return; }
-        P.text(g, s, 115, y, { size: 22, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i });
-        const struck = v.k[i] ? 1 : c.i === i && c.how === 'keep' ? c.p : 0;
-        if (struck > 0) P.line(g, 10, y - 4, 10 + 210 * struck, y - 6, 2.4, '#c9573f');
+        const y = 66 + i * RH, writing = c.i === i && c.how === 'write', shown = (v.w && v.w[i]) || writing;
+        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, 220, 1.2); return; }
+        P.text(g, s, 125, y, { size: 21, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i });
+        const struck = v.k && v.k[i] ? 1 : c.i === i && c.how === 'keep' ? c.p : 0;
+        if (struck > 0) P.line(g, 10, y - 4, 10 + 230 * struck, y - 6, 2.4, '#c9573f');
+        const note = c.i === i && c.note ? c.note : v.n && v.n[i];
+        if (note) P.text(g, note, 132, y + 19, { size: 15, color: '#8a5a50', k: c.i === i && c.note ? T.clamp(c.p * 1.4) : 1, seed: 20 + i });
       });
       g.restore();
     }
@@ -452,6 +459,7 @@
     S.update = function (dt) {
       S.idle += dt;
       if (S.yr.tick) S.yr.tick();
+      T.gardenOn = !!(S.ps && S.ps.patch) || !!(S.game && S.game.garden);
       if (S.game) S.game.update(dt);
       const W_ = Wd();
       for (const a of S.actors) {

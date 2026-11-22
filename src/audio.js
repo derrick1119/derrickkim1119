@@ -442,6 +442,8 @@
     else if (name === 'bark') { burst({ type: 'bandpass', f0: 1100, f1: 520, dur: 0.13, vel: 0.55, q: 1.6, rate: 9, verb: 0.3 }); A.note({ m: 58 + Math.floor((k || 0) * 4), vel: 0.18, voice: 'pluck', dur: 0.15 }); }
     else if (name === 'wind') burst({ type: 'bandpass', f0: 300, f1: 700, dur: 2.4, vel: 0.35, q: 0.7, rate: 1.2, attack: 0.8, verb: 0.6 });
     else if (name === 'thunder') { burst({ type: 'lowpass', f0: 260, f1: 60, dur: 2.2, vel: 0.7, q: 0.5, rate: 2, attack: 0.05, verb: 0.8 }); }
+    else if (name === 'pour') burst({ type: 'bandpass', f0: 900, f1: 1600, dur: 2.2 * (k || 1), vel: 0.24, q: 0.5, rate: 14, attack: 0.15, verb: 0.3 });
+    else if (name === 'creak') { burst({ type: 'bandpass', f0: 520, f1: 760, dur: 0.55, vel: 0.32, q: 6, rate: 22, attack: 0.08, verb: 0.3 }); A.note({ m: 62, vel: 0.08, voice: 'pluck', dur: 0.4 }); }
     else if (name === 'join') { A.note({ m: 72, vel: 0.26, voice: 'box' }); A.note({ m: 77, at: 0.1, vel: 0.26, voice: 'box' }); }
   };
 

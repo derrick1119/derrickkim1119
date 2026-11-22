@@ -44,7 +44,7 @@
 
   T.stage('ch7', {
     chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
-    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 1, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1 },
+    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 1, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1 },
     flags: { bramGone: true },
     build() { T.scenes.kitchen.build(); T.scenes.room.build(); T.scenes.stew.build(); },
     exit() { T.scenes.stew.plain = false; T.scenes.stew.cast = null; },
@@ -184,6 +184,13 @@
       X.walk(bean, PL.HX + 156, 88).then(() => { bean.flip = true; bean.sit = 1; });
       X.walk(ana, PL.BOARD_X - 16, 58);
       await X.walk(leo, PL.BOARD_X + 28, 58);
+      /* the tomato beds on the slope: a promise to a child, kept first thing */
+      leo.flip = true;
+      ana.pose = (o) => { o.headTilt = -0.16; o.face.eye = 'open'; };
+      await TALK.say('ana', '…토마토네?');
+      await TALK.say('leo', '피피라는 아이랑 같이 키웠어.\n당신 오면 제일 먼저 얘기해 주기로 했거든.');
+      await TALK.say('ana', '그럼 오늘 밤에 다 들려줘.\n천천히.');
+      ana.pose = null;
       /* one line was left on the list */
       leo.hand = ana.hand = false; leo.flip = true;
       await X.tap(() => [PL.BOARD_X, W.y3(PL.BOARD_X) - 74, 44]);

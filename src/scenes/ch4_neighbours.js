@@ -35,7 +35,7 @@
 
   T.stage('ch4', {
     chapter: 4, title: ['4장', '이웃들'], end: ['4장 끝', '5장 「꽃길」'], next: 'ch5', pad: 1, nextColor: '#fff6e6',
-    plot: { stage: 2, stones: 4, board: true, table: true, tree: 0.1 },
+    plot: { stage: 2, stones: 4, board: true, table: true, tree: 0.1, patch: 1, fruit: 0.3 },
     build() { T.scenes.kitchen.build(); },
     onHill(g, h, S) {
       if (h !== 1 || !S.rope) return;
@@ -49,13 +49,14 @@
       const PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
       S.rb = { a: 0, run: 0 }; RB[2][1] = C.PIER_Y - 2;
-      X.vowsAt([1, 1, 1, 1], [0, 0, 0, 0]);
+      X.vowsAt([1, 1, 1, 1, 1], [0, 0, 0, 0], []);
       X.cam(px, py, 1); X.camSnap();
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
       X.title();
       await X.wait(4.2);
       await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
+      await X.vowNote(4, '첫 농사: 까치가 다 쪼아 먹음');
 
       /* ---- a rainbow over the cloud sea ---- */
       let mom = X.actor('mom', { x: PL.HX - 120, style: F.styles.mom, s: C.MOM_S, lean: 0.1 });
@@ -185,6 +186,29 @@
       pipi.pose = (o, a, t) => { o.armF = { hand: F.local(o, bean.x, W.groundAt(bean.x) - 30) }; o.lean = 0.3; o.face.eye = 'happy'; };
       bean.sit = 1; bean.wag = 1; bean.wagRate = 16;
       await X.wait(1.4);
+
+      /* ---- the second garden: a bed more, and a dog who has never met wet earth ---- */
+      await TALK.say('kid', '아저씨, 올해는 고랑 하나 더 파자.\n작년엔 까치가 다 먹었잖아.');
+      await TALK.say('leo', '그래. 물길도 하나 더 내고.');
+      const GZ = T.puzzle;
+      await X.dip(async () => {
+        pipi.pose = null; bean.wagRate = null;
+        leo.x = GZ.PATCH_X + 200; leo.flip = true; pipi.x = GZ.PATCH_X + 250; pipi.flip = true; bean.x = GZ.PATCH_X + 150; bean.flip = true; bean.sit = 1;
+        ps.patch = 0;
+        const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap();
+      });
+      T.announce('텃밭 물길 내기. 고랑이 셋으로 늘었다. 뾰족한 갈림판은 물을 반씩 나눈다.');
+      await X.play(GZ.trough({ which: 1 }));
+      ps.patch = 2; ps.fruit = 0.5;
+      bean.sit = 0; A.sfx('bark');
+      T.announce('젖은 흙 냄새에 빈이 고랑으로 뛰어든다.');
+      await X.walk(bean, GZ.PATCH_X - 40, 170);
+      for (let i = 0; i < 4; i++) { A.sfx('step'); await X.tween(bean, 'jump', 10, 0.16, T.ease.out); await X.tween(bean, 'jump', 0, 0.16, T.ease.in); }
+      ps.fruit = 0.15;
+      await TALK.say('kid', '빈! 그거 내 토마토야!');
+      await TALK.say('leo', '…내년엔 울타리부터 치자.');
+      await X.vowNote(4, '두 번째: 빈이 고랑을 다 파헤침');
+      await X.dip(async () => { leo.x = PL.HX + 90; bean.x = PL.HX + 150; bean.sit = 1; pipi.x = PL.HX - 250; X.cam(px, py, 1); X.camSnap(); });
       /* walls, year after year, with a dog under his feet */
       await X.years(5, 9, { age: 45, during: (d) => { X.tween(ps, 'tree', 0.4, d); X.wait(d * 0.5).then(() => { ps.stage = 3; A.sfx('knock', 0.5); }); } });
 
