@@ -13,11 +13,11 @@ import { lvlMult } from '../data/units.js';
 const hyp = Math.hypot, TAU = Math.PI * 2;
 const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Math.max(VIEW.y0 + 36, Math.min(VIEW.y1 - 36, y));
 // 두목의 외침: 꼬리표의 꼬리가 두목 머리(또는 발)에 닿게 바로 붙여 단다. 겹치면 그리는 쪽(fx)에서 비켜 쌓고, 같은 외침은 새로 쌓지 않는다
-// 끊기 게이지가 머리 위에 떠 있는 동안에는 외침을 발밑으로 내린다
+// 끊기 게이지가 머리 위에 떠 있는 동안에는 외침을 발밑으로 내린다. 양옆 위는 패널이 있어 한 칸 더 내린다
 const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168 };
 export const bossSay = (b, u, s, c) => say(b, u, s, c);
 const say = (b, u, s, c = '#c8402f') => {
-  const x = Math.max(200, Math.min(1080, u.x)), top = x > 900 || x < 380 ? 124 : VIEW.y0 + 18;   // 양옆 위는 패널이 있어 한 칸 더 내린다 let y = u.y - (TALL[u.type] || 140) - 24, under = false;
+  const x = Math.max(200, Math.min(1080, u.x)), top = x > 900 || x < 380 ? 124 : VIEW.y0 + 18; let y = u.y - (TALL[u.type] || 140) - 24, under = false;
   if ((u.ai && u.ai.g) || y < top) { y = Math.min(VIEW.y1 - 14, u.y + 30); under = true; }   // 끊기 게이지가 떠 있거나 머리 위에 자리가 없으면 발밑에
   b.ev('text', { x, y, s, c, big: true, tail: under ? -1 : 1 });
 };
