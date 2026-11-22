@@ -3323,20 +3323,69 @@ function warmList(stage: number): [K, number, number][] {
   }
   return list;
 }
+const WQ = new Map<string, (() => boolean)[]>(), WQI = new Map<string, number>();
+/** 아이콘은 두 크기로만 굽는다 (작은 것: 띠·도감·떼 표, 큰 것: 이름표·떨어지는 부위) */
+const ICON_S = 0.03, ICON_L = 0.05;
+function iconAt(ctx: C2, p: P, x: number, y: number, k: number, base: number, sc: number, sil = false) {
+  ctx.drawImage(sil ? silIcon(p, base * sc) : icon(p, base * sc), x - k * 1.5, y - k * 1.5, k * 3, k * 3);
+}
+/** 이 판에 쓸 그림 굽기 목록 (한 번 구운 것은 건너뛴다) */
+function warmTasks(stage: number, w: number, h: number, sc: number, sc2: number, tr: number): (() => boolean)[] {
+  const R = (r: number) => r * w, ch = STAGES[stage].ch, out: (() => boolean)[] = [];
+  const once = (key: string, f: () => void) => () => (DONE.has(key) ? false : (DONE.add(key), f(), true));
+  out.push(once(`bg${ch}:${w}:${h}:${sc2}`, () => getBg(ch, Math.round(w), Math.round(h), sc2)));
+  for (const k of [0, 1]) out.push(once(`st${k}:${ch}:${w}:${sc2}`, () => strip(k, ch, Math.round(w), sc2)));
+  for (const [k, mood, f] of warmList(stage)) out.push(() => warmSprite(k, mood, f, Math.round(R(KD[k].r) * sc2)));
+  for (let i = 0; i < 5; i++) for (let mood = 0; mood < 3; mood++) out.push(once(`ck${i + ch}:${mood}:${w}:${sc}`, () => crowdKid(i + ch, mood, R(0.028) * sc)));
+  // 결과·선물·판 시작 카드의 글자: 글꼴마다 글자 모양을 미리 한 번 그려 둔다 (첫 프레임에 글자 굽기가 몰리지 않게)
+  for (const [sz, wg] of HUD_FONTS) {
+    const f = `${wg} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`;
+    for (let i = 0; i < GLYPHS.length; i += 24) out.push(once(`tx${f}:${tr}:${i}`, () => warmText(f, GLYPHS.slice(i, i + 24), tr)));
+  }
+  for (const p of DEXP) {
+    out.push(once(`is${p}:${w}:${sc2}`, () => icon(p, R(ICON_S) * sc2)));
+    out.push(once(`il${p}:${w}:${sc2}`, () => icon(p, R(ICON_L) * sc2)));
+    out.push(once(`ss${p}:${w}:${sc2}`, () => silIcon(p, R(ICON_S) * sc2)));
+  }
+  return out;
+}
+const DONE = new Set<string>();
+const HUD_FONTS: [number, number][] = [[0.03, 700], [0.03, 800], [0.03, 900], [0.031, 800], [0.032, 700], [0.032, 800], [0.032, 900], [0.033, 800], [0.034, 700], [0.034, 800], [0.034, 900], [0.035, 900], [0.036, 800], [0.036, 900], [0.037, 900], [0.038, 900], [0.04, 900], [0.042, 900], [0.044, 900], [0.046, 900], [0.05, 900], [0.062, 900]];
+/** 카드·띠에 나올 수 있는 글자 모두 (겹친 글자는 한 번) */
+const GLYPHS = [...new Set([
+  '0123456789+-,/×·→!?:—()', '판 깼다 모든 하늘을 날았다 별 개 빨리 지남 점 아기 용 Lv 몸이 조금 커지고 힘이 세져요 도감 조합 모습 가지 새 부위 다음',
+  '대장 이기기 하늘 비우기 하트 안 잃고 줄줄이 폭죽 한 번에 딱 맞아 대장의 힘 별 셋째 대장을 이겼다 와르르 끝 선물 하나 에 뜬 큰 물건 둘 중 를 톡 다시 누르면 해요 을 잃었어요 이 만',
+  ...Object.values(LV_GIFT), ...CHAPTERS, ...STAGES.map((d) => d.name + d.news), ...DEXP.map((p) => PD[p].name + PD[p].line), ...COMBOS.map((c) => c.name + c.line),
+  ...PERKS.flat().map((q) => q.name + q.line), ...Object.values(DROP_NAME), ...Object.values(KD).map((k) => k.name),
+].join(''))].filter((c) => c !== ' ').join('');
+let TXTC: CanvasRenderingContext2D | null = null;
+function warmText(f: string, str: string, tr: number) {
+  if (!TXTC) {
+    const c = document.createElement('canvas');
+    (c.width = 64), (c.height = 64);
+    TXTC = c.getContext('2d');
+  }
+  if (!TXTC) return;
+  TXTC.setTransform(tr, 0, 0, tr, 0, 0);
+  TXTC.font = f;
+  TXTC.fillText(str, 0, 20);
+  TXTC.strokeText(str, 0, 20);
+}
 function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1, sc2 = Math.min(2, sc);
   const d = STAGES[s.stage], ch = d.ch, me = s.me, seenT = fx.memo.t ?? -1, mr = meR(s);
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
-  // 미리 굽기: 판 중에는 이 판의 스티커를, 결과 화면에서는 다음 판 것을 프레임마다 조금씩
+  // 미리 굽기: 판 중에는 이 판(+결과 카드)에 쓸 그림을, 결과·선물 화면에서는 다음 판 것을 프레임마다 조금씩 — 판 시작·결과 첫 프레임이 튀지 않게
   {
     const rest = s.phase !== 'play', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
     if (!(rest && s.pt < 12)) {
-      const list = warmList(ws), k0 = Math.round(R(0.04) * sc2);
-      let i = fx.memo['wm' + ws] ?? 0, did = 0;
-      for (; i < list.length && did < (rest ? 3 : 1); i++) if (warmSprite(list[i][0], list[i][1], list[i][2], Math.round(R(KD[list[i][0]].r) * sc2))) did++;
-      fx.memo['wm' + ws] = i;
-      if (!did) for (const p of DEXP) if (!SPR.has(`i:${p}:${k0}`)) (icon(p, k0), silIcon(p, k0));
+      const key = `${ws}:${Math.round(w)}:${Math.round(h)}:${sc}`;
+      let q = WQ.get(key);
+      if (!q) WQ.set(key, (q = warmTasks(ws, w, h, sc, sc2, typeof ctx.getTransform === 'function' ? ctx.getTransform().a || 1 : 1)));
+      let i = WQI.get(key) ?? 0, did = 0;
+      for (let n = 0; i < q.length && did < 1 && n < 40; i++, n++) if (q[i]()) did++;
+      WQI.set(key, i);
     }
     const fi = fx.memo.wf ?? 0;
     if (fi < FONTS.length && t % 3 === 0) font(FONTS[fi][0], FONTS[fi][1]), ctx.measureText('가나다 한 방! 0123'), (fx.memo.wf = fi + 1);
@@ -3559,7 +3608,7 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
       ctx.strokeStyle = SLOT_COL[sl];
       ctx.lineWidth = 2.2;
       ctx.stroke();
-      drawIcon(ctx, p, bx, by, k, sc2);
+      iconAt(ctx, p, bx, by, k, R(ICON_S), sc2);
     }
   };
   // 멀리 있는 것부터
@@ -3881,7 +3930,7 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
       ctx.globalAlpha = Math.min(1, (40 - age) / 12);
       ctx.translate(X(c.x + c.vx * age), Y(c.y + c.vy * age + 0.0004 * age * age));
       ctx.rotate(age * 0.25 * (c.vx > 0 ? 1 : -1));
-      drawIcon(ctx, c.p, 0, 0, k, sc2);
+      iconAt(ctx, c.p, 0, 0, k, R(ICON_L), sc2);
       ctx.restore();
     }
   }
@@ -4262,7 +4311,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
         ctx.lineWidth = 3;
         ctx.stroke();
       }
-      drawIcon(ctx, pt.p, 0, 0, k * 0.62 * [1, 1, 1.12, 1.25][pt.g], sc2);
+      iconAt(ctx, pt.p, 0, 0, k * 0.62 * [1, 1, 1.12, 1.25][pt.g], R(ICON_S), sc2);
       // 단계: 작은 별
       for (let g = 1; g < pt.g; g++) {
         starPath(ctx, (g - (pt.g) / 2) * R(0.022), k * 0.95, R(0.011));
@@ -4414,7 +4463,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
       ctx.strokeStyle = '#a06a12';
       ctx.lineWidth = 3;
       ctx.stroke();
-    } else drawIcon(ctx, b.p, ix, 0, ir * 0.62 * (1 + 0.06 * Math.sin(age * 0.5)), sc2);
+    } else iconAt(ctx, b.p, ix, 0, ir * 0.62 * (1 + 0.06 * Math.sin(age * 0.5)), R(ICON_L), sc2);
     // 오른쪽: 이름 (굵게) · 한 줄
     ctx.textAlign = 'left';
     const tx = ix + ir + R(0.035), maxW = cw / 2 - tx - R(0.03);
@@ -4450,7 +4499,8 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     ctx.stroke();
     font(0.044, 900);
     text(s.won ? '모든 하늘을 날았다!' : `${s.stage + 1}판 깼다!`, w / 2, cy0 + R(0.023), '#ffffff');
-    for (let i = 0; i < 3; i++) {
+    // 첫 몇 프레임에 나눠 그린다 (첫 프레임이 튀지 않게): 0 틀 · 1 별 · 2 점수 · 3 도감 · 4 아래 줄
+    for (let i = 0; i < 3 && pt >= 1; i++) {
       const at = 12 + i * 12, sx0 = X(0.23 + i * 0.27), sy0 = cy0 + R(0.12), on = s.starOk[i] && pt >= at, k = on ? 1 + Math.max(0, 1 - (pt - at) / 8) * 0.6 : 1;
       starPath(ctx, sx0, sy0, R(0.05) * k);
       ctx.fillStyle = on ? '#ffc93c' : '#eadfc8';
@@ -4462,6 +4512,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
       font(0.032, 800);
       text(STAR_WORDS(s)[i], sx0, sy0 + R(0.072), s.starOk[i] ? INK : '#b8a688');
     }
+    if (pt >= 2) {
     rr(ctx, X(0.1), cy0 + R(0.225), R(0.8), R(0.056), R(0.02));
     ctx.fillStyle = '#fff0cc';
     ctx.fill();
@@ -4483,7 +4534,9 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     const lw0 = ctx.measureText(lvs).width;
     font(0.03, 700);
     text(LV_GIFT[s.lv] ?? '몸이 조금 커지고 힘이 세져요', X(0.16) + lw0 + R(0.018), cy0 + R(0.326), LV_GIFT[s.lv] ? '#d9480f' : INK);
+    }
     // 도감: 돋아 본 부위 (다음 판에 돋을 것은 점선)
+    if (pt >= 3) {
     const nx: StageDef | undefined = STAGES[s.stage + 1];
     font(0.031, 800);
     text(`도감 ${s.dex.length}/${DEXP.length} · 조합 ${s.combos.length}/${COMBOS.length} · 모습 ${s.forms.length}가지`, X(0.09), cy0 + R(0.382), MUTED);
@@ -4511,12 +4564,13 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
         ctx.stroke();
         ctx.setLineDash([]);
       }
-      if (has2) drawIcon(ctx, p, px, py, k, sc2);
-      else ctx.drawImage(silIcon(p, k * sc2), px - k * 1.5, py - k * 1.5, k * 3, k * 3);
+      iconAt(ctx, p, px, py, k, R(ICON_S), sc2, !has2);
       if (next) (font(0.036, 900), text('?', px, py, '#ff8a3d', '#ffffff', 3));
     });
+    }
     font(0.035, 900);
-    if (pt >= RES_MIN) text(s.won ? '톡!' : KD[d.key].boss && d.ch < PERKS.length ? '톡 하면 장 끝 선물!' : '톡 하면 다음 판', w / 2, cy0 + chh - R(0.03), (t >> 3) % 2 ? '#d9480f' : '#ff8a3d');
+    if (pt < 4) void 0;
+    else if (pt >= RES_MIN) text(s.won ? '톡!' : KD[d.key].boss && d.ch < PERKS.length ? '톡 하면 장 끝 선물!' : '톡 하면 다음 판', w / 2, cy0 + chh - R(0.03), (t >> 3) % 2 ? '#d9480f' : '#ff8a3d');
     else if (nx) text(KD[d.key].boss ? `다음 하늘: ${CHAPTERS[nx.ch]}` : `다음 판: ${KD[nx.key].name}`, w / 2, cy0 + chh - R(0.03), MUTED);
     ctx.globalAlpha = 1;
   }
@@ -4534,6 +4588,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     font(0.033, 800);
     text(picked < 0 ? '하늘에 뜬 큰 물건 둘 중 하나를 톡!' : `${opts[picked].name}: ${opts[picked].line}`, w / 2, Y(0.21), INK);
     opts.forEach((o, i) => {
+      if (pt < 1 + i && picked < 0) return;
       const px = X(i ? 0.72 : 0.28), drop = picked < 0 ? Math.max(0, 1 - pt / 16) : 0, py = Y(0.88) - drop * drop * R(0.5);
       const chosen = picked === i, other = picked >= 0 && !chosen, k = R(0.15) * (chosen ? 1 + 0.15 * Math.sin(Math.min(1, pt / 12) * Math.PI) : 1);
       ctx.globalAlpha = other ? Math.max(0, 1 - pt / 20) : 1;
