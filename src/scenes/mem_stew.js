@@ -285,11 +285,12 @@
     const tip = [POT.x + Math.cos(S.ang) * 46, POT.y + 2 + Math.sin(S.ang) * 7];
     const ana = { x: 262, y: COUNTER - 34, s: plain ? 350 : 372, style: cast.ana, flip: true, sit: true };
     const sniff = T.smooth(T.clamp(p * 1.4));
-    ana.lean = 0.04 + sniff * 0.22 + tk * 0.1 - joy * 0.2;
+    ana.lean = 0.04 + sniff * 0.22 + tk * 0.24 - joy * 0.2;
     ana.headTilt = 0.02 + sniff * 0.12 - joy * 0.22;
-    const swing = 3 + sniff * 3;
-    ana.legF = { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.25 + Math.sin(t * swing) * (0.2 + joy * 0.25) };
-    ana.legB = { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.2 + Math.sin(t * swing + Math.PI) * (0.2 + joy * 0.25) };
+    /* her feet swing a little while she waits: slow, small, and not quite together */
+    const sw = (t * 1.5) % (Math.PI * 2), amp = 0.06 + sniff * 0.05 + joy * 0.1;
+    ana.legF = { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.25 + Math.sin(sw) * amp };
+    ana.legB = { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.2 + Math.sin(sw * 1 + 2.1) * amp * 0.8 };
     ana.face = { eye: joy > 0.4 ? 'happy' : sniff > 0.75 && tk < 0.3 ? 'closed' : 'open', mouth: tk > 0.7 && joy < 0.3 ? 'open' : 'smile', blush: 0.24 + joy * 0.2, old: plain };
     const aj0 = [ana.x - 46 - sniff * 14, COUNTER - 104];
     ana.armF = joy > 0.02 ? { a: T.lerp(0.9, 2.5, joy) + Math.sin(t * 10) * 0.12 * joy, b: 0.5 } : { hand: F.local(ana, aj0[0], aj0[1]) };
@@ -307,7 +308,7 @@
     const stirHand = [tip[0] - 62, tip[1] - 58];
     const offer = [mouth[0] - 96, mouth[1] + 26];
     const hand = [T.lerp(stirHand[0], offer[0], tk), T.lerp(stirHand[1], offer[1], tk) - Math.sin(tk * Math.PI) * 40];
-    leo.x += tk * (plain ? 62 : 34);
+    leo.x += tk * (plain ? 62 : 58);
     leo.armF = { hand: F.local(leo, hand[0], hand[1]) };
     const lj = F.person(g, leo);
     /* apron */
@@ -316,15 +317,18 @@
     P.fill(g, P.rr(4, -70, 34, 150, 10), '#f1e6cf');
     P.line(g, 4, -30, -30, -34, 4, '#f1e6cf');
     g.restore();
-    const spoonTip = [T.lerp(tip[0], mouth[0], tk), T.lerp(tip[1], mouth[1] + 8, tk) - Math.sin(tk * Math.PI) * 30];
 
     const aj = F.person(g, ana);
     /* her own spoon, held like a flag */
     if (joy < 0.02 && !plain) { P.line(g, aj.handF[0], aj.handF[1] + 6, aj.handF[0] - 4, aj.handF[1] - 44, 4, '#c9d0ca'); P.fill(g, P.ellipse(aj.handF[0] - 5, aj.handF[1] - 50, 7, 10, -0.1), '#c9d0ca'); }
 
-    /* wooden spoon, then his arm over it */
-    const hj = plain && lj.handF ? [lj.handF[0] + 4, lj.handF[1] + 8] : [leo.x + (hand[0] - leo.x), hand[1]];
-    P.line(g, hj[0] - 6, hj[1] - 10, spoonTip[0], spoonTip[1], 6, '#b98a5a');
+    /* wooden spoon, held in his hand, then his arm over it */
+    const hj = lj.handF ? [lj.handF[0] + 2, lj.handF[1] + 4] : hand;
+    const herMouth = aj.head ? [aj.head[0] - 14 * ms, aj.head[1] + 14 * ms] : mouth;
+    const aim = [T.lerp(tip[0], herMouth[0], tk), T.lerp(tip[1], herMouth[1], tk)];
+    const SL = 92 * ms, dx = aim[0] - hj[0], dy = aim[1] - hj[1], dl = Math.hypot(dx, dy) || 1;
+    const spoonTip = [hj[0] + (dx / dl) * Math.min(SL, dl), hj[1] + (dy / dl) * Math.min(SL, dl)];
+    P.line(g, hj[0] - (dx / dl) * 12, hj[1] - (dy / dl) * 12, spoonTip[0], spoonTip[1], 6, '#b98a5a');
     P.fill(g, P.ellipse(spoonTip[0], spoonTip[1], 12, 8, 0.4), tk > 0.2 ? stew : '#b98a5a');
     F.person(g, Object.assign({}, leo, { only: 'armF', skip: null }));
 
