@@ -169,7 +169,7 @@ export const LOOKS = {
   tiger: { body: tiger, blinkBody: g => tiger(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.08 },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
-  banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
+  banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 134, still: true, scale: 1.0, w: 170, ox: 84, ch: 160, oy: 142 },   // 통북 수레 (깃대가 높아 종이를 크게 쓴다)
   // 요괴
   // 도깨비 살빛은 사람 살빛이 아닌 벽돌빛·이끼 낀 황토·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼, 갈색 살에 곱슬머리는 사람을 희화화한 것처럼 보인다)
   // 패랭이·벙거지·상투·삼베 등거리를 걸친다
@@ -234,7 +234,7 @@ for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
   const d = LOOKS[type]; if (!d) throw new Error('unknown look ' + type);
-  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: 132, oy: 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
+  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: d.ch || 132, oy: d.oy || 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
   const wrap = fn => d.wide ? g => { g.scale(d.wide, 1); fn(g); } : fn;
   let front, head = null, blink = null, frontBlink = null;
   if (d.doll) {

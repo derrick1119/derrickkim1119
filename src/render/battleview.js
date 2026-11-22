@@ -7,7 +7,7 @@ import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
-import { Fx } from './fx.js';
+import { Fx, glow } from './fx.js';
 import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
@@ -168,7 +168,8 @@ export class BattleView {
     list.sort((a, c) => a.y - c.y);
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
     this.dust -= opt.dt || 0;
-    if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
+    if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
+      this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
     this.drawAmbient(g, T, opt.dt || 0, opt.march);
@@ -264,18 +265,20 @@ export class BattleView {
       const sh = 1 - Math.min(0.6, (p.h || 0) / 160); g.fillStyle = 'rgba(50,36,20,0.2)'; g.beginPath(); g.ellipse(p.x, p.y, 8 * sh, 4.5 * sh, 0, 0, TAU); g.fill();
       const yy = p.y - (p.h || 0) - 10, vx = (p.tx - p.sx) / p.dur, vy = (p.ty - p.sy) / p.dur - Math.cos(clamp(p.t / p.dur, 0, 1) * PI) * 120, a = Math.atan2(vy, vx);
       g.save(); g.translate(p.x, yy);
-      if (p.kind === 'fireball' || p.kind === 'iceball') { const ice = p.kind === 'iceball'; g.rotate(T * 9); g.globalAlpha = 0.5; ell(g, 0, 0, 10, 10, ice ? '#8fd3e8' : '#ff9a2e'); g.globalAlpha = 1; rr(g, -4, -7.5, 8, 15, 1, ice ? '#d6eef6' : '#f0d264', INK, 1.1); line(g, [-1.6, -4.5, 1.6, -2, -1.6, 0.6, 1.6, 3], ice ? INDIGO : RED, 1.1); }
+      if (p.kind === 'fireball' || p.kind === 'iceball') { const ice = p.kind === 'iceball'; glow(g, 0, 0, 26, ice ? '#8fd3e8' : '#ff9a2e', 0.85); g.rotate(T * 9); g.globalAlpha = 0.5; ell(g, 0, 0, 10, 10, ice ? '#8fd3e8' : '#ff9a2e'); g.globalAlpha = 1; rr(g, -4, -7.5, 8, 15, 1, ice ? '#d6eef6' : '#f0d264', INK, 1.1); line(g, [-1.6, -4.5, 1.6, -2, -1.6, 0.6, 1.6, 3], ice ? INDIGO : RED, 1.1); }
       else { g.rotate(a); line(g, [-14, 0, 6, 0], INK, 3); line(g, [-14, 0, 6, 0], '#e9d9b0', 1.4); poly(g, [5, -3, 12, 0, 5, 3], RED, INK, 0.9); g.globalAlpha = 0.8; poly(g, [-14, -2.4, -24, 0, -14, 2.4], '#ff9a2e'); g.globalAlpha = 1; }
       g.restore();
     } else {
       const a = p.ang || 0;
-      if (p.kind === 'sunfire') { g.globalAlpha = 0.45; ell(g, p.x - Math.cos(a) * 9, p.y - Math.sin(a) * 9, 4.4, 4.4, '#ff9a2e'); ell(g, p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, 2.8, 2.8, '#e0503f'); g.globalAlpha = 1; ell(g, p.x, p.y, 5.6, 5.6, '#f0a53a', INK, 1.2); ell(g, p.x - 1.2, p.y - 1.4, 2, 2, '#fbe08a'); return; }
+      if (p.kind === 'sunfire') { glow(g, p.x, p.y, 22, '#ffb040', 0.8); g.globalAlpha = 0.45; ell(g, p.x - Math.cos(a) * 9, p.y - Math.sin(a) * 9, 4.4, 4.4, '#ff9a2e'); ell(g, p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, 2.8, 2.8, '#e0503f'); g.globalAlpha = 1; ell(g, p.x, p.y, 5.6, 5.6, '#f0a53a', INK, 1.2); ell(g, p.x - 1.2, p.y - 1.4, 2, 2, '#fbe08a'); return; }
       if (p.kind === 'dark') { g.globalAlpha = 0.5; ell(g, p.x - Math.cos(a) * 8, p.y - Math.sin(a) * 8, 5, 5, '#8fd3e8'); g.globalAlpha = 1; ell(g, p.x, p.y, 6, 6, '#3d3560', INK, 1.2); return; }
       if (p.kind === 'note') { for (let i = 0; i < 3; i++) { g.globalAlpha = 0.9 - i * 0.28; g.beginPath(); g.arc(p.x - Math.cos(a) * i * 7, p.y - Math.sin(a) * i * 7, 4.4 + i * 2, a - 0.9, a + 0.9); st(g, i ? '#e2b24a' : INK, i ? 1.8 : 3.4); if (!i) { g.beginPath(); g.arc(p.x, p.y, 4.4, a - 0.9, a + 0.9); st(g, '#fff3c0', 1.8); } } g.globalAlpha = 1; return; }
       if (p.kind === 'stone') { ell(g, p.x, p.y, 4.4, 4, '#a59f8f', INK, 1.2); return; }
       if (p.kind === 'bullet') { g.globalAlpha = 0.5; line(g, [p.x - Math.cos(a) * 34, p.y - Math.sin(a) * 34, p.x, p.y], '#fbf7ec', 3); g.globalAlpha = 1; ell(g, p.x, p.y, 2.8, 2.8, '#3a3a44', INK, 1); return; }
       if (p.kind === 'spark') { const nx = -Math.sin(a), ny = Math.cos(a), pts = []; for (let i = 0; i <= 4; i++) { const d = i * 9, o = (i % 2 ? 1 : -1) * (i === 0 || i === 4 ? 0 : 5); pts.push(p.x - Math.cos(a) * d + nx * o, p.y - Math.sin(a) * d + ny * o); } line(g, pts, INK, 5); line(g, pts, '#b89cf0', 2.6); ell(g, p.x, p.y, 3.4, 3.4, '#fffbe6', INK, 1); return; }
-      if (p.kind === 'firearrow') { g.globalAlpha = 0.75; ell(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 5.5, 5.5, '#ff9a2e'); g.globalAlpha = 1; }
+      if (p.kind === 'firearrow') { glow(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 16, '#ff9a2e', 0.8); g.globalAlpha = 0.75; ell(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 5.5, 5.5, '#ff9a2e'); g.globalAlpha = 1; }
+      // 날아가는 화살 뒤로 옅은 바람 자국
+      { const tx = p.x - Math.cos(a) * 46, ty = p.y - Math.sin(a) * 46, gr = g.createLinearGradient(tx, ty, p.x, p.y); gr.addColorStop(0, 'rgba(255,250,236,0)'); gr.addColorStop(1, 'rgba(255,250,236,0.75)'); g.strokeStyle = gr; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(tx, ty); g.lineTo(p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16); g.stroke(); }
       line(g, [p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, p.x, p.y], INK, 2.6);
       g.save(); g.translate(p.x, p.y); g.rotate(a); poly(g, [-18, -2.6, -12, 0, -18, 2.6], '#fbf7ec', INK, 0.8); poly(g, [0, -2.2, 5, 0, 0, 2.2], '#e4e8ea', INK, 0.8); g.restore();
     }
@@ -289,12 +292,19 @@ export class BattleView {
           if (e.kind === 'rout') { fx.txt(e.x + 40, e.y - 110, '군기가 흔들린다!', RED, 22, 1.1); fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }
           if (e.dodge) { fx.puff(e.x, e.y - 16, 2, '#dfe6ee', 7); fx.txt(e.x, e.y - 50, '흘림', '#5a4a8a', 16, 0.5); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
-          if (e.kind === 'burn') { fx.burst(e.x, e.y - 16, 1, '#ff9a2e', 50, 3); break; }
-          if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) { fx.slash(e.x, e.y - 18, e.big ? 30 : 20, e.team === 0 ? REDD : MEOK); if (e.big) fx.splat(e.x, e.y - 16, 0.3, e.team === 0 ? REDD : MEOK, 0.4); } sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
+          if (e.kind === 'burn') { fx.embers(e.x, e.y - 14, 1, '#ff9a2e'); break; }
+          if (e.kind === 'melee' || e.kind === 'proj') {
+            // 타격: 작은 타격은 종잇조각과 옅은 빛, 큰 타격·배후 타격은 빛 번짐과 먹 붓질
+            const warm = e.team === 0 ? '#ff9a7a' : '#ffc870', ink = e.team === 0 ? REDD : MEOK;
+            if (e.kind === 'melee' && (e.big || e.flank)) fx.hit(e.x, e.y - 18, !!e.big, ink, warm);
+            else { fx.chips(e.x, e.y - 16, e.flank ? 3 : 2, ['#fbf3df', '#efe2c4'], 120); if (Math.random() < 0.5) fx.flare(e.x, e.y - 16, 14, warm, 0.14, 1); }
+            if (e.big) fx.shake = Math.max(fx.shake, 2.5);
+            sfx(e.kind === 'proj' ? 'thud' : 'hit');
+          }
           if (e.flank && Math.random() < 0.34) fx.txt(e.x, e.y - 46, '배후!', '#c8642a', 18, 0.6);
           if (e.big && e.amt >= 60) fx.num(e.x, e.y - 42, e.amt, e.team === 0 ? RED : INK);
           break;
-        case 'melee': { const now = performance.now(); if (e.big && now - (this.lastImpact || 0) > 280) { this.lastImpact = now; fx.impact(e.x, e.y - 14, 46); } else if (e.big || Math.random() < 0.45) fx.star(e.x, e.y, e.big ? 13 : 7); break; }
+        case 'melee': if (e.big || Math.random() < 0.3) fx.star(e.x, e.y - 4, e.big ? 16 : 9); break;
         case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
         // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
         case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: Math.min(Math.max(e.y - 56, 150), 492) - 78, vy: -8, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 22, life: 1.1 }); } sfx('card'); out.push(e); break;
@@ -341,7 +351,7 @@ export class BattleView {
         case 'morale': { const p = fx.p.find(q => q.mor && q.t < 0.45); if (p) { p.val += e.n; p.s = '사기 +' + Math.round(p.val * 10) / 10; p.t = Math.min(p.t, 0.1); } else fx.add({ k: 'text', mor: true, val: e.n, x: 132, y: 548, vy: -34, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); } fx.star(e.x, e.y - 30, 11, '#f0d264'); sfx('coin'); break;
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
-          const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
+          const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.flare(e.x, e.y - 22, e.boss ? 90 : 22, e.team === 0 ? '#ffd0b0' : '#ffe2a0', e.boss ? 0.6 : 0.22, e.boss ? 4 : 1); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
           // 요괴는 먹으로 번져 사라진다: 바닥에 먹 자국이 남고 먹 연기가 피어오른다
           if (e.team === 1) { fx.stain(e.x, e.y + 2, e.boss ? 2.6 : 0.6 + Math.random() * 0.35, e.boss ? 9 : 5); fx.wisp(e.x, e.y - 16, e.boss ? 8 : 2); }
@@ -351,15 +361,17 @@ export class BattleView {
         }
         case 'shoot': if (e.kind === 'note') { sfx('clang'); break; } sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' || e.kind === 'sunfire' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;
         case 'heal': if (!e.quiet && e.fx !== undefined) fx.beam(e.fx, e.fy - 34, e.x, e.y - 16, e.team === 0 ? '#f0d264' : '#e4826a', 0.22, 3); fx.add({ k: 'plus', x: e.x + (Math.random() - 0.5) * 12, y: e.y - 30, vy: -40, life: 0.6, size: 5.5, col: e.team === 0 ? '#5fae6a' : '#e4826a' }); sfx('heal'); break;
-        case 'charge': fx.star(e.x, e.y - 14, 24, '#fbf7ec'); fx.ring(e.x, e.y, 46, INK, 0.3, 5); fx.puff(e.x, e.y - 6, 6, '#e8dcc0', 9); fx.txt(e.x, e.y - 52, '돌격!', e.team === 0 ? INDIGO : RED, 24, 0.8); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break;
+        case 'charge': fx.flare(e.x, e.y - 14, 34, '#ffd890', 0.26, 2); fx.ring(e.x, e.y, 52, INK, 0.32, 5); fx.puff(e.x, e.y - 6, 6, '#e8dcc0', 9); fx.txt(e.x, e.y - 52, '돌격!', e.team === 0 ? INDIGO : RED, 24, 0.8); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break;
         case 'impact': {
           const st2 = e.style, col = st2 === 'root' ? '#4f8a4a' : st2 === 'dark' ? '#5a4a8a' : st2 === 'strike' || st2 === 'volley' ? INDIGO : st2 === 'iceball' ? '#4f8fb8' : '#d9702a';
           fx.ring(e.x, e.y, e.r * 1.25, col, 0.45, 8); fx.ring(e.x, e.y, e.r * 0.8, INK, 0.3, 4); fx.stain(e.x, e.y, e.r / 30, 2.2, 0.36);
           fx.burst(e.x, e.y - 8, st2 === 'fireball' || st2 === 'iceball' ? 8 : 14, st2 === 'root' ? '#9bcf7a' : st2 === 'dark' ? '#b8a0e0' : st2 === 'iceball' ? '#bfe3ee' : '#ffb03a', 220, 4.5); fx.scraps(e.x, e.y - 10, 4, ['#e9dec4', '#d9cdb0']); fx.puff(e.x, e.y - 6, st2 === 'fireball' ? 4 : 8, st2 === 'root' ? '#cfe6b8' : st2 === 'dark' ? '#d3c6ea' : '#e8dcc0', 13);
           fx.shake = Math.max(fx.shake, st2 === 'fireball' || st2 === 'iceball' ? 3 : st2 === 'meteor' ? 14 : 8); if (st2 === 'meteor') { fx.flash = 0.7; fx.flashCol = '#ffd9a0'; }
+          // 터지는 자리의 빛: 불은 주황 빛과 불티, 얼음은 푸른 빛, 그 밖은 흰 빛
+          { const lc = st2 === 'iceball' ? '#9fd8f0' : st2 === 'dark' ? '#b8a0e0' : st2 === 'root' ? '#bfe0a0' : st2 === 'fireball' || st2 === 'meteor' || st2 === 'fire' ? '#ffb050' : '#ffe6b0'; fx.flare(e.x, e.y - 10, Math.min(120, e.r * 1.1 + 20), lc, st2 === 'meteor' ? 0.5 : 0.32, 3); if (lc === '#ffb050') fx.embers(e.x, e.y - 8, st2 === 'meteor' ? 14 : 6, '#ff9a2e'); }
           sfx('boom'); break;
         }
-        case 'rainTick': if (e.fire) fx.burst(e.x, e.y, 3, '#ff9a2e', 90, 3); for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * e.r, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r; fx.add({ k: 'arrow', x, y, life: 0.16 + Math.random() * 0.1 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } sfx('rain'); break;
+        case 'rainTick': if (e.fire) fx.embers(e.x, e.y - 6, 4, '#ff9a2e'); for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * e.r, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r * 0.6, life = 0.2 + Math.random() * 0.12; fx.add({ k: 'arrow', x, y, life }); fx.add({ k: 'stuck', ground: true, x, y, life: 1.1 }); if (i % 3 === 0) fx.puff(x, y - 2, 1, '#e8dcc0', 7); if (e.fire && i % 2 === 0) fx.flare(x, y - 4, 12, '#ffa040', 0.18, 1); } sfx('rain'); break;
         case 'vanish': fx.puff(e.x, e.y - 14, e.ally ? 4 : 7, e.ally ? PAPER : '#cfe6f0', 11); if (e.ally) fx.scraps(e.x, e.y - 20, 3); else sfx('leap'); break;
         case 'grow': fx.txt(e.x, e.y - 74 - e.n * 4, '커진다…', '#5a4a8a', 18, 0.8); fx.wisp(e.x, e.y - 30, 2); fx.ring(e.x, e.y, 46 + e.n * 4, '#3d3560', 0.4, 4); break;
         // 야광귀가 훔친 사기는 한 줄로 더해서 보여 준다
