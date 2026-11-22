@@ -135,7 +135,7 @@ export class BattleView {
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
   // 길가에 서 있는 것 (주막·장터·푯말 …): 바닥과 함께 흐른다
-  addProp(kind, wx, y = 152) { this.props.push({ spr: stopSprite(kind), wx, y }); if (this.props.length > 5) this.props.shift(); }
+  addProp(kind, wx, y = 152, top = false) { this.props.push({ spr: stopSprite(kind), wx, y, top }); if (this.props.length > 5) this.props.shift(); }
   draw(g, b, T, opt = {}) {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
@@ -158,12 +158,13 @@ export class BattleView {
     fx.drawLayer(g, true);
     const list = [];
     for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : u.def && u.def.prop ? 60 : 0), u }); }   // 두목과 쳐야 할 소품(종·업경대 …)은 둘레에 겹친 인형보다 위에
-    for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
+    // 싸움터의 깃대(top)는 요괴 무리에 가리지 않게 인형들보다 나중에 그린다
+    for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.top ? 9999 : p.y, spr: p.spr, x, sy0: p.y }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);

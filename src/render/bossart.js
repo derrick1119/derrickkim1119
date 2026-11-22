@@ -56,9 +56,9 @@ export function plagueSpirit(g, o = {}) {
   const C = '#3e4a78', D = '#28304f', F = '#e6dfc6';
   g.globalAlpha = 0.3; for (const [x, y, r] of [[-15, -5, 9], [14, -4, 10], [0, -1, 13]]) ell(g, x, y, r, r * 0.45, '#9a8ab0'); g.globalAlpha = 1;
   // 늘어진 소매
-  for (const s of [-1, 1]) part(g, p => { p.moveTo(s * 8, -33); p.quadraticCurveTo(s * 23, -31, s * 22.6, -15); p.lineTo(s * 25, -3); p.lineTo(s * 19.6, -7.6); p.lineTo(s * 17, -2); p.lineTo(s * 14.6, -12); p.quadraticCurveTo(s * 13, -22, s * 7, -24); p.closePath(); }, C, s > 0 ? P(15, -34, 26, -34, 26, 0, 17, 0) : null, { k: 0.26, lw: 1.2 });
-  // 해진 도포
-  part(g, p => { p.moveTo(-12.6, -2); p.lineTo(-9, -6.4); p.lineTo(-5.6, -1); p.lineTo(-1.6, -6); p.lineTo(2, -0.6); p.lineTo(6, -6.4); p.lineTo(9.6, -1.6); p.lineTo(13, -5); p.quadraticCurveTo(13.6, -24, 9.6, -36); p.lineTo(-9.6, -36); p.quadraticCurveTo(-13.6, -24, -12.6, -2); p.closePath(); }, C, P(3, -37, 15, -37, 15, 0, 5, 0), { k: 0.24, lw: 1.3 });
+  for (const s of [-1, 1]) part(g, p => { p.moveTo(s * 8, -33); p.quadraticCurveTo(s * 23, -31, s * 22.6, -15); p.quadraticCurveTo(s * 23.4, -8, s * 21, -5.6); p.quadraticCurveTo(s * 17.6, -4.6, s * 15, -7.6); p.lineTo(s * 14.6, -12); p.quadraticCurveTo(s * 13, -22, s * 7, -24); p.closePath(); }, C, s > 0 ? P(15, -34, 26, -34, 26, 0, 17, 0) : null, { k: 0.26, lw: 1.2 });
+  // 관복 (옷자락은 고르게. 톱니처럼 찢긴 자락은 서양 유령처럼 보인다)
+  part(g, p => { p.moveTo(-12.6, -2); p.quadraticCurveTo(0, 1.6, 13, -2.6); p.quadraticCurveTo(13.6, -24, 9.6, -36); p.lineTo(-9.6, -36); p.quadraticCurveTo(-13.6, -24, -12.6, -2); p.closePath(); }, C, P(3, -37, 15, -37, 15, 0, 5, 0), { k: 0.24, lw: 1.3 });
   line(g, [-6, -34, 5, -22], D, 1.4); rr(g, -6.4, -29.6, 12.8, 9.6, 1, '#d9a441', INK, 0.9); rr(g, -4.4, -27.6, 8.8, 5.6, 0.6, null, '#8a5a2a', 0.7); ell(g, 0, -24.8, 1.6, 1.6, '#f3ecdd', INK, 0.5);   // 흉배
   part(g, p => { p.moveTo(-12, -17.6); p.quadraticCurveTo(0, -14.6, 12, -17.6); p.lineTo(12.6, -14.6); p.quadraticCurveTo(0, -11.4, -12.6, -14.6); p.closePath(); }, '#2b2a30', null, { lw: 0.8 }); for (const x of [-6, 0, 6]) ell(g, x, -14.6 + Math.abs(x) * 0.08, 1.1, 1, '#d9a441', INK, 0.4);   // 각대
   // 탈 같은 얼굴
@@ -67,7 +67,7 @@ export function plagueSpirit(g, o = {}) {
   for (const s of [-1, 1]) { if (o.blink) curve(g, p => { p.moveTo(s * 2, -44.4); p.lineTo(s * 7, -45.6); }, INK, 1.4); else { part(g, p => { p.moveTo(s * 1.6, -44); p.quadraticCurveTo(s * 4.6, -48.6, s * 7.6, -45.6); p.quadraticCurveTo(s * 4.6, -42.6, s * 1.6, -44); p.closePath(); }, '#2a2a22', null, { lw: 0.8 }); ell(g, s * 4.6, -45.2, 1.1, 1.3, '#e0a040'); } line(g, [s * 1.4, -48, s * 7.6, -50.4], INK, 1.5); }
   curve(g, p => { p.moveTo(-5, -38.4); p.quadraticCurveTo(0, -35, 5, -38.4); }, INK, 1.2); for (const x of [-2.4, 0, 2.4]) line(g, [x, -37.4, x, -36], INK, 0.7);
   // 사모: 둥근 검은 모자에 양옆으로 뻗은 날개
-  for (const s2 of [-1, 1]) part(g, p => { p.moveTo(s2 * 7, -55.6); p.quadraticCurveTo(s2 * 13, -58, s2 * 17.6, -56.4); p.quadraticCurveTo(s2 * 18.4, -53.8, s2 * 16.4, -53.2); p.quadraticCurveTo(s2 * 12, -54.4, s2 * 7, -52.8); p.closePath(); }, '#24232a', null, { lw: 0.9 });
+  for (const s2 of [-1, 1]) part(g, p => { p.moveTo(s2 * 6, -59.4); p.quadraticCurveTo(s2 * 14, -63.6, s2 * 22, -62.4); p.quadraticCurveTo(s2 * 24, -59, s2 * 22, -57); p.quadraticCurveTo(s2 * 14, -57, s2 * 6, -56.2); p.closePath(); }, '#24232a', null, { lw: 0.9 });
   part(g, p => { p.moveTo(-9.4, -51.6); p.lineTo(-9, -56); p.quadraticCurveTo(0, -58.6, 9, -56); p.lineTo(9.4, -51.6); p.quadraticCurveTo(0, -53.6, -9.4, -51.6); p.closePath(); }, '#24232a', R(2, -59, 8, 8), { lw: 1 });
   part(g, p => { p.moveTo(-6.6, -56.4); p.quadraticCurveTo(-6.8, -64, 0, -64.4); p.quadraticCurveTo(6.8, -64, 6.6, -56.4); p.closePath(); }, '#2e2d36', R(1.6, -65, 6, 9), { hi: E(-2.6, -61.6, 1.6, 1), hic: '#5a5866', lw: 1 });
 }

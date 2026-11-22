@@ -56,7 +56,7 @@ export class RunScene {
     // 말할 거리가 있으면 그만큼 더 걷는다 (고개 이름 띠가 걷힌 뒤에 말을 꺼낸다)
     if (lines) { this.say(lines); dist = Math.max(dist, (lines.reduce((a, l) => a + talkTime(l[1]), 0) + (this.note ? this.note.t : 0) + 0.3) * MARCH_V); }
     this.left = dist;
-    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010), FIGHT(st.type) ? 196 : 152);   // 싸움터의 깃대는 '요괴 N' 패널 아래로 내려 꽂는다
+    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010), FIGHT(st.type) ? 196 : 152, FIGHT(st.type));   // 싸움터의 깃대는 '요괴 N' 패널 아래로 내려 꽂는다
     if (!quiet) sfx('order');
   }
   arrive() {

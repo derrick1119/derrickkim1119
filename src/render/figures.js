@@ -437,9 +437,10 @@ export function jangseung(g) {
   for (const y of [-21, -16.4, -11.8]) rr(g, -2.2, y, 4.4, 3.6, 0.5, null, dk(wd, 0.36), 0.8);
 }
 // ───────── 도깨비불 ─────────
+// 도깨비불: 위로 여러 갈래 흔들리는 푸른 불꽃 (둥근 물방울 꼴은 남의 나라 혼불처럼 보인다)
 export function wisp(g, o = {}) {
   g.globalAlpha = 0.3; ell(g, 0, -22, 15, 18, '#bfe9f5'); g.globalAlpha = 1;
-  part(g, p => { p.moveTo(0, -42); p.bezierCurveTo(4.4, -33, 12.6, -29, 10.6, -17); p.bezierCurveTo(9.6, -9.6, 4.4, -6.4, 0, -6.4); p.bezierCurveTo(-6.4, -6.4, -11.6, -11.6, -10.6, -19); p.bezierCurveTo(-10, -24.4, -6.4, -25.4, -5.4, -31); p.bezierCurveTo(-2.2, -28.6, -1, -35, 0, -42); p.closePath(); }, '#4fa9d6', P(3, -44, 13, -44, 13, -5, 5, -5), { k: 0.18 });
+  part(g, p => { p.moveTo(0, -45); p.quadraticCurveTo(3.4, -37, 5.4, -34.6); p.quadraticCurveTo(7, -39, 8.8, -40.6); p.quadraticCurveTo(13, -30, 10.6, -18); p.bezierCurveTo(9.6, -9.6, 4.4, -6.4, 0, -6.4); p.bezierCurveTo(-6.4, -6.4, -11.6, -11.6, -10.6, -19); p.quadraticCurveTo(-10.4, -28, -7.6, -37.4); p.quadraticCurveTo(-5.6, -31.6, -3.4, -30.6); p.quadraticCurveTo(-3.6, -38.6, 0, -45); p.closePath(); }, '#4fa9d6', P(3, -44, 13, -44, 13, -5, 5, -5), { k: 0.18 });
   part(g, p => { p.moveTo(0, -30); p.bezierCurveTo(4.6, -23.6, 7.4, -18.4, 5.6, -13.4); p.bezierCurveTo(3.6, -9.2, -3.6, -9.2, -5.6, -14); p.bezierCurveTo(-7, -18.6, -2.4, -22.4, 0, -30); p.closePath(); }, '#bfe9f5', null, { lw: 0, hi: E(-1, -15, 3, 3.6), hic: '#f2fcff' });
   if (o.blink) for (const s of [-1, 1]) line(g, [s * 1.6, -17.2, s * 5, -17.8], INK, 1.3);
   else for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 1.3, -16.4); p.quadraticCurveTo(s * 3.4, -21.4, s * 6.6, -21); p.quadraticCurveTo(s * 5, -15.6, s * 1.3, -16.4); p.closePath(); }, '#123650');

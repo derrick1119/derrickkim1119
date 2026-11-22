@@ -193,7 +193,6 @@ export function bulgasari(g, o = {}) {
   // 짧은 코: 맥처럼 뭉툭하게 내민 쇠 주둥이 (길게 늘어뜨리면 코끼리로 읽힌다)
   part(g, p => { p.moveTo(20.6, -30); p.bezierCurveTo(20.2, -25, 21.6, -21, 25.6, -20.4); p.bezierCurveTo(29, -20, 30, -22.6, 29, -24.6); p.bezierCurveTo(28, -26.6, 27.4, -28, 27.4, -30); p.closePath(); }, C, null, { lw: 1.1 });
   for (const y of [-27, -23.6]) curve(g, p => { p.moveTo(21, y); p.quadraticCurveTo(24, y + 1.4, 27.4, y + 0.4); }, D, 0.8);   // 쇠 고리 마디
-  for (const s of [-1, 1]) part(g, P(24 + s * 4.6, -27.6, 24 + s * 6.4, -23.6, 24 + s * 3.6, -25.4), '#c9ccd4', null, { lw: 0.7 });   // 짧은 쇠 송곳니 (긴 상아는 코끼리처럼 보인다)
   // 이글거리는 눈
   for (const s of [-1, 1]) { const ex = 24 + s * 5.2; if (o.blink) line(g, [ex - 2, -35, ex + 2, -35.4], INK, 1.4); else { path(g, p => { p.moveTo(ex - 2.6, -34.6); p.quadraticCurveTo(ex, -38, ex + 2.6, -35); p.quadraticCurveTo(ex, -33, ex - 2.6, -34.6); p.closePath(); }, '#ffb03a', INK, 0.9); ell(g, ex, -35.2, 0.8, 1.2, '#7a1f1c'); } line(g, [24 + s * 1.6, -37.6, 24 + s * 8.6, -39.4], INK, 1.6); }
 }
@@ -207,12 +206,15 @@ export function geuseundae(g) {
   // 길쭉한 몸: 아래는 연기처럼 풀어진다
   part(g, p => { p.moveTo(-8.6, -1); p.lineTo(-6.4, -6.6); p.lineTo(-4, -0.4); p.lineTo(-1.6, -6); p.lineTo(1, 0.4); p.lineTo(3.4, -6); p.lineTo(5.6, -0.6); p.lineTo(8.6, -6.6); p.bezierCurveTo(9.6, -30, 8, -44, 6.4, -52); p.quadraticCurveTo(0, -56.6, -6.4, -52); p.bezierCurveTo(-8, -44, -10.6, -30, -8.6, -1); p.closePath(); }, D, P(2, -58, 11, -58, 11, 1, 3, 1), { shc: '#15121c', hi: P(-7.4, -50, -5.6, -50, -7.6, -8, -9, -8), hic: M, lw: 1.3 });
   for (const y of [-14, -24, -34]) curve(g, p => { p.moveTo(-6, y); p.quadraticCurveTo(0, y - 6, 6.4, y); }, M, 1.2);
-  // 헝클어진 머리와 작은 머리통
-  part(g, p => { p.moveTo(-7, -54); p.lineTo(-10.6, -61.6); p.lineTo(-6, -60); p.lineTo(-6.4, -68.6); p.lineTo(-2.4, -63.6); p.lineTo(0.4, -70.6); p.lineTo(3, -63.4); p.lineTo(7.4, -67); p.lineTo(6.6, -60); p.lineTo(10.6, -60.6); p.lineTo(7, -54); p.quadraticCurveTo(0, -50, -7, -54); p.closePath(); }, D, P(2, -71, 11, -71, 11, -52, 3, -52), { shc: '#15121c', lw: 1.2 });
+  // 작은 머리통 (가시 같은 머리털은 서양 괴물처럼 보여 쓰지 않는다)
   part(g, p => { p.moveTo(-5.6, -58); p.quadraticCurveTo(-5.6, -63.6, 0, -63.6); p.quadraticCurveTo(5.6, -63.6, 5.6, -58); p.quadraticCurveTo(4.6, -51.6, 0, -51); p.quadraticCurveTo(-4.6, -51.6, -5.6, -58); p.closePath(); }, '#2e2a3c', P(2, -64, 6, -64, 6, -50, 0.6, -50, 3.6, -56), { shc: '#1c1826', lw: 1 });
   // 뻥 뚫린 흰 눈과 세로로 찢어진 입
-  for (const s of [-1, 1]) { g.globalAlpha = 0.4; ell(g, s * 2.6, -58.6, 3.2, 3.4, '#cfe6f0'); g.globalAlpha = 1; ell(g, s * 2.6, -58.6, 2, 2.3, '#f6fbfc', INK, 0.7); ell(g, s * 2.6, -58.2, 0.55, 0.8, '#211e2b'); }
+  // 그늘 속에서 가늘게 빛나는 눈
+  for (const s of [-1, 1]) ell(g, s * 2.6, -57.8, 1.7, 0.9, '#e8f0ff', INK, 0.5);
   part(g, E(0, -54, 1.1, 2), '#0e0c14', null, { lw: 0.6 });
+  // 해진 검은 갓: 테 끝이 찢어져 너덜너덜하다
+  part(g, p => { p.moveTo(-15, -61); p.lineTo(-12, -59.6); p.lineTo(-10.6, -61.2); p.lineTo(-7, -59.4); p.quadraticCurveTo(0, -58.6, 7, -59.4); p.lineTo(10, -61.4); p.lineTo(12.4, -59.8); p.lineTo(15, -61); p.quadraticCurveTo(0, -64.4, -15, -61); p.closePath(); }, '#1c1826', null, { lw: 1 });
+  part(g, p => { p.moveTo(-4.4, -61.8); p.lineTo(-3.8, -69.6); p.quadraticCurveTo(0, -71, 3.8, -69.6); p.lineTo(4.4, -61.8); p.quadraticCurveTo(0, -60.8, -4.4, -61.8); p.closePath(); }, '#262234', R(0.6, -71, 4, 10), { lw: 1 });
 }
 
 // ───────── 도깨비가 든 것 ─────────
