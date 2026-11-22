@@ -46,6 +46,8 @@ const THROW_R = [0.095, 0.12, 0.15, 0.21], THROW_D = [18, 26, 40, 90];
 /** 연쇄 펑: 반지름(놈 크기에 더함) · 힘 · 늦음(틱) */
 const CHAIN_R = 0.075, CHAIN_D = 18, CHAIN_T = 6;
 const URCHIN_R = 0.125;
+/** 첫 이사 이름표 카드: 0.9초 보이고 0.15초에 접힌다 */
+const BIG_SHOW = 54, BIG_FOLD = 9;
 
 export type SK = 'conch' | 'teapot' | 'can' | 'castle' | 'rocket' | 'urchin' | 'bottle' | 'skull' | 'bulb' | 'ball' | 'horn' | 'helmet' | 'anchor' | 'sub';
 type Tag = 'swarm' | 'roll' | 'big' | 'fly' | 'gang' | 'shield' | 'charge' | 'jelly' | 'hide';
@@ -123,9 +125,9 @@ export const STAGES: StageDef[] = [
     boss: 'octo', bossShell: 'anchor', groups: [G(0, 0, 1, ['octo', 1], ['gang', 4], ['shield', 2])] },
   { key: 'bulb', ch: 2, name: '전구', news: '번쩍! 기절 — 해파리는 줄줄이 펑', foe: 'jelly', start: 'conch', supply: [], star: { k: 'pair', n: 17, say: '전구로 해파리' },
     groups: [G(0, 0, 1, ['jelly', 7]), G(4, 420, 2, ['lobster', 2], ['gang', 4]), G(4, 420, 1, ['jelly', 7]), G(4, 420, 5, ['gull', 3], ['shield', 3]), G(4, 420, 1, ['jelly', 8]), G(4, 420, 3, ['goblin', 2], ['jelly', 4]), G(4, 420, 1, ['flea', 10]), G(4, 420, 5, ['gang', 5])] },
-  { key: 'ball', ch: 2, name: '비치볼', news: '통통 튕겨 숨은 조개까지', foe: 'clam', start: 'bulb', supply: [], star: { k: 'pair', n: 9, say: '비치볼로 조개' },
+  { key: 'ball', ch: 2, name: '비치볼', news: '통통 튕겨 숨은 조개까지', foe: 'clam', start: 'bulb', supply: [], star: { k: 'pair', n: 11, say: '비치볼로 조개' },
     groups: [G(0, 0, 5, ['clam', 6], ['flea', 6]), G(4, 420, 1, ['jelly', 5]), G(4, 420, 5, ['clam', 5], ['star', 5]), G(4, 420, 2, ['goblin', 2], ['gang', 4]), G(4, 420, 5, ['clam', 6]), G(4, 420, 3, ['lobster', 1], ['clam', 3])] },
-  { key: 'horn', ch: 2, name: '대왕 고둥', news: '뿌우 — 큰 밀물이 모래밭을 싹', foe: null, start: 'ball', supply: [], star: { k: 'pair', n: 36, say: '대왕 고둥으로' },
+  { key: 'horn', ch: 2, name: '대왕 고둥', news: '뿌우 — 큰 밀물이 모래밭을 싹', foe: null, start: 'ball', supply: [], star: { k: 'pair', n: 32, say: '대왕 고둥으로' },
     groups: [G(0, 0, 5, ['flea', 8], ['gang', 5], ['jelly', 4]), G(6, 420, 5, ['flea', 8], ['star', 5], ['shield', 2]), G(6, 420, 5, ['gang', 6], ['jelly', 5], ['gull', 3]), G(6, 420, 5, ['flea', 10], ['lobster', 2], ['clam', 4]), G(5, 420, 5, ['goblin', 2], ['flea', 8], ['gang', 5]), G(3, 420, 2, ['lobster', 1], ['shield', 2]), G(3, 420, 3, ['gull', 2]), G(4, 420, 1, ['flea', 8], ['gang', 3])] },
   { key: 'sub', ch: 2, name: '장난감 상어 잠수함', news: '마지막 대장! 잠망경을 떨어뜨리면 차지해요', foe: null, start: 'horn', supply: [], star: { k: 'boss', n: 1 },
     boss: 'shark', bossShell: 'sub', groups: [G(0, 0, 1, ['shark', 1], ['jelly', 4], ['clam', 3])] },
@@ -4559,7 +4561,7 @@ function drawCrab(ctx: C2, s: ShellState, X: (x: number) => number, Y: (y: numbe
   else if (k === 'skull') crabBits(ctx, 'skull', x, y + u * 0.6, u * 0.8, fc, t, atk ? 0.9 : 0.3, mood, s.lv, hurt);
   else crabBits(ctx, k, x, y, u * pop, fc, t, pinch, mood, s.lv, hurt);
   // 이사한 뒤 0.6초: 머리 위 작은 이름표
-  if (t - s.tagT < 36 && !(s.big && t - s.big.t < 62)) {
+  if (t - s.tagT < 36 && !(s.big && t - s.big.t < BIG_SHOW + BIG_FOLD)) {
     const a = Math.min(1, (36 - (t - s.tagT)) / 8), nm = D.name;
     ctx.globalAlpha = a;
     ctx.font = `900 ${Math.max(12, Math.round(R(0.032)))}px system-ui, sans-serif`;
@@ -4752,41 +4754,48 @@ function drawHud(ctx: C2, s: ShellState, w: number, h: number, sc2: number) {
       ctx.globalAlpha = 1;
     }
   }
-  // ── 큰 띠: 처음 되어 본 껍데기 · 별 셋째 · 대장 (한 번에 하나) ──
-  if (s.big && t - s.big.t < 62 && s.phase === 'play') {
-    const age = t - s.big.t, k = age < 8 ? 0.6 + 0.5 * (age / 8) : age > 50 ? 1 - (age - 50) / 12 : 1.1 - 0.1 * Math.min(1, (age - 8) / 10);
-    const cy = Y(0.265);
+  // ── 첫 이사 이름표 카드: 바다 위 한가운데에 0.9초 — 그 뒤 위아래로 접혀 사라진다 ──
+  if (s.big && s.big.k && t - s.big.t < BIG_SHOW + BIG_FOLD && s.phase === 'play') {
+    const age = t - s.big.t, k = s.big.k, D = SD[k];
+    const open = age < 6 ? (age / 6) * 1.1 : age < 9 ? 1.1 - 0.1 * ((age - 6) / 3) : 1, f = age > BIG_SHOW ? (age - BIG_SHOW) / BIG_FOLD : 0;
+    const cw = R(0.86), ch = R(0.2), half = cw / 2, pic = -half + ch * 0.56;
     ctx.save();
-    ctx.translate(w / 2, cy);
-    ctx.scale(k, k);
-    ctx.globalAlpha = clamp(age > 50 ? 1 - (age - 50) / 12 : 1, 0, 1);
-    ctx.scale(0.6, 0.6);
-    burstPath(ctx, 0, 0, R(0.34), 18, 0.82, t * 0.01);
-    ctx.fillStyle = s.big.star ? '#fff3a8' : '#fff6dc';
+    ctx.translate(w / 2, Y(0.415));
+    ctx.scale(1 - f * 0.08, Math.max(0.02, open * (1 - f * f)));
+    rr(ctx, -half, -ch / 2 + R(0.01), cw, ch, R(0.036));
+    ctx.fillStyle = 'rgba(74,44,29,.22)';
     ctx.fill();
-    ctx.strokeStyle = s.big.star ? '#e0a020' : INK;
-    ctx.lineWidth = 3;
+    rr(ctx, -half, -ch / 2, cw, ch, R(0.036));
+    ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [0, '#ffffff'], [1, '#fff1c9']);
+    ctx.fill();
+    ctx.strokeStyle = '#f08c00';
+    ctx.lineWidth = Math.max(3, R(0.008));
     ctx.stroke();
-    if (s.big.k) {
-      const u = R(0.075);
-      ctx.save();
-      ctx.translate(-R(0.2), R(0.06));
-      stamp(ctx, shellSpr(s.big.k, u * sc2), u);
-      crabBits(ctx, s.big.k, 0, 0, u, 1, t, 0.8, F_HAPPY, s.lv, false);
-      ctx.restore();
-    } else if (s.big.star) {
-      starPath(ctx, -R(0.2), 0, R(0.06));
-      ctx.fillStyle = '#ffc93c';
-      ctx.fill();
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-    ctx.textAlign = 'center';
-    font(0.05, 900);
-    const lines = s.big.text.length > 9 && s.big.k ? [s.big.text.replace(' 소라게!', ''), '소라게!'] : [s.big.text];
-    lines.forEach((ln, i) => text(ln, R(0.06), (i - (lines.length - 1) / 2) * R(0.06), '#d9480f', '#ffffff', 5));
+    // 그림 자리 (하늘색 동그라미) + 큰 껍데기 그림
+    ctx.beginPath();
+    ctx.arc(pic, 0, ch * 0.45, 0, TAU);
+    ctx.fillStyle = '#dff4ff';
+    ctx.fill();
+    ctx.strokeStyle = '#8fd0f0';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const u = R(0.068);
+    ctx.save();
+    ctx.translate(pic, u * 0.9);
+    stamp(ctx, shellSpr(k, u * sc2), u);
+    crabBits(ctx, k, 0, 0, u, 1, t, 0.8, F_HAPPY, s.lv, false);
     ctx.restore();
+    // 이름은 굵게, 아래에 공격 한 줄
+    const tx = pic + ch * 0.56, tw = half - tx - R(0.028);
+    ctx.textAlign = 'left';
+    font(0.064, 900);
+    text(D.name, tx, -R(0.034), INK);
+    let fs = 0.031;
+    font(fs, 800);
+    while (ctx.measureText(D.line).width > tw && fs > 0.021) font((fs -= 0.001), 800);
+    text(D.line, tx, R(0.042), '#d9480f');
+    ctx.restore();
+    ctx.textAlign = 'center';
   }
   // ── 결과 · 선물 · 끝 ──
   if (s.phase === 'result') drawResult(ctx, s, w, sc2);

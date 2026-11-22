@@ -2862,11 +2862,34 @@ function bake(key: string, q: number, paint: (g: C2) => void): HTMLCanvasElement
       g.lineCap = 'round';
       paint(g);
     });
-    crop(c);
+    cropUnit(c, key.slice(0, key.lastIndexOf(':')), q, paint);
     SPR.set(key, c);
     ((globalThis as any).__miss ??= []).push(key);
   }
   return c;
+}
+/** 모양(크기 빼고)마다 한 번, 작게 구워서 찾은 빈 가장자리(단위 좌표) — 큰 스티커는 이걸 크기만 키워 쓴다 */
+const UBOX = new Map<string, [number, number, number, number] | null>();
+function cropUnit(c: HTMLCanvasElement, shape: string, q: number, paint: (g: C2) => void) {
+  let ub = UBOX.get(shape);
+  if (ub === undefined) {
+    const pq = 32, probe = layer(SW * pq, SH * pq, 1, (g) => {
+      g.translate(SOX * pq, SOY * pq);
+      g.scale(pq, pq);
+      g.lineJoin = 'round';
+      g.lineCap = 'round';
+      paint(g);
+    });
+    crop(probe);
+    const k = CROP.get(probe);
+    ub = k ? [k[0] / pq, k[1] / pq, (k[0] + k[2]) / pq, (k[1] + k[3]) / pq] : null;
+    UBOX.set(shape, ub);
+  }
+  if (!ub) return;
+  // (시작 칸은 짝수로 — 홀수 칸에서 자르면 섞는 자리가 반 칸 어긋나 가장자리가 아주 조금 달라진다)
+  const m = Math.ceil(q / 32) * 2 + 2, x0 = Math.max(0, (Math.floor(ub[0] * q) - m) & ~1), y0 = Math.max(0, (Math.floor(ub[1] * q) - m) & ~1);
+  const x1 = Math.min(c.width, Math.ceil(ub[2] * q) + m), y1 = Math.min(c.height, Math.ceil(ub[3] * q) + m);
+  CROP.set(c, [x0, y0, x1 - x0, y1 - y0]);
 }
 /** 스티커의 빈 가장자리를 잘라 둔다 (찍을 때 투명한 칸까지 섞지 않게 — 느린 폰에서 그리기가 반으로) */
 const CROP = new WeakMap<HTMLCanvasElement, [number, number, number, number]>();
@@ -2894,9 +2917,22 @@ function crop(c: HTMLCanvasElement) {
 }
 /** 스티커 해상도는 약 15%씩 끊어서 (단계가 바뀔 때마다 새로 굽지 않게) */
 const qOf = (px: number) => Math.max(6, Math.round(Math.pow(2, Math.round(Math.log2(Math.max(6, px)) * 5) / 5)));
-const WARM = new Map<string, [string, () => void][]>();
+const WARM = new Map<string, [string, () => HTMLCanvasElement | void][]>();
+/** 띠·글자에 쓰는 굵기·크기의 한글 글꼴을 처음 한 번 데워 둔다 (첫 톡에 글꼴 찾기가 몰리지 않게) */
+let FONTS_WARM = false;
+function warmFonts(w: number) {
+  if (FONTS_WARM || typeof document === 'undefined') return;
+  FONTS_WARM = true;
+  const c = document.createElement('canvas');
+  (c.width = 48), (c.height = 24);
+  const g = c.getContext('2d')!;
+  for (const wt of [700, 800, 900]) for (const sz of [0.033, 0.038, 0.042, 0.046, 0.06]) (g.font = `${wt} ${Math.max(12, Math.round(w * sz))}px system-ui, sans-serif`), g.fillText('불 사자 1단계 · 점수 ×1.5 별 셋째!', 0, 12);
+  return c;
+}
+/** 구웠지만 아직 다 그리지 않은 스티커 하나 (다음 여유 프레임에 그려 둔다) */
+let WARM_PEND: HTMLCanvasElement | null = null;
 /** 이 판(stage, 정령 레벨)에 나올 도둑(색·회색 · 몸짓)과 될 수 있는 모습(1~5단계 · 몸짓 셋)의 스티커 목록 — 판 중엔 한 프레임에 하나, 결과·선물 화면에선 다음 판 것을 셋씩 */
-function warmList(stage: number, lv: number, w: number, sc: number): [string, () => void][] {
+function warmList(stage: number, lv: number, w: number, sc: number): [string, () => HTMLCanvasElement | void][] {
   const wkey = `${stage}:${lv}:${w}:${sc}`;
   let list = WARM.get(wkey);
   if (list) return list;
@@ -2906,11 +2942,12 @@ function warmList(stage: number, lv: number, w: number, sc: number): [string, ()
   for (const gp of d.groups) for (const [k] of gp.f) kinds.add(k);
   if (d.summon) for (const [k] of d.summon) kinds.add(k);
   kinds.add('blob');
-  const push = (key: string, make: () => void) => list!.push([key, make]);
+  const push = (key: string, make: () => HTMLCanvasElement | void) => list!.push([key, make]);
   const form = (f: FK, tier: number, pose: number, white = false) => {
     const px = w * FD[f].r * (white ? 1 : (f === 'white' ? 1 : 1 + 0.12 * (tier - 1)) * (1 + 0.012 * (lv - 1))) * sc * 1.05;
     push(`f:${f}:${pose}:${qOf(px)}`, () => formSprite(f, pose, px));
   };
+  if (!FONTS_WARM) push('font', () => warmFonts(w));
   for (const pose of [0, 1, 2]) form('white', 1, pose), form('white', 1, pose, true);
   const key = d.star.k !== 'time' && d.star.f ? d.star.f : null;
   if (key) for (let tier = 1; tier <= 5; tier++) for (const pose of [0, 1, 2]) form(key, tier, pose);
@@ -2930,7 +2967,7 @@ function warmList(stage: number, lv: number, w: number, sc: number): [string, ()
       const k = gp.champ, st = d.star, col = st.k !== 'time' && st.f ? (FD[st.f].mask === RAIN ? R : FD[st.f].mask) : R, px = w * ED[k].r * 1.45 * EDRAW * sc * 1.05;
       for (const [c, pose] of [[col, 0], [col, 1], [0, 2]]) push(`e:${k}:${c}:${pose}:${qOf(px)}`, () => foeSprite(k, c, pose, px));
     }
-  const forms = DEX.filter((f) => UNLOCK_AT[f] <= Math.min(STAGES.length - 1, stage + 1));
+  const forms = DEX.filter((f) => UNLOCK_AT[f] <= stage);
   // 띠의 작은 그림 · 머리 위 말풍선 실루엣
   for (const f of ['white' as FK, ...forms])
     for (const u of [0.016, 0.018]) {
@@ -2940,7 +2977,7 @@ function warmList(stage: number, lv: number, w: number, sc: number): [string, ()
   for (const f of forms) {
     const fill = CHEX[FD[f].mask === RAIN ? 8 : FD[f].mask][0], px = w * 0.036 * 0.46 * sc * 2;
     push(`s:${f}:${fill}:${qOf(px)}`, () => silhouette(f, fill, px));
-    push(`w:${f}`, () => (bigWord(`${FD[f].name}!`, FD[f].mask, w, sc), subWord(FD[f].does, w, sc)));
+    push(`w:${f}`, () => (bigWord(`${FD[f].name}!`, FD[f].mask, w, sc), subWord(FD[f].does, w, sc).c));
   }
   for (let tier = 1; tier <= 5; tier++) for (const f of forms) for (const pose of [0, 1, 2]) form(f, tier, pose);
   WARM.set(wkey, list);
@@ -2972,7 +3009,7 @@ function silhouette(f: FK, fill: string, px: number): HTMLCanvasElement {
 /** 스티커 찍기: 지금 원점 = 발 가운데, u = 화면에서 몸 반지름 px */
 function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
   if ((globalThis as any).__X & 32) return;
-  const k = CROP.get(c);
+  const k = (globalThis as any).__X & 64 ? undefined : CROP.get(c);
   if (!k) return void ctx.drawImage(c, -SOX * u, -SOY * u, SW * u, SH * u);
   const fx = (SW * u) / c.width, fy = (SH * u) / c.height;
   ctx.drawImage(c, k[0], k[1], k[2], k[3], -SOX * u + k[0] * fx, -SOY * u + k[1] * fy, k[2] * fx, k[3] * fy);
@@ -4212,13 +4249,20 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
   }
   // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에 · 더 올라갈 골목이 있을 때만)
   if (s.phase === 'play' && t % 3 === 0 && i0 * TH > -STAGES[s.stage].D + 1e-9 && spare(4)) prepTile(s, i0 - 1, ww, tsc);
-  // 미리 굽기: 이 판에 나올 스티커를 프레임마다 둘씩
+  // 미리 굽기: 이 판에 나올 스티커 — 판 중엔 한 프레임에 하나(굽기 → 다음 프레임에 다 그려 두기), 결과·선물 화면에선 셋씩 (결과 화면은 다음 판 것)
   {
-    const rest = s.phase === 'result' || s.phase === 'pick', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
+    const rest = s.phase === 'result' || s.phase === 'pick', ws = s.phase === 'result' && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
     const list = warmList(ws, s.lv, w, sc), mk = `wm${ws}:${s.lv}`;
     let i = fx.memo[mk] ?? 0, did = 0;
     // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
-    if (!(rest && s.pt < 12)) for (; i < list.length && did < (rest ? 3 : 1) && spare(rest ? 8 : 5); i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
+    if (!(rest && s.pt < 12))
+      while (did < (rest ? 3 : 1) && spare(rest ? 8 : 5)) {
+        if (WARM_PEND) flushNow(WARM_PEND), (WARM_PEND = null), did++;
+        else if (i < list.length) {
+          if (!SPR.has(list[i][0])) (WARM_PEND = list[i][1]() || null), did++;
+          i++;
+        } else break;
+      }
     fx.memo[mk] = i;
   }
   __T('warm');
@@ -4776,3 +4820,6 @@ export const __morph = (s: SoulState, col: number, bonus = 0) => transform(s, co
 export const __hit = (s: SoulState, u: number) => hitMe(s, u, s.me.x + 0.05, s.me.y - 0.1);
 export const __hudB = (...a: Parameters<typeof hudBands>) => hudBands(...a);
 export const __tileB = (s: SoulState, i: number, w: number, sc: number) => getTile(s, i, w, sc);
+export const __stampB = (ctx: C2, c: HTMLCanvasElement, u: number) => stamp(ctx, c, u);
+export const __sprB = () => SPR;
+export const __cropB = (c: HTMLCanvasElement) => { const a = CROP.get(c); crop(c); const b = CROP.get(c); if (a) CROP.set(c, a); return [a, b, c.width, c.height]; };
