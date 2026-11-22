@@ -276,7 +276,7 @@ function kill(s: DrState, m: Mon, eid: number, how = 0, weak = false) {
     if (s.combo > s.comboBest) s.comboBest = s.combo;
     const d = STAGES[s.stage];
     if (d.star === 'combo' && s.combo === d.n) card(s, '별 셋째!', `딱 맞아 ${d.n}`, 3, '#ffb800', null, true), ev(s, 'star3', m.x, m.y);
-    s.sp += (4 + s.combo) * stMul(s), (__dbg.weak += (4 + s.combo) * stMul(s));
+    s.sp += (4 + s.combo) * stMul(s);
     s.wkills++;
     if (n > s.best) {
       const star = d.star === 'chain' && s.best < d.n && n >= d.n;
@@ -284,7 +284,7 @@ function kill(s: DrState, m: Mon, eid: number, how = 0, weak = false) {
       if (star) card(s, '별 셋째!', `줄줄이 ${n}마리`, 3, '#ffb800', null, true), ev(s, 'star3', m.x, m.y);
       else if (n === WOW_N) wowN(s);
     }
-  } else (s.sp += 1), (__dbg.plain += 1);
+  } else s.sp += 1;
   if (m.king) s.sp += 20;
   s.corpses.push({ k: m.k, x: m.x, y: m.y, t: s.t, how, vx: m.vx, vy: m.vy, seed: m.seed, king: m.king, r: m.r });
   if (s.corpses.length > 26) s.corpses.shift();
@@ -564,7 +564,7 @@ function skyScore(s: DrState, eid: number) {
   s.skyC = s.skyE === eid ? s.skyC + 1 : 1;
   s.skyE = eid;
   const n = s.skyC;
-  s.sp += Math.ceil((n * n) / 4) * stMul(s), (__dbg.sky += Math.ceil((n * n) / 4) * stMul(s));
+  s.sp += Math.ceil((n * n) / 4) * stMul(s);
   if (n >= WOW_N) wowN(s);
 }
 /** 이 판 별 셋째의 지금 기록 */
@@ -575,7 +575,7 @@ const stMul = (s: DrState) => 0.25 + s.stage;
 function popScore(s: DrState, n: number, x: number, y: number) {
   if (n <= 0) return;
   // 폭죽: 한 번에 n마리면 1+4+9+…+n² 점 — 기운 찬 부위를 붐빌 때 바꿀수록 훨씬 크다
-  for (let i = 1; i <= n; i++) (s.sp += 2 * i * i * stMul(s)), (__dbg.pop += 2 * i * i * stMul(s));
+  for (let i = 1; i <= n; i++) s.sp += 2 * i * i * stMul(s);
   s.popN = n;
   s.popT = s.t;
   ev(s, 'popn', x, y, n);
@@ -1425,7 +1425,6 @@ function newStage(s: DrState) {
   if (first) see(s, 'ch' + d.ch);
   ev(s, 'stage', 0.5, 0.7, s.stage);
 }
-export const __dbg: Record<string, number> = { weak: 0, plain: 0, sky: 0, pop: 0, fast: 0, mulx: 0, clear: 0 };
 function clearStage(s: DrState) {
   const d = STAGES[s.stage];
   s.phase = 'result';
@@ -1435,7 +1434,6 @@ function clearStage(s: DrState) {
   s.stars += s.got;
   s.fast = Math.max(0, Math.round((50 - (s.t - s.stT) / 60) * 2 * stMul(s)));
   s.gain = (s.sp + CLEAR_PTS + s.fast) * STAR_MUL[s.got];
-  __dbg.fast += s.fast; __dbg.mulx += s.gain - s.sp - CLEAR_PTS - s.fast; __dbg.clear += CLEAR_PTS;
   s.pts += s.gain;
   s.sp = 0;
   s.lv++;
@@ -1549,7 +1547,7 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
     } else if (s.phase === 'pick') {
       const ch = STAGES[s.stage].ch;
       // 용은 두 선물 사이 위쪽으로 날아와 구경한다 (선물을 가리지 않게)
-      (s.me.x += (0.5 - s.me.x) * 0.1), (s.me.y += (0.56 - s.me.y) * 0.1);
+      (s.me.x += (0.5 - s.me.x) * 0.1), (s.me.y += (0.47 - s.me.y) * 0.1);
       if (s.picked < 0) {
         if (tap && p && s.pt >= PICK_MIN) s.picked = p.x < 0.5 ? 0 : 1;
         else if (s.pt >= PICK_AUTO) s.picked = 0;
