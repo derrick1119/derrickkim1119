@@ -593,6 +593,7 @@ export function bannerCart(g) {
   for (const x of [44, 72]) part(g, R(x - 2.6, -26, 5.2, 26), W3, R(x, -26, 2.6, 26), o);
   part(g, p => p.rect(-56, -32, 134, 8), W2, R(-56, -27, 134, 3), Object.assign({ hi: R(-55, -31.4, 132, 1.6) }, o));
   for (const x of [-36, -6, 24, 54]) ln([x, -31, x, -25], 'rgba(59,36,22,0.6)', 0.8);
+  for (let i = 0; i < 9; i++) { const x0 = -52 + i * 14.6 + (i % 3) * 2; cv(p => { p.moveTo(x0, -29.6 + (i % 2) * 2.4); p.quadraticCurveTo(x0 + 5, -30.4 + (i % 2) * 2.4, x0 + 10, -29.2 + (i % 2) * 2.4); }, 'rgba(60,34,18,0.35)', 0.6); }   // 평상의 나뭇결
   for (const x of [-52, -20, 12, 44, 74]) ell(g, x, -28, 1, 1, BR, LB, 0.5);
   // 북 받침
   for (const x of [-22, 22]) part(g, P(x - 9, -32, x - 3, -40, x + 3, -40, x + 9, -32), W3, P(x, -42, x + 10, -42, x + 10, -32, x, -32), o);

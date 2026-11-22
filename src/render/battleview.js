@@ -51,6 +51,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.stun > 0) x += Math.sin(T * 40 + u.id) * 0.9;
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
+  if (!L.float && !L.gshadow && !u.jumpH && !L.still) { g.fillStyle = 'rgba(70,46,22,0.2)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1.5, u.r * 1.05 * Math.min(1.6, k), u.r * 0.34 * Math.min(1.6, k), 0, 0, TAU); g.fill(); }   // 발밑의 옅은 그림자 (들판에 묻히지 않게)
   if (L.gshadow) { const [dx, dy, rx, ry] = L.gshadow; for (const [m, a2] of [[1.15, 0.12], [1, 0.2], [0.8, 0.18]]) { g.fillStyle = `rgba(58,38,24,${a2})`; g.beginPath(); g.ellipse(x + dx * k, u.y + dy * k, rx * k * m, ry * k * m, 0, 0, TAU); g.fill(); } }   // 땅에 닿은 그림자 (수레)
   if (L.float || u.jumpH) { g.fillStyle = 'rgba(50,36,20,0.16)'; g.beginPath(); g.ellipse(u.x, u.y + 1, u.r * 0.9, u.r * 0.36, 0, 0, TAU); g.fill(); }
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
@@ -178,7 +179,7 @@ export class BattleView {
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
     this.drawAmbient(g, T, opt.dt || 0, opt.march);
-    fx.drawLayer(g, false);
+    fx.drawLayer(g, false, false);   // (피해 숫자는 장면이 말풍선까지 그린 뒤 drawNums 로)
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형·효과·피해 숫자에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {

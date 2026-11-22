@@ -219,6 +219,7 @@ export class RunScene {
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
     if (!this.over && !this.menu && !this.sub && !juice.show && !(this.enc && this.enc.boss && this.phase === 'fight') && this.phase !== 'clear') this.drawTalk(g);
+    view.fx.drawNums(g);   // 피해 숫자는 인형·효과·말풍선 위에
     if (this.slow < 0.9) { g.globalAlpha = (1 - this.slow) * 0.2; g.fillStyle = NAVY; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     if (this.fade > 0) { // 고개가 바뀔 때: 종이가 하얗게 바랬다가 새 풍경으로
       const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(chapterOf(r.ch).theme, r.ch * 31 + 7);

@@ -80,11 +80,13 @@ export class Fx {
   bolt(x, y, col = '#f0d264') { const pts = []; let px = x + (Math.random() - 0.5) * 60; for (let yy = y - 560; yy < y; yy += 40) { pts.push(px, yy); px += (x - px) * 0.3 + (Math.random() - 0.5) * 40; } pts.push(x, y);
     // 짧고 들쭉날쭉한 갈래
     const br = []; for (let j = 0; j < 4; j++) { const i = 2 + ((Math.random() * (pts.length / 2 - 4)) | 0), dir = Math.random() < 0.5 ? -1 : 1; let bx = pts[i * 2], by = pts[i * 2 + 1]; const q = [bx, by]; for (let n = 0; n < 3; n++) { bx += dir * (6 + Math.random() * 9) * (n % 2 ? 0.4 : 1); by += 7 + Math.random() * 9; q.push(bx, by); } br.push(q); }
-    this.add({ k: 'bolt', x, y, pts, br, col: '#fff6cc', life: 0.36 }); this.stain(x, y + 2, 0.6, 3, 0.4); this.chips(x, y - 4, 5, ['#fbf3df', '#efe2c4'], 200); this.add({ k: 'puff', x, y: y - 4, vx: 0, vy: -20, drag: 2, life: 0.5, col: '#e3d4b2', size: 18 }); }
+    this.add({ k: 'bolt', x, y, pts, br, col: '#fff6cc', life: 0.36 }); this.stain(x, y + 2, 1.15, 4, 0.5); this.chips(x, y - 4, 5, ['#fbf3df', '#efe2c4'], 200); this.add({ k: 'puff', x, y: y - 4, vx: 0, vy: -20, drag: 2, life: 0.5, col: '#e3d4b2', size: 18 }); }
   beam(x0, y0, x1, y1, col, life = 0.25, lw = 5) { this.add({ k: 'beam', x: x0, y: y0, x1, y1, col, life, lw }); }
-  drawLayer(g, ground) {
+  drawNums(g) { const keep = this.p; this.p = keep.filter(q => q.num); this.drawLayer(g, false); this.p = keep; }
+  drawLayer(g, ground, nums = true) {
     // 두목의 외침 같은 큰 꼬리표는 피해 숫자·효과보다 나중에(위에) 그린다
-    const list = ground ? this.p : this.p.filter(q => !q.big).concat(this.p.filter(q => q.big));
+    // 글(피해 숫자·외침)은 다른 효과보다 나중에, 큰 꼬리표는 맨 나중에. 피해 숫자는 따로(drawNums) 말풍선 위에 그린다
+    const list = ground ? this.p : this.p.filter(q => q.k !== 'text').concat(this.p.filter(q => q.k === 'text' && !q.big && !(nums === false && q.num)), this.p.filter(q => q.big));
     for (const p of list) {
       if (!!p.ground !== ground) continue;
       const k = p.t / p.life, a = 1 - k;
@@ -98,7 +100,9 @@ export class Fx {
         case 'seal': { const q = Math.min(1, k / 0.12), sc = 1.45 - 0.45 * easeOut(q), al = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4, s2 = 12 * sc; g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.globalAlpha = al * 0.9;
           // 거칠게 찍힌 붉은 인주 네모 (가장자리가 들쭉날쭉) 안에 새긴 그림 기호 (글자는 쓰지 않는다)
           if (!p.jag) p.jag = Array.from({ length: 16 }, () => 0.86 + Math.random() * 0.2); g.beginPath(); p.jag.forEach((j2, i) => { const side = i >> 2, t = (i % 4) / 4, c2 = [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]][side], xx = (c2[0] + (c2[2] - c2[0]) * t) * s2 * j2, yy = (c2[1] + (c2[3] - c2[1]) * t) * s2 * j2; if (i) g.lineTo(xx, yy); else g.moveTo(xx, yy); }); g.closePath(); g.fillStyle = '#b02a24'; g.fill();
-          symbol(g, 'slay', 0, 0, s2 * 1.5, '#f3dfc8'); g.restore(); break; }
+          // 안쪽 테 (군데군데 끊긴 새김) 과 한쪽으로 치우친 불꽃 무늬
+          g.strokeStyle = '#f3dfc8'; g.lineWidth = 1.3; g.lineCap = 'butt'; const ib = s2 * 0.72; for (const [x0, y0, x1, y1] of [[-ib, -ib, ib * 0.3, -ib], [ib * 0.55, -ib, ib, -ib], [ib, -ib, ib, ib * 0.2], [ib, ib * 0.5, ib, ib], [ib, ib, -ib * 0.4, ib], [-ib * 0.7, ib, -ib, ib], [-ib, ib, -ib, -ib * 0.3], [-ib, -ib * 0.6, -ib, -ib]]) { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
+          symbol(g, 'flame', s2 * 0.08, s2 * 0.02, s2 * 1.05, '#f3dfc8'); g.restore(); break; }
         case 'flake': { const al = Math.min(1, a * 2.2); g.globalAlpha = al; g.save(); g.translate(p.x + Math.sin(p.t * 6 + p.sway) * 3, p.y); g.rotate(p.rot + p.vr * p.t); const f = Math.cos(p.t * 11 + p.sway); g.scale(1, Math.max(0.15, Math.abs(f))); poly(g, [-p.size, -p.size * 0.6, p.size, -p.size * 0.4, p.size * 0.7, p.size * 0.6, -p.size * 0.8, p.size * 0.5], f > 0 ? p.col : '#c9a070', 'rgba(59,36,22,0.55)', 0.5); g.restore(); break; }
         case 'chip': { g.globalAlpha = Math.min(1, a * 3); g.save(); g.translate(p.x, p.y); g.rotate(p.rot + p.vr * p.t); const f = Math.cos(p.t * 14 + p.rot); g.scale(1, Math.max(0.15, Math.abs(f))); poly(g, p.pts, f > 0 ? p.col : '#c9b98f', 'rgba(59,36,22,0.55)', 0.6); g.restore(); break; }
 
@@ -118,7 +122,7 @@ export class Fx {
           g.save(); g.translate(xx, yy); g.rotate(an); line(g, [-22, 0, 0, 0], INK, 2.6); line(g, [-21, 0, -1, 0], '#d9c39a', 1); poly(g, [-24, -2.6, -18, 0, -24, 2.6], '#fbf7ec', INK, 0.7); poly(g, [-1, -2.2, 5, 0, -1, 2.2], '#e4e8ea', INK, 0.7); g.restore(); break; }
         case 'stuck': g.globalAlpha = a; g.beginPath(); g.moveTo(p.x - 4, p.y - 15); g.lineTo(p.x, p.y); st(g, INK, 2.2); poly(g, [p.x - 6, p.y - 18, p.x - 4, p.y - 13, p.x - 1.6, p.y - 17], '#fbf7ec', INK, 0.8); break;
         case 'plus': { g.globalAlpha = Math.min(1, a * 2); const s = p.size; glow(g, p.x, p.y, s * 3.2, p.col || '#5fae6a', a * 0.7); poly(g, [p.x - s * 0.3, p.y - s, p.x + s * 0.3, p.y - s, p.x + s * 0.3, p.y - s * 0.3, p.x + s, p.y - s * 0.3, p.x + s, p.y + s * 0.3, p.x + s * 0.3, p.y + s * 0.3, p.x + s * 0.3, p.y + s, p.x - s * 0.3, p.y + s, p.x - s * 0.3, p.y + s * 0.3, p.x - s, p.y + s * 0.3, p.x - s, p.y - s * 0.3, p.x - s * 0.3, p.y - s * 0.3], p.col || '#5fae6a', INK, 1.1); break; }
-        case 'sprite': g.globalAlpha = a; drawSprite(g, p.spr, p.x, p.y, p.sx * (1 + k * 0.2), p.sy * (1 - k * 0.8), k * 0.5 * (p.sx < 0 ? -1 : 1), 1 - k * 0.5, true); break;
+        case 'sprite': g.globalAlpha = a * a; drawSprite(g, p.spr, p.x, p.y, p.sx * (1 + k * 0.15), p.sy * (1 - k * 0.6), k * 0.4 * (p.sx < 0 ? -1 : 1), 0.25 * (1 - k), true); break;
         // 떨어지는 불덩이: 붉은·주황·노란 종이를 겹쳐 오린 불꽃, 혀처럼 갈라진 꼬리, 먹 테두리
         case 'fall': { const h = (1 - k) * (1 - k) * 520, xx = p.x + h * 0.35, yy = p.y - h, sz = p.size; g.globalAlpha = 0.2 + k * 0.25; ell(g, p.x, p.y, sz * (0.6 + k), sz * (0.6 + k) * 0.45, INK); g.globalAlpha = 1;
           // 겹쳐 오린 불꽃: 바깥 붉은 불, 안쪽 주황·노란 불. 꼬리는 여러 갈래의 불혀로 갈라진다
@@ -131,10 +135,9 @@ export class Fx {
         case 'glyph': { const q = Math.min(1, k / 0.13), sc = 1.6 - 0.6 * (1 - Math.pow(1 - q, 3)), al = k > 0.68 ? (1 - k) / 0.32 : Math.min(1, q * 1.6); g.globalAlpha = 1; inkGlyph(g, p.ch, p.x, p.y, p.size * sc, { col: p.col, alpha: al * (p.peak || 1), rot: p.rot === undefined ? -0.06 : p.rot, halo: p.halo }); break; }
         // 벼락: 위에서 아래로 가늘어지는 종이 오린 번개 (먹 테두리), 갈래 몇 줄. 번쩍임은 짧게
         case 'bolt': { const al = k < 0.12 ? 1 : Math.max(0, 1 - (k - 0.12) / 0.88) * (0.75 + 0.25 * Math.sin(p.t * 70));
-          const ribbon = (pts, w0, w1) => { const n = pts.length / 2, L = [], Rr = []; for (let i = 0; i < n; i++) { const j0 = Math.max(0, i - 1), j1 = Math.min(n - 1, i + 1), dx = pts[j1 * 2] - pts[j0 * 2], dy = pts[j1 * 2 + 1] - pts[j0 * 2 + 1], l = Math.hypot(dx, dy) || 1, w = w0 + (w1 - w0) * i / (n - 1), jag = (i % 2 ? 1 : 0.6); L.push(pts[i * 2] - dy / l * w * jag, pts[i * 2 + 1] + dx / l * w * jag); Rr.push(pts[i * 2] + dy / l * w, pts[i * 2 + 1] - dx / l * w); } g.beginPath(); g.moveTo(L[0], L[1]); for (let i = 1; i < n; i++) g.lineTo(L[i * 2], L[i * 2 + 1]); for (let i = n - 1; i >= 0; i--) g.lineTo(Rr[i * 2], Rr[i * 2 + 1]); g.closePath(); g.fillStyle = p.col; g.fill(); st(g, 'rgba(30,24,36,0.95)', 2.6); };
-          g.globalAlpha = al; for (const br of p.br || []) ribbon(br, 2.2, 0.5); ribbon(p.pts, 7, 2.4);
-          g.globalAlpha = al * 0.9; g.beginPath(); g.moveTo(p.pts[0], p.pts[1]); for (let i = 2; i < p.pts.length; i += 2) g.lineTo(p.pts[i], p.pts[i + 1]); st(g, '#fffbe6', 1.4);
-          if (k < 0.3) glow(g, p.x, p.y, 40, p.col, (0.3 - k) / 0.3 * 0.5); break; }
+          const ribbon = (pts, w0, w1, fillc, edge) => { const n = pts.length / 2, L = [], Rr = []; for (let i = 0; i < n; i++) { const j0 = Math.max(0, i - 1), j1 = Math.min(n - 1, i + 1), dx = pts[j1 * 2] - pts[j0 * 2], dy = pts[j1 * 2 + 1] - pts[j0 * 2 + 1], l = Math.hypot(dx, dy) || 1, w = w0 + (w1 - w0) * Math.pow(i / (n - 1), 0.8), jag = 1; L.push(pts[i * 2] - dy / l * w * jag, pts[i * 2 + 1] + dx / l * w * jag); Rr.push(pts[i * 2] + dy / l * w, pts[i * 2 + 1] - dx / l * w); } g.beginPath(); g.moveTo(L[0], L[1]); for (let i = 1; i < n; i++) g.lineTo(L[i * 2], L[i * 2 + 1]); for (let i = n - 1; i >= 0; i--) g.lineTo(Rr[i * 2], Rr[i * 2 + 1]); g.closePath(); g.fillStyle = fillc || '#f2c240'; g.fill(); if (edge !== false) st(g, 'rgba(30,24,36,0.95)', 2.6); };
+          g.globalAlpha = al; for (const br of p.br || []) ribbon(br, 2.6, 0.5); ribbon(p.pts, 11, 1.8); ribbon(p.pts, 4.4, 0.6, '#fffbe6', false);   // 금빛 몸에 흰 심지 (한 덩어리로 읽히게)
+          if (k < 0.16) { glow(g, p.x, p.y, 70, '#fff0b0', (0.16 - k) / 0.16 * 0.7); ell(g, p.x, p.y, 26 * (1 - k * 3), 9 * (1 - k * 3), 'rgba(255,248,214,0.8)'); } break; }
         case 'arc': { const h = Math.sin(k * Math.PI) * p.h; g.globalAlpha = 1; ell(g, p.x + (p.x1 - p.x) * k, p.y + (p.y1 - p.y) * k - h, p.size, p.size * 0.92, p.col, INK, 1.5); break; }
       }
     }
