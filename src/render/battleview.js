@@ -377,7 +377,9 @@ export class BattleView {
         case 'text': {
           // 같은 외침이 아직 떠 있으면 새로 쌓지 않고 그 꼬리표를 다시 오래 띄운다
           const same = e.big && fx.p.find(q => q.k === 'text' && q.big && q.s === e.s && q.t < q.life * 0.9); if (same) { same.t = Math.min(same.t, 0.2); sfx('warn'); break; }
-          let ty = e.y, tail = e.tail; if (e.big) for (let k = 0; k < 3; k++) { const hit = fx.p.find(q => q.big && q.t < q.life * 0.9 && Math.abs(q.x - e.x) < 230 && Math.abs(q.y - ty) < 42); if (!hit) break; ty = e.tail < 0 ? hit.y + 44 : hit.y - 44; tail = 0; }   // 큰 글이 겹치면 비켜 쌓는다 (비킨 것은 꼬리 없이 앞 꼬리표에 잇댄다)
+          // 위로 쌓다가 머리 띠·패널에 닿으면 아래로 쌓는다
+          const minY = e.x > 900 || e.x < 380 ? 124 : VIEW.y0 + 18; let ty = e.y, tail = e.tail, dir = e.tail < 0 ? 1 : -1;
+          if (e.big) for (let k = 0; k < 4; k++) { const hit = fx.p.find(q => q.big && q.t < q.life * 0.9 && Math.abs(q.x - e.x) < 230 && Math.abs(q.y - ty) < 42); if (!hit) break; ty = hit.y + dir * 44; if (ty < minY) { dir = 1; ty = Math.max(e.y, hit.y) + 44; } tail = 0; }   // 큰 글이 겹치면 비켜 쌓는다 (비킨 것은 꼬리 없이 앞 꼬리표에 잇댄다)
           fx.add({ k: 'text', x: e.x, y: ty, vy: e.big ? -6 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big, tail }); if (e.big) sfx('warn'); break; }
         case 'blink': fx.puff(e.x, e.y - 14, 3, '#eef3f4', 9); fx.puff(e.tx, e.ty - 14, 3, '#eef3f4', 9); break;
         case 'redraw': case 'shuffle': sfx('card'); break;
