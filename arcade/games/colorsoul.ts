@@ -3425,7 +3425,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     const base = s.paintN - s.paints.length;
     let k = Math.max(fx.memo.pa ?? 0, base);
     // 한 프레임에 8방울까지 (큰 한 방에 한꺼번에 몰려도 끊기지 않게 — 나머지는 다음 프레임)
-    for (const end = Math.min(s.paintN, k + 3); k < end; k++) {
+    for (const end = Math.min(s.paintN, k + 2); k < end; k++) {
       const p = s.paints[k - base];
       for (let i = Math.floor((p.y - p.r) / TH); i <= Math.floor((p.y + p.r) / TH); i++) {
         const tl = tilesOf(s).get(`${i}:${ww}:${tsc}`);
@@ -4130,10 +4130,11 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
 const u0 = (j: number) => j * 0.18;
 
 // ───────────────────────────── 그리기: 띠 · 결과 · 선물 · 끝 ─────────────────────────────
-function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
-  const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
-  const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
+/** 위·아래 띠 (글자가 많아 매 프레임 다시 그리지 않고, 내용이 바뀔 때만 굽는다) — 돌려주는 값: 모습 시간 막대 자리 */
+function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss: Foe | undefined): [number, number, number, number] | null {
+  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const d = STAGES[s.stage], me = s.me;
+  let bar: [number, number, number, number] | null = null;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
     ctx.lineJoin = 'round';
@@ -4192,7 +4193,7 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
   ctx.fillStyle = LINE;
   ctx.fillRect(0, Y(1.31), w, 2);
   const words = starWords(s), res = s.phase === 'result', st = d.star;
-  const prog = st.k === 'form' ? ` ${Math.min(st.n, s.multi[-1] ?? 0)}/${st.n}` : st.k === 'time' ? ` ${Math.max(0, st.n - Math.floor(s.stageT / 60))}초` : '';
+  const prog = st.k === 'form' ? ` ${Math.min(st.n, s.multi[-1] ?? 0)}/${st.n}` : '';
   const got3 = res ? s.starOk[2] : st.k === 'multi' ? s.star3 : st.k === 'form' ? (s.multi[-1] ?? 0) >= st.n : false;
   const lost3 = !got3 && (res || (st.k === 'time' && s.stageT > st.n * 60));
   const state = [res ? 1 : 0, s.lostHeart ? -1 : res ? 1 : 0, got3 ? 1 : lost3 ? -1 : 0];
@@ -4238,13 +4239,11 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
       rr(ctx, bx, by - R(0.008), bw, R(0.016), R(0.008));
       ctx.fillStyle = '#efe6d6';
       ctx.fill();
-      rr(ctx, bx, by - R(0.008), Math.max(R(0.016), bw * q), R(0.016), R(0.008));
-      ctx.fillStyle = me.T < 100 && (t >> 3) % 2 ? '#ffffff' : c[0];
-      ctx.fill();
+      bar = [bx, by - R(0.008), bw, R(0.016)];
+      void q;
     }
   }
   ctx.textAlign = 'center';
-  const boss = s.foes.find((m) => ED[m.k].boss && !m.dead);
   let tip = `${d.name}: ${d.news}`;
   if (s.phase === 'pick') tip = '광장의 큰 물건 둘 중 하나를 톡!';
   else if (s.phase === 'result') tip = s.newDex.length ? `새 모습 ${FD[s.newDex[s.newDex.length - 1]].name}: ${FD[s.newDex[s.newDex.length - 1]].does}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
@@ -4258,6 +4257,45 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
   else if (d.newFoe && s.stageT < 900) tip = `${ED[d.newFoe].name}: ${ED[d.newFoe].line}`;
   font(0.033, 800);
   text(tip, w / 2, Y(1.452), INK);
+  return bar;
+}
+const BANDS = new WeakMap<object, { key: string; c: HTMLCanvasElement; bar: [number, number, number, number] | null; w: number; sc: number }>();
+function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
+  const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
+  const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
+  const d = STAGES[s.stage], me = s.me;
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
+    ctx.lineJoin = 'round';
+    if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
+    ctx.fillStyle = fill;
+    ctx.fillText(str, x, y);
+  };
+  const INK = '#3b3150', MUTED = '#9a8fb0';
+  ctx.textBaseline = 'middle';
+  const boss = s.foes.find((m) => ED[m.k].boss && !m.dead);
+  {
+    const st = d.star, hk = [s.stage, s.hearts, s.stars, s.lv, s.phase, me.f, me.tier, me.mask, s.multi[-1] ?? 0, s.star3, s.lostHeart, st.k === 'time' && s.stageT > st.n * 60, s.tapped, s.taps < 4, s.newDex.length, s.got, s.patches.some((p) => p.loose && !p.gone), !!boss, s.stageT < 900, s.won, s.starOk.join()].join('|');
+    let hb = BANDS.get(s);
+    if (!hb || hb.key !== hk || hb.w !== w || hb.sc !== sc) {
+      const reuse = !!hb && hb.w === w && hb.sc === sc, c = reuse ? hb!.c : document.createElement('canvas');
+      if (!reuse) (c.width = Math.ceil(w * sc)), (c.height = Math.ceil(h * sc));
+      const g = c.getContext('2d')!;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      if (reuse) g.clearRect(0, 0, c.width, Math.ceil(Y(0.1) * sc) + 2), g.clearRect(0, Math.floor(Y(1.31) * sc) - 4, c.width, c.height);
+      g.setTransform(sc, 0, 0, sc, 0, 0);
+      BANDS.set(s, (hb = { key: hk, c, bar: hudBands(g, s, w, h, sc, boss), w, sc }));
+    }
+    const top = Math.ceil(Y(0.1) * sc), y0 = Math.floor(Y(1.31) * sc) - 2;
+    ctx.drawImage(hb.c, 0, 0, hb.c.width, top, 0, 0, w, top / sc);
+    ctx.drawImage(hb.c, 0, y0, hb.c.width, hb.c.height - y0, 0, y0 / sc, w, (hb.c.height - y0) / sc);
+    if (hb.bar) {
+      const [bx, by, bw, bh] = hb.bar, q = clamp(me.T / Math.max(1, me.Tmax), 0, 1);
+      rr(ctx, bx, by, Math.max(bh, bw * q), bh, bh / 2);
+      ctx.fillStyle = me.T < 100 && (t >> 3) % 2 ? '#ffffff' : CHEX[me.mask === RAIN ? 8 : me.mask][0];
+      ctx.fill();
+    }
+  }
 
   // ── 판 시작 띠 (NEW 한 줄) ──
   if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
