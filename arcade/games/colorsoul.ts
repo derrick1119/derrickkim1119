@@ -26,13 +26,13 @@ import { juice } from '../juice.ts';
 
 const A = 1.5, TAU = Math.PI * 2;
 /** 판 띠(화면 y, 가로 폭 = 1): 위 HUD 아래 ~ 아래 HUD 위 · 정령이 머무는 높이 */
-const TOP = 0.1, BOT = 1.31, HOME_SY = 1.03;
+const TOP = 0.1, BOT = 1.31, HOME_SY = 1.05, ME_TOP = 0.55;
 /** 카메라: 빠르기 · 이만큼 붐비면 멈춤 · 적이 모자라면 빨리 */
 const CAM_V = 0.0011, CAM_STOP = 10;
 /** 한 화면 상한: 적 · 총알 · 독구름 */
 const CAP = 24, SHOT_CAP = 110, CLOUD_CAP = 10;
 /** 톡: 날아가기(최소) · 빨기 · 쉼 (틱) */
-const DASH_MIN = 6, SUCK_T = 18, REST_T = 24;
+const DASH_MIN = 7, SUCK_T = 18, REST_T = 30;
 /** 결과 화면·둘 중 하나·끝·실패 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210, FAIL_T = 110;
 /** 점수: 한 번에 n번째로 잡은 도둑은 ⌈n²/4⌉점 · 판 점수는 별 수로 곱해진다 */
@@ -62,7 +62,7 @@ export type FK = 'white' | 'lion' | 'whale' | 'bird' | 'dragon' | 'octo' | 'turt
 type AK = 'spark' | 'pounce' | 'jet' | 'chain' | 'fire' | 'poison' | 'slam' | 'vine' | 'quake' | 'wave' | 'bolt' | 'rain' | 'pop';
 interface FDef { name: string; mask: number; ak: AK; r: number; does: string; good: string; z: number }
 export const FD: Record<FK, FDef> = {
-  white: { name: '하얀 정령', mask: 0, ak: 'spark', r: 0.05, does: '반짝 별만 쏴요 — 맞으면 하트 -1', good: '', z: 0.02 },
+  white: { name: '하얀 정령', mask: 0, ak: 'spark', r: 0.062, does: '반짝 별만 쏴요 — 맞으면 하트 -1', good: '', z: 0.02 },
   lion: { name: '불 사자', mask: R, ak: 'pounce', r: 0.068, does: '떼에 뛰어들어 불꽃 펑', good: '떼', z: 0 },
   whale: { name: '물 고래', mask: B, ak: 'jet', r: 0.084, does: '물줄기로 큰 놈을 밀어내요', good: '큰 놈', z: 0.015 },
   bird: { name: '번개 새', mask: Y, ak: 'chain', r: 0.058, does: '번개가 적에서 적으로 튕겨요', good: '날아다니는 놈', z: 0.012 },
@@ -80,7 +80,7 @@ export const DEX: FK[] = ['lion', 'whale', 'bird', 'dragon', 'octo', 'turtle', '
 /** 이 판부터 될 수 있다 */
 const UNLOCK_AT: Record<FK, number> = { white: 0, lion: 0, whale: 1, bird: 2, dragon: 3, octo: 4, turtle: 5, snake: 6, golem: 7, narwhal: 8, eagle: 9, rainbow: 10 };
 /** 공격이 닿는 것: 하늘(날아다니는 놈) · 방패를 뚫음 · 껍데기를 깸 · 빠른 놈을 붙잡음(배수) · 큰 놈(배수) */
-const AIR_OK = new Set<AK>(['spark', 'jet', 'chain', 'fire', 'poison', 'vine', 'bolt', 'rain', 'pop']);
+const AIR_OK = new Set<AK>(['spark', 'chain', 'fire', 'poison', 'vine', 'bolt', 'rain', 'pop']);
 const SHIELD_OK = new Set<AK>(['poison', 'quake', 'rain', 'wave']);
 const ARMOR_OK = new Set<AK>(['slam', 'quake', 'rain']);
 const FAST_MUL: Record<AK, number> = { spark: 0.4, pounce: 0.2, jet: 0.22, chain: 0.75, fire: 0.4, poison: 0.5, slam: 0.2, vine: 1.7, quake: 1, wave: 0.5, bolt: 0.9, rain: 1, pop: 0.5 };
@@ -106,7 +106,7 @@ export const ED: Record<EK, EDef> = {
 
 // ───────────────────────────── 판 ─────────────────────────────
 interface Grp { at: number; f: [EK, number][]; form?: 0 | 1 | 2 | 3; champ?: EK; cols?: number[] }
-type Star = { k: 'multi'; n: number } | { k: 'form'; f: FK; n: number } | { k: 'time'; n: number };
+type Star = { k: 'multi'; n: number; f?: FK } | { k: 'form'; f: FK; n: number; foe?: EK; foeName?: string } | { k: 'time'; n: number };
 interface StageDef {
   ch: number; name: string; news: string; unlock: FK | null; newFoe: EK | null; D: number; cols: number[]; groups: Grp[]; star: Star;
   boss?: EK; patches?: number[]; seg?: number; summon?: [EK, number][];
@@ -118,29 +118,29 @@ const G = (at: number, form: 0 | 1 | 2 | 3, ...f: [EK, number][]): Grp => ({ at,
  * 사람 기준 한 판 30~45초. 판마다 새 모습 하나 + 그 모습이 빛날 도둑 하나.
  */
 export const STAGES: StageDef[] = [
-  { ch: 0, name: '불 사자', news: '빨강을 먹으면 불 사자! 떼에 뛰어들어 펑', unlock: 'lion', newFoe: 'blob', D: 1.4, cols: [R], star: { k: 'multi', n: 7 },
-    groups: [G(0.16, 2, ['blob', 9]), G(0.34, 0, ['blob', 8], ['bucket', 1]), G(0.52, 2, ['blob', 10]), G(0.7, 3, ['blob', 9], ['bucket', 1]), G(0.86, 2, ['blob', 10]), { at: 1, f: [['blob', 8]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.8, cols: [R, B, B], star: { k: 'form', f: 'whale', n: 22 },
-    groups: [G(0, 0, ['bucket', 2], ['blob', 6]), G(0.17, 0, ['bucket', 2], ['blob', 6]), G(0.34, 2, ['blob', 10], ['bucket', 1]), G(0.51, 0, ['bucket', 3], ['blob', 5]), G(0.68, 0, ['bucket', 2], ['blob', 8]), G(0.85, 0, ['bucket', 3], ['blob', 4]), { at: 1, f: [['blob', 6], ['bucket', 1]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.9, cols: [R, B, Y, Y], star: { k: 'form', f: 'bird', n: 24 },
-    groups: [G(0, 0, ['kite', 4], ['blob', 5]), G(0.17, 0, ['kite', 5], ['blob', 4]), G(0.34, 2, ['blob', 9], ['bucket', 1]), G(0.51, 0, ['kite', 6], ['blob', 3]), G(0.68, 0, ['kite', 5], ['bucket', 1], ['blob', 4]), G(0.85, 0, ['kite', 6], ['blob', 4]), { at: 1, f: [['kite', 4], ['blob', 4]], form: 3, champ: 'kite' }] },
+  { ch: 0, name: '불 사자', news: '빨강을 먹으면 불 사자! 떼에 뛰어들어 펑', unlock: 'lion', newFoe: 'blob', D: 1.0, cols: [R], star: { k: 'multi', n: 7 },
+    groups: [G(0.25, 2, ['blob', 9]), G(0.6, 3, ['blob', 9], ['bucket', 1]), { at: 1, f: [['blob', 7]], form: 3, champ: 'bucket' }] },
+  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.7, cols: [R, B], star: { k: 'form', f: 'whale', n: 30 },
+    groups: [G(0, 0, ['bucket', 2], ['blob', 4]), G(0.2, 0, ['bucket', 2], ['blob', 4]), G(0.4, 0, ['bucket', 3], ['blob', 3]), G(0.6, 0, ['bucket', 2], ['blob', 5]), G(0.8, 0, ['bucket', 3], ['blob', 3]), { at: 1, f: [['bucket', 1], ['blob', 3]], form: 3, champ: 'bucket' }] },
+  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.8, cols: [R, B, Y], star: { k: 'multi', f: 'bird', n: 6 },
+    groups: [G(0, 0, ['kite', 5], ['blob', 3]), G(0.2, 0, ['kite', 6], ['blob', 2], ['bucket', 1]), G(0.4, 0, ['kite', 4], ['blob', 5]), G(0.6, 0, ['kite', 6], ['blob', 3]), G(0.8, 0, ['kite', 6], ['bucket', 1], ['blob', 2]), { at: 1, f: [['kite', 4], ['blob', 2]], form: 3, champ: 'kite' }] },
   { ch: 0, name: '대장 먹물 문어', news: '빨강 셋을 이어 먹으면 불 용! 대장의 색을 뜯어 먹어요', unlock: 'dragon', newFoe: 'inkboss', D: 0, cols: [R, B, Y], star: { k: 'time', n: 40 },
     boss: 'inkboss', patches: [R, B, R, Y], seg: 260, summon: [['blob', 5], ['kite', 2], ['bucket', 1]],
     groups: [G(0, 2, ['blob', 6], ['kite', 2])] },
-  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 24 },
+  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 40 },
     groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 7], ['blob', 3]), G(0.85, 1, ['crayon', 6], ['kite', 2]), { at: 1, f: [['crayon', 5]], form: 3, champ: 'crayon' }] },
-  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 22 },
+  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 20 },
     groups: [G(0, 0, ['shell', 3], ['blob', 5]), G(0.17, 0, ['shell', 3], ['crayon', 2], ['blob', 3]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 0, ['shell', 4], ['blob', 4]), G(0.68, 1, ['shell', 3], ['crayon', 3], ['blob', 2]), G(0.85, 0, ['shell', 4], ['blob', 4]), { at: 1, f: [['shell', 3], ['blob', 3]], form: 3, champ: 'shell' }] },
-  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 22 },
+  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 28 },
     groups: [G(0, 0, ['brush', 4], ['blob', 4]), G(0.17, 0, ['brush', 5], ['shell', 1], ['blob', 2]), G(0.34, 1, ['crayon', 4], ['kite', 2], ['blob', 2]), G(0.51, 0, ['brush', 5], ['blob', 3]), G(0.68, 0, ['brush', 4], ['kite', 2], ['bucket', 1]), G(0.85, 0, ['brush', 5], ['blob', 4]), { at: 1, f: [['brush', 4]], form: 3, champ: 'brush' }] },
   { ch: 1, name: '대장 물감 통 거인', news: '세 색을 다 섞으면 진흙 골렘! 쿵쿵쿵', unlock: 'golem', newFoe: 'giant', D: 0, cols: [R, B, Y], star: { k: 'time', n: 45 },
     boss: 'giant', patches: [R, Y, B, R, Y], seg: 220, summon: [['shell', 1], ['crayon', 2], ['brush', 2], ['blob', 3]],
     groups: [G(0, 2, ['crayon', 3], ['shell', 2], ['blob', 3])] },
-  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 26 },
+  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 20 },
     groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6], ['bucket', 1]), G(0.34, 2, ['blob', 8], ['shell', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 6], ['brush', 2], ['bucket', 1]), G(0.85, 1, ['crayon', 6], ['bucket', 2]), { at: 1, f: [['crayon', 6]], form: 3, champ: 'bucket' }] },
-  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 26 },
+  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 16 },
     groups: [G(0, 0, ['balloon', 5], ['kite', 2], ['blob', 2]), G(0.17, 0, ['balloon', 6], ['brush', 2]), G(0.34, 0, ['kite', 4], ['balloon', 3], ['blob', 3]), G(0.51, 0, ['balloon', 6], ['shell', 1], ['blob', 2]), G(0.68, 0, ['balloon', 5], ['kite', 3], ['brush', 2]), G(0.85, 0, ['balloon', 6], ['kite', 2]), { at: 1, f: [['balloon', 5]], form: 3, champ: 'kite' }] },
-  { ch: 2, name: '무지개 고래', news: '무지개 도둑을 잡으면 무지개 고래! 놓치면 달아나요', unlock: 'rainbow', newFoe: 'rainbow', D: 2.0, cols: [R, B, Y], star: { k: 'form', f: 'rainbow', n: 20 },
+  { ch: 2, name: '무지개 고래', news: '무지개 도둑을 잡으면 무지개 고래! 놓치면 달아나요', unlock: 'rainbow', newFoe: 'rainbow', D: 2.0, cols: [R, B, Y], star: { k: 'form', f: 'rainbow', n: 18 },
     groups: [G(0, 0, ['tower', 1], ['blob', 5], ['rainbow', 1]), G(0.17, 0, ['crayon', 3], ['shell', 2], ['brush', 2]), G(0.34, 0, ['tower', 1], ['balloon', 3], ['rainbow', 1], ['blob', 2]), G(0.51, 2, ['blob', 6], ['bucket', 1], ['kite', 2]), G(0.68, 0, ['tower', 1], ['crayon', 3], ['rainbow', 1], ['brush', 2]), G(0.85, 0, ['shell', 2], ['brush', 2], ['balloon', 2], ['rainbow', 1]), { at: 1, f: [['crayon', 3], ['brush', 2]], form: 3, champ: 'bucket' }] },
   { ch: 2, name: '대장 회색 왕', news: '마지막 대장! 왕의 색을 다 뜯으면 마을이 무지개로', unlock: null, newFoe: 'king', D: 0, cols: [R, B, Y], star: { k: 'time', n: 55 },
     boss: 'king', patches: [R, B, Y, B, R, RAIN], seg: 200, summon: [['crayon', 2], ['brush', 1], ['balloon', 2], ['shell', 1], ['blob', 2]],
@@ -149,7 +149,7 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(광장의 큰 물건) */
 export const PERKS: { name: string; line: string }[][] = [
-  [{ name: '큰 붓', line: '지나간 자리를 칠하면 적이 아야' }, { name: '물감 통', line: '모습이 두 배 오래가요' }],
+  [{ name: '큰 붓', line: '지나간 자리가 공격이 돼요' }, { name: '물감 통', line: '모습이 두 배 오래가요' }],
   [{ name: '무지개 팔레트', line: '먹을 때마다 둘레에 물감 펑' }, { name: '반짝 크레용', line: '섞은 모습이 한 단계 크게' }],
 ];
 /** 배우는 판은 너그럽게: 도둑이 덤비는 빠르기 배수 */
@@ -185,10 +185,10 @@ export interface SoulState {
   lv: number; perk: number[]; picked: number; dex: FK[]; newDex: FK[]; seenForm: FK[];
   me: Me; eat: { id: number; patch: number; ph: number; t: number; T: number; x0: number; y0: number } | null; rest: number;
   foes: Foe[]; nid: number; shots: Shot[]; clouds: Cloud[]; waves: Wave[]; q: Q[]; lines: Line[]; paints: Paint[]; events: Ev[];
-  camY: number; gi: number; awake: boolean; tapped: boolean; taps: number; clearT: number; lostHeart: boolean;
-  aid: number; multi: Record<number, number>; best: number; fkills: number; kills: number; gain: number;
+  camY: number; gi: number; trickT: number; awake: boolean; tapped: boolean; taps: number; clearT: number; lostHeart: boolean;
+  aid: number; multi: Record<number, number>; best: number; star3: boolean; fkills: number; kills: number; gain: number;
   patches: Patch[]; bossK: number; bossT: number; summonT: number; bossDown: boolean; bossAtk: number;
-  grid: Uint8Array; gridRows: number; painted: number; pct: number; villages: number[];
+  grid: Uint8Array; gridRows: number; painted: number; pct: number; villages: number[]; paintN: number; runId: number;
   freeze: number; down: boolean; wowN: number; firstTap: number; firstBig: number; denyT: number;
   seen: Set<string>;
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
@@ -262,6 +262,7 @@ const GX = 12, CELL = 1 / GX;
 function paint(s: SoulState, x: number, y: number, r: number, c: number) {
   r *= 1 + 0.04 * (s.lv - 1);
   s.paints.push({ x, y, r, c, seed: Math.floor(s.rng() * 1e6) });
+  s.paintN++;
   if (s.paints.length > 900) s.paints.shift();
   const D = STAGES[s.stage].D, r0 = Math.floor((y - r + D) / CELL), r1 = Math.floor((y + r + D) / CELL);
   for (let row = Math.max(0, r0); row <= Math.min(s.gridRows - 1, r1); row++)
@@ -315,7 +316,7 @@ function spawnGroup(s: SoulState, g: Grp, pre: boolean) {
   }
   if (g.champ) {
     // 판의 '무서운 것': 크고 진한 색 — 먹으면 단숨에 한 단계 더 (그 판의 새 모습 색)
-    const ck = g.champ, sf = d.star.k === 'form' ? FD[d.star.f].mask : R, col = sf === RAIN ? R : sf;
+    const ck = g.champ, sf = d.star.k !== 'time' && d.star.f ? FD[d.star.f].mask : R, col = sf === RAIN ? R : sf;
     const m = add(s, ck, 0.5, pre ? s.camY + 0.5 : s.camY + TOP - 0.08, col, !pre, true);
     s.spot = { id: m.id, t: s.t, label: '진한 색!' };
     ev(s, 'champ', m.x, m.y, 0, 0, 0, ck);
@@ -326,7 +327,7 @@ function spawnGroup(s: SoulState, g: Grp, pre: boolean) {
 
 /** 대장 판: 대장과 두른 색 */
 function spawnBoss(s: SoulState) {
-  const d = STAGES[s.stage], k = d.boss!, m = add(s, k, 0.5, s.camY + 0.42, 0, false);
+  const d = STAGES[s.stage], k = d.boss!, m = add(s, k, 0.5, s.camY + 0.53, 0, false);
   m.r = ED[k].r;
   const n = d.patches!.length;
   s.patches = d.patches!.map((col, i) => {
@@ -352,6 +353,8 @@ function newStage(s: SoulState) {
   s.q = [];
   s.lines = [];
   s.paints = [];
+  s.paintN = 0;
+  s.runId++;
   s.patches = [];
   s.camY = 0;
   s.gi = 0;
@@ -359,6 +362,7 @@ function newStage(s: SoulState) {
   s.rest = 0;
   s.clearT = 0;
   s.best = 0;
+  s.star3 = false;
   s.multi = {};
   s.fkills = 0;
   s.stageT = 0;
@@ -402,32 +406,34 @@ function blankMe(): Me {
 }
 
 // ───────────────────────────── 때리기 ─────────────────────────────
-function kill(s: SoulState, m: Foe, aid: number) {
+/** 빨면 그대로 펑 터지는 작은 도둑 (나머지는 회색 껍데기가 된다) */
+const SMALL = new Set<EK>(['blob', 'kite', 'balloon', 'rainbow']);
+function kill(s: SoulState, m: Foe, aid: number, byForm = true) {
   if (m.dead) return;
   m.dead = true;
   s.kills++;
   let n = 0;
   if (aid > 0) {
     n = s.multi[aid] = (s.multi[aid] ?? 0) + 1;
-    s.sp += Math.ceil((n * n) / 4);
-    if (n > s.best) {
-      const d = STAGES[s.stage], star = d.star.k === 'multi' && s.best < d.star.n && n >= d.star.n;
-      s.best = n;
-      if (star) starWow(s, `${n}마리 한 방!`);
-      else if (n >= WOW_N && n % 2 === 1) ev(s, 'record', m.x, m.y - m.r, n), (s.wowN++, s.firstBig < 0 && s.firstTap >= 0 && (s.firstBig = s.t));
-    }
+    s.sp += Math.ceil(((n * n) / 4) * streakMul(s) * (1 + 0.5 * s.stage));
+    const d = STAGES[s.stage];
+    if (d.star.k === 'multi' && !s.star3 && n >= d.star.n && (!d.star.f || s.me.f === d.star.f) && byForm) (s.star3 = true), starWow(s, `${d.star.f ? FD[d.star.f].name + '로 ' : ''}한 번에 ${n}마리!`);
+    else if (n > s.best && n >= WOW_N && n % 2 === 1) ev(s, 'record', m.x, m.y - m.r, n), (s.wowN++, s.firstBig < 0 && s.firstTap >= 0 && (s.firstBig = s.t));
+    if (n > s.best) s.best = n;
   } else s.sp += 1;
-  if (s.me.f !== 'white') {
+  if (s.me.f !== 'white' && byForm) {
     s.fkills++;
     const d = STAGES[s.stage];
-    if (d.star.k === 'form' && s.me.f === d.star.f) {
+    if (d.star.k === 'form' && s.me.f === d.star.f && (!d.star.foe || d.star.foe === m.k)) {
       const k = (s.multi[-1] = (s.multi[-1] ?? 0) + 1);
-      if (k === d.star.n) starWow(s, `${FD[d.star.f].name}으로 ${k}마리!`);
+      if (k === d.star.n) starWow(s, `${FD[d.star.f].name}으로 ${d.star.foeName ? d.star.foeName + ' ' : ''}${k}마리!`);
     }
   }
-  paint(s, m.x, m.y, 0.045 + m.r * 0.9, m.col === RAIN ? [R, B, Y][m.seed % 3] : m.col);
-  ev(s, 'kill', m.x, m.y - m.r, n, m.r, 0, m.k);
+  if (m.col) paint(s, m.x, m.y, 0.06 + m.r * 1.2, m.col === RAIN ? [R, B, Y][m.seed % 3] : m.col);
+  ev(s, 'kill', m.x, m.y - m.r, n, m.r, m.col, m.k);
 }
+/** 같은 색을 이어 먹을수록 점수 배수 (×1 · ×1.5 · ×2 · ×2.5 · ×3) — 섞으면 ×1부터 */
+export const streakMul = (s: SoulState) => (s.me.f === 'white' ? 1 : 1 + 0.5 * (Math.min(5, s.me.tier) - 1));
 function starWow(s: SoulState, text: string) {
   wow(s, text, '별 셋째!', 0, s.me.mask);
   s.big!.star = true;
@@ -517,10 +523,16 @@ function hitMe(s: SoulState, u: number, x: number, y: number) {
   me.vy += Math.sin(a) * 0.012;
   me.hitT = s.t;
   if (me.f !== 'white') {
-    if (u >= 3 && me.f !== 'golem' && me.f !== 'rainbow') me.T = 0, ev(s, 'knock', me.x, me.y - meR(s), 0, 0, 0, String(me.mask));
-    else me.T -= 75 * u, ev(s, 'drip', me.x, me.y - meR(s), u, 0, 0, String(me.mask));
-    me.inv = 34;
-    if (me.T <= 0) fade(s, true);
+    if (me.f === 'golem' || me.f === 'rainbow') return void (me.inv = 30);
+    // 맞으면 색이 튀어 나가 한 단계 작아진다 (1단계에서 맞거나 내려찍기면 하얀 맨몸)
+    me.inv = 40;
+    if (u >= 3 || me.tier <= u) return void (ev(s, 'knock', me.x, me.y - meR(s), 0, 0, 0, String(me.mask)), fade(s, true));
+    const was = me.f;
+    me.tier -= u;
+    me.T = Math.max(60, me.T - 40 * u);
+    me.f = formOf(s, me.mask, me.tier);
+    if (me.f !== was) (me.st = 0), (me.z = 0), (me.cool = 20);
+    ev(s, 'drip', me.x, me.y - meR(s), u, me.f !== was ? 1 : 0, 0, String(me.mask));
     return;
   }
   me.inv = 100;
@@ -564,13 +576,14 @@ export function pick(s: SoulState, x: number, y: number): { id: number; patch: n
       if (v < bv) (bv = v), (best = { id: b.id, patch: i });
     });
   for (const m of s.foes) {
-    if (!hittable(m) || ED[m.k].boss || !onScreen(s, m)) continue;
+    if (!hittable(m) || ED[m.k].boss || !onScreen(s, m) || !m.col) continue;
     const v = dist(m.x, m.y - m.r * 0.6, x, y) - m.r * 1.2;
     if (v < bv) (bv = v), (best = { id: m.id, patch: -1 });
   }
   return best;
 }
-function onTap(s: SoulState, x: number, y: number) {
+function onTap(s: SoulState, x: number, sy: number) {
+  const y = s.camY + sy;
   if (s.firstTap < 0) s.firstTap = s.t;
   s.taps++;
   if (s.eat || s.rest > 0) return void ((s.denyT = s.t), ev(s, 'deny', x, y));
@@ -586,9 +599,9 @@ function onTap(s: SoulState, x: number, y: number) {
   if (tg.patch >= 0) [tx, ty] = patchXY(s, m, s.patches[tg.patch]);
   else m.held = true;
   const me = s.me;
-  s.eat = { id: tg.id, patch: tg.patch, ph: 0, t: 0, T: DASH_MIN + Math.round(dist(me.x, me.y, tx, ty) * 16), x0: me.x, y0: me.y };
+  s.eat = { id: tg.id, patch: tg.patch, ph: 0, t: 0, T: DASH_MIN + Math.round(dist(me.x, me.y, tx, ty) * 26), x0: me.x, y0: me.y };
   me.z = 0;
-  ev(s, 'tap', x, s.camY + y);
+  ev(s, 'tap', x, y);
   ev(s, 'dash', me.x, me.y, 0, tx, ty);
 }
 function eatStep(s: SoulState) {
@@ -640,11 +653,19 @@ function eatStep(s: SoulState) {
     } else wow(s, '대장 색을 뜯었다!', `${CNAME[col]} — 대장은 작아지고 나는 커져요`, 0, col);
   } else {
     col = m.col;
-    if (m.champ) (bonus = 1), (src = 1.4);
+    if (m.champ) (bonus = s.stage === 0 && s.taps <= 1 ? 2 : 1), (src = 1.4);
     else if (m.k === 'blob') src = 0.7;
     m.held = false;
-    ev(s, 'shatter', m.x, m.y, 0, m.r, 0, m.k);
-    kill(s, m, aid);
+    if (SMALL.has(m.k) || s.stage === 0) ev(s, 'shatter', m.x, m.y, 0, m.r, 0, m.k), kill(s, m, aid, false);
+    else {
+      // 큰 놈은 색만 빼앗긴 회색 껍데기가 돼 비틀 — 방패·껍데기는 그대로, 새 모습이 부순다
+      m.col = 0;
+      m.hp = Math.min(m.hp, Math.ceil(m.max * 0.5));
+      m.stun = Math.max(m.stun, 70);
+      m.st = IDLE;
+      ev(s, 'drain', m.x, m.y, 0, m.r, 0, m.k);
+      paint(s, m.x, m.y, 0.05 + m.r, col);
+    }
   }
   transform(s, col, bonus, aid, src);
 }
@@ -847,7 +868,7 @@ function myStep(s: SoulState) {
         me.lx = me.x;
         me.ly = me.y;
         me.tx = clamp(cx, 0.06, 0.94);
-        me.ty = clamp(cy + 0.02, s.camY + 0.26, s.camY + 1.25);
+        me.ty = clamp(cy + 0.02, s.camY + ME_TOP, s.camY + 1.25);
         me.legs = 14 + Math.round(dist(me.x, me.y, me.tx, me.ty) * 18);
         me.face = me.tx > me.x ? 1 : -1;
         ev(s, 'pounce', me.x, me.y);
@@ -861,6 +882,7 @@ function myStep(s: SoulState) {
       moveTo(me, n > 0 ? clamp(cx + Math.sin(s.t * 0.02) * 0.12, 0.1, 0.9) : 0.5, n > 0 ? cy + 0.2 : home - 0.15, 0.005);
       const want = Math.atan2(cy - me.y, cx - me.x) + Math.sin(s.t * 0.09) * 0.5;
       me.ang += Math.atan2(Math.sin(want - me.ang), Math.cos(want - me.ang)) * 0.15;
+      if (s.t % 48 === 0) me.aid = ++s.aid;
       if (s.t % 6 === 0 && n > 0) {
         const L = 0.34 * K, half = 0.42;
         for (const m of s.foes) {
@@ -898,7 +920,7 @@ function myStep(s: SoulState) {
       }
       if (o) moveTo(me, clamp(o.x, 0.1, 0.9), clamp(o.y + 0.28, s.camY + 0.5, s.camY + 1.24), 0.0042);
       else moveTo(me, 0.5, home, 0.003);
-      if (o && me.cool <= 0 && dist(o.x, o.y, me.x, me.y) < 0.6) (me.st = 1), (me.tm = 0), (me.tgt = o.id), (me.ang = Math.atan2(o.y - me.y, o.x - me.x)), ev(s, 'jet', me.x, me.y);
+      if (o && me.cool <= 0 && dist(o.x, o.y, me.x, me.y) < 0.6) (me.st = 1), (me.tm = 0), (me.tgt = o.id), (me.aid = ++s.aid), (me.ang = Math.atan2(o.y - me.y, o.x - me.x)), ev(s, 'jet', me.x, me.y);
       break;
     }
     case 'narwhal': {
@@ -911,7 +933,7 @@ function myStep(s: SoulState) {
     case 'bird': {
       // 도둑들 둘레를 휙휙 돌며 찌릿 — 번개가 적에서 적으로 튕긴다
       const [cx, cy] = densest(s, 0.25, 'chain', me.x, me.y, 1.2);
-      const a = s.t * 0.045, ox = clamp(cx + Math.cos(a) * 0.2, 0.08, 0.92), oy = clamp(cy + 0.18 + Math.sin(a) * 0.1, s.camY + 0.3, s.camY + 1.24);
+      const a = s.t * 0.045, ox = clamp(cx + Math.cos(a) * 0.2, 0.08, 0.92), oy = clamp(cy + 0.18 + Math.sin(a) * 0.1, s.camY + ME_TOP, s.camY + 1.24);
       moveTo(me, ox, oy, 0.008);
       me.z = 0.012 + Math.abs(Math.sin(s.t * 0.2)) * 0.012;
       if (me.cool <= 0 && nearest(s, me.x, me.y, 'chain')) {
@@ -962,7 +984,7 @@ function myStep(s: SoulState) {
         break;
       }
       const [cx, cy, n] = densest(s, 0.13 * K, 'slam', me.x, me.y, 0.7);
-      if (me.cool <= 0 && n > 0) (me.st = 1), (me.tm = 0), (me.lx = me.x), (me.ly = me.y), (me.tx = clamp(cx, 0.07, 0.93)), (me.ty = clamp(cy + 0.03, s.camY + 0.26, s.camY + 1.25)), (me.legs = 22), (me.face = me.tx > me.x ? 1 : -1), ev(s, 'hop', me.x, me.y);
+      if (me.cool <= 0 && n > 0) (me.st = 1), (me.tm = 0), (me.lx = me.x), (me.ly = me.y), (me.tx = clamp(cx, 0.07, 0.93)), (me.ty = clamp(cy + 0.03, s.camY + ME_TOP, s.camY + 1.25)), (me.legs = 22), (me.face = me.tx > me.x ? 1 : -1), ev(s, 'hop', me.x, me.y);
       else moveTo(me, n > 0 ? cx : 0.5, n > 0 ? cy + 0.16 : home, 0.0025);
       break;
     }
@@ -977,13 +999,13 @@ function myStep(s: SoulState) {
         me.cool = 40;
         const id = ++s.aid;
         const list = s.foes.filter((m) => hittable(m) && onScreen(s, m) && m.bind <= 30 && !ED[m.k].boss && dist(m.x, m.y, me.x, me.y) < 0.36 * K).sort((a, b) => (ED[b.k].fast ? 1 : 0) - (ED[a.k].fast ? 1 : 0) || dist(a.x, a.y, me.x, me.y) - dist(b.x, b.y, me.x, me.y));
-        for (const m of list.slice(0, 3)) vineHit(s, m, 9 * P, id);
+        for (const m of list.slice(0, 4)) vineHit(s, m, 9 * P, id);
         const boss = bossOf(s);
         if (boss && dist(boss.x, boss.y, me.x, me.y) < 0.45) vineHit(s, boss, 9 * P, id);
         if (list.length) ev(s, 'lash', me.x, me.y, list.length);
       }
       // 묶인 놈은 조인다
-      if (s.t % 10 === 0) for (const m of s.foes) if (m.bind > 0 && hittable(m)) hurt(s, m, 1.4 * P, 'vine', aid);
+      if (s.t % 10 === 0) for (const m of s.foes) if (m.bind > 0 && hittable(m)) hurt(s, m, 1.4 * P, 'vine', me.aid);
       break;
     }
     case 'golem': {
@@ -1018,7 +1040,7 @@ function myStep(s: SoulState) {
     for (const m of s.foes) if (hittable(m) && dist(m.x, m.y, me.x, me.y) < 0.09 + m.r) hurt(s, m, 4 * P, 'pop', aid);
   }
   me.x = clamp(me.x, 0.06, 0.94);
-  me.y = clamp(me.y, s.camY + 0.24, s.camY + 1.27);
+  me.y = clamp(me.y, s.camY + ME_TOP, s.camY + 1.27);
 }
 function shoot(s: SoulState, x: number, y: number, vx: number, vy: number, r: number, u: number, t: number, mine: boolean, k: number, aid = 0) {
   if (s.shots.length >= SHOT_CAP) return;
@@ -1032,14 +1054,14 @@ function foeStep(s: SoulState, m: Foe) {
   if (m.held) return;
   if (d.boss) return bossStep(s, m);
   if (m.st === ENTER) {
-    m.y += 0.0055;
+    m.y += 0.0075;
     m.walkT = s.t;
-    if (m.y >= s.camY + TOP + 0.06 + m.r) m.st = IDLE;
+    if (m.y >= s.camY + TOP + 0.2 + m.r) m.st = IDLE;
     return;
   }
   if (m.bind > 0) return void m.bind--;
   if (m.stun > 0) return void m.stun--;
-  if (m.cool > 0) m.cool -= ez;
+  if (m.cool > 0) m.cool -= ez * (m.col ? 1 : 0.6);
   const dd = dist(m.x, m.y, me.x, me.y), a = Math.atan2(me.y - m.y, me.x - m.x);
   const walk = (ang: number, v: number) => {
     m.x += Math.cos(ang) * v;
@@ -1056,7 +1078,7 @@ function foeStep(s: SoulState, m: Foe) {
     if (s.t > 330) s.awake = true;
     return;
   }
-  const spd = d.spd * ez * (m.champ ? 0.7 : 1);
+  const spd = d.spd * ez * (m.champ ? 0.7 : 1) * 1.2;
   const meZ = me.z > 0.05;
   switch (m.k) {
     case 'blob':
@@ -1074,9 +1096,9 @@ function foeStep(s: SoulState, m: Foe) {
       }
       walk(a + Math.sin(s.t * 0.06 + m.seed) * 0.6, spd);
       if (dd < m.r + meR(s) * 0.8 && !meZ && m.cool <= 0) {
-        m.cool = 70;
+        m.cool = 56;
         m.st = REST;
-        m.tm = 30;
+        m.tm = 26;
         hitMe(s, 1, m.x, m.y);
         ev(s, 'bump', m.x, m.y);
       }
@@ -1098,9 +1120,9 @@ function foeStep(s: SoulState, m: Foe) {
         if (--m.tm <= 0) m.st = IDLE;
         break;
       }
-      if (dd < 0.2 && m.cool <= 0) {
+      if (dd < 0.24 && m.cool <= 0) {
         m.st = WIND;
-        m.tm = Math.round(56 / Math.max(0.6, ez));
+        m.tm = Math.round(50 / Math.max(0.6, ez));
         m.ax = me.x;
         m.ay = me.y;
         m.cool = 120;
@@ -1111,15 +1133,15 @@ function foeStep(s: SoulState, m: Foe) {
     case 'kite':
     case 'balloon': {
       // 하늘: 화면 위쪽 반을 흔들흔들 날아다니며 먹물·물감 폭탄을 떨군다
-      const hy = s.camY + (m.k === 'kite' ? 0.38 : 0.5) + Math.sin(m.seed) * 0.1;
+      const hy = s.camY + (m.k === 'kite' ? 0.52 : 0.62) + Math.sin(m.seed) * 0.1;
       const tx = clamp(me.x + Math.sin(s.t * 0.012 + m.seed) * 0.35, 0.08, 0.92);
       m.x += clamp(tx - m.x, -spd, spd);
       m.y += clamp(hy + Math.sin(s.t * 0.04 + m.seed) * 0.04 - m.y, -spd, spd);
       m.face = tx > m.x ? 1 : -1;
       m.walkT = s.t;
       if (m.cool <= 0) {
-        m.cool = m.k === 'kite' ? 150 : 170;
-        const sp = 0.0065 * ez, an = Math.atan2(me.y - m.y, me.x - m.x);
+        m.cool = m.k === 'kite' ? 118 : 135;
+        const sp = 0.0075 * ez, an = Math.atan2(me.y - m.y, me.x - m.x);
         shoot(s, m.x, m.y + 0.02, Math.cos(an) * sp, Math.sin(an) * sp, 0.022, 1, 22, false, m.k === 'kite' ? 1 : 2);
         ev(s, 'drop', m.x, m.y);
       }
@@ -1139,15 +1161,15 @@ function foeStep(s: SoulState, m: Foe) {
         if (--m.tm <= 0) m.st = IDLE;
         break;
       }
-      if (dd < 0.15 && m.cool <= 0) (m.st = WIND), (m.tm = 32), (m.ax = me.x), (m.ay = me.y), (m.cool = 100), ev(s, 'wind', m.x, m.y, 0, 0, 0, m.k);
+      if (dd < 0.17 && m.cool <= 0) (m.st = WIND), (m.tm = 28), (m.ax = me.x), (m.ay = me.y), (m.cool = 80), ev(s, 'wind', m.x, m.y, 0, 0, 0, m.k);
       else walk(dd < 0.5 ? a : Math.PI / 2 + Math.sin(s.t * 0.02 + m.seed) * 0.2, spd);
       break;
     }
     case 'shell': {
       walk(a, spd);
-      if (m.cool <= 0 && dd < 0.6) {
-        m.cool = 150;
-        const sp = 0.006 * ez;
+      if (m.cool <= 0 && dd < 0.5) {
+        m.cool = 160;
+        const sp = 0.0055 * ez;
         shoot(s, m.x, m.y - 0.02, Math.cos(a) * sp, Math.sin(a) * sp, 0.02, 1, 24, false, 3);
         ev(s, 'spit', m.x, m.y);
       }
@@ -1172,7 +1194,7 @@ function foeStep(s: SoulState, m: Foe) {
         m.ang = Math.atan2(oy - m.y, ox - m.x);
         m.st = ATK;
         m.tm = Math.round(Math.min(40, dd / 0.013 + 6));
-        m.cool = 90;
+        m.cool = 72;
         ev(s, 'zip', m.x, m.y);
       } else walk(a + Math.sin(s.t * 0.1 + m.seed) * 1.2, spd);
       break;
@@ -1356,11 +1378,11 @@ function clearStage(s: SoulState) {
   const d = STAGES[s.stage];
   s.phase = 'result';
   s.pt = 0;
-  const third = d.star.k === 'multi' ? s.best >= d.star.n : d.star.k === 'form' ? (s.multi[-1] ?? 0) >= d.star.n : s.stageT <= d.star.n * 60;
+  const third = d.star.k === 'multi' ? s.star3 : d.star.k === 'form' ? (s.multi[-1] ?? 0) >= d.star.n : s.stageT <= d.star.n * 60;
   s.starOk = [true, !s.lostHeart, third];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
-  s.gain = (s.sp + CLEAR_PTS + Math.round(s.pct * 40)) * STAR_MUL[s.got];
+  s.gain = (s.sp + CLEAR_PTS * (1 + s.stage) + Math.round(s.pct * 40)) * STAR_MUL[s.got];
   s.pts += s.gain;
   s.sp = 0;
   s.villages[s.stage] = Math.max(s.villages[s.stage] ?? 0, s.pct);
@@ -1384,7 +1406,7 @@ function playStep(s: SoulState) {
   if (s.eat) eatStep(s);
   else myStep(s);
   // 카메라: 골목을 따라 위로 (붐비면 멈추고, 적이 모자라면 빨리)
-  const vis = s.foes.reduce((a, m) => a + (alive(m) && onScreen(s, m) && m.k !== 'tower' ? 1 : 0), 0);
+  const vis = s.foes.reduce((a, m) => a + (alive(m) && onScreen(s, m) && m.k !== 'tower' && m.col ? 1 : 0), 0);
   const prog = -s.camY;
   if (s.awake && prog < d.D) {
     const v = vis >= CAM_STOP ? 0 : vis < 3 && s.gi < d.groups.length ? CAM_V * 3 : CAM_V * (1 - vis / (CAM_STOP + 2));
@@ -1394,6 +1416,11 @@ function playStep(s: SoulState) {
   }
   // 떼: 카메라가 그 자리를 지나면 위에서 내려온다
   while (s.gi < d.groups.length && -s.camY >= d.groups[s.gi].at * d.D - 1e-9 && !(d.groups[s.gi].at >= 1 && -s.camY < d.D - 1e-9)) spawnGroup(s, d.groups[s.gi++], false);
+  // 쪼르르: 화면에 색 도둑이 모자라면 먹물 꼬마가 위에서 하나씩 (손은 늘 누를 것이 있다)
+  if (s.awake && (s.gi < d.groups.length || s.foes.some((m) => alive(m) && !m.col)) && ++s.trickT >= 50) {
+    s.trickT = 0;
+    if (vis < (s.gi < d.groups.length ? 4 : 2) && s.foes.length < CAP) add(s, 'blob', 0.12 + s.rng() * 0.76, s.camY + TOP - 0.03, pickCol(s, d.cols), true);
+  }
   for (const m of s.foes) if (!m.dead) foeStep(s, m);
   physics(s);
   shotStep(s);
@@ -1436,8 +1463,8 @@ const game: GameDef<SoulState> & { wows(s: SoulState): number } = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, stageT: 0, hearts: 3, tries: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], seenForm: [], me: blankMe(), eat: null, rest: 0,
       foes: [], nid: 0, shots: [], clouds: [], waves: [], q: [], lines: [], paints: [], events: [],
-      camY: 0, gi: 0, awake: false, tapped: false, taps: 0, clearT: 0, lostHeart: false, aid: 0, multi: {}, best: 0, fkills: 0, kills: 0, gain: 0,
-      patches: [], bossK: 1, bossT: 0, summonT: 0, bossDown: false, bossAtk: 0, grid: new Uint8Array(1), gridRows: 1, painted: 0, pct: 0, villages: [],
+      camY: 0, gi: 0, trickT: 0, awake: false, tapped: false, taps: 0, clearT: 0, lostHeart: false, aid: 0, multi: {}, best: 0, star3: false, fkills: 0, kills: 0, gain: 0,
+      patches: [], bossK: 1, bossT: 0, summonT: 0, bossDown: false, bossAtk: 0, grid: new Uint8Array(1), gridRows: 1, painted: 0, pct: 0, villages: [], paintN: 0, runId: 0,
       freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as SoulState;
     newStage(s);
@@ -1497,7 +1524,7 @@ function cands(s: SoulState): Cand[] {
   const out: Cand[] = [];
   const b = bossOf(s);
   if (b) s.patches.forEach((p, i) => p.loose && !p.gone && out.push({ m: b, patch: i, col: p.col, bonus: 1, x: patchXY(s, b, p)[0], y: patchXY(s, b, p)[1] }));
-  for (const m of s.foes) if (hittable(m) && !ED[m.k].boss && onScreen(s, m)) out.push({ m, patch: -1, col: m.col, bonus: m.champ ? 1 : 0, x: m.x, y: m.y });
+  for (const m of s.foes) if (hittable(m) && !ED[m.k].boss && onScreen(s, m) && m.col) out.push({ m, patch: -1, col: m.col, bonus: m.champ ? 1 : 0, x: m.x, y: m.y });
   return out;
 }
 const tapCand = (s: SoulState, c: Cand) => (c.patch >= 0 ? at(c.x, c.y - s.camY) : tapFoe(s, c.m));
@@ -1524,7 +1551,26 @@ function burstEst(s: SoulState, f: FK, x: number, y: number, tier: number): numb
   for (const m of s.foes) if (hittable(m) && onScreen(s, m) && dist(m.x, m.y, x, y) < r) n += Math.min(1, worth(m, ak) * (30 / Math.max(10, m.hp + m.arm)));
   return n;
 }
-/** 봇: 지금 화면에 맞는 모습 + 섞기·이어 먹기 이득을 셈해서 고른다 */
+/** 지금 될 수 있는(풀린) 모습 중 이 화면에 가장 잘 맞는 것 */
+function bestForm(s: SoulState): FK {
+  let bf: FK = 'lion', bv = -1;
+  for (const f of DEX) {
+    if (!unl(s, f) || f === 'rainbow' || f === 'golem' || !s.foes.length) continue;
+    const v = fit(s, f) * (f === 'dragon' || f === 'narwhal' || f === 'eagle' ? 0.8 : 1);
+    if (v > bv) (bv = v), (bf = f);
+  }
+  return bf;
+}
+/** 이 색을 먹으면 목표 모습에 얼마나 다가가나 (0 = 상관없음, 음수 = 깨뜨림) */
+function toward(s: SoulState, target: FK, res: { mask: number; tier: number; f: FK }): number {
+  const me = s.me, tm = FD[target].mask, evo = target === 'dragon' || target === 'narwhal' || target === 'eagle';
+  if (res.f === target) return 10 + res.tier * 1.5;
+  if (evo && res.mask === tm) return 5 + res.tier * 2.5;
+  if (!evo && pc(tm) >= 2 && res.mask && res.mask !== RAIN && (res.mask & tm) === res.mask) return 6;
+  if (me.f === target || (evo && me.mask === tm && me.tier >= 2)) return -8;
+  return 0;
+}
+/** 봇: 지금 화면에 맞는 모습을 정하고, 그 모습이 되는(지키는) 색만 골라 먹는다 — 깨뜨리는 색은 피한다 */
 export const colorsoulSmart: Bot<SoulState> = {
   name: '지금 맞는 모습을 골라 먹기',
   act(s) {
@@ -1533,26 +1579,20 @@ export const colorsoulSmart: Bot<SoulState> = {
     if (!free(s)) return NO;
     const me = s.me, d = STAGES[s.stage], list = cands(s);
     if (!list.length) return NO;
-    const need = d.star.k === 'form' && (s.multi[-1] ?? 0) < d.star.n ? d.star.f : null, needMask = need ? FD[need].mask : -1;
-    const evo = need === 'dragon' || need === 'narwhal' || need === 'eagle';
-    const curFit = me.f === 'white' ? -9 : fit(s, me.f) * (1 + 0.12 * (me.tier - 1)) * (me.T > 110 ? 1 : 0.4) + (need && me.f === need ? 4 : 0);
-    let best: Cand | null = null, bv = -1e9;
-    const fits = new Map<string, number>();
+    const need = d.star.k === 'form' && (s.multi[-1] ?? 0) < d.star.n ? d.star.f : null;
+    const target: FK = need && need !== 'rainbow' ? need : bestForm(s);
+    let best: Cand | null = null, bv = -1e9, keep = false;
     for (const c of list) {
-      const res = mixRes(s, c.col, c.bonus), key = res.f + res.tier;
-      let fv = fits.get(key);
-      if (fv === undefined) fits.set(key, (fv = fit(s, res.f) * (1 + 0.12 * (res.tier - 1))));
-      let v = fv + 0.7 * burstEst(s, res.f, c.x, c.y, res.tier);
-      if (need) v += res.f === need ? 5 + (me.f === need ? 1 : 0) : me.f === need ? -5 : evo && res.mask === needMask ? 2.5 + res.tier : evo && me.mask === needMask ? -3 : 0;
-      if (!s.dex.includes(res.f)) v += 1.5;
+      const res = mixRes(s, c.col, c.bonus);
+      let v = toward(s, target, res) + 0.5 * burstEst(s, res.f, c.x, c.y, res.tier) - dist(me.x, me.y, c.x, c.y) * 3;
       if (c.patch >= 0) v += 8;
-      if (c.m.k === 'rainbow') v += 4;
-      if (res.f === me.f) v += 0.6;
-      v -= dist(me.x, me.y, c.x, c.y) * 2.2;
-      if (v > bv) (bv = v), (best = c);
+      if (c.m.k === 'rainbow') v += 14;
+      if (!s.dex.includes(res.f)) v += 1;
+      if (v > bv) (bv = v), (best = c), (keep = res.f === me.f && res.tier > me.tier);
     }
     if (!best) return NO;
-    if (me.f === 'white' || best.patch >= 0 || me.T < 110 || bv > curFit + 0.4) return tapCand(s, best);
+    const on = me.f === target || (me.f === 'rainbow') || (me.f === 'golem');
+    if (!on || best.patch >= 0 || best.m.k === 'rainbow' || me.T < 140 || (keep && bv > 9)) return tapCand(s, best);
     return NO;
   },
 };
@@ -1576,7 +1616,7 @@ export const colorsoulHabit: Bot<SoulState> = {
     return best ? tapCand(s, best) : NO;
   },
 };
-/** 독립 버릇 봇: 늘 빨강만 (빨강이 없으면 가장 가까운 것) — 한 색만 고르는 버릇 */
+/** 독립 버릇 봇: 늘 빨강만 (가장 가까운 빨강 — 빨강이 없으면 안 누른다) — 한 색·한 모습만 고르는 버릇(규칙 15 확인) */
 export const colorsoulHabit2: Bot<SoulState> = {
   name: '버릇: 늘 빨강만',
   act(s) {
@@ -1584,31 +1624,2706 @@ export const colorsoulHabit2: Bot<SoulState> = {
     if (mid) return mid;
     if (!free(s)) return NO;
     let best: Cand | null = null, bv = 1e9;
-    for (const c of cands(s)) {
-      const v = dist(s.me.x, s.me.y, c.x, c.y) + (c.col === R ? 0 : 5);
-      if (v < bv) (bv = v), (best = c);
-    }
+    for (const c of cands(s)) if (c.col === R && dist(s.me.x, s.me.y, c.x, c.y) < bv) (bv = dist(s.me.x, s.me.y, c.x, c.y)), (best = c);
     return best ? tapCand(s, best) : NO;
   },
 };
 /** 측정·스크린샷용: k판으로 건너뛰기 */
 export const __jump = (s: SoulState, k: number, lv = k + 1, perk: number[] = [k > 3 ? 2 : 0, k > 7 ? 2 : 0]) => ((s.stage = k), (s.lv = lv), (s.perk = perk), (s.tapped = true), newStage(s));
 
-// ───────────────────────────── 그리기 ─────────────────────────────
+// ───────────────────────────── 그리기: 도구 ─────────────────────────────
 type C2 = CanvasRenderingContext2D;
-function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
-  const fx = juice(s);
-  ctx.fillStyle = '#ddd';
-  ctx.fillRect(0, 0, w, h);
-  for (const m of s.foes) {
-    ctx.fillStyle = CHEX[m.col][0];
+/** 그림책 연필 선(먹색 보라) */
+const OUT = '#3b3150';
+const LW = 0.1;
+const hsh = (k: number) => {
+  const v = Math.sin(k * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+function ell(ctx: C2, x: number, y: number, rx: number, ry: number, rot = 0) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), rot, 0, TAU);
+}
+function lin(ctx: C2, x0: number, y0: number, x1: number, y1: number, ...st: [number, string][]) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  for (const [o, c] of st) g.addColorStop(o, c);
+  return g;
+}
+function radg(ctx: C2, x: number, y: number, r0: number, r1: number, ...st: [number, string][]) {
+  const g = ctx.createRadialGradient(x, y, Math.max(0, r0), x, y, Math.max(0.01, r1));
+  for (const [o, c] of st) g.addColorStop(o, c);
+  return g;
+}
+function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2)));
+}
+function starPath(ctx: C2, x: number, y: number, r: number, k = 0.47, rot = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + rot + (i * Math.PI) / 5, q = i % 2 ? r * k : r;
+    if (i) ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+    else ctx.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+  }
+  ctx.closePath();
+}
+function heartPath(ctx: C2, x: number, y: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + r * 0.9);
+  ctx.bezierCurveTo(x - r * 1.5, y - r * 0.1, x - r * 0.9, y - r * 1.25, x, y - r * 0.45);
+  ctx.bezierCurveTo(x + r * 0.9, y - r * 1.25, x + r * 1.5, y - r * 0.1, x, y + r * 0.9);
+  ctx.closePath();
+}
+/** 뾰족뾰족 (불꽃 갈기·터짐) */
+function burstPath(ctx: C2, x: number, y: number, r: number, n: number, k: number, rot = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const a = rot + (i * Math.PI) / n, q = i % 2 ? r * k : r;
+    if (i) ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+    else ctx.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+  }
+  ctx.closePath();
+}
+/** 물감 얼룩 (울퉁불퉁 원) */
+function splatPath(ctx: C2, x: number, y: number, r: number, seed: number, n = 9) {
+  ctx.beginPath();
+  for (let i = 0; i <= n * 2; i++) {
+    const a = (i / (n * 2)) * TAU, q = r * (i % 2 ? 0.78 + hsh(seed + i) * 0.18 : 0.95 + hsh(seed + i * 3) * 0.2);
+    const px = x + Math.cos(a) * q, py = y + Math.sin(a) * q;
+    if (i) ctx.quadraticCurveTo(x + Math.cos(a - Math.PI / (n * 2)) * r * 1.05, y + Math.sin(a - Math.PI / (n * 2)) * r * 1.05, px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+function layer(w: number, h: number, sc: number, paint: (c: C2) => void) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w * sc));
+  c.height = Math.max(1, Math.ceil(h * sc));
+  const g = c.getContext('2d')!;
+  g.scale(sc, sc);
+  paint(g);
+  return c;
+}
+/** 채우고 테두리 */
+function ink(g: C2, fill: string | CanvasGradient, lw = LW, stroke = OUT) {
+  g.fillStyle = fill;
+  g.fill();
+  if (lw > 0) (g.strokeStyle = stroke), (g.lineWidth = lw), g.stroke();
+}
+function shine(g: C2, x: number, y: number, rx: number, ry: number, rot = -0.5, a = 0.55) {
+  g.fillStyle = `rgba(255,255,255,${a})`;
+  ell(g, x, y, rx, ry, rot);
+  g.fill();
+}
+function blush(g: C2, cx: number, cy: number, e: number, r: number) {
+  g.fillStyle = 'rgba(255,110,130,.45)';
+  for (const sd of [-1, 1]) ell(g, cx + sd * e, cy, r, r * 0.6), g.fill();
+}
+/** 눈 한 쌍: (cx, cy) 가운데, e 간격 절반, k 크기, mood 0 보통 · 1 신남(^^) · 2 화남 · 3 어질 · 4 놀람 · 5 날카로움 */
+function eyes(g: C2, cx: number, cy: number, e: number, k: number, mood = 0, look = 0.15) {
+  for (const sd of [-1, 1]) {
+    const x = cx + sd * e;
+    if (mood === 1) {
+      g.strokeStyle = OUT;
+      g.lineWidth = k * 0.42;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.arc(x, cy + k * 0.35, k * 0.75, Math.PI * 1.15, Math.PI * 1.85);
+      g.stroke();
+      continue;
+    }
+    if (mood === 3) {
+      g.strokeStyle = OUT;
+      g.lineWidth = k * 0.3;
+      g.beginPath();
+      for (let i = 0; i <= 12; i++) {
+        const a = i * 0.8, q = k * (0.12 + i * 0.07);
+        if (i) g.lineTo(x + Math.cos(a) * q, cy + Math.sin(a) * q);
+        else g.moveTo(x + q, cy);
+      }
+      g.stroke();
+      continue;
+    }
+    const sk = mood === 4 ? 1.15 : mood === 5 ? 0.85 : 1;
+    ell(g, x, cy, k * 0.82 * sk, k * (mood === 5 ? 0.7 : 1) * sk);
+    ink(g, '#ffffff', k * 0.22);
+    ell(g, x + look * k, cy + k * 0.08, k * 0.5 * sk, k * (mood === 5 ? 0.45 : 0.6) * sk);
+    g.fillStyle = '#251c35';
+    g.fill();
+    ell(g, x + look * k - k * 0.16, cy - k * 0.18, k * 0.2, k * 0.22);
+    g.fillStyle = '#ffffff';
+    g.fill();
+    if (mood === 2 || mood === 5) {
+      g.strokeStyle = OUT;
+      g.lineWidth = k * 0.4;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(x + sd * k * 1.0, cy - k * 1.45);
+      g.lineTo(x - sd * k * 0.7, cy - k * 0.9);
+      g.stroke();
+    }
+  }
+}
+/** 입: kind 0 미소 · 1 활짝(벌림) · 2 이빨 씩 · 3 꽥 · 4 o */
+function mouth(g: C2, x: number, y: number, w: number, kind = 0) {
+  g.strokeStyle = OUT;
+  g.lineWidth = w * 0.22;
+  g.lineCap = 'round';
+  g.beginPath();
+  if (kind === 0) {
+    g.moveTo(x - w * 0.5, y);
+    g.quadraticCurveTo(x, y + w * 0.55, x + w * 0.5, y);
+    g.stroke();
+  } else if (kind === 1) {
+    g.moveTo(x - w * 0.6, y - w * 0.1);
+    g.quadraticCurveTo(x, y + w * 1.1, x + w * 0.6, y - w * 0.1);
+    g.closePath();
+    ink(g, '#8c2f3a', w * 0.2);
+    ell(g, x, y + w * 0.42, w * 0.3, w * 0.2);
+    g.fillStyle = '#ff8a9a';
+    g.fill();
+  } else if (kind === 2) {
+    g.moveTo(x - w * 0.6, y);
+    g.quadraticCurveTo(x, y + w * 0.7, x + w * 0.6, y);
+    g.closePath();
+    ink(g, '#ffffff', w * 0.18);
+    g.beginPath();
+    for (let i = -1; i <= 1; i++) (g.moveTo(x + i * w * 0.25, y + w * 0.05), g.lineTo(x + i * w * 0.25, y + w * 0.3));
+    g.lineWidth = w * 0.1;
+    g.stroke();
+  } else if (kind === 3) {
+    ell(g, x, y + w * 0.2, w * 0.32, w * 0.42);
+    ink(g, '#8c2f3a', w * 0.18);
+  } else {
+    ell(g, x, y + w * 0.15, w * 0.2, w * 0.24);
+    ink(g, '#8c2f3a', w * 0.14);
+  }
+}
+/** 불꽃 하나 (아래가 뿌리) */
+function flame(g: C2, x: number, y: number, k: number, lean = 0, cols = ['#ff4a2e', '#ff9a2a', '#ffe36b']) {
+  cols.forEach((c, i) => {
+    const q = k * (1 - i * 0.3);
+    g.beginPath();
+    g.moveTo(x - q * 0.5, y);
+    g.quadraticCurveTo(x - q * 0.62, y - q * 0.8, x + lean * q + q * 0.05, y - q * 1.6);
+    g.quadraticCurveTo(x + q * 0.25, y - q * 0.9, x + q * 0.55, y - q * 0.45);
+    g.quadraticCurveTo(x + q * 0.5, y, x - q * 0.5, y);
+    g.closePath();
+    g.fillStyle = c;
+    g.fill();
+  });
+}
+/** 번개 모양 */
+function boltPath(g: C2, x: number, y: number, k: number) {
+  g.beginPath();
+  g.moveTo(x + k * 0.15, y - k);
+  g.lineTo(x - k * 0.45, y + k * 0.1);
+  g.lineTo(x - k * 0.02, y + k * 0.1);
+  g.lineTo(x - k * 0.25, y + k);
+  g.lineTo(x + k * 0.45, y - k * 0.2);
+  g.lineTo(x + k * 0.02, y - k * 0.2);
+  g.closePath();
+}
+
+// ───────────────────────────── 그리기: 정령과 모습들 (단위 좌표: 몸 반지름 1, 발 가운데 (0,0), 위가 -y, 오른쪽을 본다) ─────────────────────────────
+/** pose: 0 평소 · 1 힘줌(공격) · 2 아야 */
+const FPAINT: Record<FK, (g: C2, pose: number) => void> = {
+  white(g, pose) {
+    // 꼬마 하얀 정령: 말랑한 물방울 몸 + 위로 말린 불꽃 머리칼
+    g.beginPath();
+    g.moveTo(-0.95, -0.75);
+    g.bezierCurveTo(-1.05, -1.75, -0.4, -2.15, 0.05, -2.05);
+    g.bezierCurveTo(0.35, -2.5, 0.75, -2.55, 0.62, -2.2);
+    g.bezierCurveTo(0.95, -1.95, 1.08, -1.4, 0.98, -0.8);
+    g.bezierCurveTo(0.95, -0.15, 0.45, 0.02, 0, 0.02);
+    g.bezierCurveTo(-0.55, 0.02, -0.92, -0.2, -0.95, -0.75);
+    g.closePath();
+    ink(g, radg(g, -0.3, -1.4, 0.1, 1.5, [0, '#ffffff'], [0.7, '#f2f5ff'], [1, '#c9d6ff']), LW, '#6a74a8');
+    shine(g, -0.5, -1.45, 0.22, 0.38, 0.3, 0.9);
+    // 팔
+    for (const sd of [-1, 1]) {
+      ell(g, sd * 0.98, -0.72 + (pose === 1 ? -0.25 : 0), 0.2, 0.15, sd * 0.6);
+      ink(g, '#f6f8ff', LW * 0.8, '#6a74a8');
+    }
+    eyes(g, 0.1, -1.1, 0.36, 0.26, pose === 2 ? 3 : pose === 1 ? 4 : 0, 0.25);
+    blush(g, 0.1, -0.78, 0.6, 0.14);
+    mouth(g, 0.12, -0.72, 0.36, pose === 1 ? 1 : 0);
+  },
+  lion(g, pose) {
+    // 불 사자: 몸통 + 불꽃 갈기 + 불꽃 꼬리
+    g.beginPath();
+    g.moveTo(-1.0, -0.95);
+    g.bezierCurveTo(-1.55, -1.25, -1.7, -1.75, -1.4, -2.0);
+    g.lineWidth = 0.16;
+    g.strokeStyle = OUT;
+    g.stroke();
+    g.lineWidth = 0.08;
+    g.strokeStyle = '#ffb347';
+    g.stroke();
+    flame(g, -1.4, -1.9, 0.42, 0.3);
+    for (const [lx, b] of [[-0.65, 0], [-0.3, 0.06], [0.35, 0], [0.62, 0.06]] as [number, number][]) {
+      rr(g, lx - 0.15, -0.6 - b, 0.3, 0.6 + b, 0.13);
+      ink(g, lx > 0 ? '#ffb24a' : '#f09a35');
+      ell(g, lx, -0.04, 0.17, 0.08);
+      ink(g, '#ffe0a8', LW * 0.6);
+    }
+    ell(g, -0.15, -0.82, 1.05, 0.58);
+    ink(g, lin(g, 0, -1.4, 0, -0.3, [0, '#ffc461'], [1, '#ff9a35']));
+    shine(g, -0.4, -1.12, 0.35, 0.12, 0, 0.45);
+    // 갈기 (세 겹 불꽃)
+    const hx = 0.72, hy = -1.35;
+    const rot = pose === 1 ? 0.25 : 0;
+    burstPath(g, hx - 0.05, hy, 0.95, 11, 0.62, rot);
+    ink(g, '#ff4a2e', LW * 0.9);
+    burstPath(g, hx - 0.02, hy, 0.78, 11, 0.62, rot + 0.3);
+    g.fillStyle = '#ff9a2a';
+    g.fill();
+    burstPath(g, hx, hy, 0.6, 11, 0.7, rot + 0.15);
+    g.fillStyle = '#ffd34a';
+    g.fill();
+    // 얼굴
+    ell(g, hx + 0.05, hy + 0.02, 0.5, 0.46);
+    ink(g, lin(g, 0, hy - 0.5, 0, hy + 0.5, [0, '#ffe08a'], [1, '#ffb85a']));
+    for (const sd of [-1, 1]) (ell(g, hx + sd * 0.34, hy - 0.4, 0.13, 0.13), ink(g, '#ffb85a', LW * 0.7));
+    eyes(g, hx + 0.08, hy - 0.06, 0.2, 0.15, pose === 2 ? 3 : pose === 1 ? 5 : 0, 0.3);
+    ell(g, hx + 0.2, hy + 0.22, 0.24, 0.16);
+    ink(g, '#fff1cc', LW * 0.7);
+    ell(g, hx + 0.24, hy + 0.13, 0.08, 0.06);
+    g.fillStyle = '#7a3b2e';
+    g.fill();
+    mouth(g, hx + 0.22, hy + 0.3, 0.22, pose === 1 ? 1 : 0);
+    blush(g, hx + 0.08, hy + 0.15, 0.32, 0.08);
+  },
+  whale(g, pose) {
+    // 물 고래: 둥근 몸 · 밝은 배 줄무늬 · 위로 들린 꼬리 · 등의 숨구멍
+    g.beginPath();
+    g.moveTo(-0.95, -0.85);
+    g.quadraticCurveTo(-1.5, -1.0, -1.6, -1.55);
+    g.quadraticCurveTo(-1.9, -1.85, -1.95, -2.1);
+    g.quadraticCurveTo(-1.6, -1.9, -1.45, -1.7);
+    g.quadraticCurveTo(-1.35, -2.0, -1.05, -2.05);
+    g.quadraticCurveTo(-1.15, -1.55, -0.8, -1.2);
+    g.closePath();
+    ink(g, '#2f7ae0');
+    g.beginPath();
+    g.moveTo(-1.05, -0.9);
+    g.bezierCurveTo(-1.1, -1.75, -0.2, -1.95, 0.45, -1.8);
+    g.bezierCurveTo(1.15, -1.62, 1.35, -1.05, 1.22, -0.62);
+    g.bezierCurveTo(1.05, -0.1, 0.4, 0.02, -0.2, 0.0);
+    g.bezierCurveTo(-0.75, -0.05, -1.02, -0.4, -1.05, -0.9);
+    g.closePath();
+    ink(g, lin(g, 0, -1.9, 0, 0, [0, '#6ab6ff'], [0.6, '#3b8dff'], [1, '#2a6fd6']));
+    g.save();
+    g.clip();
+    ell(g, 0.2, -0.05, 1.25, 0.5);
+    g.fillStyle = '#d6ecff';
+    g.fill();
+    g.strokeStyle = 'rgba(80,140,220,.55)';
+    g.lineWidth = 0.05;
+    for (let i = 0; i < 5; i++) (g.beginPath(), g.moveTo(-0.6 + i * 0.32, -0.42), g.lineTo(-0.5 + i * 0.32, 0.02), g.stroke());
+    g.restore();
+    g.beginPath();
+    g.moveTo(-1.05, -0.9);
+    g.bezierCurveTo(-1.1, -1.75, -0.2, -1.95, 0.45, -1.8);
+    g.bezierCurveTo(1.15, -1.62, 1.35, -1.05, 1.22, -0.62);
+    g.bezierCurveTo(1.05, -0.1, 0.4, 0.02, -0.2, 0.0);
+    g.bezierCurveTo(-0.75, -0.05, -1.02, -0.4, -1.05, -0.9);
+    g.closePath();
+    g.strokeStyle = OUT;
+    g.lineWidth = LW;
+    g.stroke();
+    shine(g, -0.2, -1.5, 0.45, 0.13, -0.15, 0.6);
+    // 지느러미
+    g.beginPath();
+    g.moveTo(0.05, -0.55);
+    g.quadraticCurveTo(-0.15, -0.1, -0.55, -0.15);
+    g.quadraticCurveTo(-0.3, -0.45, 0.05, -0.55);
+    ink(g, '#2f7ae0', LW * 0.8);
+    // 숨구멍
+    ell(g, 0.1, -1.83, 0.1, 0.05);
+    g.fillStyle = '#1d4fa8';
+    g.fill();
+    eyes(g, 0.78, -1.05, 0.0, 0.17, pose === 2 ? 3 : pose === 1 ? 4 : 0, 0.3);
+    blush(g, 0.86, -0.78, 0.0, 0.12);
+    mouth(g, 0.92, -0.62, 0.38, pose === 1 ? 1 : 0);
+  },
+  bird(g, pose) {
+    // 번개 새: 동그란 몸 · 번개 볏 · 지그재그 날개
+    const up = pose === 1 ? -0.5 : 0;
+    for (const sd of [-1, 1]) {
+      g.save();
+      g.translate(-0.05 + sd * 0.15, -1.05);
+      g.scale(sd < 0 ? -1 : 1, 1);
+      g.beginPath();
+      g.moveTo(0.3, 0);
+      g.lineTo(1.1, -0.55 + up);
+      g.lineTo(0.95, -0.2 + up * 0.5);
+      g.lineTo(1.3, -0.15 + up * 0.6);
+      g.lineTo(1.0, 0.15 + up * 0.3);
+      g.lineTo(1.25, 0.3 + up * 0.2);
+      g.lineTo(0.55, 0.45);
+      g.closePath();
+      ink(g, sd < 0 ? '#f2b80c' : '#ffd334');
+      g.restore();
+    }
+    // 꼬리
+    g.beginPath();
+    g.moveTo(-0.6, -0.7);
+    g.lineTo(-1.25, -0.45);
+    g.lineTo(-1.05, -0.75);
+    g.lineTo(-1.4, -0.95);
+    g.lineTo(-0.7, -1.05);
+    g.closePath();
+    ink(g, '#ffb81c');
+    ell(g, 0.0, -1.0, 0.78, 0.74);
+    ink(g, radg(g, -0.25, -1.35, 0.05, 0.95, [0, '#fff3a6'], [0.6, '#ffd334'], [1, '#f0a80c']));
+    ell(g, 0.15, -0.72, 0.42, 0.32);
+    g.fillStyle = '#fff7cf';
+    g.fill();
+    // 볏 (번개 셋)
+    for (const [dx, k] of [[-0.15, 0.32], [0.12, 0.4], [0.38, 0.3]] as [number, number][]) (boltPath(g, dx, -1.85 - k * 0.3, k), ink(g, '#ffe95a', LW * 0.7));
+    eyes(g, 0.32, -1.12, 0.2, 0.15, pose === 2 ? 3 : pose === 1 ? 5 : 0, 0.35);
+    g.beginPath();
+    g.moveTo(0.62, -0.95);
+    g.lineTo(1.02, -0.86);
+    g.lineTo(0.64, -0.74);
+    g.closePath();
+    ink(g, '#ff8a2a', LW * 0.7);
+    blush(g, 0.32, -0.82, 0.36, 0.08);
+    for (const sd of [-0.15, 0.2]) (g.beginPath(), g.moveTo(sd, -0.3), g.lineTo(sd, 0), g.lineTo(sd + 0.12, 0), (g.strokeStyle = '#ff8a2a'), (g.lineWidth = 0.08), g.stroke());
+  },
+  dragon(g, pose) {
+    // 불 용: 큰 날개 · 뿔 · 긴 목 · 불꽃 꼬리
+    const fl = pose === 1 ? -0.35 : 0;
+    for (const sd of [1, -1]) {
+      g.save();
+      g.translate(-0.2, -1.1);
+      if (sd < 0) g.scale(0.8, 0.9);
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(-0.5, -1.35 + fl);
+      g.quadraticCurveTo(-0.9, -1.45 + fl, -1.5, -1.2 + fl);
+      g.quadraticCurveTo(-1.35, -0.85, -1.6, -0.55);
+      g.quadraticCurveTo(-1.2, -0.45, -1.15, -0.15);
+      g.quadraticCurveTo(-0.7, -0.25, -0.45, 0.15);
+      g.closePath();
+      ink(g, sd > 0 ? '#c42a3a' : '#9a1f2e');
+      g.strokeStyle = 'rgba(255,190,150,.6)';
+      g.lineWidth = 0.05;
+      g.beginPath();
+      g.moveTo(-0.5, -1.35 + fl);
+      g.lineTo(-0.6, -0.2);
+      g.moveTo(-0.5, -1.35 + fl);
+      g.lineTo(-1.1, -0.4);
+      g.stroke();
+      g.restore();
+    }
+    // 꼬리
+    g.beginPath();
+    g.moveTo(-0.7, -0.7);
+    g.quadraticCurveTo(-1.5, -0.6, -1.65, -1.1);
+    g.lineWidth = 0.34;
+    g.strokeStyle = OUT;
+    g.stroke();
+    g.lineWidth = 0.2;
+    g.strokeStyle = '#e8463c';
+    g.stroke();
+    flame(g, -1.65, -1.05, 0.38, -0.2);
+    for (const lx of [-0.35, 0.3]) (rr(g, lx - 0.14, -0.5, 0.28, 0.5, 0.12), ink(g, '#d63a3a'), ell(g, lx + 0.04, -0.03, 0.17, 0.07), ink(g, '#fff0d0', LW * 0.6));
+    ell(g, -0.05, -0.85, 0.9, 0.55);
+    ink(g, lin(g, 0, -1.4, 0, -0.3, [0, '#ff6a5a'], [1, '#d6303a']));
+    ell(g, 0.1, -0.6, 0.62, 0.3);
+    g.fillStyle = '#ffe2b0';
+    g.fill();
+    for (let i = 0; i < 4; i++) (g.beginPath(), g.moveTo(-0.4 + i * 0.26, -0.82), g.lineTo(-0.38 + i * 0.26, -0.36), (g.strokeStyle = 'rgba(200,120,80,.5)'), (g.lineWidth = 0.04), g.stroke());
+    // 목·머리
+    g.beginPath();
+    g.moveTo(0.45, -1.1);
+    g.quadraticCurveTo(0.75, -1.5, 0.85, -1.85);
+    g.lineTo(1.2, -1.75);
+    g.quadraticCurveTo(1.0, -1.3, 0.85, -0.85);
+    g.closePath();
+    ink(g, '#e8463c');
+    const hx = 1.05, hy = -1.95;
+    for (const sd of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(hx - 0.15 + sd * 0.12, hy - 0.3);
+      g.quadraticCurveTo(hx - 0.35 + sd * 0.18, hy - 0.75, hx - 0.55 + sd * 0.15, hy - 0.8);
+      g.quadraticCurveTo(hx - 0.25 + sd * 0.12, hy - 0.55, hx + 0.05 + sd * 0.12, hy - 0.32);
+      ink(g, '#ffe9b0', LW * 0.8);
+    }
+    ell(g, hx, hy, 0.42, 0.36);
+    ink(g, lin(g, 0, hy - 0.4, 0, hy + 0.4, [0, '#ff7a64'], [1, '#e0363a']));
+    g.beginPath();
+    g.moveTo(hx + 0.15, hy - 0.12);
+    g.quadraticCurveTo(hx + 0.75, hy - 0.05, hx + 0.72, hy + 0.18);
+    g.quadraticCurveTo(hx + 0.4, hy + 0.35, hx + 0.1, hy + 0.28);
+    g.closePath();
+    ink(g, '#ff8a6e');
+    ell(g, hx + 0.6, hy, 0.05, 0.04);
+    g.fillStyle = OUT;
+    g.fill();
+    if (pose === 1) {
+      g.beginPath();
+      g.moveTo(hx + 0.2, hy + 0.2);
+      g.lineTo(hx + 0.72, hy + 0.2);
+      g.lineTo(hx + 0.6, hy + 0.42);
+      g.closePath();
+      ink(g, '#8c2f3a', LW * 0.6);
+    }
+    eyes(g, hx - 0.02, hy - 0.08, 0.0, 0.14, pose === 2 ? 3 : 5, 0.35);
+    shine(g, -0.35, -1.18, 0.3, 0.1, 0, 0.45);
+  },
+  octo(g, pose) {
+    // 독구름 문어: 둥근 머리 · 말린 다리 여섯 · 점박이
+    const wv = pose === 1 ? 0.12 : 0;
+    for (let i = 0; i < 6; i++) {
+      const x0 = -0.62 + i * 0.25, sd = i < 3 ? -1 : 1, cx = x0 + sd * 0.35;
+      g.beginPath();
+      g.moveTo(x0 - 0.1, -0.75);
+      g.quadraticCurveTo(x0 - 0.05 + sd * 0.1, -0.2, cx, -0.05 - wv * (i % 2));
+      g.quadraticCurveTo(cx + sd * 0.25, -0.12, cx + sd * 0.16, -0.32);
+      g.quadraticCurveTo(cx + sd * 0.02, -0.25, x0 + 0.12 + sd * 0.05, -0.75);
+      g.closePath();
+      ink(g, i % 2 ? '#8e48e8' : '#a35cff');
+      for (let k = 0; k < 2; k++) (ell(g, x0 + sd * (0.08 + k * 0.1), -0.45 + k * 0.18, 0.05, 0.05), (g.fillStyle = '#e2c8ff'), g.fill());
+    }
+    g.beginPath();
+    g.moveTo(-0.85, -0.75);
+    g.bezierCurveTo(-1.0, -1.65, -0.45, -2.05, 0.05, -2.05);
+    g.bezierCurveTo(0.6, -2.05, 1.05, -1.65, 0.88, -0.75);
+    g.quadraticCurveTo(0.0, -0.55, -0.85, -0.75);
+    g.closePath();
+    ink(g, radg(g, -0.25, -1.6, 0.1, 1.2, [0, '#d8b6ff'], [0.55, '#a65cff'], [1, '#7a36d8']));
+    for (const [sx, sy, r] of [[-0.45, -1.55, 0.1], [0.55, -1.7, 0.08], [0.6, -1.25, 0.06], [-0.6, -1.15, 0.07]] as [number, number, number][]) (ell(g, sx, sy, r, r), (g.fillStyle = 'rgba(70,20,140,.35)'), g.fill());
+    shine(g, -0.35, -1.75, 0.25, 0.12, -0.4, 0.6);
+    eyes(g, 0.08, -1.2, 0.3, 0.2, pose === 2 ? 3 : pose === 1 ? 1 : 0, 0.2);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.07;
+    for (const sd of [-1, 1]) (g.beginPath(), g.moveTo(0.08 + sd * 0.12, -1.42), g.lineTo(0.08 + sd * 0.48, -1.47), g.stroke());
+    blush(g, 0.08, -0.95, 0.45, 0.1);
+    mouth(g, 0.1, -0.88, 0.26, pose === 1 ? 4 : 0);
+  },
+  turtle(g, pose) {
+    // 용암 거북: 화산 등껍질(용암 금) · 내민 머리
+    for (const lx of [-0.65, -0.2, 0.3, 0.7]) (rr(g, lx - 0.15, -0.38, 0.3, 0.38, 0.12), ink(g, '#ff8a4a'));
+    g.beginPath();
+    g.moveTo(0.7, -0.55);
+    g.quadraticCurveTo(1.1, -0.95, 1.35, -0.85);
+    g.quadraticCurveTo(1.55, -0.6, 1.3, -0.4);
+    g.quadraticCurveTo(1.0, -0.3, 0.7, -0.35);
+    g.closePath();
+    ink(g, lin(g, 0, -1, 0, -0.3, [0, '#ffa060'], [1, '#ff7a3a']));
+    eyes(g, 1.18, -0.72, 0.0, 0.13, pose === 2 ? 3 : pose === 1 ? 5 : 0, 0.3);
+    mouth(g, 1.38, -0.5, 0.16, pose === 1 ? 2 : 0);
+    g.beginPath();
+    g.moveTo(-1.1, -0.35);
+    g.bezierCurveTo(-1.15, -1.25, -0.6, -1.7, 0.0, -1.7);
+    g.bezierCurveTo(0.6, -1.7, 1.15, -1.25, 1.05, -0.35);
+    g.closePath();
+    ink(g, lin(g, 0, -1.7, 0, -0.35, [0, '#8a4a34'], [1, '#5a2e22']));
+    // 용암 금
+    g.save();
+    g.clip();
+    g.strokeStyle = '#ffb02e';
+    g.lineWidth = 0.1;
+    g.shadowColor = '#ff7a1a';
+    g.shadowBlur = 0;
+    for (const pts of [[[-0.8, -0.5], [-0.45, -0.9], [-0.55, -1.25]], [[-0.1, -0.4], [0.05, -0.85], [-0.15, -1.3]], [[0.65, -0.5], [0.45, -0.95], [0.6, -1.25]], [[-0.45, -0.9], [0.05, -0.85], [0.45, -0.95]]]) {
+      g.beginPath();
+      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      g.stroke();
+    }
+    g.strokeStyle = '#ffe36b';
+    g.lineWidth = 0.04;
+    g.stroke();
+    g.restore();
+    g.beginPath();
+    g.moveTo(-1.1, -0.35);
+    g.bezierCurveTo(-1.15, -1.25, -0.6, -1.7, 0.0, -1.7);
+    g.bezierCurveTo(0.6, -1.7, 1.15, -1.25, 1.05, -0.35);
+    g.closePath();
+    g.strokeStyle = OUT;
+    g.lineWidth = LW;
+    g.stroke();
+    // 화산 꼭대기
+    g.beginPath();
+    g.moveTo(-0.32, -1.62);
+    g.lineTo(-0.18, -2.05);
+    g.lineTo(0.18, -2.05);
+    g.lineTo(0.32, -1.62);
+    g.closePath();
+    ink(g, '#6a3828', LW * 0.9);
+    ell(g, 0, -2.05, 0.2, 0.07);
+    ink(g, '#ffb02e', LW * 0.6);
+    flame(g, 0.0, -2.05, pose === 1 ? 0.45 : 0.3, 0, ['#ff5a2a', '#ffb02e', '#fff2a0']);
+    rr(g, -1.15, -0.45, 2.25, 0.18, 0.09);
+    ink(g, '#ffcf6a', LW * 0.8);
+    shine(g, -0.5, -1.35, 0.25, 0.1, -0.5, 0.35);
+  },
+  snake(g, pose) {
+    // 덩굴 뱀: S자로 말린 몸 · 잎사귀 · 머리 꽃
+    const path = () => {
+      g.beginPath();
+      g.moveTo(-1.25, -0.2);
+      g.bezierCurveTo(-0.8, 0.15, -0.2, -0.05, -0.1, -0.45);
+      g.bezierCurveTo(0.0, -0.85, -0.7, -0.95, -0.55, -1.3);
+      g.bezierCurveTo(-0.4, -1.65, 0.3, -1.55, 0.55, -1.55);
+    };
+    path();
+    g.lineCap = 'round';
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.62;
+    g.stroke();
+    path();
+    g.strokeStyle = '#3fcf5e';
+    g.lineWidth = 0.46;
+    g.stroke();
+    path();
+    g.strokeStyle = '#a8f0b4';
+    g.lineWidth = 0.14;
+    g.setLineDash([0.12, 0.18]);
+    g.stroke();
+    g.setLineDash([]);
+    for (const [lx, ly, a] of [[-0.85, -0.05, 2.4], [-0.15, -0.72, 0.4], [-0.6, -1.15, 2.6], [0.05, -1.6, -0.6]] as [number, number, number][]) {
+      g.save();
+      g.translate(lx, ly);
+      g.rotate(a);
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.quadraticCurveTo(0.2, -0.18, 0.42, 0);
+      g.quadraticCurveTo(0.2, 0.18, 0, 0);
+      ink(g, '#2fae4a', LW * 0.6);
+      g.restore();
+    }
+    const hx = 0.78, hy = -1.58;
+    ell(g, hx, hy, 0.42, 0.34);
+    ink(g, lin(g, 0, hy - 0.35, 0, hy + 0.35, [0, '#7ee88e'], [1, '#2fb84c']));
+    for (let i = 0; i < 5; i++) (ell(g, hx - 0.2 + Math.cos((i * TAU) / 5) * 0.13, hy - 0.4 + Math.sin((i * TAU) / 5) * 0.13, 0.09, 0.09), ink(g, '#ff9ecb', LW * 0.4));
+    ell(g, hx - 0.2, hy - 0.4, 0.07, 0.07);
+    g.fillStyle = '#ffe36b';
+    g.fill();
+    eyes(g, hx + 0.05, hy - 0.06, 0.17, 0.13, pose === 2 ? 3 : pose === 1 ? 5 : 0, 0.35);
+    if (pose === 1) {
+      g.beginPath();
+      g.moveTo(hx + 0.38, hy + 0.12);
+      g.lineTo(hx + 0.75, hy + 0.15);
+      g.lineTo(hx + 0.85, hy + 0.05);
+      g.moveTo(hx + 0.75, hy + 0.15);
+      g.lineTo(hx + 0.84, hy + 0.27);
+      g.strokeStyle = '#ff4a6e';
+      g.lineWidth = 0.06;
+      g.stroke();
+    }
+    mouth(g, hx + 0.22, hy + 0.14, 0.2, 0);
+    blush(g, hx + 0.05, hy + 0.12, 0.25, 0.07);
+  },
+  golem(g, pose) {
+    // 진흙 골렘: 울퉁불퉁 진흙 몸 · 세 색 물감 줄 · 커다란 주먹
+    const up = pose === 1 ? -0.45 : 0;
+    for (const sd of [-1, 1]) {
+      ell(g, sd * 1.12, -1.0 + up, 0.42, 0.4);
+      ink(g, lin(g, 0, -1.4, 0, -0.6, [0, '#c08a52'], [1, '#8a5a30']));
+      for (let k = 0; k < 3; k++) (g.beginPath(), g.moveTo(sd * (0.95 + k * 0.1), -1.25 + up), g.lineTo(sd * (0.98 + k * 0.1), -1.1 + up), (g.strokeStyle = OUT), (g.lineWidth = 0.05), g.stroke());
+    }
+    for (const lx of [-0.45, 0.45]) (rr(g, lx - 0.25, -0.45, 0.5, 0.45, 0.12), ink(g, '#8a5a30'));
+    g.beginPath();
+    g.moveTo(-0.95, -0.4);
+    g.quadraticCurveTo(-1.1, -1.4, -0.75, -1.85);
+    g.quadraticCurveTo(0, -2.2, 0.75, -1.85);
+    g.quadraticCurveTo(1.1, -1.4, 0.95, -0.4);
+    g.quadraticCurveTo(0, -0.25, -0.95, -0.4);
+    g.closePath();
+    ink(g, lin(g, 0, -2.1, 0, -0.3, [0, '#d6a46a'], [1, '#9a6a3a']));
+    g.save();
+    g.clip();
+    [['#ff5246', -1.05], ['#3b8dff', -0.8], ['#ffd334', -0.55]].forEach(([c, y], i) => {
+      g.beginPath();
+      g.moveTo(-1.2, (y as number) + 0.05 * i);
+      g.quadraticCurveTo(0, (y as number) - 0.2, 1.2, (y as number) + 0.05);
+      g.lineWidth = 0.16;
+      g.strokeStyle = c as string;
+      g.stroke();
+    });
+    for (const [px, py] of [[-0.5, -1.6], [0.55, -1.45], [0.2, -1.85]]) (ell(g, px, py, 0.1, 0.07), (g.fillStyle = 'rgba(90,50,20,.35)'), g.fill());
+    g.restore();
+    // 머리 (눈이 빛남)
+    rr(g, -0.42, -2.35, 0.84, 0.55, 0.18);
+    ink(g, '#b07a44');
+    for (const sd of [-1, 1]) (ell(g, sd * 0.18, -2.08, 0.11, 0.13), ink(g, '#fff6a0', LW * 0.6));
+    mouth(g, 0, -1.92, 0.3, pose === 1 ? 2 : 4);
+    shine(g, -0.5, -1.7, 0.2, 0.3, 0.4, 0.3);
+  },
+  narwhal(g, pose) {
+    // 파도 일각고래: 짙은 파랑 몸 · 꼬인 뿔 · 몸 아래 하얀 물마루
+    g.beginPath();
+    g.moveTo(-1.7, 0);
+    g.quadraticCurveTo(-1.2, -0.5, -0.7, -0.25);
+    g.quadraticCurveTo(-0.2, -0.55, 0.35, -0.25);
+    g.quadraticCurveTo(0.9, -0.6, 1.5, -0.2);
+    g.quadraticCurveTo(1.8, 0, 1.5, 0.08);
+    g.lineTo(-1.7, 0.08);
+    g.closePath();
+    ink(g, lin(g, 0, -0.6, 0, 0.08, [0, '#ffffff'], [1, '#bfe6ff']));
+    g.beginPath();
+    g.moveTo(-1.0, -1.0);
+    g.quadraticCurveTo(-1.6, -1.1, -1.75, -1.6);
+    g.quadraticCurveTo(-1.45, -1.5, -1.3, -1.35);
+    g.quadraticCurveTo(-1.25, -1.75, -1.0, -1.8);
+    g.quadraticCurveTo(-1.05, -1.4, -0.8, -1.25);
+    g.closePath();
+    ink(g, '#1d4fa8');
+    g.beginPath();
+    g.moveTo(-1.05, -1.0);
+    g.bezierCurveTo(-1.1, -1.8, -0.2, -2.0, 0.45, -1.85);
+    g.bezierCurveTo(1.15, -1.65, 1.35, -1.1, 1.22, -0.72);
+    g.bezierCurveTo(1.05, -0.25, 0.4, -0.15, -0.2, -0.2);
+    g.bezierCurveTo(-0.75, -0.25, -1.02, -0.55, -1.05, -1.0);
+    g.closePath();
+    ink(g, lin(g, 0, -1.9, 0, -0.2, [0, '#3f7fe0'], [0.6, '#1f5ec4'], [1, '#174a9e']));
+    for (const [fx, fy] of [[0.2, -1.5], [0.45, -1.35], [-0.2, -1.6], [0.7, -1.55], [-0.45, -1.35]]) (ell(g, fx, fy, 0.05, 0.05), (g.fillStyle = 'rgba(220,240,255,.7)'), g.fill());
+    ell(g, 0.25, -0.35, 0.7, 0.18);
+    g.fillStyle = '#cfe8ff';
+    g.fill();
+    shine(g, -0.25, -1.62, 0.4, 0.11, -0.15, 0.5);
+    // 꼬인 뿔
+    g.beginPath();
+    g.moveTo(1.05, -1.35);
+    g.lineTo(2.0, -2.0 + (pose === 1 ? -0.1 : 0));
+    g.lineTo(1.12, -1.18);
+    g.closePath();
+    ink(g, lin(g, 1, -1.3, 2, -2, [0, '#fff6dc'], [1, '#e8d6a8']), LW * 0.8);
+    g.strokeStyle = 'rgba(150,120,70,.7)';
+    g.lineWidth = 0.04;
+    for (let i = 1; i < 6; i++) (g.beginPath(), g.moveTo(1.08 + i * 0.15, -1.3 - i * 0.1), g.lineTo(1.14 + i * 0.15, -1.18 - i * 0.12), g.stroke());
+    eyes(g, 0.82, -1.15, 0.0, 0.16, pose === 2 ? 3 : 5, 0.3);
+    mouth(g, 0.95, -0.78, 0.32, pose === 1 ? 1 : 0);
+    blush(g, 0.82, -0.92, 0.0, 0.1);
+  },
+  eagle(g, pose) {
+    // 천둥 독수리: 넓게 편 날개 · 번개 깃 끝 · 볏 · 갈고리 부리 (앞에서 본 모습)
+    const fl = pose === 1 ? -0.4 : 0;
+    for (const sd of [-1, 1]) {
+      g.save();
+      g.scale(sd, 1);
+      g.beginPath();
+      g.moveTo(0.3, -1.3);
+      g.quadraticCurveTo(1.2, -2.1 + fl, 2.05, -1.95 + fl);
+      g.lineTo(1.8, -1.6 + fl * 0.6);
+      g.lineTo(2.0, -1.45 + fl * 0.5);
+      g.lineTo(1.65, -1.25 + fl * 0.4);
+      g.lineTo(1.82, -1.05 + fl * 0.3);
+      g.lineTo(1.4, -0.95 + fl * 0.2);
+      g.lineTo(1.5, -0.75);
+      g.quadraticCurveTo(0.9, -0.85, 0.35, -0.75);
+      g.closePath();
+      ink(g, lin(g, 0, -2, 0, -0.7, [0, '#ffe46b'], [1, '#e0a01c']));
+      g.strokeStyle = 'rgba(160,100,10,.6)';
+      g.lineWidth = 0.05;
+      for (let i = 0; i < 3; i++) (g.beginPath(), g.moveTo(0.6 + i * 0.35, -1.15), g.lineTo(1.0 + i * 0.32, -1.6 + fl * 0.5 - i * 0.05), g.stroke());
+      boltPath(g, 1.95, -2.15 + fl, 0.22);
+      ink(g, '#fff6a0', LW * 0.6);
+      g.restore();
+    }
+    g.beginPath();
+    g.moveTo(-0.35, -0.35);
+    g.lineTo(0, 0.05);
+    g.lineTo(0.35, -0.35);
+    g.closePath();
+    ink(g, '#d49a0a');
+    ell(g, 0, -1.0, 0.55, 0.72);
+    ink(g, radg(g, -0.15, -1.3, 0.05, 0.9, [0, '#fff0a0'], [0.6, '#f5c02a'], [1, '#c8860a']));
+    ell(g, 0, -0.75, 0.32, 0.38);
+    g.fillStyle = '#fff7d6';
+    g.fill();
+    for (const [dx, k] of [[-0.18, 0.28], [0.05, 0.36], [0.26, 0.26]] as [number, number][]) (boltPath(g, dx, -2.0 - k * 0.3, k), ink(g, '#ffe95a', LW * 0.6));
+    ell(g, 0, -1.55, 0.42, 0.38);
+    ink(g, '#ffd84a');
+    eyes(g, 0, -1.6, 0.2, 0.13, pose === 2 ? 3 : 5, 0.05);
+    g.beginPath();
+    g.moveTo(-0.13, -1.45);
+    g.quadraticCurveTo(0, -1.52, 0.13, -1.45);
+    g.quadraticCurveTo(0.1, -1.22, 0, -1.15);
+    g.quadraticCurveTo(-0.1, -1.22, -0.13, -1.45);
+    ink(g, '#ff8a2a', LW * 0.7);
+    for (const sd of [-0.2, 0.2]) (g.beginPath(), g.moveTo(sd, -0.3), g.lineTo(sd, 0), (g.strokeStyle = '#ff8a2a'), (g.lineWidth = 0.08), g.stroke());
+  },
+  rainbow(g, pose) {
+    // 무지개 고래: 고래 몸에 무지개 줄 · 반짝이
+    g.beginPath();
+    g.moveTo(-0.95, -0.85);
+    g.quadraticCurveTo(-1.5, -1.0, -1.6, -1.55);
+    g.quadraticCurveTo(-1.9, -1.85, -1.95, -2.1);
+    g.quadraticCurveTo(-1.6, -1.9, -1.45, -1.7);
+    g.quadraticCurveTo(-1.35, -2.0, -1.05, -2.05);
+    g.quadraticCurveTo(-1.15, -1.55, -0.8, -1.2);
+    g.closePath();
+    ink(g, '#ff7ad0');
+    const body = () => {
+      g.beginPath();
+      g.moveTo(-1.05, -0.9);
+      g.bezierCurveTo(-1.1, -1.75, -0.2, -1.95, 0.45, -1.8);
+      g.bezierCurveTo(1.15, -1.62, 1.35, -1.05, 1.22, -0.62);
+      g.bezierCurveTo(1.05, -0.1, 0.4, 0.02, -0.2, 0.0);
+      g.bezierCurveTo(-0.75, -0.05, -1.02, -0.4, -1.05, -0.9);
+      g.closePath();
+    };
+    body();
+    g.save();
+    g.clip();
+    ['#ff5246', '#ff9a2a', '#ffd334', '#3fcf5e', '#3b8dff', '#a65cff'].forEach((c, i) => {
+      g.fillStyle = c;
+      g.fillRect(-1.3, -2.0 + i * 0.34, 2.8, 0.36);
+    });
+    ell(g, 0.2, -0.05, 1.25, 0.42);
+    g.fillStyle = 'rgba(255,255,255,.75)';
+    g.fill();
+    g.restore();
+    body();
+    g.strokeStyle = OUT;
+    g.lineWidth = LW;
+    g.stroke();
+    shine(g, -0.2, -1.5, 0.45, 0.13, -0.15, 0.7);
+    for (const [sx, sy, k] of [[-0.4, -2.2, 0.16], [0.6, -2.15, 0.12], [1.3, -1.6, 0.1]] as [number, number, number][]) (starPath(g, sx, sy, k, 0.4), ink(g, '#fff6a0', LW * 0.5));
+    eyes(g, 0.78, -1.05, 0.0, 0.17, pose === 2 ? 3 : 1, 0.3);
+    blush(g, 0.86, -0.78, 0.0, 0.12);
+    mouth(g, 0.92, -0.62, 0.38, 1);
+  },
+};
+
+// ───────────────────────────── 그리기: 색 도둑 (같은 단위 좌표, col = 훔친 색 · 0이면 회색 껍데기) ─────────────────────────────
+const INKB: [string, string, string] = ['#5d5880', '#8c87b0', '#3b3658'];
+const GRAYC: [string, string, string] = ['#b9b6c6', '#e0dee8', '#8d8a9c'];
+const ecol = (col: number): [string, string, string] => (col ? (col === RAIN ? CHEX[8] : CHEX[col]) : GRAYC);
+const ebody = (col: number): [string, string, string] => (col ? INKB : ['#a4a1b4', '#cfcddb', '#7d7a90']);
+/** 도둑 얼굴: 짓궂은 눈 · 이빨 씩 (회색 껍데기는 어질어질) */
+function thiefFace(g: C2, x: number, y: number, k: number, col: number, pose: number) {
+  if (!col) return void (eyes(g, x, y, k * 1.1, k * 0.8, 3), mouth(g, x, y + k * 1.1, k * 1.2, 4));
+  eyes(g, x, y, k * 1.05, k * 0.82, pose === 1 ? 2 : 0, 0.3);
+  mouth(g, x + k * 0.1, y + k * 1.05, k * 1.4, pose === 1 ? 2 : 0);
+}
+const EPAINT: Record<EK, (g: C2, col: number, pose: number) => void> = {
+  blob(g, col, pose) {
+    const b = ebody(col), c = ecol(col), sq = pose === 1 ? 0.08 : 0;
+    g.beginPath();
+    g.moveTo(0, -2.0 + sq);
+    g.bezierCurveTo(0.35, -1.6, 1.05 + sq, -1.05, 1.0 + sq, -0.55);
+    g.bezierCurveTo(0.95, -0.05, 0.5, 0.02, 0, 0.02);
+    g.bezierCurveTo(-0.5, 0.02, -0.95 - sq, -0.05, -1.0 - sq, -0.55);
+    g.bezierCurveTo(-1.05 - sq, -1.05, -0.35, -1.6, 0, -2.0 + sq);
+    g.closePath();
+    ink(g, radg(g, -0.3, -1.1, 0.1, 1.2, [0, b[1]], [0.6, b[0]], [1, b[2]]));
+    shine(g, -0.45, -1.05, 0.14, 0.28, 0.4, 0.5);
+    // 훔친 물감: 머리 위 물감 방울 + 흘러내림
+    splatPath(g, 0.05, -1.7, 0.5, 3, 7);
+    ink(g, lin(g, 0, -2.2, 0, -1.3, [0, c[1]], [1, c[0]]), LW * 0.8);
+    for (const [dx, L] of [[-0.3, 0.35], [0.28, 0.25]] as [number, number][]) (rr(g, dx - 0.07, -1.5, 0.14, L, 0.07), (g.fillStyle = c[0]), g.fill());
+    shine(g, -0.1, -1.85, 0.14, 0.07, -0.3, 0.8);
+    thiefFace(g, 0.08, -0.85, 0.24, col, pose);
+  },
+  bucket(g, col, pose) {
+    const b = ebody(col), c = ecol(col), arm = pose === 1 ? -0.55 : 0;
+    for (const lx of [-0.45, 0.45]) (rr(g, lx - 0.2, -0.45, 0.4, 0.45, 0.15), ink(g, b[2]));
+    for (const sd of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(sd * 0.75, -1.15);
+      g.quadraticCurveTo(sd * 1.35, -0.95 + arm, sd * 1.25, -0.45 + arm);
+      g.lineWidth = 0.36;
+      g.strokeStyle = OUT;
+      g.stroke();
+      g.lineWidth = 0.24;
+      g.strokeStyle = b[0];
+      g.stroke();
+      ell(g, sd * 1.25, -0.42 + arm, 0.22, 0.2);
+      ink(g, b[1]);
+    }
+    ell(g, 0, -0.95, 0.95, 0.82);
+    ink(g, radg(g, -0.3, -1.3, 0.1, 1.2, [0, b[1]], [0.65, b[0]], [1, b[2]]));
+    ell(g, 0.05, -0.72, 0.55, 0.42);
+    g.fillStyle = 'rgba(255,255,255,.12)';
+    g.fill();
+    thiefFace(g, 0.12, -1.12, 0.22, col, pose);
+    // 물감 통 투구 (훔친 색)
+    for (const sd of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(sd * 0.55, -1.85);
+      g.quadraticCurveTo(sd * 0.95, -2.2, sd * 0.85, -2.55);
+      g.quadraticCurveTo(sd * 0.7, -2.15, sd * 0.4, -1.95);
+      ink(g, '#fff1d0', LW * 0.8);
+    }
+    g.beginPath();
+    g.moveTo(-0.78, -1.45);
+    g.lineTo(-0.62, -2.35);
+    g.lineTo(0.62, -2.35);
+    g.lineTo(0.78, -1.45);
+    g.closePath();
+    ink(g, lin(g, -0.8, 0, 0.8, 0, [0, c[2]], [0.35, c[0]], [0.7, c[1]], [1, c[0]]));
+    ell(g, 0, -2.35, 0.62, 0.14);
+    ink(g, c[2], LW * 0.8);
+    rr(g, -0.82, -1.58, 1.64, 0.2, 0.08);
+    ink(g, '#d8d4e6', LW * 0.7);
+    g.beginPath();
+    g.arc(0, -2.35, 0.55, Math.PI * 1.1, Math.PI * 1.9);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.06;
+    g.stroke();
+    for (const [dx, L] of [[-0.45, 0.4], [0.1, 0.55], [0.5, 0.3]] as [number, number][]) (rr(g, dx - 0.08, -1.45, 0.16, L, 0.08), (g.fillStyle = c[0]), g.fill());
+    shine(g, -0.35, -2.0, 0.1, 0.28, 0.1, 0.5);
+  },
+  kite(g, col, pose) {
+    const c = ecol(col), b = ebody(col), tilt = pose === 1 ? 0.12 : -0.05;
+    g.save();
+    g.translate(0, -1.2);
+    g.rotate(tilt);
+    // 꼬리 리본
+    g.beginPath();
+    g.moveTo(0, 1.0);
+    g.quadraticCurveTo(-0.4, 1.4, 0.1, 1.7);
+    g.quadraticCurveTo(0.5, 2.0, -0.1, 2.3);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.05;
+    g.stroke();
+    for (const [bx, by] of [[-0.15, 1.42], [0.25, 1.85]]) {
+      g.beginPath();
+      g.moveTo(bx - 0.18, by - 0.12);
+      g.lineTo(bx + 0.18, by + 0.12);
+      g.lineTo(bx + 0.18, by - 0.12);
+      g.lineTo(bx - 0.18, by + 0.12);
+      g.closePath();
+      ink(g, c[1], LW * 0.5);
+    }
+    g.beginPath();
+    g.moveTo(0, -1.15);
+    g.lineTo(1.0, -0.1);
+    g.lineTo(0, 1.05);
+    g.lineTo(-1.0, -0.1);
+    g.closePath();
+    ink(g, lin(g, -1, -1, 1, 1, [0, c[1]], [0.5, c[0]], [1, c[2]]));
+    g.beginPath();
+    g.moveTo(0, -1.15);
+    g.lineTo(0, 1.05);
+    g.moveTo(-1.0, -0.1);
+    g.lineTo(1.0, -0.1);
+    g.strokeStyle = 'rgba(80,50,30,.6)';
+    g.lineWidth = 0.06;
+    g.stroke();
+    g.restore();
+    // 연 위에 탄 꼬마 도둑 (고글)
+    ell(g, 0.05, -1.55, 0.42, 0.38);
+    ink(g, radg(g, -0.1, -1.7, 0.05, 0.5, [0, b[1]], [1, b[0]]));
+    rr(g, -0.38, -1.78, 0.86, 0.22, 0.1);
+    ink(g, '#ffb02e', LW * 0.6);
+    for (const sd of [-1, 1]) (ell(g, 0.05 + sd * 0.2, -1.67, 0.13, 0.12), ink(g, col ? '#cfeaff' : '#e0e0e0', LW * 0.5));
+    if (!col) eyes(g, 0.05, -1.67, 0.2, 0.1, 3);
+    mouth(g, 0.08, -1.38, 0.24, pose === 1 ? 2 : 0);
+    for (const sd of [-1, 1]) (ell(g, sd * 0.42, -1.25, 0.12, 0.1), ink(g, b[1], LW * 0.6));
+  },
+  crayon(g, col, pose) {
+    const c = ecol(col), step = pose === 1 ? 0.06 : 0;
+    for (const lx of [-0.28, 0.28]) (rr(g, lx - 0.13, -0.38 - (lx > 0 ? step : 0), 0.26, 0.38, 0.1), ink(g, '#4a4566'));
+    // 크레용 몸 (훔친 색)
+    g.beginPath();
+    g.moveTo(-0.55, -0.3);
+    g.lineTo(-0.55, -1.75);
+    g.lineTo(-0.3, -2.0);
+    g.lineTo(0, -2.55);
+    g.lineTo(0.3, -2.0);
+    g.lineTo(0.55, -1.75);
+    g.lineTo(0.55, -0.3);
+    g.closePath();
+    ink(g, lin(g, -0.55, 0, 0.55, 0, [0, c[2]], [0.35, c[0]], [0.65, c[1]], [1, c[0]]));
+    rr(g, -0.58, -1.35, 1.16, 0.62, 0.05);
+    ink(g, '#fff6e6', LW * 0.7);
+    g.strokeStyle = c[0];
+    g.lineWidth = 0.07;
+    for (const y of [-1.25, -0.82]) (g.beginPath(), g.moveTo(-0.5, y), g.lineTo(0.5, y), g.stroke());
+    thiefFace(g, 0.05, -1.08, 0.17, col, pose);
+    // 회색 방패 + 창
+    g.beginPath();
+    g.moveTo(0.95, -2.2);
+    g.lineTo(0.95, -0.2);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.12;
+    g.stroke();
+    g.beginPath();
+    g.moveTo(0.95, -2.55);
+    g.lineTo(1.12, -2.18);
+    g.lineTo(0.78, -2.18);
+    g.closePath();
+    ink(g, '#d8d4e6', LW * 0.6);
+    ell(g, 0.62, -0.95, 0.5, 0.62);
+    ink(g, radg(g, 0.5, -1.1, 0.05, 0.65, [0, '#e8e6f0'], [0.7, '#a9a6bb'], [1, '#7d7a90']));
+    ell(g, 0.62, -0.95, 0.32, 0.42);
+    g.strokeStyle = 'rgba(60,50,90,.6)';
+    g.lineWidth = 0.06;
+    g.stroke();
+    splatPath(g, 0.62, -0.95, 0.15, 7, 5);
+    g.fillStyle = '#4e4a68';
+    g.fill();
+  },
+  shell(g, col, pose) {
+    const c = ecol(col), b = ebody(col), st = pose === 1 ? 0.06 : 0;
+    // 몸 (달팽이)
+    g.beginPath();
+    g.moveTo(-1.15, 0);
+    g.quadraticCurveTo(-1.2, -0.35, -0.6, -0.4);
+    g.lineTo(0.85, -0.45);
+    g.quadraticCurveTo(1.25, -0.6, 1.2, -1.0);
+    g.quadraticCurveTo(1.5, -1.0, 1.4, -0.3);
+    g.quadraticCurveTo(1.3, 0.02, 0.6, 0.02);
+    g.closePath();
+    ink(g, lin(g, 0, -1, 0, 0, [0, b[1]], [1, b[0]]));
+    for (const sd of [0, 1]) {
+      g.beginPath();
+      g.moveTo(1.2 + sd * 0.12, -0.95);
+      g.lineTo(1.25 + sd * 0.28, -1.5 - st);
+      g.strokeStyle = OUT;
+      g.lineWidth = 0.07;
+      g.stroke();
+      ell(g, 1.25 + sd * 0.28, -1.55 - st, 0.13, 0.13);
+      ink(g, '#ffffff', LW * 0.5);
+      ell(g, 1.28 + sd * 0.28, -1.53 - st, 0.06, 0.07);
+      g.fillStyle = col ? '#251c35' : '#777';
+      g.fill();
+    }
+    mouth(g, 1.32, -0.6, 0.2, col ? 2 : 4);
+    // 굳은 물감 껍데기 (훔친 색, 반짝)
+    ell(g, -0.1, -1.0, 0.95, 0.88);
+    ink(g, radg(g, -0.4, -1.4, 0.05, 1.1, [0, c[1]], [0.55, c[0]], [1, c[2]]));
+    g.beginPath();
+    for (let i = 0; i <= 40; i++) {
+      const a = i * 0.36, q = 0.08 + i * 0.019;
+      const px = -0.1 + Math.cos(a) * q * 0.95, py = -1.0 + Math.sin(a) * q * 0.88;
+      if (i) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.strokeStyle = 'rgba(40,30,60,.45)';
+    g.lineWidth = 0.08;
+    g.stroke();
+    shine(g, -0.5, -1.45, 0.3, 0.14, -0.6, 0.65);
+  },
+  brush(g, col, pose) {
+    const c = ecol(col), b = ebody(col), lean = pose === 1 ? 0.15 : 0;
+    g.save();
+    g.translate(0, -0.55);
+    g.rotate(-0.18 - lean);
+    // 붓 (자루 · 쇠 띠 · 훔친 색 털)
+    rr(g, -1.4, -0.11, 1.7, 0.22, 0.1);
+    ink(g, lin(g, 0, -0.1, 0, 0.1, [0, '#e8b070'], [1, '#b0703a']));
+    rr(g, 0.25, -0.17, 0.32, 0.34, 0.05);
+    ink(g, '#d8d4e6', LW * 0.7);
+    g.beginPath();
+    g.moveTo(0.55, -0.2);
+    g.quadraticCurveTo(1.05, -0.32, 1.45, 0);
+    g.quadraticCurveTo(1.05, 0.32, 0.55, 0.2);
+    g.closePath();
+    ink(g, lin(g, 0.5, 0, 1.45, 0, [0, c[2]], [0.5, c[0]], [1, c[1]]));
+    g.restore();
+    // 붓에 탄 도깨비
+    ell(g, -0.25, -1.15, 0.5, 0.5);
+    ink(g, radg(g, -0.4, -1.3, 0.05, 0.6, [0, b[1]], [1, b[0]]));
+    for (const sd of [-1, 1]) (g.beginPath(), g.moveTo(-0.25 + sd * 0.25, -1.55), g.lineTo(-0.25 + sd * 0.42, -1.95), g.lineTo(-0.25 + sd * 0.08, -1.62), ink(g, b[2], LW * 0.7));
+    thiefFace(g, -0.15, -1.2, 0.16, col, pose);
+    g.strokeStyle = 'rgba(255,255,255,.8)';
+    g.lineWidth = 0.08;
+    for (let i = 0; i < 3; i++) (g.beginPath(), g.moveTo(-1.2 - i * 0.15, -0.9 + i * 0.25), g.lineTo(-1.75 - i * 0.15, -0.9 + i * 0.25), g.stroke());
+  },
+  balloon(g, col, pose) {
+    const c = ecol(col), b = ebody(col), sw = pose === 1 ? 0.1 : -0.05;
+    g.beginPath();
+    g.moveTo(0, -1.45);
+    g.quadraticCurveTo(0.15 + sw, -1.15, 0, -0.95);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.05;
+    g.stroke();
+    ell(g, 0, -2.2, 0.72, 0.8);
+    ink(g, radg(g, -0.25, -2.5, 0.05, 0.9, [0, c[1]], [0.6, c[0]], [1, c[2]]));
+    g.beginPath();
+    g.moveTo(-0.12, -1.38);
+    g.lineTo(0.12, -1.38);
+    g.lineTo(0, -1.5);
+    g.closePath();
+    ink(g, c[2], LW * 0.5);
+    shine(g, -0.3, -2.5, 0.12, 0.25, 0.4, 0.8);
+    ell(g, 0, -0.65, 0.45, 0.42);
+    ink(g, radg(g, -0.15, -0.8, 0.05, 0.5, [0, b[1]], [1, b[0]]));
+    thiefFace(g, 0.05, -0.68, 0.14, col, pose);
+    for (const sd of [-1, 1]) (g.beginPath(), g.moveTo(sd * 0.3, -0.92), g.lineTo(sd * 0.08, -1.0), (g.strokeStyle = OUT), (g.lineWidth = 0.08), g.stroke());
+    ell(g, 0.5, -0.32, 0.2, 0.2);
+    ink(g, '#3b3658', LW * 0.6);
+    g.beginPath();
+    g.moveTo(0.55, -0.5);
+    g.lineTo(0.62, -0.62);
+    g.strokeStyle = '#ffb02e';
+    g.lineWidth = 0.05;
+    g.stroke();
+  },
+  tower(g, col) {
+    const c = ecol(col);
+    // 먹물 굴뚝 (먹물 병): 짙은 유리병 · 훔친 색 꼬리표 · 먹물 연기
+    g.beginPath();
+    g.moveTo(-0.85, 0);
+    g.lineTo(-0.95, -1.3);
+    g.quadraticCurveTo(-0.95, -1.75, -0.45, -1.85);
+    g.lineTo(-0.35, -2.25);
+    g.lineTo(0.35, -2.25);
+    g.lineTo(0.45, -1.85);
+    g.quadraticCurveTo(0.95, -1.75, 0.95, -1.3);
+    g.lineTo(0.85, 0);
+    g.closePath();
+    ink(g, lin(g, -0.9, 0, 0.9, 0, [0, '#2e2a48'], [0.4, '#4e4a72'], [1, '#2a2640']));
+    rr(g, -0.42, -2.5, 0.84, 0.3, 0.06);
+    ink(g, '#8a7a66', LW * 0.8);
+    rr(g, -0.6, -1.25, 1.2, 0.65, 0.08);
+    ink(g, '#fff6e6', LW * 0.7);
+    splatPath(g, 0, -0.93, 0.25, 11, 6);
+    ink(g, c[0], LW * 0.5);
+    shine(g, -0.6, -1.4, 0.1, 0.4, 0, 0.35);
+    eyes(g, 0, -1.55, 0.25, 0.12, col ? 2 : 3);
+  },
+  rainbow(g, _col, pose) {
+    const b = ['#ffffff', '#ffffff', '#d8dcf6'];
+    g.beginPath();
+    g.moveTo(0, -1.9);
+    g.bezierCurveTo(0.4, -1.55, 0.95, -1.05, 0.92, -0.55);
+    g.bezierCurveTo(0.88, -0.05, 0.45, 0.02, 0, 0.02);
+    g.bezierCurveTo(-0.45, 0.02, -0.88, -0.05, -0.92, -0.55);
+    g.bezierCurveTo(-0.95, -1.05, -0.4, -1.55, 0, -1.9);
+    g.closePath();
+    ink(g, radg(g, -0.3, -1.1, 0.1, 1.2, [0, b[0]], [0.7, b[1]], [1, b[2]]));
+    // 무지개 목도리 (휘날림)
+    const cols = ['#ff5246', '#ff9a2a', '#ffd334', '#3fcf5e', '#3b8dff', '#a65cff'];
+    cols.forEach((cc, i) => {
+      g.beginPath();
+      g.moveTo(-0.85, -0.95 + i * 0.07);
+      g.quadraticCurveTo(0, -0.75 + i * 0.07, 0.85, -0.95 + i * 0.07);
+      g.lineWidth = 0.08;
+      g.strokeStyle = cc;
+      g.stroke();
+      g.beginPath();
+      g.moveTo(-0.8, -0.92 + i * 0.07);
+      g.quadraticCurveTo(-1.3, -1.0 + i * 0.1 + (pose ? 0.15 : 0), -1.7, -1.2 + i * 0.12 + (pose ? 0.25 : 0));
+      g.stroke();
+    });
+    eyes(g, 0.1, -1.25, 0.28, 0.2, 4, 0.4);
+    mouth(g, 0.12, -1.0, 0.25, 4);
+    for (const [sx, sy] of [[-0.6, -1.75], [0.75, -1.6]]) (starPath(g, sx, sy, 0.18, 0.4), ink(g, '#fff6a0', LW * 0.5));
+  },
+  inkboss(g, _col, pose) {
+    // 대장 먹물 문어: 커다란 먹물 머리 · 성난 눈 · 다리 여섯 (두른 색은 따로 그린다)
+    for (let i = 0; i < 6; i++) {
+      const x0 = -0.7 + i * 0.28, sd = i < 3 ? -1 : 1, cx = x0 + sd * 0.6, wv = pose === 1 ? 0.15 * ((i % 2) * 2 - 1) : 0;
+      g.beginPath();
+      g.moveTo(x0 - 0.16, -0.8);
+      g.quadraticCurveTo(x0 + sd * 0.1, -0.1 + wv, cx, -0.05);
+      g.quadraticCurveTo(cx + sd * 0.35, -0.15, cx + sd * 0.22, -0.4);
+      g.quadraticCurveTo(cx - sd * 0.05, -0.3, x0 + 0.16, -0.8);
+      g.closePath();
+      ink(g, i % 2 ? '#3b3658' : '#4e4a72');
+      for (let k = 0; k < 3; k++) (ell(g, x0 + sd * (0.1 + k * 0.15), -0.55 + k * 0.17, 0.05, 0.05), (g.fillStyle = '#8c87b0'), g.fill());
+    }
+    g.beginPath();
+    g.moveTo(-0.95, -0.75);
+    g.bezierCurveTo(-1.15, -1.95, -0.5, -2.45, 0, -2.45);
+    g.bezierCurveTo(0.5, -2.45, 1.15, -1.95, 0.95, -0.75);
+    g.quadraticCurveTo(0, -0.5, -0.95, -0.75);
+    g.closePath();
+    ink(g, radg(g, -0.3, -1.9, 0.1, 1.5, [0, '#8c87b0'], [0.5, '#4e4a72'], [1, '#2e2a48']), LW * 1.2);
+    shine(g, -0.4, -2.05, 0.28, 0.14, -0.4, 0.4);
+    // 먹물 왕관 방울
+    for (let i = -2; i <= 2; i++) (splatPath(g, i * 0.28, -2.45 - (2 - Math.abs(i)) * 0.06, 0.13, 20 + i, 5), ink(g, '#2e2a48', LW * 0.6));
+    eyes(g, 0, -1.45, 0.38, 0.27, pose === 2 ? 3 : 5, 0.1);
+    mouth(g, 0.05, -1.02, 0.5, pose === 1 ? 2 : 2);
+  },
+  giant(g, _col, pose) {
+    // 대장 물감 통 거인: 회색 통을 쌓은 몸 · 큰 팔 (두른 색 통은 따로 그린다)
+    const arm = pose === 1 ? -0.3 : 0;
+    for (const lx of [-0.45, 0.45]) (rr(g, lx - 0.25, -0.5, 0.5, 0.5, 0.1), ink(g, '#6e6a86'));
+    for (const sd of [-1, 1]) {
+      rr(g, sd * 0.95 - 0.22, -1.65 + arm, 0.44, 1.0, 0.18);
+      ink(g, '#8d8a9c');
+      ell(g, sd * 0.95, -0.6 + arm, 0.3, 0.26);
+      ink(g, '#a4a1b4');
+    }
+    const can = (y: number, w: number, hh: number) => {
+      rr(g, -w / 2, y - hh, w, hh, 0.08);
+      ink(g, lin(g, -w / 2, 0, w / 2, 0, [0, '#7d7a90'], [0.4, '#b9b6c6'], [1, '#7d7a90']));
+      ell(g, 0, y - hh, w / 2, 0.1);
+      ink(g, '#9a98aa', LW * 0.7);
+    };
+    can(-0.45, 1.5, 0.75);
+    can(-1.25, 1.3, 0.7);
+    can(-1.95, 1.0, 0.6);
+    eyes(g, 0, -2.25, 0.25, 0.17, pose === 2 ? 3 : 5, 0.1);
+    mouth(g, 0, -2.0, 0.35, 2);
+    for (let i = 0; i < 3; i++) (rr(g, -0.5 + i * 0.4, -1.0, 0.14, 0.4 + (i % 2) * 0.2, 0.07), (g.fillStyle = '#6e6a86'), g.fill());
+  },
+  king(g, _col, pose) {
+    // 대장 회색 왕: 긴 망토 · 왕관 · 홀 (두른 색 보석은 따로 그린다)
+    g.beginPath();
+    g.moveTo(-1.15, 0);
+    g.quadraticCurveTo(-1.05, -1.4, -0.55, -1.75);
+    g.lineTo(0.55, -1.75);
+    g.quadraticCurveTo(1.05, -1.4, 1.15, 0);
+    g.closePath();
+    ink(g, lin(g, 0, -1.8, 0, 0, [0, '#8d8a9c'], [1, '#5d5a70']), LW * 1.1);
+    g.strokeStyle = '#e8e6f0';
+    g.lineWidth = 0.14;
+    g.beginPath();
+    g.moveTo(-1.12, -0.05);
+    g.lineTo(1.12, -0.05);
+    g.stroke();
+    ell(g, 0, -1.1, 0.5, 0.7);
+    ink(g, '#b9b6c6');
+    ell(g, 0, -2.1, 0.5, 0.48);
+    ink(g, radg(g, -0.15, -2.25, 0.05, 0.55, [0, '#d8d6e0'], [1, '#9a98aa']));
+    // 회색 수염
+    g.beginPath();
+    g.moveTo(-0.35, -1.95);
+    g.quadraticCurveTo(0, -1.25, 0.35, -1.95);
+    g.quadraticCurveTo(0, -1.75, -0.35, -1.95);
+    ink(g, '#e8e6f0', LW * 0.7);
+    eyes(g, 0, -2.18, 0.2, 0.12, pose === 2 ? 3 : 5, 0.05);
+    // 왕관
+    g.beginPath();
+    g.moveTo(-0.45, -2.45);
+    g.lineTo(-0.52, -2.95);
+    g.lineTo(-0.25, -2.7);
+    g.lineTo(0, -3.05);
+    g.lineTo(0.25, -2.7);
+    g.lineTo(0.52, -2.95);
+    g.lineTo(0.45, -2.45);
+    g.closePath();
+    ink(g, lin(g, 0, -3, 0, -2.45, [0, '#e8e6f0'], [1, '#9a98aa']));
+    g.beginPath();
+    g.moveTo(1.0, -2.5 + (pose === 1 ? -0.2 : 0));
+    g.lineTo(1.05, -0.4);
+    g.strokeStyle = OUT;
+    g.lineWidth = 0.12;
+    g.stroke();
+    starPath(g, 1.0, -2.6 + (pose === 1 ? -0.2 : 0), 0.22, 0.45);
+    ink(g, '#d8d6e0', LW * 0.6);
+  },
+};
+
+// ───────────────────────────── 그리기: 스티커 굽기 ─────────────────────────────
+/** 스티커 상자(단위): 가로 SW · 세로 SH · 발 가운데 위치 */
+const SW = 4.6, SH = 4.3, SOX = 2.3, SOY = 3.5;
+const SPR = new Map<string, HTMLCanvasElement>();
+function bake(key: string, q: number, paint: (g: C2) => void): HTMLCanvasElement {
+  let c = SPR.get(key);
+  if (!c) {
+    if (SPR.size > 420) SPR.clear();
+    c = layer(SW * q, SH * q, 1, (g) => {
+      g.translate(SOX * q, SOY * q);
+      g.scale(q, q);
+      g.lineJoin = 'round';
+      g.lineCap = 'round';
+      paint(g);
+    });
+    SPR.set(key, c);
+  }
+  return c;
+}
+/** 스티커 해상도는 약 15%씩 끊어서 (단계가 바뀔 때마다 새로 굽지 않게) */
+const qOf = (px: number) => Math.max(6, Math.round(Math.pow(2, Math.round(Math.log2(Math.max(6, px)) * 5) / 5)));
+const WARM = new WeakMap<object, { run: number; list: [string, () => void][] }>();
+/** 이 판에 나올 도둑(색·회색 · 몸짓)과 될 수 있는 모습(단계별 크기)의 스티커 목록 */
+function warmList(s: SoulState, w: number, sc: number): [string, () => void][] {
+  let wl = WARM.get(s);
+  if (wl && wl.run === s.runId) return wl.list;
+  const d = STAGES[s.stage], list: [string, () => void][] = [], kinds = new Set<EK>();
+  for (const gp of d.groups) for (const [k] of gp.f) kinds.add(k);
+  if (d.summon) for (const [k] of d.summon) kinds.add(k);
+  kinds.add('blob');
+  const push = (key: string, make: () => void) => list.push([key, make]);
+  for (const k of kinds)
+    for (const col of [...new Set(d.cols), 0])
+      for (const pose of col ? [0, 1] : [2]) {
+        const px = w * ED[k].r * sc * 1.05, q = qOf(px);
+        push(`e:${k}:${col}:${pose}:${q}`, () => foeSprite(k, col, pose, px));
+      }
+  if (d.boss)
+    for (const pose of [0, 1, 2]) {
+      const px = w * ED[d.boss].r * sc * 1.05;
+      push(`e:${d.boss}:0:${pose}:${qOf(px)}`, () => foeSprite(d.boss!, 0, pose, px));
+    }
+  for (const gp of d.groups)
+    if (gp.champ) {
+      const k = gp.champ, st = d.star, col = st.k !== 'time' && st.f ? (FD[st.f].mask === RAIN ? R : FD[st.f].mask) : R, px = w * ED[k].r * 1.45 * sc * 1.05;
+      for (const [c, pose] of [[col, 0], [col, 1], [0, 2]]) push(`e:${k}:${c}:${pose}:${qOf(px)}`, () => foeSprite(k, c, pose, px));
+    }
+  for (const f of DEX) {
+    if (!unl(s, f)) continue;
+    for (let tier = 1; tier <= 3; tier++)
+      for (const pose of [0, 1]) {
+        const px = w * FD[f].r * (1 + 0.12 * (tier - 1)) * (1 + 0.012 * (s.lv - 1)) * sc * 1.05, q = qOf(px);
+        push(`f:${f}:${pose}:${q}`, () => formSprite(f, pose, px));
+      }
+  }
+  WARM.set(s, (wl = { run: s.runId, list }));
+  return list;
+}
+const formSprite = (f: FK, pose: number, px: number) => bake(`f:${f}:${pose}:${qOf(px)}`, qOf(px), (g) => FPAINT[f](g, pose));
+const foeSprite = (k: EK, col: number, pose: number, px: number) => bake(`e:${k}:${col}:${pose}:${qOf(px)}`, qOf(px), (g) => EPAINT[k](g, col, pose));
+/** 될 모습의 실루엣 (말풍선 속 · 도감의 빈칸) */
+function silhouette(f: FK, fill: string, px: number): HTMLCanvasElement {
+  const q = qOf(px), key = `s:${f}:${fill}:${q}`;
+  let c = SPR.get(key);
+  if (!c) {
+    c = layer(SW * q, SH * q, 1, (g) => {
+      g.save();
+      g.translate(SOX * q, SOY * q);
+      g.scale(q, q);
+      g.lineJoin = 'round';
+      FPAINT[f](g, 0);
+      g.restore();
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = fill;
+      g.fillRect(0, 0, SW * q, SH * q);
+    });
+    SPR.set(key, c);
+  }
+  return c;
+}
+/** 스티커 찍기: 지금 원점 = 발 가운데, u = 화면에서 몸 반지름 px */
+function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
+  ctx.drawImage(c, -SOX * u, -SOY * u, SW * u, SH * u);
+}
+
+// ───────────────────────────── 그리기: 회색 그림책 마을 (색 그림을 굽고 회색으로 보이다가, 물감이 닿은 자리만 색이 돌아온다) ─────────────────────────────
+/** 타일 하나의 세로 길이(가로 폭 단위) */
+const TH = 0.5;
+interface Pal { ground: [string, string]; stone: string[]; walk: string; roof: string[]; wall: string[]; tree: string[]; flower: string[]; edge: string }
+const PALS: Pal[] = [
+  { ground: ['#f3dfb8', '#ebcf9c'], stone: ['#ffb3a8', '#ffe08a', '#a8dcff', '#b8f0a8', '#e0c0ff', '#ffc8e0'], walk: '#d9c9b0', roof: ['#ff6b5a', '#4f9dff', '#ffc93c', '#7ed46a', '#ff8fc4'], wall: ['#fff3dc', '#ffe8c4', '#f4f0ff', '#e6f7ff'], tree: ['#5cc14a', '#3e9e3a', '#8ad86a'], flower: ['#ff5a7a', '#ffd23f', '#ff9a3c', '#c77dff', '#4fc3f7'], edge: '#c9b48e' },
+  { ground: ['#c9ec9a', '#aedc7e'], stone: ['#ffd0a0', '#fff0a0', '#a8e8ff', '#c8f5a8', '#ffb8d0'], walk: '#7ccbe8', roof: ['#ff7a5c', '#a35cff', '#ffcc33', '#3fcf9e'], wall: ['#fff6e6', '#ffeacc', '#eaf6ff'], tree: ['#4fb84a', '#2f9a44', '#7fd65a'], flower: ['#ff6b9a', '#ffe36b', '#7ad1ff', '#ffa04a'], edge: '#6aa850' },
+  { ground: ['#f8eefe', '#ead8fb'], stone: ['#ffd6ec', '#d6ecff', '#fff3c0', '#e6d6ff', '#d0ffe8'], walk: '#cfe8ff', roof: ['#ff8fc4', '#7ab8ff', '#ffd86b', '#b98cff'], wall: ['#ffffff', '#fff6fb', '#f2f6ff'], tree: ['#ffffff', '#f1eaff', '#ffe9f6'], flower: ['#ff9ecb', '#ffe36b', '#9fd8ff', '#c6a4ff', '#9ff0c4'], edge: '#c8b6ee' },
+];
+/** 집 한 채 (3/4 시점: 앞벽 + 지붕), (x, y) = 앞벽 아래 가운데, k = 폭 */
+function house(g: C2, x: number, y: number, k: number, P: Pal, seed: number, ch: number) {
+  const wallC = P.wall[seed % P.wall.length], roofC = P.roof[(seed >> 2) % P.roof.length], hh = k * (0.75 + hsh(seed) * 0.2);
+  g.fillStyle = 'rgba(60,40,70,.18)';
+  g.fillRect(x - k * 0.5 + k * 0.08, y - k * 0.05, k, k * 0.14);
+  rr(g, x - k * 0.5, y - hh, k, hh, k * 0.04);
+  ink(g, wallC, 1.4);
+  g.beginPath();
+  if (ch === 2) {
+    // 구름 성의 탑: 뾰족 지붕
+    g.moveTo(x - k * 0.58, y - hh);
+    g.lineTo(x, y - hh - k * 0.85);
+    g.lineTo(x + k * 0.58, y - hh);
+  } else {
+    g.moveTo(x - k * 0.62, y - hh + k * 0.04);
+    g.lineTo(x - k * 0.38, y - hh - k * 0.45);
+    g.lineTo(x + k * 0.38, y - hh - k * 0.45);
+    g.lineTo(x + k * 0.62, y - hh + k * 0.04);
+  }
+  g.closePath();
+  ink(g, roofC, 1.4);
+  g.strokeStyle = 'rgba(255,255,255,.45)';
+  g.lineWidth = 1.2;
+  for (let i = 1; i < 4; i++) (g.beginPath(), g.moveTo(x - k * (0.5 - i * 0.03), y - hh - k * 0.1 * i), g.lineTo(x + k * (0.5 - i * 0.03), y - hh - k * 0.1 * i), g.stroke());
+  if (ch === 1 && seed % 2) {
+    // 물감 공장 굴뚝
+    rr(g, x + k * 0.18, y - hh - k * 0.75, k * 0.16, k * 0.45, 2);
+    ink(g, '#c9b6a0', 1.2);
+    for (let i = 0; i < 3; i++) (ell(g, x + k * (0.26 + i * 0.08), y - hh - k * (0.85 + i * 0.15), k * (0.08 + i * 0.03), k * (0.07 + i * 0.03)), (g.fillStyle = P.flower[i % P.flower.length]), g.fill());
+  }
+  // 창문 · 문 · 꽃 상자
+  for (const sd of [-1, 1]) {
+    rr(g, x + sd * k * 0.22 - k * 0.11, y - hh * 0.78, k * 0.22, k * 0.22, k * 0.03);
+    ink(g, '#9fd8ff', 1.1);
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x + sd * k * 0.22, y - hh * 0.78);
+    g.lineTo(x + sd * k * 0.22, y - hh * 0.78 + k * 0.22);
+    g.stroke();
+    rr(g, x + sd * k * 0.22 - k * 0.13, y - hh * 0.78 + k * 0.21, k * 0.26, k * 0.06, 1);
+    ink(g, '#b9784a', 0.8);
+    for (let j = 0; j < 3; j++) (ell(g, x + sd * k * 0.22 + (j - 1) * k * 0.07, y - hh * 0.78 + k * 0.2, k * 0.035, k * 0.035), (g.fillStyle = P.flower[(seed + j) % P.flower.length]), g.fill());
+  }
+  rr(g, x - k * 0.1, y - k * 0.32, k * 0.2, k * 0.32, k * 0.08);
+  ink(g, ['#b9784a', '#ff8a5c', '#7a5cff'][seed % 3], 1.1);
+}
+function tree(g: C2, x: number, y: number, k: number, P: Pal, seed: number) {
+  g.fillStyle = 'rgba(60,40,70,.18)';
+  ell(g, x + k * 0.1, y, k * 0.5, k * 0.16);
+  g.fill();
+  rr(g, x - k * 0.08, y - k * 0.5, k * 0.16, k * 0.5, k * 0.05);
+  ink(g, '#a8703e', 1.2);
+  for (const [dx, dy, r] of [[-0.25, -0.75, 0.33], [0.22, -0.8, 0.32], [0, -1.05, 0.38]] as [number, number, number][]) (ell(g, x + dx * k, y + dy * k, r * k, r * k * 0.92), ink(g, P.tree[(seed + Math.round(dx * 10)) % P.tree.length], 1.3));
+  shine(g, x - k * 0.15, y - k * 1.15, k * 0.12, k * 0.07, -0.4, 0.5);
+  for (let j = 0; j < 3; j++) (ell(g, x + (hsh(seed + j) - 0.5) * k * 0.6, y - k * (0.7 + hsh(seed * 3 + j) * 0.4), k * 0.06, k * 0.06), (g.fillStyle = P.flower[(seed + j) % P.flower.length]), g.fill());
+}
+/** 타일 한 장(가로 폭 w px, 세로 TH·w) 색 그림 */
+function paintTile(g: C2, ch: number, i: number, w: number, plaza: number) {
+  const P = PALS[ch], H = TH * w, R = (v: number) => v * w, sd = (i * 7349 + ch * 131) >>> 0;
+  g.fillStyle = lin(g, 0, 0, 0, H, [0, P.ground[0]], [1, P.ground[1]]);
+  g.fillRect(0, 0, w, H);
+  // 돌길 (줄마다 어긋나게)
+  const rows = 5;
+  for (let r = 0; r < rows; r++) {
+    const y = (r + 0.5) * (H / rows), off = r % 2 ? R(0.05) : 0;
+    for (let c = -1; c < 11; c++) {
+      const x = R(0.1) * c + off + R(0.05), k = hsh(sd + r * 31 + c);
+      rr(g, x - R(0.043), y - H / rows / 2 + 1.5, R(0.086), H / rows - 3, R(0.02));
+      g.fillStyle = P.stone[Math.floor(k * P.stone.length)];
+      g.fill();
+      g.strokeStyle = 'rgba(120,90,60,.16)';
+      g.lineWidth = 1;
+      g.stroke();
+    }
+  }
+  if (ch === 1) {
+    // 운하 (왼쪽 가장자리) — 물결과 작은 배
+    g.fillStyle = lin(g, 0, 0, R(0.13), 0, [0, '#4fb2e8'], [1, '#7fd0f4']);
+    g.fillRect(0, 0, R(0.12), H);
+    g.strokeStyle = 'rgba(255,255,255,.6)';
+    g.lineWidth = 1.5;
+    for (let k = 0; k < 4; k++) (g.beginPath(), g.arc(R(0.04 + hsh(sd + k) * 0.05), H * (k + 0.5) / 4, R(0.02), Math.PI * 1.1, Math.PI * 1.9), g.stroke());
+    g.fillStyle = P.edge;
+    g.fillRect(R(0.12), 0, R(0.012), H);
+  }
+  if (ch === 2) {
+    // 구름 언덕
+    for (let k = 0; k < 6; k++) (ell(g, R(hsh(sd + k * 5)), H * hsh(sd + k * 9), R(0.06 + hsh(sd + k) * 0.05), R(0.03 + hsh(sd + k * 2) * 0.02)), (g.fillStyle = 'rgba(255,255,255,.8)'), g.fill());
+  }
+  // 가운데 장식 (적이 걷는 곳이라 바닥에 붙은 것만)
+  const deco = sd % 5;
+  if (plaza) {
+    // 광장: 분수 (색의 샘)
+    const cx = R(0.5), cy = H * 0.55, k = R(0.2);
+    ell(g, cx, cy, k * 1.5, k * 0.75);
+    ink(g, '#e8dcc8', 2);
+    ell(g, cx, cy, k * 1.25, k * 0.6);
+    ink(g, lin(g, 0, cy - k, 0, cy + k, [0, '#9fe0ff'], [1, '#4fb2e8']), 1.5);
+    ell(g, cx, cy - k * 0.2, k * 0.35, k * 0.2);
+    ink(g, '#f3e6c8', 1.5);
+    rr(g, cx - k * 0.1, cy - k * 0.9, k * 0.2, k * 0.7, k * 0.06);
+    ink(g, '#f3e6c8', 1.5);
+    for (let j = 0; j < 6; j++) (ell(g, cx + Math.cos(j) * k * 0.9, cy + Math.sin(j) * k * 0.4, k * 0.08, k * 0.06), (g.fillStyle = P.flower[j % P.flower.length]), g.fill());
+  } else if (deco === 0) {
+    // 꽃밭
+    const cx = R(0.3 + hsh(sd) * 0.4), cy = H * (0.3 + hsh(sd + 1) * 0.4);
+    ell(g, cx, cy, R(0.09), R(0.05));
+    ink(g, '#8fd06a', 1.2);
+    for (let j = 0; j < 7; j++) (ell(g, cx + Math.cos(j * 0.9) * R(0.055), cy + Math.sin(j * 0.9) * R(0.028), R(0.016), R(0.016)), (g.fillStyle = P.flower[j % P.flower.length]), g.fill());
+  } else if (deco === 1) {
+    // 사방치기
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 2;
+    const cx = R(0.5), cy = H * 0.5;
+    for (let j = 0; j < 4; j++) g.strokeRect(cx - R(0.04) + (j === 2 ? R(0.04) : j === 1 ? -R(0.04) : 0), cy - R(0.08) + j * R(0.04), R(0.08), R(0.04));
+  } else if (deco === 2) {
+    // 물웅덩이
+    ell(g, R(0.35 + hsh(sd) * 0.3), H * 0.6, R(0.07), R(0.03));
+    g.fillStyle = 'rgba(120,190,240,.55)';
+    g.fill();
+  } else if (deco === 3 && ch === 0) {
+    // 건널목 줄무늬
+    g.fillStyle = 'rgba(255,255,255,.8)';
+    for (let j = 0; j < 6; j++) g.fillRect(R(0.2 + j * 0.11), H * 0.42, R(0.06), H * 0.16);
+  }
+  // 양쪽 가장자리: 인도 · 집 · 나무 (판 가장자리는 도둑이 잘 안 가는 곳)
+  g.fillStyle = P.walk;
+  g.fillRect(R(0.88), 0, R(0.12), H);
+  if (ch !== 1) g.fillRect(0, 0, R(0.12), H);
+  g.fillStyle = P.edge;
+  g.fillRect(R(0.875), 0, R(0.01), H);
+  if (ch !== 1) g.fillRect(R(0.115), 0, R(0.01), H);
+  const lh = sd % 3, rh = (sd >> 3) % 3;
+  if (ch !== 1) {
+    if (lh === 2) tree(g, R(0.06), H * 0.85, R(0.11), P, sd);
+    else house(g, R(0.04), H * (0.75 + lh * 0.1), R(0.17), P, sd, ch);
+  } else if (sd % 2) {
+    // 운하의 작은 배
+    ell(g, R(0.06), H * 0.6, R(0.045), R(0.02));
+    ink(g, P.roof[sd % P.roof.length], 1.2);
+  }
+  if (rh === 2) tree(g, R(0.94), H * 0.8, R(0.11), P, sd + 3);
+  else house(g, R(0.96), H * (0.72 + rh * 0.12), R(0.17), P, sd + 5, ch);
+  // 가로등
+  if (sd % 4 === 1) {
+    const lx = R(0.86), ly = H * 0.4;
+    rr(g, lx - 1.5, ly - R(0.12), 3, R(0.12), 1.5);
+    ink(g, '#6b5a7a', 1);
+    ell(g, lx, ly - R(0.13), R(0.02), R(0.02));
+    ink(g, '#fff6a0', 1);
+  }
+}
+interface Tile { col: HTMLCanvasElement; rev: HTMLCanvasElement; i: number }
+/** 판(상태 객체)마다 따로: 다른 판의 골목이 섞이지 않게 */
+const TILESETS = new WeakMap<object, { run: number; map: Map<string, Tile> }>();
+function tilesOf(s: SoulState): Map<string, Tile> {
+  let ts = TILESETS.get(s);
+  if (!ts || ts.run !== s.runId) TILESETS.set(s, (ts = { run: s.runId, map: new Map() }));
+  return ts.map;
+}
+function splat(g: C2, x: number, y: number, r: number, seed: number) {
+  splatPath(g, x, y, r, seed, 8);
+  // 튄 방울
+  for (let j = 0; j < 4; j++) {
+    const a = hsh(seed + j * 7) * TAU, q = r * (1.1 + hsh(seed + j) * 0.35);
+    g.moveTo(x + Math.cos(a) * q + r * 0.13, y + Math.sin(a) * q);
+    g.arc(x + Math.cos(a) * q, y + Math.sin(a) * q, r * (0.08 + hsh(seed + j * 3) * 0.08), 0, TAU);
+  }
+}
+/** 물감 한 방울이 타일에 닿는다: 색 그림이 그 모양대로 돌아오고, 훔쳤던 색이 살짝 얹힌다 */
+function applyPaint(t: Tile, p: Paint, w: number, sc: number) {
+  const g = t.rev.getContext('2d')!, x = p.x * w, y = (p.y - t.i * TH) * w, r = p.r * w;
+  g.save();
+  g.setTransform(sc, 0, 0, sc, 0, 0);
+  g.beginPath();
+  splat(g, x, y, r, p.seed);
+  g.save();
+  g.clip();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  // 물감이 닿은 네모 칸만 옮긴다 (타일 전체를 매번 옮기지 않게)
+  const bx = Math.max(0, Math.floor((x - r * 1.6) * sc)), by = Math.max(0, Math.floor((y - r * 1.6) * sc));
+  const bw = Math.min(t.col.width - bx, Math.ceil(r * 3.2 * sc) + 2), bh = Math.min(t.col.height - by, Math.ceil(r * 3.2 * sc) + 2);
+  if (bw > 0 && bh > 0) g.drawImage(t.col, bx, by, bw, bh, bx, by, bw, bh);
+  g.restore();
+  g.globalAlpha = 0.28;
+  g.fillStyle = CHEX[p.c][0];
+  g.beginPath();
+  splatPath(g, x, y, r * 0.8, p.seed + 1, 7);
+  g.fill();
+  g.globalAlpha = 1;
+  g.restore();
+}
+function getTile(s: SoulState, i: number, w: number, sc: number): Tile {
+  const TILES = tilesOf(s), key = `${i}:${w}:${sc}`;
+  let t = TILES.get(key);
+  if (!t) {
+    const d = STAGES[s.stage], plaza = i === Math.floor((-d.D + 0.3) / TH) ? 1 : 0;
+    const col = layer(w, TH * w, sc, (g) => ((g.lineJoin = 'round'), paintTile(g, d.ch, i, w, plaza)));
+    const rev = document.createElement('canvas');
+    rev.width = col.width;
+    rev.height = col.height;
+    const g = rev.getContext('2d')!;
+    g.drawImage(col, 0, 0);
+    // 색을 도둑맞은 회색 (채도만 빼고 살짝 밝게)
+    g.globalCompositeOperation = 'saturation';
+    g.fillStyle = '#808080';
+    g.fillRect(0, 0, rev.width, rev.height);
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(255,247,232,.42)';
+    g.fillRect(0, 0, rev.width, rev.height);
+    t = { col, rev, i };
+    for (const p of s.paints) if (p.y + p.r > i * TH && p.y - p.r < (i + 1) * TH) applyPaint(t, p, w, sc);
+    TILES.set(key, t);
+  }
+  return t;
+}
+
+// ───────────────────────────── 그리기: 손가락 · 장 끝 선물 ─────────────────────────────
+function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
+  ctx.save();
+  ctx.translate(x, y + press * k * 0.1);
+  ctx.rotate(-0.25);
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = k * 0.07;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.12, 0);
+  ctx.lineTo(-k * 0.12, k * 0.55);
+  ctx.quadraticCurveTo(-k * 0.45, k * 0.42, -k * 0.38, k * 0.62);
+  ctx.lineTo(-k * 0.12, k * 1.05);
+  ctx.quadraticCurveTo(k * 0.1, k * 1.25, k * 0.42, k * 1.05);
+  ctx.quadraticCurveTo(k * 0.55, k * 0.75, k * 0.48, k * 0.5);
+  ctx.quadraticCurveTo(k * 0.45, k * 0.38, k * 0.32, k * 0.4);
+  ctx.quadraticCurveTo(k * 0.3, k * 0.3, k * 0.18, k * 0.32);
+  ctx.quadraticCurveTo(k * 0.15, k * 0.24, k * 0.1, k * 0.26);
+  ctx.lineTo(k * 0.1, 0);
+  ctx.quadraticCurveTo(-k * 0.01, -k * 0.14, -k * 0.12, 0);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fill();
+  ctx.restore();
+}
+/** 장 끝 선물 (광장의 큰 물건): 0장 큰 붓 · 물감 통 / 1장 무지개 팔레트 · 반짝 크레용. (x,y) = 바닥 가운데, k = 크기 px */
+function drawPerk(ctx: C2, ch: number, i: number, x: number, y: number, k: number, t: number) {
+  ctx.save();
+  ctx.translate(x, y + Math.sin(t * 0.08 + i * 2) * k * 0.03);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  const lw = Math.max(1.6, k * 0.045);
+  const id = ch * 2 + i;
+  if (id === 0) {
+    // 큰 붓
+    ctx.rotate(-0.5);
+    rr(ctx, -k * 0.12, -k * 1.5, k * 0.24, k * 1.1, k * 0.1);
+    ink(ctx, lin(ctx, -k * 0.12, 0, k * 0.12, 0, [0, '#e8b070'], [1, '#a8683a']), lw);
+    rr(ctx, -k * 0.16, -k * 0.45, k * 0.32, k * 0.22, k * 0.04);
+    ink(ctx, '#d8d4e6', lw);
     ctx.beginPath();
-    ctx.arc(m.x * w, (m.y - s.camY) * w, m.r * w, 0, TAU);
+    ctx.moveTo(-k * 0.17, -k * 0.24);
+    ctx.quadraticCurveTo(-k * 0.3, k * 0.25, 0, k * 0.4);
+    ctx.quadraticCurveTo(k * 0.3, k * 0.25, k * 0.17, -k * 0.24);
+    ctx.closePath();
+    ink(ctx, lin(ctx, 0, -k * 0.2, 0, k * 0.4, [0, '#ff5246'], [0.5, '#ffd334'], [1, '#3b8dff']), lw);
+  } else if (id === 1) {
+    // 물감 통
+    ctx.beginPath();
+    ctx.moveTo(-k * 0.5, 0);
+    ctx.lineTo(-k * 0.6, -k * 0.9);
+    ctx.lineTo(k * 0.6, -k * 0.9);
+    ctx.lineTo(k * 0.5, 0);
+    ctx.closePath();
+    ink(ctx, lin(ctx, -k * 0.6, 0, k * 0.6, 0, [0, '#b9b6c6'], [0.4, '#f3f1f8'], [1, '#a4a1b4']), lw);
+    ell(ctx, 0, -k * 0.9, k * 0.6, k * 0.16);
+    ink(ctx, '#ff7ad0', lw);
+    for (const [dx, c] of [[-0.35, '#ff5246'], [0, '#ffd334'], [0.35, '#3b8dff']] as [number, string][]) (rr(ctx, dx * k - k * 0.08, -k * 0.85, k * 0.16, k * 0.4, k * 0.08), (ctx.fillStyle = c), ctx.fill());
+    ctx.beginPath();
+    ctx.arc(0, -k * 0.9, k * 0.55, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+  } else if (id === 2) {
+    // 무지개 팔레트
+    ctx.beginPath();
+    ctx.moveTo(-k * 0.7, -k * 0.2);
+    ctx.bezierCurveTo(-k * 0.8, -k * 1.0, k * 0.6, -k * 1.1, k * 0.72, -k * 0.45);
+    ctx.bezierCurveTo(k * 0.8, k * 0.05, k * 0.2, -k * 0.05, k * 0.05, k * 0.05);
+    ctx.bezierCurveTo(-k * 0.2, k * 0.15, -k * 0.62, k * 0.2, -k * 0.7, -k * 0.2);
+    ctx.closePath();
+    ink(ctx, lin(ctx, 0, -k, 0, 0, [0, '#f7deb0'], [1, '#d9a866']), lw);
+    ell(ctx, k * 0.3, -k * 0.2, k * 0.1, k * 0.08);
+    ink(ctx, '#fff6dc', lw * 0.6);
+    ['#ff5246', '#ff9a2a', '#ffd334', '#3fcf5e', '#3b8dff', '#a65cff'].forEach((c, j) => (ell(ctx, -k * 0.45 + j * k * 0.2, -k * (0.55 + Math.sin(j * 0.9) * 0.12), k * 0.1, k * 0.08), ink(ctx, c, lw * 0.6)));
+  } else {
+    // 반짝 크레용
+    ctx.rotate(0.35);
+    rr(ctx, -k * 0.18, -k * 1.2, k * 0.36, k * 1.1, k * 0.05);
+    ink(ctx, lin(ctx, -k * 0.18, 0, k * 0.18, 0, [0, '#c8560c'], [0.4, '#ff8a2a'], [1, '#ffc890']), lw);
+    ctx.beginPath();
+    ctx.moveTo(-k * 0.18, -k * 1.2);
+    ctx.lineTo(0, -k * 1.55);
+    ctx.lineTo(k * 0.18, -k * 1.2);
+    ctx.closePath();
+    ink(ctx, '#ff8a2a', lw);
+    rr(ctx, -k * 0.2, -k * 0.85, k * 0.4, k * 0.4, k * 0.03);
+    ink(ctx, '#fff6e6', lw * 0.8);
+    starPath(ctx, 0, -k * 0.65, k * 0.12, 0.45);
+    ink(ctx, '#ffd334', lw * 0.6);
+    for (let j = 0; j < 3; j++) (starPath(ctx, (hsh(j) - 0.5) * k, -k * (0.5 + j * 0.45), k * 0.08, 0.4), (ctx.fillStyle = '#fff6a0'), ctx.fill());
+  }
+  ctx.restore();
+}
+
+// ───────────────────────────── 그리기: 한 장면 ─────────────────────────────
+const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const LV_GIFT: Record<number, string> = { 3: '나뭇잎 모자를 썼어요', 5: '목도리가 생겼어요', 7: '별 머리핀을 꽂았어요', 9: '무지개 망토!', 11: '금빛으로 빛나요' };
+export const starWords = (s: SoulState): string[] => {
+  const d = STAGES[s.stage], st = d.star;
+  const third = st.k === 'multi' ? `${st.f ? FD[st.f].name + '로 ' : ''}한 번에 ${st.n}마리` : st.k === 'form' ? `${FD[st.f].name}으로 ${st.n}마리` : `${st.n}초 안에 대장 이기기`;
+  return ['마을 되살리기', '하트 안 잃기', third];
+};
+const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+/** 정령 장신구 (레벨) */
+function drawGear(ctx: C2, x: number, y: number, k: number, lv: number, t: number) {
+  if (lv >= 3) {
+    ctx.save();
+    ctx.translate(x - k * 0.25, y - k * 2.05);
+    ctx.rotate(-0.4 + Math.sin(t * 0.05) * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(k * 0.35, -k * 0.3, k * 0.7, 0);
+    ctx.quadraticCurveTo(k * 0.35, k * 0.25, 0, 0);
+    ink(ctx, '#5cc14a', Math.max(1, k * 0.06));
+    ctx.restore();
+  }
+  if (lv >= 5) {
+    ctx.beginPath();
+    ctx.moveTo(x - k * 0.8, y - k * 0.6);
+    ctx.quadraticCurveTo(x, y - k * 0.3, x + k * 0.8, y - k * 0.6);
+    ctx.lineWidth = k * 0.2;
+    ctx.strokeStyle = '#ff5a7a';
+    ctx.stroke();
+  }
+  if (lv >= 7) (starPath(ctx, x + k * 0.55, y - k * 1.85, k * 0.22, 0.45), ink(ctx, '#ffd334', Math.max(1, k * 0.05)));
+}
+function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
+  const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => (y - s.camY) * w, R = (r: number) => r * w, t = s.t;
+  const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
+  const me = s.me, seenT = fx.memo.t ?? -1;
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  if (fx.memo.run !== s.runId) (fx.memo.run = s.runId), (fx.memo.pa = 0);
+  const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(59,49,80,.9)', lw = 3) => {
+    ctx.lineJoin = 'round';
+    if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
+    ctx.fillStyle = fill;
+    ctx.fillText(str, x, y);
+  };
+  const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
+    if (fx.particles.length < 150) fx.burst(x, y, col, Math.min(n, 150 - fx.particles.length), spd, size);
+  };
+  const say = (x: number, y: number, str: string, col: string, size: number, gate = '') => {
+    if (gate) {
+      if (t - (fx.memo['g' + gate] ?? -99) < 26) return;
+      fx.memo['g' + gate] = t;
+    }
+    let rec = recent.get(s);
+    if (!rec) recent.set(s, (rec = []));
+    x = clamp(x, w * 0.12, w * 0.88);
+    y = Math.max(R(0.17), y);
+    for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y += y < R(0.4) ? size * 0.9 : -size * 0.9;
+    y = Math.max(R(0.17), y);
+    rec.push({ x, y, t, size });
+    if (rec.length > 14) rec.shift();
+    fx.pop(x, y, str, col, size);
+  };
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.save();
+  fx.begin(ctx);
+
+  // ── 마을: 보이는 타일 + 새로 떨어진 물감 ──
+  const i0 = Math.floor(s.camY / TH), i1 = Math.floor((s.camY + A) / TH), ww = Math.round(w), tsc = Math.min(1.5, sc);
+  {
+    const base = s.paintN - s.paints.length;
+    let k = Math.max(fx.memo.pa ?? 0, base);
+    // 한 프레임에 8방울까지 (큰 한 방에 한꺼번에 몰려도 끊기지 않게 — 나머지는 다음 프레임)
+    for (const end = Math.min(s.paintN, k + 3); k < end; k++) {
+      const p = s.paints[k - base];
+      for (let i = Math.floor((p.y - p.r) / TH); i <= Math.floor((p.y + p.r) / TH); i++) {
+        const tl = tilesOf(s).get(`${i}:${ww}:${tsc}`);
+        if (tl) applyPaint(tl, p, ww, tsc);
+      }
+    }
+    fx.memo.pa = k;
+  }
+  // 미리 굽기: 이 판에 나올 스티커를 프레임마다 둘씩
+  {
+    const list = warmList(s, w, sc);
+    let i = fx.memo['wm' + s.runId] ?? 0, did = 0;
+    for (; i < list.length && did < 1; i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
+    fx.memo['wm' + s.runId] = i;
+  }
+  for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
+  // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에)
+  if (s.phase === 'play' && t % 4 === 0) getTile(s, i0 - 1, ww, tsc);
+
+  // ── 바닥: 빨간 예고 · 독구름 · 파도 · 착지 자국 ──
+  for (const m of s.foes) {
+    if (m.dead) continue;
+    const boss = ED[m.k].boss;
+    if (m.st === WIND && (m.k === 'bucket' || m.k === 'crayon')) {
+      const q = clamp(1 - m.tm / 56, 0, 1);
+      if (m.k === 'bucket') {
+        const r = R(0.1 * (m.champ ? 1.3 : 1));
+        ell(ctx, X(m.ax), Y(m.ay), r, r * 0.6);
+        ctx.fillStyle = `rgba(255,70,60,${0.12 + 0.22 * q})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,80,60,${0.6 + 0.4 * q})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ell(ctx, X(m.ax), Y(m.ay), r * q, r * 0.6 * q);
+        ctx.fillStyle = 'rgba(255,60,50,.25)';
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = `rgba(255,80,60,${0.5 + 0.4 * q})`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(X(m.x), Y(m.y));
+        ctx.lineTo(X(m.ax), Y(m.ay));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    if (boss && s.bossAtk > 0) {
+      const q = clamp(1 - s.bossAtk / 60, 0, 1);
+      ctx.fillStyle = `rgba(255,60,60,${0.12 + 0.2 * q})`;
+      ctx.strokeStyle = `rgba(255,70,60,${0.6 + 0.4 * q})`;
+      ctx.lineWidth = 2;
+      if (m.tm === 0) (ell(ctx, X(m.ax), Y(m.ay), R(0.13), R(0.08)), ctx.fill(), ctx.stroke());
+      else if (m.tm === 2) (ctx.fillRect(0, Y(m.ay) - R(0.05), w, R(0.1)), ctx.strokeRect(-2, Y(m.ay) - R(0.05), w + 4, R(0.1)));
+      else
+        for (let i = -2; i <= 2; i++) {
+          const an = Math.atan2(me.y - m.y, me.x - m.x) + i * 0.22;
+          ctx.beginPath();
+          ctx.moveTo(X(m.x), Y(m.y));
+          ctx.lineTo(X(m.x + Math.cos(an) * 0.3), Y(m.y + Math.sin(an) * 0.3));
+          ctx.stroke();
+        }
+    }
+  }
+  for (const c of s.clouds) {
+    const life = clamp(Math.min(c.t / 10, (c.T - c.t) / 30), 0, 1);
+    for (let j = 0; j < 5; j++) {
+      const a = j * 1.26 + c.seed + t * 0.01, q = c.r * (0.45 + 0.1 * Math.sin(t * 0.05 + j));
+      ell(ctx, X(c.x + Math.cos(a) * q * 0.6), Y(c.y + Math.sin(a) * q * 0.45), R(q * 0.75), R(q * 0.55));
+      ctx.fillStyle = `rgba(${j % 2 ? '166,92,255' : '200,150,255'},${0.32 * life})`;
+      ctx.fill();
+    }
+    for (let j = 0; j < 3; j++) {
+      const bx = X(c.x + Math.cos(j * 2.1 + c.seed) * c.r * 0.5), by = Y(c.y) - ((t * 0.6 + j * 9 + c.seed) % 22);
+      ell(ctx, bx, by, R(0.008), R(0.008));
+      ctx.fillStyle = `rgba(120,40,200,${0.6 * life})`;
+      ctx.fill();
+    }
+  }
+  for (const wv of s.waves) {
+    const y = Y(wv.y), k = wv.big ? 1.6 : 1;
+    ctx.fillStyle = lin(ctx, 0, y - R(0.05 * k), 0, y + R(0.06 * k), [0, 'rgba(255,255,255,.95)'], [0.4, 'rgba(120,200,255,.85)'], [1, 'rgba(59,141,255,0)']);
+    ctx.fillRect(0, y - R(0.03 * k), w, R(0.09 * k));
+    ctx.fillStyle = '#ffffff';
+    for (let j = 0; j < 9; j++) {
+      const x = ((j + 0.5) / 9) * w + Math.sin(t * 0.2 + j) * 4;
+      ell(ctx, x, y - R(0.03 * k), R(0.035 * k), R(0.02 * k));
+      ctx.fill();
+    }
+  }
+
+  // ── 그림자 ──
+  ctx.fillStyle = 'rgba(50,35,70,.2)';
+  for (const m of s.foes) {
+    if (m.dead) continue;
+    const u = R(m.r) * (ED[m.k].boss ? s.bossK : 1);
+    ell(ctx, X(m.x), Y(m.y), u * 0.95, u * 0.32);
     ctx.fill();
   }
-  ctx.fillStyle = CHEX[s.me.mask][0];
-  ctx.beginPath();
-  ctx.arc(s.me.x * w, (s.me.y - s.camY) * w, meR(s) * w, 0, TAU);
-  ctx.fill();
-  fx.memo.t = s.t;
+  const fr = meR(s), mu = R(fr);
+  if (s.phase !== 'pick') {
+    ell(ctx, X(me.x), Y(me.y), mu * (0.95 - me.z * 3), mu * (0.3 - me.z));
+    ctx.fill();
+  }
+  // 모습 시간 고리 (발밑) + 점수 배수
+  if (s.phase === 'play' && me.f !== 'white' && !s.eat) {
+    const q = clamp(me.T / Math.max(1, me.Tmax), 0, 1), low = me.T < 100, c = CHEX[me.mask === RAIN ? 8 : me.mask][0];
+    ctx.beginPath();
+    ctx.ellipse(X(me.x), Y(me.y), mu * 1.2, mu * 0.42, 0, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = R(0.012);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(X(me.x), Y(me.y), mu * 1.2, mu * 0.42, 0, -Math.PI / 2, -Math.PI / 2 + TAU * q);
+    ctx.strokeStyle = low && (t >> 3) % 2 ? '#ffffff' : c;
+    ctx.lineWidth = R(0.012);
+    ctx.stroke();
+  }
+
+  // ── 세상 속 것들 (아래에 있을수록 앞) ──
+  type Item = { y: number; f: () => void };
+  const items: Item[] = [];
+  const eatT = s.eat && s.eat.ph === 1 ? s.eat.id : -1;
+  for (const m of s.foes) {
+    if (m.dead) continue;
+    items.push({
+      y: m.y,
+      f: () => {
+        const dd = ED[m.k], boss = !!dd.boss, k = boss ? s.bossK : 1, u = R(m.r) * k;
+        const air = dd.air ? R(0.05) + Math.sin(t * 0.07 + m.seed) * R(0.012) : 0;
+        const walking = t - m.walkT < 4, step = walking ? Math.abs(Math.sin(t * 0.25 + m.seed)) : 0;
+        const wind = m.st === WIND || (boss && s.bossAtk > 0);
+        const pose = !m.col && !boss ? 2 : wind ? 1 : walking && (t >> 3) % 2 ? 1 : 0;
+        const hurtA = t - m.hurtT, held = m.id === eatT && s.eat!.patch < 0;
+        let sx = 1, sy = 1;
+        if (hurtA < 8) (sx = 1 + 0.12 * (1 - hurtA / 8)), (sy = 1 - 0.1 * (1 - hurtA / 8));
+        if (held) {
+          const q = s.eat!.t / SUCK_T;
+          (sx = 1 + Math.sin(t * 1.3) * 0.08 * q), (sy = 1 - 0.15 * q);
+        }
+        if (m.st === ENTER) sy *= 1 + step * 0.05;
+        ctx.save();
+        ctx.translate(X(m.x), Y(m.y) - air - step * R(0.006));
+        if (m.champ && m.col) {
+          const pul = 0.5 + 0.5 * Math.sin(t * 0.15);
+          ell(ctx, 0, -u, u * (1.6 + pul * 0.2), u * (1.6 + pul * 0.2));
+          ctx.fillStyle = radg(ctx, 0, -u, u * 0.5, u * 1.8, [0, `${CHEX[m.col][1]}aa`], [1, `${CHEX[m.col][1]}00`]);
+          ctx.fill();
+        }
+        ctx.scale(sx * (m.face < 0 && !boss ? -1 : 1), sy);
+        if (boss) stamp(ctx, foeSprite(m.k, 0, s.bossDown ? 2 : m.stun > 0 ? 2 : wind ? 1 : 0, R(m.r) * sc * 1.05), u);
+        else stamp(ctx, foeSprite(m.k, m.col, pose, u * sc * 1.05), u);
+        ctx.restore();
+        if (m.k === 'shell' && m.arm > 0 && m.arm < m.armMax) {
+          // 껍데기 금
+          const q = 1 - m.arm / m.armMax;
+          ctx.strokeStyle = '#fff6e6';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          const cx = X(m.x) - u * 0.1 * m.face, cy = Y(m.y) - u;
+          for (let j = 0; j < 1 + q * 4; j++) {
+            const a = j * 1.7 + m.seed;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(a) * u * 0.5, cy + Math.sin(a) * u * 0.45);
+            ctx.lineTo(cx + Math.cos(a + 0.4) * u * 0.8, cy + Math.sin(a + 0.4) * u * 0.7);
+          }
+          ctx.stroke();
+        }
+        if (m.k === 'crayon' && !m.sh) {
+          // 방패가 깨졌다
+          ctx.fillStyle = '#ffd334';
+          starPath(ctx, X(m.x) + u * 0.6 * m.face, Y(m.y) - u, u * 0.25, 0.45);
+          ctx.fill();
+        }
+        if (m.bind > 0) {
+          // 덩굴에 꽁꽁
+          ctx.strokeStyle = '#2fae4a';
+          ctx.lineWidth = Math.max(2, u * 0.16);
+          for (let j = 0; j < 2; j++) (ell(ctx, X(m.x), Y(m.y) - u * (0.6 + j * 0.6), u * 0.95, u * 0.3, 0.15 * (j ? 1 : -1)), ctx.stroke());
+          ctx.fillStyle = '#7fd65a';
+          for (let j = 0; j < 3; j++) (ell(ctx, X(m.x) + Math.cos(j * 2.1) * u * 0.9, Y(m.y) - u * 0.9 + Math.sin(j * 2.1) * u * 0.25, u * 0.14, u * 0.08, j), ctx.fill());
+        }
+        if ((m.stun > 0 && !boss && m.bind <= 0) || (boss && m.stun > 0)) {
+          for (let j = 0; j < 3; j++) {
+            const a = t * 0.12 + (j * TAU) / 3;
+            starPath(ctx, X(m.x) + Math.cos(a) * u * 0.7, Y(m.y) - u * 2.1 - air + Math.sin(a) * u * 0.2, u * 0.16, 0.45);
+            ctx.fillStyle = '#ffe36b';
+            ctx.fill();
+          }
+        }
+        if (boss) {
+          // 대장이 두른 색 (헐거운 것은 흔들리며 빛난다)
+          s.patches.forEach((p, j) => {
+            if (p.gone) return;
+            const [px, py] = patchXY(s, m, p), loose = p.loose, wob = loose ? Math.sin(t * 0.5 + j) * R(0.008) : 0, k2 = R(0.042) * (0.75 + 0.25 * s.bossK);
+            const c = ecol(p.col);
+            if (loose) {
+              const pul = 0.5 + 0.5 * Math.sin(t * 0.25);
+              ell(ctx, X(px), Y(py), k2 * (1.7 + pul * 0.4), k2 * (1.7 + pul * 0.4));
+              ctx.fillStyle = `rgba(255,250,200,${0.35 + 0.3 * pul})`;
+              ctx.fill();
+            }
+            ctx.save();
+            ctx.translate(X(px) + wob, Y(py));
+            if (m.k === 'king') {
+              starPath(ctx, 0, 0, k2 * 1.05, 0.55, t * 0.01);
+              ink(ctx, p.col === RAIN ? lin(ctx, -k2, 0, k2, 0, [0, '#ff5246'], [0.33, '#ffd334'], [0.66, '#3fcf5e'], [1, '#3b8dff']) : radg(ctx, -k2 * 0.3, -k2 * 0.3, 0, k2, [0, c[1]], [1, c[0]]), 2);
+            } else {
+              ctx.beginPath();
+              ctx.moveTo(-k2 * 0.8, k2 * 0.7);
+              ctx.lineTo(-k2 * 0.95, -k2 * 0.7);
+              ctx.lineTo(k2 * 0.95, -k2 * 0.7);
+              ctx.lineTo(k2 * 0.8, k2 * 0.7);
+              ctx.closePath();
+              ink(ctx, lin(ctx, -k2, 0, k2, 0, [0, c[2]], [0.4, c[0]], [1, c[1]]), 2);
+              ell(ctx, 0, -k2 * 0.7, k2 * 0.95, k2 * 0.25);
+              ink(ctx, c[1], 1.5);
+            }
+            ctx.restore();
+            if (!loose) {
+              // 이 색 조각의 기운 (가장 앞의 것만)
+              if (s.patches.find((q) => !q.gone) === p) {
+                const q = clamp(p.hp / p.max, 0, 1);
+                rr(ctx, X(px) - k2, Y(py) + k2 * 1.1, k2 * 2, 5, 2.5);
+                ctx.fillStyle = 'rgba(59,49,80,.6)';
+                ctx.fill();
+                rr(ctx, X(px) - k2, Y(py) + k2 * 1.1, k2 * 2 * q, 5, 2.5);
+                ctx.fillStyle = '#fff6a0';
+                ctx.fill();
+              }
+            }
+          });
+        }
+      },
+    });
+  }
+  // 정령 (먹는 중: 하얀 정령이 휙 → 쭉)
+  if (s.phase !== 'pick') items.push({
+    y: me.y + 0.001,
+    f: () => {
+      const e = s.eat, born = t - me.bornT, hit = t - me.hitT;
+      let f: FK = me.f, pose = 0, k = 1;
+      if (e) (f = me.f === 'white' || e.ph === 0 ? 'white' : me.f), (pose = e.ph === 1 ? 1 : 0);
+      else {
+        if (born < 10) k = 1 + 0.35 * (1 - born / 10) * Math.sin((born / 10) * Math.PI * 1.5 + 0.5);
+        if (hit < 14) pose = 2;
+        else if ((me.f === 'whale' || me.f === 'lion' || me.f === 'turtle') && me.st === 1) pose = 1;
+        else if (me.f === 'dragon' || me.f === 'rainbow' || me.f === 'golem') pose = me.f === 'golem' ? (me.tm % 50 > 36 ? 1 : 0) : 1;
+        else if (me.cool > 18 && (me.f === 'bird' || me.f === 'eagle' || me.f === 'octo' || me.f === 'snake')) pose = 1;
+      }
+      const fu = R(FD[f].r * (f === me.f ? sizeOf(s) : 1)) * k, fl = me.inv > 0 && !e && (t >> 2) % 2 && hit < 60;
+      ctx.save();
+      ctx.translate(X(me.x), Y(me.y) - R(me.z));
+      if (f === 'white') {
+        ell(ctx, 0, -fu, fu * 2.2, fu * 2.2);
+        ctx.fillStyle = radg(ctx, 0, -fu, fu * 0.4, fu * 2.2, [0, 'rgba(255,255,255,.7)'], [1, 'rgba(200,220,255,0)']);
+        ctx.fill();
+      } else if (born < 30) {
+        ell(ctx, 0, -fu, fu * 2.4, fu * 2.4);
+        ctx.fillStyle = radg(ctx, 0, -fu, fu * 0.3, fu * 2.4, [0, `${CHEX[me.mask === RAIN ? 8 : me.mask][1]}cc`], [1, `${CHEX[me.mask === RAIN ? 8 : me.mask][1]}00`]);
+        ctx.fill();
+      }
+      if (fl) ctx.globalAlpha = 0.45;
+      const bob = f === 'white' ? Math.sin(t * 0.1) * fu * 0.08 : 0;
+      ctx.translate(0, bob);
+      ctx.scale(me.face < 0 && f !== 'eagle' ? -1 : 1, 1);
+      if (f === 'snake') ctx.rotate(me.ang * 0.06);
+      stamp(ctx, formSprite(f, pose, fu * sc * 1.05), fu);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      if (f === 'white' || f === me.f) drawGear(ctx, X(me.x), Y(me.y) - R(me.z) + bob, fu * (f === 'white' ? 1 : 0.6), s.lv, t);
+    },
+  });
+  items.sort((a, b) => a.y - b.y);
+  for (const it of items) it.f();
+
+  // ── 공격 그림 ──
+  if (s.phase === 'play' && !s.eat) {
+    const mx = X(me.x), my = Y(me.y) - R(me.z) - mu * 0.9;
+    if (me.f === 'whale' && me.st === 1) {
+      // 굵은 물줄기
+      const L = R(0.62 * reachK(s)), wd = R(0.045 * reachK(s)), c = Math.cos(me.ang), sn = Math.sin(me.ang), q = Math.min(1, me.tm / 6);
+      ctx.save();
+      ctx.translate(mx + c * mu * 0.8, my + sn * mu * 0.4);
+      ctx.rotate(me.ang);
+      ctx.fillStyle = lin(ctx, 0, -wd, 0, wd, [0, 'rgba(160,220,255,.85)'], [0.5, 'rgba(255,255,255,.95)'], [1, 'rgba(59,141,255,.85)']);
+      ctx.beginPath();
+      ctx.moveTo(0, -wd * 0.5);
+      ctx.quadraticCurveTo(L * q * 0.5, -wd * 1.1, L * q, -wd);
+      ctx.lineTo(L * q, wd);
+      ctx.quadraticCurveTo(L * q * 0.5, wd * 1.1, 0, wd * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      for (let j = 0; j < 7; j++) {
+        const px = ((t * 9 + j * 37) % 100) / 100;
+        ell(ctx, L * q * px, Math.sin(j * 2 + t * 0.4) * wd * 0.6, wd * 0.35, wd * 0.25);
+        ctx.fill();
+      }
+      ell(ctx, L * q, 0, wd * 1.4, wd * 1.4);
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.fill();
+      ctx.restore();
+    }
+    if (me.f === 'dragon') {
+      // 불 숨결 부채
+      const L = R(0.34 * reachK(s)), half = 0.42;
+      ctx.save();
+      ctx.translate(mx + me.face * mu * 0.9, my - mu * 0.4);
+      ctx.rotate(me.ang);
+      for (let j = 0; j < 3; j++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, L * (1 - j * 0.25), -half * (1 - j * 0.2), half * (1 - j * 0.2));
+        ctx.closePath();
+        ctx.fillStyle = ['rgba(255,80,40,.42)', 'rgba(255,160,40,.5)', 'rgba(255,240,150,.6)'][j];
+        ctx.fill();
+      }
+      for (let j = 0; j < 6; j++) {
+        const q = ((t * 3 + j * 17) % 40) / 40, a = (hsh(j + Math.floor(t / 40) * 7) - 0.5) * half * 1.6;
+        flame(ctx, Math.cos(a) * L * q, Math.sin(a) * L * q, R(0.02) * (1 + q), 0, ['#ff5a2a', '#ffb02e', '#fff2a0']);
+      }
+      ctx.restore();
+    }
+    if (me.f === 'eagle' || (me.f === 'bird' && me.cool > 20)) {
+      // 머리 위 천둥구름
+      if (me.f === 'eagle') {
+        for (let j = 0; j < 4; j++) (ell(ctx, X(0.2 + j * 0.2) + Math.sin(t * 0.02 + j) * 6, Y(s.camY + 0.16) + Math.cos(j * 2) * 4, R(0.09), R(0.04)), (ctx.fillStyle = 'rgba(90,90,130,.35)'), ctx.fill());
+      }
+    }
+    if (me.f === 'rainbow') {
+      // 무지개 꼬리
+      ['#ff5246', '#ff9a2a', '#ffd334', '#3fcf5e', '#3b8dff', '#a65cff'].forEach((c, j) => {
+        ctx.beginPath();
+        for (let q = 0; q <= 12; q++) {
+          const tt = me.tm - q * 2, a = (tt / 160) * TAU * 1.5, px = 0.5 + Math.sin(a) * 0.38, py = s.camY + 0.75 + Math.sin(a * 2) * 0.38;
+          if (q) ctx.lineTo(X(px), Y(py) - R(0.05) + (j - 2.5) * 4);
+          else ctx.moveTo(X(px), Y(py) - R(0.05) + (j - 2.5) * 4);
+        }
+        ctx.strokeStyle = c;
+        ctx.globalAlpha = 0.75;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+    }
+  }
+  // 번개 · 덩굴 · 벼락
+  for (const l of s.lines) {
+    const age = t - l.t;
+    if (l.k === 1 || l.k === 3) {
+      const a = 1 - age / 14;
+      ctx.strokeStyle = `rgba(255,240,120,${a})`;
+      ctx.lineWidth = l.k === 3 ? 5 : 3.5;
+      ctx.beginPath();
+      const n = 6, x0 = X(l.x0), y0 = Y(l.y0), x1 = X(l.x1), y1 = Y(l.y1);
+      ctx.moveTo(x0, y0);
+      for (let j = 1; j < n; j++) {
+        const q = j / n, off = (hsh(l.t + j * 13 + l.id) - 0.5) * R(0.05);
+        ctx.lineTo(x0 + (x1 - x0) * q + off, y0 + (y1 - y0) * q + off * 0.5);
+      }
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else if (l.k === 2) {
+      const m = s.foes.find((o) => o.id === l.id && !o.dead);
+      if (!m) continue;
+      const a = Math.min(1, (40 - age) / 10), x0 = X(me.x), y0 = Y(me.y) - mu * 0.8, x1 = X(m.x), y1 = Y(m.y) - R(m.r) * 0.6;
+      ctx.strokeStyle = `rgba(47,174,74,${a})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.bezierCurveTo(x0 + (x1 - x0) * 0.3 + 14, y0 + (y1 - y0) * 0.3 - 10, x0 + (x1 - x0) * 0.7 - 14, y0 + (y1 - y0) * 0.7 + 10, x1, y1);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(168,240,180,${a})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+  // 총알 (먹물 방울 · 물감 폭탄 · 독 주머니 · 반짝 별)
+  for (const p of s.shots) {
+    const x = X(p.x), y = Y(p.y), r = R(p.r);
+    if (p.k === 20) (ell(ctx, x, y - Math.sin((1 - p.t / 14) * Math.PI) * R(0.06), r, r), ink(ctx, '#a65cff', 1.5));
+    else if (p.mine) (starPath(ctx, x, y, r * 1.2, 0.45, t * 0.2), ink(ctx, '#ffffff', 1.2, '#8f9ad0'));
+    else {
+      ell(ctx, x, y, r, r * (p.k === 2 ? 1 : 1.15));
+      ink(ctx, p.k === 2 ? '#ff7ad0' : p.k === 4 ? '#2e2a48' : '#4e4a72', 1.5);
+      shine(ctx, x - r * 0.3, y - r * 0.3, r * 0.3, r * 0.2, -0.5, 0.6);
+    }
+  }
+  // 먹는 중: 색 띠가 소용돌이로 빨려 든다
+  if (s.eat && s.eat.ph === 1) {
+    const e = s.eat, m = s.foes.find((o) => o.id === e.id);
+    if (m) {
+      const [tx, ty] = e.patch >= 0 ? patchXY(s, m, s.patches[e.patch]) : [m.x, m.y - m.r];
+      const col = e.patch >= 0 ? s.patches[e.patch].col : m.col, c = ecol(col), q = e.t / SUCK_T;
+      const x0 = X(tx), y0 = Y(ty), x1 = X(me.x), y1 = Y(me.y) - R(0.05);
+      for (let j = 0; j < 4; j++) {
+        const ph = t * 0.35 + j * 1.57, amp = R(0.04) * (1 - q * 0.6);
+        ctx.beginPath();
+        for (let k2 = 0; k2 <= 14; k2++) {
+          const u = k2 / 14, sw = Math.sin(u * 7 + ph) * amp * Math.sin(u * Math.PI);
+          const px = x0 + (x1 - x0) * u - (y1 - y0) * sw * 0.02, py = y0 + (y1 - y0) * u + sw;
+          if (k2) ctx.lineTo(px, py);
+          else ctx.moveTo(px, py);
+        }
+        ctx.strokeStyle = col === RAIN ? ['#ff5246', '#ffd334', '#3fcf5e', '#3b8dff'][j] : c[j % 2];
+        ctx.lineWidth = R(0.022) * (1.2 - u0(j));
+        ctx.stroke();
+      }
+      ell(ctx, x1, y1, R(0.04) * (1 + q), R(0.04) * (1 + q));
+      ctx.fillStyle = c[1];
+      ctx.globalAlpha = 0.6;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  if (s.eat && s.eat.ph === 0) {
+    // 휙: 꼬리 빛
+    const e = s.eat;
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = R(0.02);
+    ctx.beginPath();
+    ctx.moveTo(X(e.x0), Y(e.y0) - R(0.04));
+    ctx.lineTo(X(me.x), Y(me.y) - R(0.04));
+    ctx.stroke();
+  }
+
+  // ── 될 모습 말풍선 (도둑 머리 위: 이 색을 먹으면 무엇이 되나) ──
+  if (s.phase === 'play') {
+    const res = new Map<string, { mask: number; tier: number; f: FK }>();
+    const nearBlob = new Map<number, { m: Foe; d: number }>();
+    for (const m of s.foes) {
+      if (m.dead || !m.col || m.k !== 'blob' || !onScreen(s, m)) continue;
+      const dd = dist(m.x, m.y, me.x, me.y), cur = nearBlob.get(m.col);
+      if (!cur || dd < cur.d) nearBlob.set(m.col, { m, d: dd });
+    }
+    const show = s.foes.filter((m) => !m.dead && m.col && onScreen(s, m) && !m.held && (m.k !== 'blob' || nearBlob.get(m.col)?.m === m));
+    for (const m of show) {
+      const key = `${m.col}:${m.champ ? 1 : 0}`;
+      let r = res.get(key);
+      if (!r) res.set(key, (r = mixRes(s, m.col, m.champ ? 1 : 0)));
+      const air = ED[m.k].air ? R(0.05) : 0, bx = X(m.x), by = Y(m.y) - R(m.r) * (ED[m.k].air ? 2.6 : 2.3) - air - R(0.04), k = R(0.036);
+      const up = r.f === me.f && r.tier > me.tier, isNew = !s.dex.includes(r.f);
+      ctx.beginPath();
+      ctx.arc(bx, by, k, 0, TAU);
+      ctx.moveTo(bx - k * 0.35, by + k * 0.85);
+      ctx.lineTo(bx, by + k * 1.4);
+      ctx.lineTo(bx + k * 0.35, by + k * 0.85);
+      ctx.fillStyle = isNew ? '#fff6c8' : '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = up ? '#ffb800' : OUT;
+      ctx.lineWidth = up ? 2.2 : 1.4;
+      ctx.beginPath();
+      ctx.arc(bx, by, k, 0, TAU);
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(bx, by + k * 0.55);
+      stamp(ctx, silhouette(r.f, CHEX[r.mask === RAIN ? 8 : r.mask][0], k * 0.46 * sc * 2), k * 0.46);
+      ctx.restore();
+      if (up) {
+        font(0.03, 900);
+        text('▲', bx + k * 0.95, by - k * 0.8, '#ffb800', '#ffffff', 2.5);
+      }
+    }
+  }
+
+  // ── 방금 일어난 일: 소리 · 물감 · 흔들림 · 글자 (한 번만) ──
+  for (const e of s.events) {
+    if (e.t <= seenT) continue;
+    const ex = X(e.x), ey = Y(e.y), col = Number(e.text);
+    switch (e.k) {
+      case 'tap': fx.sound('tick', 1.6, 0.5); break;
+      case 'deny': fx.sound('tick', 0.7, 0.35); break;
+      case 'dash': fx.sound('whoosh', 1.4, 0.8); break;
+      case 'suck': fx.sound('swell', 1.3, 0.8); puff(ex, ey, CHEX[col === RAIN ? 8 : col || 0][0], 6, 1.5, 2.4); break;
+      case 'shatter': fx.sound('crack', 1.2, 0.9); puff(ex, ey - R(e.x2), '#b9b6c6', 10, 4, 3); fx.kick(3); break;
+      case 'drain': fx.sound('shrink', 0.9, 0.8); puff(ex, ey - R(e.x2), '#cfcddb', 8, 2.5, 3);  break;
+      case 'kill': {
+        const n = e.n, k = e.text as EK, kc = CHEX[e.y2 === RAIN ? 8 : e.y2][0];
+        fx.sound('pop', n ? Math.min(2.2, 0.85 + n * 0.07) : 1.25, n ? 0.75 : 0.5);
+        if (e.y2) puff(ex, ey, kc, 10, 4, 3.2);
+        const m = ED[k];
+        puff(ex, ey, '#ffffff', m && m.big ? 8 : 4, 3, 2.4);
+        if (n >= 4) say(ex, ey - R(0.04), String(n), n >= 8 ? '#ffd334' : '#ffffff', Math.min(30, 14 + n * 1.5));
+        break;
+      }
+      case 'morph': {
+        const f = e.text as FK, c = CHEX[e.x2 === RAIN ? 8 : e.x2][0], same = e.y2 === 1;
+        const snd: Record<FK, () => void> = {
+          white: () => fx.sound('shrink', 1, 0.6),
+          lion: () => (fx.sound('thud', 0.8, 1.1), fx.sound('crack', 0.9, 0.7)),
+          whale: () => fx.sound('splash', 0.8, 1.2),
+          bird: () => fx.sound('zap', 1.2, 1),
+          dragon: () => (fx.sound('swell', 0.6, 1.2), fx.sound('thud', 0.55, 1.3)),
+          octo: () => (fx.sound('splash', 1.3, 0.9), fx.sound('swell', 0.8, 0.8)),
+          turtle: () => fx.sound('thud', 0.55, 1.3),
+          snake: () => (fx.sound('whoosh', 0.8, 0.9), fx.sound('crack', 1.6, 0.6)),
+          golem: () => (fx.sound('thud', 0.42, 1.5), fx.sound('crack', 0.6, 0.9)),
+          narwhal: () => fx.sound('splash', 0.6, 1.4),
+          eagle: () => (fx.sound('zap', 0.7, 1.2), fx.sound('thud', 0.7, 0.9)),
+          rainbow: () => (fx.sound('chime', 1, 1.2), fx.sound('swell', 1.2, 0.9)),
+        };
+        snd[f]();
+        if (!same) fx.sound('pop', 0.6, 1);
+        puff(ex, ey - R(0.05), c, same ? 10 : 22, same ? 3.5 : 6, 3.4);
+        puff(ex, ey - R(0.05), '#ffffff', 8, 4, 2.6);
+        fx.ring(ex, ey - R(0.04), c, R(0.2 + 0.03 * e.n), 6);
+        fx.kick(same ? 3 : 6);
+        if (s.big && s.big.t === e.t) break;
+        if (same && e.n >= 3 && f !== 'golem' && f !== 'rainbow') say(ex, ey - R(0.16), `${e.n}단계! 점수 ×${1 + 0.5 * (Math.min(5, e.n) - 1)}`, '#ffffff', 15);
+        else say(ex, ey - R(0.16), `${FD[f].name}!`, '#ffffff', 15);
+        break;
+      }
+      case 'roar': fx.sound('thud', 0.7, 1); fx.ring(ex, ey, '#ff7a3a', R(e.x2), 7); puff(ex, ey, '#ffb02e', 14, 5, 3); break;
+      case 'nova': fx.sound('thud', 0.5, 1.4); fx.sound('crack', 0.8, 1); fx.ring(ex, ey, '#ff5a2a', R(e.x2), 9); fx.ring(ex, ey, '#ffe36b', R(e.x2 * 0.7), 6); puff(ex, ey, '#ff8a2a', 20, 7, 3.4); fx.kick(10); fx.blink('#fff0c0', 0.3); break;
+      case 'splashdown': fx.sound('splash', 0.9, 1.2); fx.ring(ex, ey, '#9fcaff', R(e.x2 * 2), 7); puff(ex, ey, '#bfe6ff', 16, 5, 3); break;
+      case 'bigwave': fx.sound('splash', 0.55, 1.4); fx.kick(8); break;
+      case 'clap': fx.sound('zap', 1, 1); fx.blink('#fff6b0', 0.25); break;
+      case 'storm': fx.sound('zap', 0.6, 1.2); fx.sound('thud', 0.6, 1); fx.blink('#e0e0ff', 0.25); break;
+      case 'cloud': fx.sound('splash', e.n ? 1.1 : 1.4, e.n ? 1 : 0.6); puff(ex, ey, '#c8a0ff', e.n ? 16 : 8, 3, 3.2); break;
+      case 'slam': fx.sound('thud', 0.6, 1.3); fx.sound('crack', 1, 0.8); fx.ring(ex, ey, '#ff8a2a', R(e.x2), 8); puff(ex, ey, '#ffb02e', 14, 5, 3); puff(ex, ey, '#8a6a5a', 8, 3, 3); fx.kick(e.n ? 9 : 6); break;
+      case 'net': fx.sound('whoosh', 0.9, 0.9); fx.sound('crack', 1.6, 0.6); fx.ring(ex, ey, '#3fcf5e', R(e.x2), 6); break;
+      case 'stomp': fx.sound('thud', 0.4, 1.5); fx.sound('crack', 0.6, 0.9); fx.ring(ex, ey, '#b07a44', R(0.5), 10); fx.ring(ex, ey, '#ffd334', R(0.32), 6); puff(ex, ey, '#a8743e', 14, 6, 3.6); fx.kick(14); if (e.x2 >= 3) say(ex, ey - R(0.2), `쿵! ${e.x2}`, '#ffe9b0', 20); break;
+      case 'rainbow': fx.sound('chime', 1.2, 1.2); fx.blink('#ffffff', 0.35); fx.kick(8); break;
+      case 'palette': fx.sound('splash', 1.2, 0.8); fx.ring(ex, ey, '#ff7ad0', R(e.x2), 5); break;
+      case 'pounce': fx.sound('whoosh', 1.1, 0.6); break;
+      case 'land': fx.sound('thud', 0.85, 0.9); fx.sound('crack', 1.3, 0.5); fx.ring(ex, ey, '#ff7a3a', R(e.x2), 5); puff(ex, ey, '#ffb02e', 8, 4, 2.8); fx.kick(3); break;
+      case 'breath': fx.sound('whoosh', 0.7, 0.45); break;
+      case 'jet': fx.sound('splash', 1.2, 0.8); break;
+      case 'wave': fx.sound('splash', 0.8, 0.9); break;
+      case 'chain': fx.sound('zap', 1.3, 0.7); break;
+      case 'zap': fx.sound('zap', 1 + Math.min(8, e.n) * 0.08, 0.45); puff(ex, ey, '#fff07a', 3, 2.6, 2); break;
+      case 'flap': fx.sound('whoosh', 0.6, 0.7); break;
+      case 'bolt': fx.sound('zap', 0.75, 0.9); fx.sound('thud', 1.4, 0.4); puff(ex, ey, '#fff07a', 6, 3.5, 2.4); fx.ring(ex, ey, '#fff07a', R(0.06), 3); break;
+      case 'throw': fx.sound('boing', 1.4, 0.5); break;
+      case 'hop': fx.sound('boing', 0.8, 0.7); break;
+      case 'lash': fx.sound('whoosh', 1.3, 0.6); break;
+      case 'vine': fx.sound('crack', 1.7, 0.4); puff(ex, ey, '#7fd65a', 3, 2.4, 2.2); break;
+      case 'spark': fx.sound('tick', 2, 0.3); break;
+      case 'twinkle': fx.sound('ding', 1.8, 0.25); puff(ex, ey, '#ffffff', 3, 2, 2); break;
+      case 'surf': fx.sound('splash', 1.6, 0.4); puff(ex, ey, '#ffffff', 3, 2.5, 2.4); break;
+      case 'block': fx.sound('ding', 0.6, 0.5); puff(ex, ey, '#ffffff', 3, 2.6, 2); say(ex, ey - R(0.03), '팅!', '#e8e6f0', 14, 'block'); break;
+      case 'clank': fx.sound('tick', 0.9, 0.6); say(ex, ey - R(0.03), '탁!', '#e8e6f0', 14, 'clank'); break;
+      case 'crackle': fx.sound('crack', 1.4, 0.6); puff(ex, ey, '#fff6e6', 4, 3, 2.2); break;
+      case 'armorbreak': fx.sound('crack', 0.9, 1.2); puff(ex, ey, '#fff6e6', 12, 5, 3); say(ex, ey - R(0.05), '와장창!', '#ffe36b', 17); fx.kick(4); break;
+      case 'shieldbreak': fx.sound('crack', 1, 1.1); puff(ex, ey, '#d8d4e6', 10, 4.5, 3); say(ex, ey - R(0.05), '방패 쾅!', '#ffe36b', 16); break;
+      case 'dodge': fx.sound('whoosh', 2, 0.4); say(ex, ey, '휙!', '#ffffff', 14, 'dodge'); break;
+      case 'miss': fx.sound('whoosh', 1.8, 0.3); say(ex, ey, '안 닿아!', '#d8f4ff', 13, 'miss'); break;
+      case 'stagger': fx.sound('boing', 0.7, 0.6); say(ex, ey, '으악', '#ffffff', 14); break;
+      case 'knock': fx.sound('fail', 1.3, 0.8); fx.sound('shrink', 0.7, 0.8); puff(ex, ey, CHEX[col || 0][0], 16, 5, 3.2); say(ex, ey - R(0.06), '색이 몽땅 튀었다!', '#ffd0c8', 16); fx.kick(8); break;
+      case 'drip': fx.sound('splash', 1.8, 0.6); fx.sound('shrink', 1.2, 0.5); puff(ex, ey, CHEX[col || 0][0], 8, 3.5, 2.8); if (e.x2) say(ex, ey - R(0.06), '앗, 작아졌다', '#ffffff', 14); break;
+      case 'ouch': fx.sound('boing', 1.8, 0.5); say(ex, ey - R(0.04), '어질어질', '#ffffff', 14); break;
+      case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '하트 -1', '#ff8a7a', 18); break;
+      case 'fail': fx.sound('fail', 0.7, 1.1); break;
+      case 'fade': fx.sound('shrink', 1.1, 0.7); puff(ex, ey, '#ffffff', 8, 2.5, 2.6); if (!e.n) say(ex, ey - R(0.08), '색이 다 빠졌어요', '#ffffff', 14); break;
+      case 'bump': fx.sound('tick', 0.6, 0.3); break;
+      case 'wind': fx.sound('swell', 1.6, 0.4); break;
+      case 'bslam': fx.sound('thud', 0.7, 1); fx.sound('crack', 1.2, 0.6); fx.ring(ex, ey, '#ff8a7a', R(e.x2), 5); puff(ex, ey, '#b9b6c6', 8, 4, 3); fx.kick(5); break;
+      case 'drop': fx.sound('whoosh', 1.9, 0.3); break;
+      case 'poke': fx.sound('tick', 1.3, 0.5); break;
+      case 'spit': fx.sound('boing', 1.6, 0.4); break;
+      case 'zip': fx.sound('whoosh', 1.7, 0.5); break;
+      case 'puff': fx.sound('splash', 1.5, 0.4); puff(ex, ey, '#4e4a72', 6, 2, 3); break;
+      case 'splat': fx.sound('splash', 1.9, 0.5); puff(ex, ey, '#4e4a72', 6, 2.5, 2.6); break;
+      case 'escape': fx.sound('shrink', 1.4, 0.6); say(ex, ey - R(0.04), '무지개 도둑이 달아났다!', '#ffd4f2', 15); break;
+      case 'spawn': fx.sound('whoosh', 0.6, 0.5); break;
+      case 'champ': fx.sound('swell', 0.8, 0.9); break;
+      case 'loose': fx.sound('ding', 1.2, 1); fx.sound('chime', 1.1, 0.8); puff(ex, ey, '#fff6a0', 12, 4, 3); say(ex, ey - R(0.06), '헐거워졌다! 톡!', '#fff6a0', 17); break;
+      case 'bpatch': fx.sound('swell', 0.7, 1.2); fx.sound('thud', 0.5, 1.3); fx.kick(12); fx.blink(CHEX[col === RAIN ? 8 : col][1], 0.3); puff(ex, ey, CHEX[col === RAIN ? 8 : col][0], 20, 6, 3.4); break;
+      case 'bossdown': fx.sound('crack', 0.6, 1.4); fx.sound('clear', 1, 1); fx.kick(16); fx.blink('#ffffff', 0.5); for (const c of ['#ff5246', '#ffd334', '#3b8dff', '#3fcf5e']) puff(ex, ey, c, 10, 7, 3.6); break;
+      case 'summon': fx.sound('swell', 1, 0.8); say(ex, ey - R(0.06), '도둑들아!', '#e8e6f0', 16); break;
+      case 'inkwave': fx.sound('splash', 0.6, 1.2); fx.kick(5); break;
+      case 'record': fx.sound('coin', 1.1, 0.9); if (!s.big || t - s.big.t > 70) say(ex, ey - R(0.06), `${e.n}마리!`, '#ffd334', 20); break;
+      case 'star3': fx.sound('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
+      case 'stage': fx.sound('ding', 1, 0.6); break;
+      case 'clear': fx.sound('clear', 1, 1); for (const c of ['#ff5246', '#ffd334', '#3b8dff']) puff(w / 2, h * 0.5, c, 10, 6, 3.4); break;
+      case 'pickopen': fx.sound('swell', 1.1, 0.9); break;
+      case 'perk': fx.sound('coin', 1, 1); fx.sound('chime', 1.1, 0.9); puff(ex, ey - R(0.1), '#ffe36b', 16, 5, 3.2); fx.ring(ex, ey - R(0.08), '#ffe36b', R(0.2), 5); break;
+      case 'end': fx.sound(e.n ? 'clear' : 'fail', 0.9, 1); break;
+      case 'retry': fx.sound('boing', 1, 0.7); break;
+    }
+  }
+  if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1, 1), fx.blink('#fff6c8', 0.22), fx.kick(6);
+  ctx.restore();
+  drawHud(ctx, s, w, h);
+  fx.memo.t = t;
 }
+/** 소용돌이 띠 굵기 차례 */
+const u0 = (j: number) => j * 0.18;
+
+// ───────────────────────────── 그리기: 띠 · 결과 · 선물 · 끝 ─────────────────────────────
+function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
+  const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
+  const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
+  const d = STAGES[s.stage], me = s.me;
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
+    ctx.lineJoin = 'round';
+    if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
+    ctx.fillStyle = fill;
+    ctx.fillText(str, x, y);
+  };
+  const INK = '#3b3150', MUTED = '#9a8fb0', CREAM = '#fff8ec', LINE = '#e6d3b0';
+  ctx.textBaseline = 'middle';
+  // ── 위 띠: 판 · 이름 · 하트 · 별 · 정령 레벨 ──
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, 0, w, Y(0.1));
+  ctx.fillStyle = LINE;
+  ctx.fillRect(0, Y(0.1) - 2, w, 2);
+  ell(ctx, X(0.062), Y(0.05), R(0.036), R(0.036));
+  ctx.fillStyle = lin(ctx, 0, Y(0.015), 0, Y(0.085), [0, '#ff9a6a'], [1, '#ff6a8a']);
+  ctx.fill();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  font(0.046, 900);
+  text(String(s.stage + 1), X(0.062), Y(0.052), '#ffffff');
+  ctx.textAlign = 'left';
+  font(0.042, 900);
+  text(d.name, X(0.115), Y(0.052), INK);
+  const nw = ctx.measureText(d.name).width;
+  font(0.034, 700);
+  text(`/ ${STAGES.length}`, X(0.115) + nw + R(0.012), Y(0.054), MUTED);
+  for (let i = 0; i < 3; i++) {
+    heartPath(ctx, X(0.585 + i * 0.05), Y(0.05), R(0.017));
+    ctx.fillStyle = i < s.hearts ? '#ff4d6e' : '#e6dccc';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  starPath(ctx, X(0.745), Y(0.049), R(0.022));
+  ctx.fillStyle = '#ffc93c';
+  ctx.fill();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  font(0.04, 900);
+  text(String(s.stars), X(0.772), Y(0.053), INK);
+  ctx.save();
+  ctx.translate(X(0.86), Y(0.078));
+  stamp(ctx, formSprite('white', 0, R(0.016) * sc * 1.05), R(0.016));
+  ctx.restore();
+  font(0.035, 900);
+  text(`Lv${s.lv}`, X(0.888), Y(0.053), '#6a74a8');
+
+  // ── 아래 띠: 별 셋 · 지금 모습 · 한 줄 도움말 ──
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, Y(1.31), w, h - Y(1.31));
+  ctx.fillStyle = LINE;
+  ctx.fillRect(0, Y(1.31), w, 2);
+  const words = starWords(s), res = s.phase === 'result', st = d.star;
+  const prog = st.k === 'form' ? ` ${Math.min(st.n, s.multi[-1] ?? 0)}/${st.n}` : st.k === 'time' ? ` ${Math.max(0, st.n - Math.floor(s.stageT / 60))}초` : '';
+  const got3 = res ? s.starOk[2] : st.k === 'multi' ? s.star3 : st.k === 'form' ? (s.multi[-1] ?? 0) >= st.n : false;
+  const lost3 = !got3 && (res || (st.k === 'time' && s.stageT > st.n * 60));
+  const state = [res ? 1 : 0, s.lostHeart ? -1 : res ? 1 : 0, got3 ? 1 : lost3 ? -1 : 0];
+  font(0.033, 800);
+  const labels = words.map((q, i) => q + (i === 2 && state[2] === 0 ? prog : ''));
+  const gap = R(0.012), pad = Math.min(R(0.065), (w - R(0.03) - gap * 2 - labels.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
+  const ws = labels.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, c) => a + c, 0) + gap * 2;
+  let cx = (w - total) / 2;
+  labels.forEach((q, i) => {
+    const cw = ws[i], cy = Y(1.345), on = state[i] > 0, off = state[i] < 0;
+    rr(ctx, cx, cy - R(0.026), cw, R(0.052), R(0.026));
+    ctx.fillStyle = on ? '#ffe9a0' : off ? '#efe6d6' : '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = on ? '#e0a020' : off ? '#d6c8b0' : '#cdb894';
+    ctx.lineWidth = on ? 2 : 1.4;
+    ctx.stroke();
+    starPath(ctx, cx + pad * 0.42, cy - 0.5, R(0.016));
+    ctx.fillStyle = on ? '#ffb800' : off ? '#d6c8b0' : '#e9dcc0';
+    ctx.fill();
+    ctx.textAlign = 'left';
+    font(0.033, 800);
+    text(q, cx + pad * 0.76, cy + 0.5, off ? '#b8a890' : INK);
+    if (off) (ctx.fillStyle = '#b8a890'), ctx.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
+    cx += cw + gap;
+  });
+  // 지금 모습: 작은 그림 · 이름 · 단계 · 점수 배수 · 남은 시간
+  {
+    const by = Y(1.405), c = CHEX[me.mask === RAIN ? 8 : me.mask];
+    ctx.save();
+    ctx.translate(X(0.075), by + R(0.022));
+    stamp(ctx, formSprite(me.f, 0, R(0.018) * sc * 1.05), R(0.018));
+    ctx.restore();
+    ctx.textAlign = 'left';
+    font(0.038, 900);
+    const nm = me.f === 'white' ? '하얀 정령 (맨몸)' : FD[me.f].name;
+    text(nm, X(0.13), by, me.f === 'white' ? '#9a8fb0' : c[2]);
+    const nw2 = ctx.measureText(nm).width;
+    if (me.f !== 'white' && me.f !== 'golem' && me.f !== 'rainbow') {
+      font(0.033, 900);
+      const tag = `${me.tier}단계 · 점수 ×${streakMul(s)}`;
+      text(tag, X(0.13) + nw2 + R(0.02), by + 1, INK);
+      const q = clamp(me.T / Math.max(1, me.Tmax), 0, 1), bx = X(0.13) + nw2 + R(0.04) + ctx.measureText(tag).width, bw = Math.max(R(0.05), X(0.95) - bx);
+      rr(ctx, bx, by - R(0.008), bw, R(0.016), R(0.008));
+      ctx.fillStyle = '#efe6d6';
+      ctx.fill();
+      rr(ctx, bx, by - R(0.008), Math.max(R(0.016), bw * q), R(0.016), R(0.008));
+      ctx.fillStyle = me.T < 100 && (t >> 3) % 2 ? '#ffffff' : c[0];
+      ctx.fill();
+    }
+  }
+  ctx.textAlign = 'center';
+  const boss = s.foes.find((m) => ED[m.k].boss && !m.dead);
+  let tip = `${d.name}: ${d.news}`;
+  if (s.phase === 'pick') tip = '광장의 큰 물건 둘 중 하나를 톡!';
+  else if (s.phase === 'result') tip = s.newDex.length ? `새 모습 ${FD[s.newDex[s.newDex.length - 1]].name}: ${FD[s.newDex[s.newDex.length - 1]].does}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
+  else if (s.phase === 'end') tip = s.won ? '마을이 모두 알록달록해졌어요!' : '누르면 다시 해요';
+  else if (s.phase === 'fail') tip = '맨몸으로 너무 맞았어요 — 이 판만 다시!';
+  else if (!s.tapped && s.stage === 0) tip = '진한 빨강 도둑을 톡! 색을 쭉 빨아들여요';
+  else if (s.patches.some((p) => p.loose && !p.gone)) tip = '헐거워진 대장 색을 톡 — 대장은 작아지고 나는 커져요!';
+  else if (me.f === 'white') tip = '하얀 맨몸! 아무 색 도둑이나 톡 — 맞으면 하트 -1';
+  else if (boss) tip = `${ED[boss.k].name}: ${ED[boss.k].line}`;
+  else if (s.stage === 0 && s.taps < 4) tip = '같은 색을 또 먹으면 더 커지고 점수 ×1.5, ×2…';
+  else if (d.newFoe && s.stageT < 900) tip = `${ED[d.newFoe].name}: ${ED[d.newFoe].line}`;
+  font(0.033, 800);
+  text(tip, w / 2, Y(1.452), INK);
+
+  // ── 판 시작 띠 (NEW 한 줄) ──
+  if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
+    const age = t - s.banner.t, T = 200;
+    if (age < T) {
+      const a = Math.min(1, age / 10, (T - age) / 14), slide = (1 - Math.min(1, age / 10)) * R(0.05), by = Y(0.125) - slide;
+      ctx.globalAlpha = clamp(a, 0, 1);
+      rr(ctx, X(0.05), by, R(0.9), R(0.112), R(0.03));
+      ctx.fillStyle = 'rgba(255,250,240,.96)';
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      font(0.038, 900);
+      const nm = d.unlock ? FD[d.unlock].name : ED[d.newFoe ?? 'king'].name, hw = ctx.measureText(s.banner.head).width, nw3 = ctx.measureText(nm).width, pill = R(0.105), gap2 = R(0.014);
+      const icon = d.unlock ? R(0.05) : 0, tot = hw + gap2 + pill + gap2 + icon + nw3;
+      let bx0 = w / 2 - tot / 2;
+      ctx.textAlign = 'left';
+      text(s.banner.head, bx0, by + R(0.033), '#e0482f');
+      bx0 += hw + gap2;
+      rr(ctx, bx0, by + R(0.012), pill, R(0.042), R(0.021));
+      ctx.fillStyle = '#ff3b5c';
+      ctx.fill();
+      font(0.034, 900);
+      ctx.textAlign = 'center';
+      text('NEW', bx0 + pill / 2, by + R(0.034), '#ffffff');
+      bx0 += pill + gap2;
+      if (d.unlock) {
+        ctx.save();
+        ctx.translate(bx0 + icon / 2, by + R(0.052));
+        stamp(ctx, formSprite(d.unlock, 0, R(0.016) * sc * 1.05), R(0.016));
+        ctx.restore();
+        bx0 += icon;
+      }
+      ctx.textAlign = 'left';
+      font(0.038, 900);
+      text(nm, bx0, by + R(0.033), d.unlock ? CHEX[FD[d.unlock].mask === RAIN ? 8 : FD[d.unlock].mask][2] : INK);
+      ctx.textAlign = 'center';
+      font(0.034, 800);
+      text(s.banner.sub, w / 2, by + R(0.081), INK);
+      ctx.globalAlpha = 1;
+    }
+  }
+  // ── 손가락 (첫 톡 · 헐거운 대장 색) ──
+  if (s.phase === 'play' && !s.eat) {
+    let hx = -1, hy = -1, hr = 0;
+    const champ = !s.tapped && s.stage === 0 ? s.foes.find((m) => m.champ && !m.dead) : undefined;
+    if (champ) (hx = champ.x), (hy = champ.y - champ.r - s.camY), (hr = champ.r);
+    else if (boss) {
+      const p = s.patches.find((q) => q.loose && !q.gone);
+      if (p) {
+        const [px, py] = patchXY(s, boss, p);
+        (hx = px), (hy = py - s.camY), (hr = 0.05);
+      }
+    }
+    if (hx >= 0) {
+      const press = Math.max(0, Math.sin(t * 0.14)), px = X(hx) + R(0.05), py = Y(hy) + R(hr * 0.6);
+      ell(ctx, X(hx), Y(hy), R(hr * (1.6 + 0.3 * press)), R(hr * (1.6 + 0.3 * press)));
+      ctx.strokeStyle = `rgba(255,255,255,${0.9 - 0.5 * press})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      drawHand(ctx, px, py, R(0.085), press);
+      font(0.046, 900);
+      ctx.textAlign = 'center';
+      text('톡!', px + R(0.09), py - R(0.02), '#ffffff', INK, 4);
+    }
+  }
+  // ── 큰 순간 띠 (처음 되어 보는 모습 · 별 셋째 · 대장) ──
+  if (s.big && t - s.big.t < 70 && s.phase !== 'end') {
+    const age = t - s.big.t, pop = age < 7 ? 1.4 - 0.4 * (age / 7) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (70 - age) / 14);
+    if (age === 0 || fx.memo.bandY === undefined) fx.memo.bandY = me.y - s.camY < 0.82 ? 1.1 : 0.3;
+    const by = Y(fx.memo.bandY), c = CHEX[s.big.col === RAIN ? 8 : s.big.col || 0];
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(w / 2, by);
+    ctx.rotate(-0.04);
+    ctx.save();
+    ctx.scale(1, 0.52);
+    burstPath(ctx, 0, 0, R(0.33) * Math.min(1.15, pop), 18, 0.8, age * 0.02);
+    ctx.fillStyle = s.big.col ? c[1] : 'rgba(255,244,170,.95)';
+    ctx.fill();
+    ctx.strokeStyle = s.big.col ? c[2] : '#ff8a3d';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+    font(0.06, 900);
+    ctx.save();
+    ctx.scale(pop, pop);
+    text(s.big.text, 0, -R(0.018), '#ffffff', s.big.col ? c[2] : '#ff5a2e', 6);
+    ctx.restore();
+    font(0.034, 900);
+    if (s.big.star) {
+      const sw = ctx.measureText('별 셋째!').width, k = R(0.022) * (1 + 0.15 * Math.sin(age * 0.5));
+      text('별 셋째!', k * 0.9, R(0.04), '#b06a00', '#ffffff', 4);
+      starPath(ctx, -sw / 2 - k * 0.4, R(0.038), k);
+      ctx.fillStyle = '#ffc93c';
+      ctx.fill();
+      ctx.strokeStyle = '#a06a12';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (s.big.sub) text(s.big.sub, 0, R(0.04), INK, '#ffffff', 4);
+    ctx.restore();
+  }
+
+  // ── 결과: 별 · 점수 · 레벨 · 되살린 골목 · 도감 ──
+  if (s.phase === 'result') {
+    const pt = s.pt, a = Math.min(1, pt / 10), slide = (1 - a) * R(0.06);
+    const cx0 = X(0.05), cy0 = Y(0.15) - slide, cw = R(0.9), chh = R(0.62);
+    ctx.globalAlpha = a;
+    rr(ctx, cx0, cy0 + 4, cw, chh, R(0.04));
+    ctx.fillStyle = 'rgba(59,49,80,.25)';
+    ctx.fill();
+    rr(ctx, cx0, cy0, cw, chh, R(0.04));
+    ctx.fillStyle = '#fffaf2';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    rr(ctx, X(0.22), cy0 - R(0.014), R(0.56), R(0.07), R(0.02));
+    ctx.fillStyle = '#ff7a59';
+    ctx.fill();
+    ctx.stroke();
+    font(0.044, 900);
+    ctx.textAlign = 'center';
+    text(s.won ? '모든 마을을 되살렸다!' : `${s.stage + 1}판 마을 되살림!`, w / 2, cy0 + R(0.022), '#ffffff');
+    // 왼쪽: 되살린 골목 지도 (아래가 시작, 위가 광장)
+    const mapX = cx0 + R(0.04), mapY = cy0 + R(0.07), mapW = R(0.17), mapH = chh - R(0.16);
+    rr(ctx, mapX - 3, mapY - 3, mapW + 6, mapH + 6, 6);
+    ctx.fillStyle = '#e6dccc';
+    ctx.fill();
+    ctx.save();
+    rr(ctx, mapX, mapY, mapW, mapH, 4);
+    ctx.clip();
+    const L = d.D + A, k = Math.min(mapH / (L * w), mapW / w), top = -d.D;
+    for (const [key, tl] of tilesOf(s)) {
+      if (!key.endsWith(`:${Math.round(w)}:${Math.min(1.5, sc)}`)) continue;
+      const yy = mapY + (tl.i * TH - top) * w * k;
+      if (yy > mapY + mapH || yy + TH * w * k < mapY) continue;
+      ctx.drawImage(tl.rev, mapX + (mapW - w * k) / 2, yy, w * k, TH * w * k + 0.5);
+    }
+    ctx.restore();
+    rr(ctx, mapX, mapY, mapW, mapH, 4);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    font(0.034, 900);
+    text(`${Math.round(s.pct * 100)}%`, mapX + mapW / 2, mapY + mapH + R(0.03), '#e0482f');
+    // 오른쪽: 별 셋
+    const rx0 = cx0 + R(0.26), rw = R(0.6);
+    for (let i = 0; i < 3; i++) {
+      const at = 12 + i * 12, sx0 = rx0 + rw * (0.17 + i * 0.33), sy0 = cy0 + R(0.13), on = s.starOk[i] && pt >= at, pop = on ? 1 + Math.max(0, 1 - (pt - at) / 8) * 0.6 : 1;
+      starPath(ctx, sx0, sy0, R(0.048) * pop);
+      ctx.fillStyle = on ? '#ffc93c' : '#ece2d0';
+      ctx.fill();
+      ctx.strokeStyle = on ? '#a06a12' : '#d2c4a8';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (on && (fx.memo['st' + i] ?? -1) !== s.stage) (fx.memo['st' + i] = s.stage), fx.sound('ding', 1 + i * 0.18, 0.9), fx.burst(sx0, sy0, '#ffd84a', 10, 3, 2.4);
+      font(0.03, 800);
+      const lab = starWords(s)[i], cut = ctx.measureText(lab).width > rw * 0.31 ? lab.lastIndexOf(' ', Math.ceil(lab.length / 2) + 1) : -1;
+      const fc = s.starOk[i] ? INK : '#b8a890';
+      if (cut > 0) text(lab.slice(0, cut), sx0, sy0 + R(0.064), fc), text(lab.slice(cut + 1), sx0, sy0 + R(0.096), fc);
+      else text(lab, sx0, sy0 + R(0.075), fc);
+    }
+    rr(ctx, rx0, cy0 + R(0.235), rw, R(0.056), R(0.02));
+    ctx.fillStyle = '#fff0d6';
+    ctx.fill();
+    font(0.042, 900);
+    text(`+${fmt(s.gain)}점`, rx0 + rw * 0.3, cy0 + R(0.264), '#e0482f');
+    font(0.03, 800);
+    text(`별 ${s.got}개 = ×${STAR_MUL[s.got]}`, rx0 + rw * 0.74, cy0 + R(0.265), INK);
+    // 정령 레벨
+    ctx.save();
+    ctx.translate(rx0 + R(0.03), cy0 + R(0.355));
+    stamp(ctx, formSprite('white', 1, R(0.02) * sc * 1.05), R(0.02));
+    ctx.restore();
+    drawGear(ctx, rx0 + R(0.03), cy0 + R(0.355), R(0.02), s.lv, t);
+    ctx.textAlign = 'left';
+    font(0.035, 900);
+    text(`정령 Lv${s.lv - 1} → Lv${s.lv}`, rx0 + R(0.065), cy0 + R(0.335), '#6a74a8');
+    font(0.03, 700);
+    text(LV_GIFT[s.lv] ?? '모습이 더 오래·크게·넓게 칠해요', rx0 + R(0.065), cy0 + R(0.372), LV_GIFT[s.lv] ? '#e0482f' : INK);
+    // 도감 (되어 본 모습) — 다음 판에 풀릴 모습은 점선 동그라미
+    const nx: StageDef | undefined = STAGES[s.stage + 1];
+    font(0.03, 800);
+    text(`도감 ${s.dex.length}/${DEX.length}`, rx0, cy0 + R(0.425), MUTED);
+    if (s.newDex.length) {
+      ctx.textAlign = 'right';
+      text(`새 모습! ${s.newDex.map((f) => FD[f].name).slice(-2).join(' · ')}`, rx0 + rw, cy0 + R(0.425), '#e0482f');
+    }
+    ctx.textAlign = 'center';
+    DEX.forEach((f, i) => {
+      const has = s.dex.includes(f), isNew = s.newDex.includes(f), u = R(0.019), col = i % 6, row = Math.floor(i / 6);
+      const px = rx0 + R(0.045) + col * (rw - R(0.09)) / 5, py = cy0 + R(0.5 + row * 0.075) - (isNew ? Math.abs(Math.sin(t * 0.18 + i)) * R(0.01) : 0);
+      if (isNew) (ell(ctx, px, py - u, u * 1.8, u * 1.8), (ctx.fillStyle = '#ffe9a0'), ctx.fill());
+      const next = !has && !!nx && nx.unlock === f;
+      if (next) {
+        ell(ctx, px, py - u, u * 1.8, u * 1.8);
+        ctx.strokeStyle = '#ff8a3d';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 3]);
+        ctx.lineDashOffset = -t * 0.3;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.save();
+      ctx.translate(px, py);
+      stamp(ctx, has ? formSprite(f, 0, u * sc * 1.05) : silhouette(f, '#cfc4b0', u * sc * 1.05), u);
+      ctx.restore();
+      if (next) (font(0.036, 900), text('?', px, py - u, '#ff8a3d', '#ffffff', 3));
+    });
+    font(0.036, 900);
+    if (pt >= RES_MIN) text(s.won ? '톡!' : d.boss && d.ch < PERKS.length ? '톡 하면 장 끝 선물!' : '톡 하면 다음 판', w / 2, cy0 + chh - R(0.03), (t >> 3) % 2 ? '#e0482f' : '#ff8a3d');
+    else if (nx) text(d.boss ? `다음: ${CHAPTERS[nx.ch]}` : nx.unlock ? `다음 판엔 ${FD[nx.unlock].name}!` : `다음: ${nx.name}`, w / 2, cy0 + chh - R(0.03), MUTED);
+    ctx.globalAlpha = 1;
+  }
+
+  // ── 장 끝: 둘 중 하나 (광장의 큰 물건을 톡) ──
+  if (s.phase === 'pick') {
+    const pt = s.pt, picked = s.picked, opts = PERKS[d.ch];
+    rr(ctx, X(0.08), Y(0.14), R(0.84), R(0.105), R(0.03));
+    ctx.fillStyle = 'rgba(255,250,240,.96)';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    font(0.042, 900);
+    ctx.textAlign = 'center';
+    text(`${CHAPTERS[d.ch]} 끝! 선물 하나`, w / 2, Y(0.172), '#e0482f');
+    font(0.034, 800);
+    text(picked < 0 ? '광장의 큰 물건 둘 중 하나를 톡!' : `${opts[picked].name}: ${opts[picked].line}`, w / 2, Y(0.216), INK);
+    opts.forEach((o, i) => {
+      const px = X(i ? 0.72 : 0.28), drop = picked < 0 ? Math.max(0, 1 - pt / 16) : 0, py = Y(0.9) - drop * drop * R(0.5);
+      const chosen = picked === i, other = picked >= 0 && !chosen, k = R(0.2) * (chosen ? 1 + 0.15 * Math.sin(Math.min(1, pt / 12) * Math.PI) : 1);
+      ctx.globalAlpha = other ? Math.max(0, 1 - pt / 20) : 1;
+      ctx.fillStyle = 'rgba(50,35,70,.22)';
+      ell(ctx, px, Y(0.905), R(0.13), R(0.035));
+      ctx.fill();
+      if (picked < 0 && pt >= PICK_MIN) {
+        ell(ctx, px, Y(0.905), R(0.17 + 0.012 * Math.sin(t * 0.2)), R(0.05));
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([7, 6]);
+        ctx.lineDashOffset = -t * 0.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      drawPerk(ctx, d.ch, i, px, py, k, t);
+      rr(ctx, px - R(0.205), Y(0.96), R(0.41), R(0.105), R(0.025));
+      ctx.fillStyle = chosen ? '#ffe9a0' : 'rgba(255,250,240,.96)';
+      ctx.fill();
+      ctx.strokeStyle = chosen ? '#e0a020' : INK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      font(0.04, 900);
+      text(o.name, px, Y(0.993), '#e0482f');
+      font(0.031, 800);
+      text(o.line, px, Y(1.035), INK);
+      ctx.globalAlpha = 1;
+    });
+  }
+  // ── 실패: 그 판만 바로 다시 ──
+  if (s.phase === 'fail') {
+    const a = Math.min(1, s.pt / 10);
+    ctx.globalAlpha = a;
+    rr(ctx, X(0.12), Y(0.45), R(0.76), R(0.36), R(0.04));
+    ctx.fillStyle = '#fffaf2';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(w / 2, Y(0.62) + Math.sin(t * 0.15) * R(0.006));
+    ctx.rotate(Math.sin(t * 0.1) * 0.15);
+    stamp(ctx, formSprite('white', 2, R(0.05) * sc * 1.05), R(0.05));
+    ctx.restore();
+    font(0.048, 900);
+    ctx.textAlign = 'center';
+    text('하얗게 질렸다…', w / 2, Y(0.68), '#e0482f');
+    font(0.036, 800);
+    text(`이 판만 다시! (기회 ${s.tries}번 남음)`, w / 2, Y(0.735), INK);
+    if (s.pt >= 40) (font(0.034, 900), text('톡 하면 바로 다시', w / 2, Y(0.78), (t >> 3) % 2 ? '#e0482f' : '#ff8a3d'));
+    ctx.globalAlpha = 1;
+  }
+  // ── 끝 ──
+  if (s.phase === 'end') {
+    const a = Math.min(1, s.pt / 14);
+    ctx.globalAlpha = a;
+    rr(ctx, X(0.08), Y(0.36), R(0.84), R(0.56), R(0.04));
+    ctx.fillStyle = '#fffaf2';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(w / 2, Y(0.56) + Math.sin(t * 0.1) * R(0.01));
+    stamp(ctx, formSprite(s.won ? 'rainbow' : 'white', s.won ? 1 : 2, R(s.won ? 0.06 : 0.07) * sc * 1.05), R(s.won ? 0.06 : 0.07));
+    ctx.restore();
+    font(0.05, 900);
+    ctx.textAlign = 'center';
+    text(s.won ? '마을이 다시 알록달록!' : '정령이 지쳤어요…', w / 2, Y(0.645), '#e0482f');
+    font(0.038, 800);
+    text(`${s.won ? STAGES.length : s.stage + 1}판 · 별 ${s.stars}/${STAGES.length * 3} · 도감 ${s.dex.length}/${DEX.length}`, w / 2, Y(0.715), INK);
+    font(0.06, 900);
+    text(`${fmt(s.pts + s.sp)}점`, w / 2, Y(0.8), INK);
+    font(0.034, 700);
+    text(s.won ? `정령 Lv${s.lv} — 마을의 색을 다 찾았어요` : '다시 하면 더 멀리 갈 수 있어요', w / 2, Y(0.87), MUTED);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'center';
+}
+/** 스크린샷·모음 그림용 (게임에서는 쓰지 않는다) */
+export const __art = { formSprite, foeSprite, silhouette, stamp, drawPerk };
+/** 측정용: 봇 속셈 들여다보기 */
+export const __bot = { fit, burstEst, toward, cands, bestForm };
+/** 측정·스크린샷용: 이 색을 먹은 것처럼 변신 */
+export const __morph = (s: SoulState, col: number, bonus = 0) => transform(s, col, bonus, ++s.aid);
