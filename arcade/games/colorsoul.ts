@@ -2929,6 +2929,15 @@ function warmFonts(w: number) {
   for (const wt of [700, 800, 900]) for (const sz of [0.033, 0.038, 0.042, 0.046, 0.06]) (g.font = `${wt} ${Math.max(12, Math.round(w * sz))}px system-ui, sans-serif`), g.fillText('불 사자 1단계 · 점수 ×1.5 별 셋째!', 0, 12);
   return c;
 }
+function warmWords(w: number, sz: number, wt: number, words: string) {
+  if (typeof document === 'undefined') return;
+  const c = document.createElement('canvas');
+  (c.width = 64), (c.height = 24);
+  const g = c.getContext('2d')!;
+  g.font = `${wt} ${Math.max(12, Math.round(w * sz))}px system-ui, sans-serif`;
+  for (const q of words.split(' ')) g.measureText(q), g.fillText(q, 0, 12);
+  return c;
+}
 /** 구웠지만 아직 다 그리지 않은 스티커 하나 (다음 여유 프레임에 그려 둔다) */
 let WARM_PEND: HTMLCanvasElement | null = null;
 /** 이 판(stage, 정령 레벨)에 나올 도둑(색·회색 · 몸짓)과 될 수 있는 모습(1~5단계 · 몸짓 셋)의 스티커 목록 — 판 중엔 한 프레임에 하나, 결과·선물 화면에선 다음 판 것을 셋씩 */
@@ -2948,6 +2957,11 @@ function warmList(stage: number, lv: number, w: number, sc: number): [string, ()
     push(`f:${f}:${pose}:${qOf(px)}`, () => formSprite(f, pose, px));
   };
   if (!FONTS_WARM) push('font', () => warmFonts(w));
+  // 띠에 나올 낱말들 (글자 모양 찾기·그리기를 처음 톡 전에) — 글꼴마다 한 항목
+  {
+    const words = [...DEX.map((f) => FD[f].name), '하얀 정령 (맨몸)', ...[1, 2, 3, 4, 5].map((k) => `${k}단계`), '· 점수 ×1 ×1.5 ×2 ×2.5 ×3', d.name, d.news, ...Object.values(ED).map((e) => `${e.name}: ${e.line}`)].join(' ');
+    for (const [sz, wt] of [[0.033, 800], [0.033, 900], [0.038, 900], [0.034, 900]] as const) push(`t:${stage}:${sz}:${wt}`, () => warmWords(w, sz, wt, words));
+  }
   for (const pose of [0, 1, 2]) form('white', 1, pose), form('white', 1, pose, true);
   const key = d.star.k !== 'time' && d.star.f ? d.star.f : null;
   if (key) for (let tier = 1; tier <= 5; tier++) for (const pose of [0, 1, 2]) form(key, tier, pose);
@@ -4255,9 +4269,23 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     const list = warmList(ws, s.lv, w, sc), mk = `wm${ws}:${s.lv}`;
     let i = fx.memo[mk] ?? 0, did = 0;
     // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
+    // 판 중: 화면의 도둑 색을 먹으면 될 모습(그 단계)부터 — 나머지 목록은 두 프레임에 한 번
+    let soon: (() => HTMLCanvasElement) | null = null;
+    if (s.phase === 'play' && !WARM_PEND)
+      for (const m of s.foes) {
+        if (m.dead || !m.col || !onScreen(s, m)) continue;
+        const r = mixRes(s, m.col, m.champ ? 1 : 0), px = w * FD[r.f].r * (1 + 0.12 * (Math.min(5, r.tier) - 1)) * (1 + 0.012 * (s.lv - 1)) * sc * 1.05, q = qOf(px);
+        const pose = [0, 1, 2].find((ps) => !SPR.has(`f:${r.f}:${ps}:${q}`));
+        if (pose !== undefined) {
+          soon = () => formSprite(r.f, pose, px);
+          break;
+        }
+      }
     if (!(rest && s.pt < 12))
-      while (did < (rest ? 3 : 1) && spare(rest ? 8 : 5)) {
+      while (did < (rest ? 8 : 1) && spare(rest ? 12 : 5)) {
         if (WARM_PEND) flushNow(WARM_PEND), (WARM_PEND = null), did++;
+        else if (soon) (WARM_PEND = soon()), (soon = null), did++;
+        else if (!rest && t % 2) break;
         else if (i < list.length) {
           if (!SPR.has(list[i][0])) (WARM_PEND = list[i][1]() || null), did++;
           i++;
@@ -4823,3 +4851,4 @@ export const __tileB = (s: SoulState, i: number, w: number, sc: number) => getTi
 export const __stampB = (ctx: C2, c: HTMLCanvasElement, u: number) => stamp(ctx, c, u);
 export const __sprB = () => SPR;
 export const __cropB = (c: HTMLCanvasElement) => { const a = CROP.get(c); crop(c); const b = CROP.get(c); if (a) CROP.set(c, a); return [a, b, c.width, c.height]; };
+export const __formB = (f: FK, pose: number, px: number) => formSprite(f, pose, px);

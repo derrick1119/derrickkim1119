@@ -25,7 +25,9 @@ import { juice } from '../juice.ts';
 const A = 1.5, TAU = Math.PI * 2;
 /** 하늘 길: 화면 좌표(가로 폭 = 1, 세로 0~1.5). 용과 떼는 이 띠 안에서 난다 */
 const FY0 = 0.17, FY1 = 1.22;
-const HOME_X = 0.27, HOME_Y = 0.72;
+const HOME_X = 0.27, HOME_Y = 0.75;
+/** 용은 화면 세로 40~60%에 머문다 (y 범위) · 그림은 몸보다 1.3배 크게 */
+const ME_Y0 = 0.58, ME_Y1 = 0.92, DK = 1.3;
 /** 한 화면의 적 상한 · 적 총알 상한 · 내 것(가시·거품·바람) 상한 */
 const CAP = 24, SHOT_CAP = 100, MINE_CAP = 60;
 /** 먹은 뒤 꼭꼭 씹는 틱(이동안 톡은 안 먹힌다) · 먹으러 날아가는 최소 틱 */
@@ -87,8 +89,8 @@ export const KD: Record<K, KDef> = {
   puff: { name: '가시 복어', p: 'spike', r: 0.056, hp: 55, spd: 0.0022, beh: 'float', dmg: 11, per: 60, col: '#ffc34a', big: true },
   owl: { name: '바람 부엉이', p: 'wing', r: 0.052, hp: 40, spd: 0.003, beh: 'snipe', dmg: 7, per: 140, col: '#b9a3ff', shoot: true },
   eagle: { name: '대장 폭풍 독수리', p: 'storm', r: 0.115, hp: 1800, spd: 0.004, beh: 'boss', dmg: 14, per: 200, col: '#9fd0ff', boss: true, big: true },
-  whale: { name: '대장 구름 고래', p: 'wave', r: 0.15, hp: 2500, spd: 0.0016, beh: 'boss', dmg: 12, per: 220, col: '#9fd8ff', boss: true, big: true },
-  drake: { name: '대장 번개 용', p: 'thunder', r: 0.13, hp: 2000, spd: 0.0028, beh: 'boss', dmg: 16, per: 190, col: '#ffd84a', boss: true, big: true },
+  whale: { name: '대장 구름 고래', p: 'wave', r: 0.15, hp: 3800, spd: 0.0016, beh: 'boss', dmg: 12, per: 220, col: '#9fd8ff', boss: true, big: true },
+  drake: { name: '대장 번개 용', p: 'thunder', r: 0.13, hp: 3400, spd: 0.0028, beh: 'boss', dmg: 16, per: 190, col: '#ffd84a', boss: true, big: true },
 };
 /** 왕: 크기·체력·세기 배수 */
 const KING_R = 1.75, KING_HP = 5, KING_DMG = 1.5;
@@ -107,18 +109,18 @@ export const CHAPTERS = ['아침 구름 들판', '무지개 폭포 섬', '노을
  * 판마다 새 짐승 하나(= 새로 돋을 수 있는 부위 하나) + 그 부위가 빛나는 상황 + 무서운 왕 하나.
  */
 export const STAGES: StageDef[] = [
-  { key: 'bat', ch: 0, name: '불꽃 박쥐', news: '박쥐를 톡 — 꿀꺽 먹으면 불을 뿜어요', n: 6, star: 'chain', waves: [W(0, 0, F('bat', 8)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8))] },
+  { key: 'bat', ch: 0, name: '불꽃 박쥐', news: '박쥐를 톡 — 꿀꺽 먹으면 불을 뿜어요', n: 6, star: 'chain', waves: [W(0, 0, F('bat', 8)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 5)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 7), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('bat', 1, true), F('bat', 6))] },
   { key: 'beetle', ch: 0, name: '바위 딱정벌레', news: '딱정벌레를 먹으면 바위 갑옷 — 쿵 박치기', n: 4, star: 'chain', waves: [W(0, 0, F('beetle', 4), F('bat', 6)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4)), W(2, 420, F('beetle', 1, true), F('bat', 6)), W(2, 420, F('beetle', 3), F('bat', 7)), W(2, 420, F('beetle', 4), F('bat', 5)), W(2, 420, F('bat', 8)), W(2, 420, F('beetle', 4))] },
-  { key: 'fly', ch: 0, name: '바람개비 잠자리', news: '잠자리를 먹으면 바람개비 꼬리 — 빙글빙글', n: 20, star: 'combo', waves: [W(0, 0, F('fly', 6), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7))] },
+  { key: 'fly', ch: 0, name: '바람개비 잠자리', news: '잠자리를 먹으면 바람개비 꼬리 — 빙글빙글', n: 25, star: 'combo', waves: [W(0, 0, F('fly', 6), F('bat', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7)), W(2, 420, F('bat', 8), F('fly', 5)), W(2, 420, F('beetle', 3), F('fly', 6)), W(2, 420, F('bat', 8), F('bat', 6)), W(2, 420, F('fly', 6), F('beetle', 3)), W(2, 420, F('fly', 1, true), F('bat', 7))] },
   { key: 'eagle', ch: 0, name: '대장 폭풍 독수리', news: '대장은 못 먹어요 — 흘린 깃털을 톡!', n: 3, star: 'sky', waves: [W(0, 0, F('eagle', 1), F('bat', 6))], summon: [[F('bat', 7)], [F('fly', 6)], [F('beetle', 3), F('bat', 4)]] },
-  { key: 'bfly', ch: 1, name: '얼음 나비', news: '나비를 먹으면 얼음 숨결 — 쭉 뻗는 얼음', n: 24, star: 'combo', waves: [W(0, 0, F('bfly', 6), F('fly', 5)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4))] },
-  { key: 'jelly', ch: 1, name: '거품 해파리', news: '해파리를 먹으면 거품 숨결 — 가둬서 펑', n: 15, star: 'combo', waves: [W(0, 0, F('jelly', 2), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3))] },
-  { key: 'squir', ch: 1, name: '돌망치 다람쥐', news: '다람쥐를 먹으면 망치 꼬리 — 쾅!', n: 10, star: 'combo', waves: [W(0, 0, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2))] },
-  { key: 'whale', ch: 1, name: '대장 구름 고래', news: '대장은 못 먹어요 — 흘린 꼬리를 톡!', n: 3, star: 'sky', waves: [W(0, 0, F('whale', 1), F('jelly', 2), F('bfly', 3))], summon: [[F('bfly', 6), F('fly', 3)], [F('squir', 3), F('jelly', 2)], [F('fly', 6)], [F('jelly', 2), F('bfly', 3)]] },
-  { key: 'spark', ch: 2, name: '번개 참새', news: '참새를 먹으면 번개 숨결 — 찌릿 줄줄이', n: 12, star: 'combo', waves: [W(0, 0, F('spark', 5), F('fly', 4)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5))] },
-  { key: 'puff', ch: 2, name: '가시 복어', news: '복어를 먹으면 가시 등 — 사방으로 퓽퓽', n: 9, star: 'chain', waves: [W(0, 0, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3))] },
-  { key: 'owl', ch: 2, name: '바람 부엉이', news: '부엉이를 먹으면 큰 날개 — 휙 바람', n: 15, star: 'combo', waves: [W(0, 0, F('owl', 2), F('spark', 4), F('bat', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4))] },
-  { key: 'drake', ch: 2, name: '대장 번개 용', news: '마지막 대장 — 흘린 뿔을 먹으면 천둥이 내 것', n: 3, star: 'sky', waves: [W(0, 0, F('drake', 1), F('spark', 4))], summon: [[F('spark', 5), F('fly', 3)], [F('owl', 2), F('spark', 3)], [F('puff', 2), F('squir', 2)], [F('fly', 6)], [F('jelly', 2), F('bfly', 3)]] },
+  { key: 'bfly', ch: 1, name: '얼음 나비', news: '나비를 먹으면 얼음 숨결 — 쭉 뻗는 얼음', n: 40, star: 'combo', waves: [W(0, 0, F('bfly', 6), F('fly', 5)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4)), W(2, 420, F('bfly', 1, true), F('fly', 5)), W(2, 420, F('fly', 6), F('bfly', 5)), W(2, 420, F('bfly', 6), F('fly', 4), F('bat', 4)), W(2, 420, F('fly', 6), F('bat', 5)), W(2, 420, F('bfly', 6), F('fly', 4))] },
+  { key: 'jelly', ch: 1, name: '거품 해파리', news: '해파리를 먹으면 거품 숨결 — 가둬서 펑', n: 30, star: 'combo', waves: [W(0, 0, F('jelly', 2), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2)), W(2, 420, F('jelly', 3), F('bfly', 5)), W(2, 420, F('jelly', 1, true), F('bfly', 5)), W(2, 420, F('beetle', 3), F('jelly', 2), F('bfly', 3)), W(2, 420, F('beetle', 3), F('jelly', 2))] },
+  { key: 'squir', ch: 1, name: '돌망치 다람쥐', news: '다람쥐를 먹으면 망치 꼬리 — 쾅!', n: 9, star: 'combo', waves: [W(0, 0, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2)), W(2, 420, F('jelly', 3), F('squir', 3)), W(2, 420, F('squir', 3), F('jelly', 2), F('bat', 5)), W(2, 420, F('squir', 1, true), F('jelly', 2))] },
+  { key: 'whale', ch: 1, name: '대장 구름 고래', news: '대장은 못 먹어요 — 흘린 꼬리를 톡!', n: 3, star: 'sky', waves: [W(0, 0, F('whale', 1), F('jelly', 2), F('bfly', 3))], summon: [[F('bfly', 6), F('fly', 3)], [F('fly', 6)], [F('jelly', 2), F('bfly', 3)], [F('bat', 7)]] },
+  { key: 'spark', ch: 2, name: '번개 참새', news: '참새를 먹으면 번개 숨결 — 찌릿 줄줄이', n: 20, star: 'combo', waves: [W(0, 0, F('spark', 5), F('fly', 4)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3)), W(2, 420, F('spark', 5), F('fly', 5)), W(2, 420, F('spark', 1, true), F('fly', 5)), W(2, 420, F('bfly', 5), F('spark', 4), F('fly', 3))] },
+  { key: 'puff', ch: 2, name: '가시 복어', news: '복어를 먹으면 가시 등 — 사방으로 퓽퓽', n: 11, star: 'combo', waves: [W(0, 0, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3)), W(2, 420, F('fly', 6), F('bat', 6)), W(2, 420, F('puff', 1, true), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 2), F('fly', 5)), W(2, 420, F('puff', 3), F('squir', 3)), W(2, 420, F('puff', 2), F('squir', 3))] },
+  { key: 'owl', ch: 2, name: '바람 부엉이', news: '부엉이를 먹으면 큰 날개 — 휙 바람', n: 18, star: 'combo', waves: [W(0, 0, F('owl', 2), F('spark', 4), F('bat', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('squir', 3), F('owl', 2), F('spark', 3)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4)), W(2, 420, F('owl', 1, true), F('spark', 4)), W(2, 420, F('owl', 3), F('spark', 4)), W(2, 420, F('spark', 5), F('owl', 2)), W(2, 420, F('owl', 3), F('spark', 3), F('bat', 4))] },
+  { key: 'drake', ch: 2, name: '대장 번개 용', news: '마지막 대장 — 흘린 뿔을 먹으면 천둥이 내 것', n: 3, star: 'sky', waves: [W(0, 0, F('drake', 1), F('spark', 4))], summon: [[F('spark', 6)], [F('fly', 6)], [F('spark', 4), F('fly', 3)], [F('bfly', 5)], [F('owl', 2), F('spark', 4)]] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(하늘의 큰 물건) */
@@ -127,7 +129,7 @@ export const PERKS: { name: string; line: string }[][] = [
   [{ name: '무지개 비늘', line: '떨어진 부위가 큰 폭죽' }, { name: '꿀단지', line: '같은 걸 또 먹으면 두 단계' }],
 ];
 /** 배우는 판은 너그럽게: 적이 주는 피해 배수 */
-const EZ = [0.35, 0.6, 0.85, 0.95, 1.2, 1.3, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65];
+const EZ = [0.35, 0.6, 0.85, 0.85, 1.2, 1.3, 1.25, 0.9, 1.2, 0.8, 1.4, 1.1];
 /** 대장이 흘린 것: 잡히는 거리 · 머무는 틱 */
 const ITEM_R = 0.13, ITEM_T = 360;
 /** 대장이 제 부위를 흘리는 체력 */
@@ -153,7 +155,7 @@ interface Mon {
   // 연출 (시뮬레이션 결과와 무관)
   seed: number; born: number; hurtT: number; atkT: number;
 }
-interface Flock { id: number; k: K; x: number; y: number; tx: number; ty: number; t: number; king: boolean; n0: number }
+interface Flock { id: number; k: K; x: number; y: number; tx: number; ty: number; t: number; king: boolean; n0: number; oy: number }
 /** 몸에 돋은 부위: 단계 · 튼튼함 · 기운(싸울수록 차오르고, 밀려날 때 그만큼 크게 터진다) */
 interface Part { p: P; g: number; hp: number; max: number; born: number; ch: number }
 interface Fly { x0: number; y0: number; to: number; ids: number[]; item: number; t: number; T: number }
@@ -199,6 +201,8 @@ export interface DrState {
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   /** 큰 띠(한 번에 하나) */
   big: { text: string; sub: string; t: number; pri: number; col: string; n: number; eid: number; star: boolean; p: P | null } | null;
+  /** 다음에 띄울 이름표 카드 (앞 카드가 0.5초는 보이게) */
+  cardQ: { text: string; sub: string; t: number; pri: number; col: string; n: number; eid: number; star: boolean; p: P | null }[];
 }
 
 // ───────────────────────────── 도구 ─────────────────────────────
@@ -224,9 +228,9 @@ export const meR = (s: DrState) => 0.064 * (1 + 0.024 * (s.lv - 1)) * (has(s, 'r
 const pw = (s: DrState, g = 1) => (1 + 0.06 * (s.lv - 1)) * [1, 1, 1.6, 2.4][g];
 export const bite = (s: DrState) => 2 + (s.lv >= 5 ? 1 : 0) + (s.perk[0] === 1 ? 2 : 0);
 /** 입 · 부위 자리 (화면 좌표) */
-const mouth = (s: DrState): [number, number] => [s.me.x + s.me.face * meR(s) * 1.35, s.me.y - meR(s) * 0.45];
+const mouth = (s: DrState): [number, number] => [s.me.x + s.me.face * meR(s) * DK * 1.35, s.me.y - meR(s) * DK * 0.45];
 const slotPos = (s: DrState, slot: number): [number, number] => {
-  const me = s.me, r = meR(s);
+  const me = s.me, r = meR(s) * DK;
   return slot === 0 ? [me.x + me.face * r * 0.75, me.y - r * 1.35] : slot === 1 ? [me.x - me.face * r * 0.15, me.y - r * 0.9] : [me.x - me.face * r * 1.7, me.y - r * 0.1];
 };
 const foes = (s: DrState) => s.mons.reduce((a, m) => a + (!m.dead && !isBoss(m) ? 1 : 0), 0);
@@ -243,9 +247,10 @@ function wowN(s: DrState) {
 /** 가운데 이름표 카드 (0.9초): 새 부위가 처음 돋을 때 · 별 셋째 · 대장 순간에만 */
 function card(s: DrState, text: string, sub: string, pri: number, col: string, p: P | null, star = false) {
   wowN(s);
-  const b = s.big;
-  if (b && s.t - b.t < CARD_T && b.pri > pri) return;
-  s.big = { text, sub, t: s.t, pri, col, n: 0, eid: 0, star, p };
+  const b = s.big, c = { text, sub, t: s.t, pri, col, n: 0, eid: 0, star, p };
+  // 앞 카드가 막 떴으면 줄을 세운다 (첫 변신 카드가 별 카드에 바로 덮이지 않게)
+  if (b && s.t - b.t < 30) return void (s.cardQ.length < 2 && s.cardQ.push(c));
+  s.big = c;
   s.freeze = Math.max(s.freeze, 3);
 }
 function keepIn(m: { x: number; y: number; r: number }) {
@@ -402,7 +407,7 @@ export function pickEdible(s: DrState, x: number, y: number): { m: Mon | null; i
   // 대장이 흘린 것은 그 가까이를 톡해야 잡힌다
   for (const it of s.items) {
     const d = dist(x, y, it.x, it.y);
-    if (d < ITEM_R && d - 0.1 < bv) (bv = d - 0.1), (bi = it), (bm = null);
+    if (d < ITEM_R && d < bv) (bv = d), (bi = it), (bm = null);
   }
   return bm || bi ? { m: bm, it: bi } : null;
 }
@@ -507,10 +512,11 @@ function attach(s: DrState, p: P, k: K, power: boolean) {
     see(s, 'power:' + k);
     if (d.boss) {
       // 대장의 힘: 먹은 횟수가 대장 판의 별 셋째
+      // 대장의 힘: 먹은 횟수가 대장 판의 별 셋째
       s.skyBest++;
       s.sp += 30 * stMul(s);
-      const sd = STAGES[s.stage], star = sd.star === 'sky' && s.skyBest === sd.n;
-      if (star) card(s, '별 셋째!', `대장의 힘 ${sd.n}번`, 4, '#ffb800', null, true), ev(s, 'star3', me.x, me.y);
+      const sd = STAGES[s.stage];
+      if (sd.star === 'sky' && s.skyBest === sd.n) card(s, '별 셋째!', `대장의 힘 ${sd.n}번`, 4, '#ffb800', null, true), ev(s, 'star3', me.x, me.y);
       else card(s, d.name, '대장의 힘!', 4, d.col, p);
     } else wowN(s);
     ev(s, 'power', me.x, me.y, 0, 0, 0, p);
@@ -559,6 +565,7 @@ function skyScore(s: DrState, eid: number) {
   s.skyE = eid;
   const n = s.skyC;
   s.sp += Math.ceil((n * n) / 4) * stMul(s), (__dbg.sky += Math.ceil((n * n) / 4) * stMul(s));
+  if (n >= WOW_N) wowN(s);
 }
 /** 이 판 별 셋째의 지금 기록 */
 export const starNow = (s: DrState) => { const d = STAGES[s.stage]; return d.star === 'pop' ? s.popBest : d.star === 'sky' ? s.skyBest : d.star === 'combo' ? s.comboBest : s.best; };
@@ -636,12 +643,12 @@ function move(s: DrState) {
   }
   if (dodge) ty = me.y + Math.sign(dodge) * 0.14;
   tx = clamp(tx, 0.07, 0.8);
-  ty = clamp(ty, FY0 + 0.06, FY1 - 0.06);
+  ty = clamp(ty, ME_Y0, ME_Y1);
   const spd = (dodge ? 1.6 : 1) * 0.0062 * (b?.p === 'wing' ? 1.9 : b?.p === 'storm' ? 1.7 : b?.p === 'rock' ? 0.85 : 1);
   const dx = tx - me.x, dy = ty - me.y, d = hyp(dx, dy), v = Math.min(spd, d * 0.09);
   if (d > 1e-4) (me.vx += ((dx / d) * v - me.vx) * 0.25), (me.vy += ((dy / d) * v - me.vy) * 0.25);
   me.x = clamp(me.x + me.vx, 0.05, 0.9);
-  me.y = clamp(me.y + me.vy, FY0 + 0.04, FY1 - 0.04);
+  me.y = clamp(me.y + me.vy, ME_Y0 - 0.06, ME_Y1 + 0.06);
   if (tgt && Math.abs(tgt.x - me.x) > 0.04) me.face = tgt.x > me.x ? 1 : -1;
 }
 /** 바위 박치기 중: 곧장 달려 부딪친 것을 쿵 (껍데기도 깬다) */
@@ -649,7 +656,7 @@ function ramStep(s: DrState) {
   const me = s.me, r = meR(s), b = me.parts[1];
   me.ram--;
   me.x = clamp(me.x + Math.cos(me.ramA) * 0.026, 0.04, 0.94);
-  me.y = clamp(me.y + Math.sin(me.ramA) * 0.026, FY0 + 0.03, FY1 - 0.03);
+  me.y = clamp(me.y + Math.sin(me.ramA) * 0.026, ME_Y0 - 0.08, ME_Y1 + 0.08);
   const P = pw(s, b?.g ?? 1);
   for (const m of s.mons) {
     if (!hittable(m) || m.dom > 0 || dist(me.x, me.y, m.x, m.y) > r + m.r) continue;
@@ -1031,7 +1038,7 @@ function spawnFlock(s: DrState, fl: Fl, pre: boolean) {
   }
   if (s.stage === 0 && pre && !s.flocks.length) (tx = 0.64), (ty = 0.66);
   if (kd.boss) (tx = 0.76), (ty = 0.5);
-  s.flocks.push({ id, k: fl.k, x: tx, y: ty, tx, ty, t: 0, king: !!fl.king, n0: fl.n });
+  s.flocks.push({ id, k: fl.k, x: tx, y: ty, tx, ty, t: 0, king: !!fl.king, n0: fl.n, oy: ty });
   const first: Mon[] = [];
   for (let i = 0; i < fl.n; i++) {
     const m = addMon(s, fl.k, id, !!fl.king);
@@ -1084,8 +1091,10 @@ function home(s: DrState, m: Mon): [number, number] {
 function flockStep(s: DrState, f: Flock) {
   const kd = KD[f.k], me = s.me;
   f.t++;
-  if (kd.beh === 'swarm') (f.tx = clamp(me.x + 0.36, 0.48, 0.84)), (f.ty += (clamp(me.y, FY0 + 0.12, FY1 - 0.12) - f.ty) * 0.01);
-  else if (kd.beh === 'float') (f.tx = clamp(me.x + 0.24, 0.42, 0.86)), (f.ty += (clamp(me.y, FY0 + 0.12, FY1 - 0.12) - f.ty) * 0.008);
+  // 떼는 제 높이와 용 높이 사이에 머문다 (화면 위아래를 고루 쓴다)
+  const ly = clamp((f.oy + me.y) / 2, FY0 + 0.12, FY1 - 0.12);
+  if (kd.beh === 'swarm') (f.tx = clamp(me.x + 0.36, 0.48, 0.84)), (f.ty += (ly - f.ty) * 0.01);
+  else if (kd.beh === 'float') (f.tx = clamp(me.x + 0.24, 0.42, 0.86)), (f.ty += (ly - f.ty) * 0.008);
   else if (kd.beh === 'zip' && (f.t + f.id * 37) % 160 === 0) (f.tx = 0.45 + s.rng() * 0.4), (f.ty = FY0 + 0.15 + s.rng() * (FY1 - FY0 - 0.3));
   if (s.stage === 0 && !s.started) return;
   const d = dist(f.x, f.y, f.tx, f.ty), v = Math.min(kd.spd * (kd.beh === 'zip' ? 0.5 : 1), d);
@@ -1440,6 +1449,7 @@ function failStage(s: DrState) {
   s.pt = 0;
   s.fails++;
   s.big = null;
+  s.cardQ = [];
   ev(s, 'fail', s.me.x, s.me.y);
   see(s, 'fail');
 }
@@ -1455,6 +1465,7 @@ function advance(s: DrState) {
   newStage(s);
 }
 function playStep(s: DrState) {
+  if (s.cardQ.length && (!s.big || s.t - s.big.t >= 34)) (s.big = s.cardQ.shift()!), (s.big.t = s.t);
   const d = STAGES[s.stage];
   if (s.calm > 0) s.calm--;
   if (s.combo > 0 && s.t - s.comboT > COMBO_T) comboBreak(s);
@@ -1476,7 +1487,7 @@ function playStep(s: DrState) {
   if (s.started && s.wave < d.waves.length && (n <= d.waves[s.wave].need || s.waveT >= d.waves[s.wave].wait)) spawnWave(s);
   if (boss && boss.st !== ENTER && s.started) {
     // 대장 판: 졸개를 부르고, 부위를 흘린다 (기다리지 않게 처음엔 금방)
-    if (d.summon && ++s.summonT >= 40 && n <= 5) (s.summonT = 0), s.inbox.push(...d.summon[s.summonI++ % d.summon.length]), ev(s, 'summon', boss.x, boss.y - boss.r, 0, 0, 0, boss.k);
+    if (d.summon && ++s.summonT >= 90 && n <= 4) (s.summonT = 0), s.inbox.push(...d.summon[s.summonI++ % d.summon.length]), ev(s, 'summon', boss.x, boss.y - boss.r, 0, 0, 0, boss.k);
     if (++s.dropT >= (boss.drops || s.skyBest ? 720 : 150) && !s.items.length) (boss.drops = Math.max(boss.drops, 0)), dropItem(s, boss);
   }
   if (s.wave >= d.waves.length && !s.inbox.length && s.mons.length === 0 && !s.me.fly) {
@@ -1518,7 +1529,7 @@ const game: GameDef<DrState> & { wows(s: DrState): number } = {
       eid: 0, chE: 0, evN: new Map(), best: 0, kills: 0, wkills: 0, eats: 0, gain: 0, fast: 0, stT: 0,
       wave: 0, waveT: 0, inbox: [], summonT: 0, summonI: 0, dropT: 0, clearT: 0, started: false, calm: 0,
       events: [], lines: [], corpses: [], sheds: [], freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, fails: 0,
-      seen: new Set<string>(), banner: null, spot: null, big: null,
+      seen: new Set<string>(), banner: null, spot: null, big: null, cardQ: [],
     };
     newStage(s);
     return s;
@@ -1585,7 +1596,8 @@ function candidates(s: DrState): Mon[] {
   return out;
 }
 /** 지금 몸에 이 짐승과 어울리는 부위가 있나 */
-const covered = (s: DrState, k: K) => s.me.parts.some((q) => q && WEAK[k].includes(ATK_OF[q.p]));
+const fits = (p: P, k: K) => ATK_OF[p] === 'sky' || WEAK[k].includes(ATK_OF[p]);
+const covered = (s: DrState, k: K) => s.me.parts.some((q) => q && fits(q.p, k));
 /**
  * 봇(잘하는): 한 줄 판단 — 대장이 흘린 것이 있으면 그것, 아니면 '지금 하늘에 가장 많은(남은 체력 합) 짐승'과 어울리는 부위를 주는 떼를 톡.
  * 이미 어울리는 부위가 있으면 먹지 않고 싸운다(같은 부위 떼가 있으면 먹어 키운다).
@@ -1597,7 +1609,8 @@ export const eatdragonSmart: Bot<DrState> = {
     if (mid) return mid;
     if (!canEat(s)) return NO;
     const me = s.me;
-    if (s.items.length) return tapOn(s.items.reduce((a, b) => (dist(a.x, a.y, me.x, me.y) <= dist(b.x, b.y, me.x, me.y) ? a : b)));
+    // 대장이 흘린 것이 보이면 곧장 톡 (대장의 힘)
+    if (s.items.length) return tapOn(s.items[0]);
     const cand = candidates(s);
     if (!cand.length) return NO;
     if (me.parts.every((q) => !q)) return tapOn(cand[0]);
@@ -1615,7 +1628,7 @@ export const eatdragonSmart: Bot<DrState> = {
     const keep = new Set<number>();
     for (const k of kinds) {
       if (covered(s, k)) {
-        me.parts.forEach((q, i) => q && WEAK[k].includes(ATK_OF[q.p]) && keep.add(i));
+        me.parts.forEach((q, i) => q && fits(q.p, k) && keep.add(i));
         continue;
       }
       const c = cand.find((m) => WEAK[k].includes(ATK_OF[KD[m.k].p]) && !keep.has(PD[KD[m.k].p].slot));
@@ -1646,7 +1659,6 @@ export const eatdragonHabit: Bot<DrState> = {
     const me = s.me;
     let best: { x: number; y: number } | null = null, bd = 1e9;
     for (const m of s.mons) if (hittable(m) && !isBoss(m) && dist(me.x, me.y, m.x, m.y) < bd) (bd = dist(me.x, me.y, m.x, m.y)), (best = m);
-    for (const it of s.items) if (dist(me.x, me.y, it.x, it.y) < bd) (bd = dist(me.x, me.y, it.x, it.y)), (best = it);
     return best ? tapOn(best) : NO;
   },
 };
@@ -1666,7 +1678,6 @@ export const eatdragonHabit2: Bot<DrState> = {
       const v = (cnt.get(m.fid) ?? 0) * 10 - dist(me.x, me.y, m.x, m.y);
       if (v > bv) (bv = v), (best = m);
     }
-    for (const it of s.items) if (bv < 0) best = it;
     return best ? tapOn(best) : NO;
   },
 };
@@ -3330,7 +3341,6 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
     const fi = fx.memo.wf ?? 0;
     if (fi < FONTS.length && t % 3 === 0) font(FONTS[fi][0], FONTS[fi][1]), ctx.measureText('가나다 한 방! 0123'), (fx.memo.wf = fi + 1);
   }
-  const bandOn = !!s.big && t - s.big.t < 62;
   const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(59,42,63,.9)', lw = 3) => {
     ctx.lineJoin = 'round';
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -3652,7 +3662,7 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
   }
 
   // ── 아기 용 ──
-  const r = R(mr), bob = Math.sin(t * 0.12) * r * 0.06;
+  const r = R(mr * DK), bob = Math.sin(t * 0.12) * r * 0.06;
   if (s.phase !== 'end' || s.won) {
     let x = X(me.x), y = Y(me.y) + bob;
     const hurtA = t - me.hurtT, bare = me.parts.every((q) => !q);
@@ -3878,6 +3888,27 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
   // ── 지나간 사건의 그림 ──
   for (const e of s.events) {
     const age = t - e.t, ex = X(e.x), ey = Y(e.y);
+    if (e.k === 'thunder' && age < 20) {
+      // 천둥 뿔: 화면을 위에서 아래로 가르는 벼락 여러 줄 + 번쩍
+      const q = age / 20;
+      ctx.fillStyle = `rgba(255,250,200,${0.45 * (1 - q) * (age < 3 ? 1 : 0.6)})`;
+      ctx.fillRect(0, Y(0.1), w, Y(1.2));
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let b = 0; b < 6; b++) {
+        if (age > 12 + b) continue;
+        const bx = w * (0.08 + 0.17 * b + (hsh(e.t + b * 13) - 0.5) * 0.08), n = 9;
+        ctx.beginPath();
+        ctx.moveTo(bx, Y(0.1));
+        for (let i = 1; i <= n; i++) ctx.lineTo(bx + (hsh(e.t * 7 + b * 31 + i * 3 + (age >> 2)) - 0.5) * R(0.12), Y(0.1) + (Y(1.2) * i) / n);
+        ctx.strokeStyle = `rgba(255,214,60,${1 - q})`;
+        ctx.lineWidth = R(0.032) * (1 - q * 0.6);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(255,255,255,${1 - q})`;
+        ctx.lineWidth = R(0.012);
+        ctx.stroke();
+      }
+    }
     if (e.k === 'shed' && age < 24) {
       // 폭죽: 기운만큼 크게, 그 부위 빛깔로
       const q = age / 24, rr2 = R(e.x2) * Math.min(1, 0.3 + q * 1.6), col = PD[e.text as P].col;
@@ -3928,16 +3959,31 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
       ctx.stroke();
     }
   }
-  // ── 작은 숫자: 이번 공격으로 줄줄이 몇 마리 (큰 띠가 대신할 땐 생략) ──
+  // ── 숫자 하나: 이번 공격으로 한 번에 쓰러뜨린 수 (그 자리에서 커진다) ──
   {
     const killA = t - (fx.memo.chainT ?? -99), n = fx.memo.chainN ?? 0;
-    if (n >= 2 && killA < 40 && s.phase === 'play' && !(bandOn && s.big && s.big.n === n)) {
-      const k = killA < 5 ? 1.3 - 0.3 * (killA / 5) : 1;
+    if (n >= 2 && killA < 40 && s.phase === 'play') {
+      const big = Math.min(1.6, 0.8 + n * 0.08), k = (killA < 6 ? 1.5 - 0.5 * (killA / 6) : 1) * big;
       ctx.globalAlpha = Math.min(1, (40 - killA) / 10);
-      font(0.04, 900);
-      textK(`줄줄이 ${n}`, clamp(fx.memo.chainX, w * 0.15, w * 0.85), Math.min(Y(1.18), fx.memo.chainY + R(0.075)), k, '#ffe36b', OUT, 3.5);
+      font(0.05, 900);
+      textK(String(n), clamp(fx.memo.chainX, w * 0.1, w * 0.9), clamp(fx.memo.chainY - R(0.06), Y(0.2), Y(1.18)), k, n >= WOW_N ? '#ffd23f' : '#ffffff', OUT, 4);
       ctx.globalAlpha = 1;
     }
+  }
+  // ── 딱 맞아 이어 가기: 용 곁의 숫자 배지 ──
+  if (s.combo >= 2 && s.phase === 'play') {
+    const gr = t - (fx.memo.cbT ?? -99);
+    if (fx.memo.cbN !== s.combo) (fx.memo.cbN = s.combo), (fx.memo.cbT = t);
+    const k = gr < 8 ? 1 + 0.35 * (1 - gr / 8) : 1, rr0 = R(0.034 + Math.min(0.02, s.combo * 0.0006)) * k;
+    const bx = X(me.x) - me.face * R(mr * DK * 1.5), by = Y(me.y) - R(mr * DK * 1.8);
+    ell(ctx, bx, by, rr0, rr0);
+    ctx.fillStyle = s.combo >= 8 ? ((t >> 3) % 2 ? '#ff5fa8' : '#ff8ac2') : '#ff8ac2';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    font(0.036, 900);
+    text(String(s.combo), bx, by + 1, '#ffffff', OUT, 2.5);
   }
 
   // ── 가까운 구름 바다 · 구경꾼 ──
@@ -3959,14 +4005,13 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
     const ex = X(e.x), ey = Y(e.y), k = e.text as K;
     switch (e.k) {
       case 'tap': fx.sound('tick', 1.5, 0.5); break;
-      case 'deny': fx.sound('tick', 0.7, 0.5); if (t - (fx.memo.denyT ?? -99) > 30) (fx.memo.denyT = t), say(X(me.x), Y(me.y) - r * 2, '냠냠…', '#ffffff', 14); break;
+      case 'deny': fx.sound('tick', 0.7, 0.5); break;
       case 'go': fx.sound('whoosh', 1.35, 0.9); break;
       case 'gulp':
         fx.sound('pop', 0.55, 1.1);
         fx.sound('boing', 0.8, 0.7);
         fx.kick(3 + e.n);
         puff(X(mouth(s)[0]), Y(mouth(s)[1]), KD[k]?.col ?? '#ffffff', 8, 3, 3);
-        say(X(me.x), Y(me.y) - r * 2.2, e.n > 1 ? `꿀꺽 ${e.n}마리!` : '꿀꺽!', '#fff3c4', 17);
         break;
       case 'part': {
         const p = e.text as P, col = PD[p].col;
@@ -3976,10 +4021,9 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
         puff(ex, ey, '#ffffff', 6, 3, 2.6);
         fx.ring(ex, ey, col, R(0.12), 4);
         fx.blink(col, 0.12);
-        if (!s.big || t - s.big.t > 4) say(ex, ey - R(0.06), `${SLOT_NAME[e.x2]}: ${PD[p].name}`, '#ffffff', 16);
         break;
       }
-      case 'grow': fx.sound('chime', 1.4, 0.8); fx.sound('ding', 1.2 + e.n * 0.1, 0.6); say(ex, ey - R(0.09), e.n >= 3 ? '최고 단계!' : '한 단계 커졌다!', '#ffe36b', 16); break;
+      case 'grow': fx.sound('chime', 1.4, 0.8); fx.sound('ding', 1.2 + e.n * 0.1, 0.6); fx.ring(ex, ey, '#ffe36b', R(0.09), 4); puff(ex, ey, '#ffe36b', 10, 4, 3); break;
       case 'shed': {
         const c = e.n / 10, col = PD[e.text as P].col;
         fx.sound('pop', 1.4 - c * 0.7, 0.8 + c);
@@ -3990,32 +4034,32 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
         fx.ring(ex, ey, col, R(e.x2), 3 + c * 5);
         break;
       }
-      case 'popn': if (e.n >= 2) say(ex, ey - R(0.12), `폭죽 ${e.n}마리!`, '#ffd0f0', 16 + Math.min(6, e.n)); break;
+      case 'popn': if (e.n >= 2) say(ex, ey - R(0.12), String(e.n), '#ff9ee0', 20 + Math.min(16, e.n * 2)); break;
       case 'power': fx.sound('thud', 0.5, 1.3); fx.sound('chime', 0.9, 1); fx.blink('#fff3a8', 0.45); fx.kick(12); puff(ex, ey, '#ffd84a', 20, 6, 3.6); break;
-      case 'combo': fx.sound('chime', 1.5, 0.9); say(ex, ey - R(0.04), e.text, '#ff9ee0', 17); break;
-      case 'full': fx.sound('ding', 1.8, 0.5); puff(ex, ey, '#ff9ee0', 8, 2.5, 2.4); if (t - (fx.memo.fullT ?? -999) > 240 && (!s.big || t - s.big.t > 60)) (fx.memo.fullT = t), say(ex, ey + R(0.26), '먹으면 폭죽!', '#fff3a8', 14); break;
+      case 'combo': fx.sound('chime', 1.5, 0.9); fx.ring(ex, ey, '#ff9ee0', R(0.14), 4); puff(ex, ey, '#ff9ee0', 10, 4, 3); break;
+      case 'full': fx.sound('ding', 1.8, 0.5); puff(ex, ey, '#ff9ee0', 8, 2.5, 2.4); break;
       case 'fire': fx.sound('whoosh', 0.6 + 0.08 * (3 - e.n), 0.9 + e.n * 0.15); fx.sound('splash', 1.8, 0.35); fx.kick(1 + e.n); break;
       case 'ice': fx.sound('ding', 1.6, 0.6); fx.sound('crack', 1.9, 0.45); break;
       case 'zap': fx.sound('zap', 1 + Math.min(10, e.n) * 0.08, 0.7); puff(ex, ey, '#fff07a', 4, 3, 2.2); break;
       case 'blow': fx.sound('boing', 1.7, 0.6); break;
       case 'trap': fx.sound('boing', 1.2, 0.7); puff(ex, ey, '#ffffff', 6, 2.5, 2.6); break;
       case 'bpop': fx.sound('pop', 0.9, 1); puff(ex, ey, '#e8d0ff', 10, 4, 3); fx.kick(3); break;
-      case 'thunder': fx.sound('zap', 0.6, 1.3); fx.sound('thud', 0.5, 1.2); fx.blink('#fff7b0', 0.5); fx.kick(14); break;
+      case 'thunder': fx.sound('zap', 0.6, 1.3); fx.sound('zap', 0.9, 1); fx.sound('thud', 0.4, 1.4); fx.blink('#fff7b0', 0.6); fx.kick(22); puff(w / 2, Y(0.6), '#fff07a', 24, 7, 3.4); break;
       case 'ram': fx.sound('whoosh', 0.8, 1); break;
-      case 'bonk': fx.sound('thud', 1.0, 1); fx.sound('crack', 1.2, 0.6); fx.kick(6); puff(ex, ey, '#e8e0d0', 7, 4, 3); say(ex, ey - R(0.04), '쿵!', '#ffffff', 16); break;
+      case 'bonk': fx.sound('thud', 1.0, 1); fx.sound('crack', 1.2, 0.6); fx.kick(6); puff(ex, ey, '#e8e0d0', 7, 4, 3); break;
       case 'quake': fx.sound('thud', 0.5, 1.3); fx.kick(10); break;
       case 'spikes': fx.sound('tick', 2.0, 0.6); fx.sound('crack', 1.7, 0.4); break;
       case 'prick': if (t - (fx.memo.prT ?? -99) > 8) (fx.memo.prT = t), fx.sound('tick', 1.8, 0.4); break;
       case 'gust': fx.sound('whoosh', 1.2, 0.8); break;
       case 'storm': fx.sound('whoosh', 0.55, 1.3); fx.sound('swell', 0.8, 0.8); fx.blink('#d8f0ff', 0.25); fx.kick(10); break;
-      case 'blowaway': if (t - (fx.memo.bwT ?? -99) > 10) (fx.memo.bwT = t), fx.sound('tick', 2.2, 0.5), say(ex, ey, '휙!', '#ffffff', 14); break;
-      case 'slam': fx.sound('thud', 0.7, 1.3); fx.sound('crack', 0.9, 0.8); fx.kick(8 + e.n * 2); puff(ex, ey, '#f3e6d0', 12, 5, 3); say(ex, ey - R(0.07), '쾅!', '#ffffff', 20); break;
+      case 'blowaway': if (t - (fx.memo.bwT ?? -99) > 10) (fx.memo.bwT = t), fx.sound('tick', 2.2, 0.5), puff(ex, ey, '#ffffff', 4, 3, 2.2); break;
+      case 'slam': fx.sound('thud', 0.7, 1.3); fx.sound('crack', 0.9, 0.8); fx.kick(8 + e.n * 2); puff(ex, ey, '#f3e6d0', 12, 5, 3); fx.ring(ex, ey, '#f3e6d0', R(0.1 + 0.03 * e.n), 4); break;
       case 'shatter': fx.sound('crack', 1.4, 0.8); puff(ex, ey, '#d8f4ff', 8, 4, 2.6); break;
       case 'twister': fx.sound('swell', 0.9, 0.9); fx.sound('whoosh', 1.4, 0.6); break;
       case 'caught': if (t - (fx.memo.caT ?? -99) > 6) (fx.memo.caT = t), fx.sound('tick', 1.4, 0.4); break;
       case 'fling': fx.sound('whoosh', 1.0, 1); fx.sound('pop', 1.2, 0.8); fx.kick(4 + e.n); puff(ex, ey, e.y2 ? '#ffb347' : '#a8ffe0', 10, 5, 3); break;
       case 'wave': fx.sound('splash', 0.6, 1.4); fx.kick(10); fx.blink('#bfe6ff', 0.25); break;
-      case 'nibble': fx.sound('tick', 1.2, 0.5); say(ex, ey - R(0.03), '앙!', '#ffffff', 13); break;
+      case 'nibble': fx.sound('tick', 1.2, 0.5); break;
       case 'freeze': if (t - (fx.memo.frT ?? -99) > 6) (fx.memo.frT = t), fx.sound('ding', 1.9, 0.4); puff(ex, ey, '#d8f4ff', 4, 2.4, 2.4); break;
       case 'kill': {
         fx.sound('pop', 1 + Math.min(14, e.n) * 0.085, 0.75);
@@ -4025,21 +4069,17 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
         break;
       }
       case 'eaten': fx.sound('pop', 1.5, 0.4); break;
-      case 'weak': fx.sound('chime', 1.3, 0.9); if (t - (fx.memo.wkT ?? -999) > 600 && !bandOn) (fx.memo.wkT = t), say(ex, ey - R(0.07), '딱 맞아!', '#ffd84a', 17); break;
+      case 'weak': if (t - (fx.memo.wkT ?? -99) > 4) (fx.memo.wkT = t), fx.sound('chime', 1.3, 0.6); break;
       case 'chain': fx.sound('ding', 1 + Math.min(12, e.n) * 0.07, 0.6); puff(ex, ey, '#ffb0e0', 5, 3.4, 2.6); break;
-      case 'clang': if (t - (fx.memo.clT ?? -99) > 24) (fx.memo.clT = t), fx.sound('crack', 2.0, 0.5), fx.sound('tick', 0.6, 0.6), say(ex, ey - R(0.05), '안 들어!', '#e0d8e8', 15); break;
-      case 'rage': fx.sound('thud', 1.3, 0.5); fx.sound('tick', 0.5, 0.6); if (t - (fx.memo.rgT ?? -99) > 40) (fx.memo.rgT = t), say(ex, ey - R(0.08), '화났다!', '#ff8a7a', 14); break;
-      case 'cbreak': fx.sound('shrink', 1.2, 0.5); break;
-      case 'dodge': if (t - (fx.memo.dgT ?? -99) > 16) (fx.memo.dgT = t), fx.sound('whoosh', 2.0, 0.5), say(ex, ey - R(0.04), '휙 피함!', '#d8f4ff', 13); break;
-      case 'ouch': fx.sound('thud', 1.8, 0.5); puff(ex, ey, '#ff8a7a', 4, 2.5, 2.2); fx.kick(3); break;
-      case 'break': fx.sound('crack', 1.0, 1); fx.sound('shrink', 1.0, 0.8); fx.kick(6); say(ex, ey - R(0.05), `뚝! ${PD[e.text as P].name}`, '#ffd0c8', 15); break;
-      case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.08), '하트 -1', '#ff8a7a', 18); break;
+                  case 'cbreak': fx.sound('shrink', 1.2, 0.5); break;
+            case 'ouch': fx.sound('thud', 1.8, 0.5); puff(ex, ey, '#ff8a7a', 4, 2.5, 2.2); fx.kick(3); break;
+            case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); fx.kick(6); puff(ex, ey, '#ff4d5e', 10, 4, 3); break;
       case 'fail': fx.sound('fail', 1.0, 1); break;
       case 'shoot': fx.sound(k === 'owl' ? 'whoosh' : 'tick', k === 'squir' ? 1.1 : 1.7, 0.4); break;
       case 'shothit': fx.sound('thud', 1.6, 0.5); break;
       case 'wind': if (marks++ < 2) fx.sound('tick', 1.0, 0.3); break;
       case 'charge': fx.sound('whoosh', 0.9, 0.7); break;
-      case 'sting': fx.sound('thud', 1.4, 0.6); say(ex, ey - R(0.05), '따끔!', '#ffd0c8', 13); break;
+      case 'sting': fx.sound('thud', 1.4, 0.6); puff(ex, ey, '#ffd0c8', 4, 2.5, 2.2); break;
       case 'king': fx.sound('swell', 0.6, 1); fx.sound('thud', 0.6, 0.8); fx.kick(6); break;
       case 'boss': fx.sound('thud', 0.45, 1.4); fx.sound('swell', 0.5, 1); fx.kick(12); break;
       case 'bosswind': fx.sound('swell', 0.7, 0.8); break;
@@ -4052,7 +4092,7 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
       case 'strike': fx.sound('zap', 0.7, 1); fx.sound('thud', 1.0, 0.7); fx.blink('#fff7b0', 0.15); puff(ex, ey, '#fff07a', 8, 4, 2.6); break;
       case 'drop': fx.sound('chime', 1.0, 1); fx.sound('ding', 1.4, 0.7); puff(ex, ey, '#fff3a8', 12, 3.5, 3); break;
       case 'fade': fx.sound('shrink', 1.3, 0.5); break;
-      case 'summon': fx.sound('swell', 1, 0.8); say(ex, ey - R(0.1), '모여라!', '#ffd0c8', 17); break;
+      case 'summon': fx.sound('swell', 1, 0.8); fx.ring(ex, ey, '#ffd0c8', R(0.16), 4); break;
       case 'bossdown': fx.sound('crack', 0.6, 1.3); fx.sound('thud', 0.4, 1.5); fx.blink('#fff3c4', 0.6); fx.kick(18); puff(ex, ey, '#ffd84a', 24, 7, 4); puff(ex, ey, '#ffffff', 16, 6, 3.4); break;
       case 'wave_in':
       case 'flock': if (marks++ < 3) fx.sound('whoosh', 1.1, 0.4); break;
@@ -4076,6 +4116,41 @@ function drawAll(ctx: C2, s: DrState, w: number, h: number, _th: Theme) {
 }
 
 /** 위·아래 띠와 띠 위에 뜨는 것(시작 띠 · 큰 순간 · 결과 · 둘 중 하나 · 실패 · 끝) */
+/** 빈 자리 실루엣: 머리(뿔 달린 머리) · 등(지느러미) · 꼬리 */
+function slotSil(ctx: C2, slot: number, k: number) {
+  ctx.fillStyle = '#e6d6c4';
+  ctx.strokeStyle = '#d0b89e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if (slot === 0) {
+    ctx.moveTo(-k * 0.55, -k * 0.45);
+    ctx.lineTo(-k * 0.35, -k * 1.05);
+    ctx.lineTo(-k * 0.1, -k * 0.6);
+    ctx.lineTo(k * 0.15, -k * 1.05);
+    ctx.lineTo(k * 0.3, -k * 0.5);
+    ctx.quadraticCurveTo(k * 1.15, -k * 0.35, k * 0.95, k * 0.35);
+    ctx.quadraticCurveTo(k * 0.4, k * 0.85, -k * 0.5, k * 0.6);
+    ctx.quadraticCurveTo(-k * 0.95, k * 0.1, -k * 0.55, -k * 0.45);
+  } else if (slot === 1) {
+    ctx.moveTo(-k, k * 0.55);
+    ctx.lineTo(-k * 0.6, -k * 0.35);
+    ctx.lineTo(-k * 0.3, k * 0.05);
+    ctx.lineTo(0, -k * 0.8);
+    ctx.lineTo(k * 0.3, k * 0.05);
+    ctx.lineTo(k * 0.6, -k * 0.35);
+    ctx.lineTo(k, k * 0.55);
+    ctx.closePath();
+  } else {
+    ctx.moveTo(-k * 0.95, k * 0.15);
+    ctx.quadraticCurveTo(-k * 0.2, k * 0.95, k * 0.45, k * 0.05);
+    ctx.lineTo(k * 1.0, -k * 0.55);
+    ctx.lineTo(k * 0.55, k * 0.45);
+    ctx.quadraticCurveTo(-k * 0.2, k * 1.25, -k * 0.95, k * 0.55);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.stroke();
+}
 function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefined) {
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t, me = s.me;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1, sc2 = Math.min(2, sc);
@@ -4164,56 +4239,55 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     if (off) (ctx.fillStyle = '#b8a898'), ctx.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
     cx += cw + gap;
   });
-  // 내 몸: 머리 · 등 · 꼬리 (아이콘 · 이름 · 기운 막대)
+  // 내 몸: 머리 · 등 · 꼬리 — 아이콘 셋 (비면 빈 실루엣)
   for (let i = 0; i < 3; i++) {
-    const pt = me.parts[i], bx = X(0.025 + i * 0.322), by = Y(1.37), bw = R(0.305), bh = R(0.062), born = pt ? t - pt.born : 99;
-    const popK = born < 10 ? 1 + Math.sin((born / 10) * Math.PI) * 0.08 : 1;
+    const pt = me.parts[i], cx2 = X(0.5 + (i - 1) * 0.2), cy2 = Y(s.stage === 0 ? 1.405 : 1.418), k = R(0.043), born = pt ? t - pt.born : 99;
+    const popK = born < 12 ? 1 + Math.sin((born / 12) * Math.PI) * 0.3 : 1;
     ctx.save();
-    ctx.translate(bx + bw / 2, by + bh / 2);
+    ctx.translate(cx2, cy2);
     ctx.scale(popK, popK);
-    rr(ctx, -bw / 2, -bh / 2, bw, bh, R(0.02));
-    ctx.fillStyle = pt ? '#ffffff' : 'rgba(255,255,255,.55)';
+    ell(ctx, 0, 0, k, k);
+    ctx.fillStyle = pt ? '#ffffff' : 'rgba(255,255,255,.5)';
     ctx.fill();
-    ctx.strokeStyle = pt ? SLOT_COL[i] : '#e0d0c0';
-    ctx.lineWidth = pt ? 2.2 : 1.4;
-    ctx.stroke();
-    ctx.textAlign = 'left';
     if (pt) {
-      drawIcon(ctx, pt.p, -bw / 2 + R(0.03), -R(0.004), R(0.017) * [1, 1, 1.12, 1.25][pt.g], sc2);
-      font(0.032, 900);
-      const nm = PD[pt.p].name.replace(' 꼬리', '').replace(' 숨결', '') + (pt.g > 1 ? ` ${'★'.repeat(pt.g - 1)}` : '');
-      text(nm, -bw / 2 + R(0.062), -R(0.004), INK);
-      // 기운 막대
-      const q = clamp(pt.ch, 0, 1), mw = bw - R(0.03), my = bh / 2 - R(0.012);
-      rr(ctx, -bw / 2 + R(0.015), my - R(0.005), mw, R(0.01), R(0.005));
-      ctx.fillStyle = '#efe4d6';
-      ctx.fill();
+      ctx.strokeStyle = SLOT_COL[i];
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // 기운: 둘레를 도는 고리
+      const q = clamp(pt.ch, 0, 1);
       if (q > 0) {
-        rr(ctx, -bw / 2 + R(0.015), my - R(0.005), Math.max(R(0.01), mw * q), R(0.01), R(0.005));
-        ctx.fillStyle = q >= 1 ? ((t >> 3) % 2 ? '#ffd23f' : '#ff8a3d') : PD[pt.p].col;
+        ctx.beginPath();
+        ctx.arc(0, 0, k + 3.5, -Math.PI / 2, -Math.PI / 2 + q * TAU);
+        ctx.strokeStyle = q >= 1 ? ((t >> 3) % 2 ? '#ffd23f' : '#ff8a3d') : PD[pt.p].col;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      drawIcon(ctx, pt.p, 0, 0, k * 0.62 * [1, 1, 1.12, 1.25][pt.g], sc2);
+      // 단계: 작은 별
+      for (let g = 1; g < pt.g; g++) {
+        starPath(ctx, (g - (pt.g) / 2) * R(0.022), k * 0.95, R(0.011));
+        ctx.fillStyle = '#ffc93c';
         ctx.fill();
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
       }
     } else {
-      font(0.032, 800);
-      text(`${SLOT_NAME[i]} — 비었어요`, -bw / 2 + R(0.02), -R(0.002), MUTED);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#d8c0a8';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      slotSil(ctx, i, k * 0.62);
     }
     ctx.restore();
   }
   ctx.textAlign = 'center';
-  const bare = me.parts.every((q) => !q), full = me.parts.some((q) => q && q.ch >= 1), clangA = t - s.events.reduce((a, e) => (e.k === 'clang' ? Math.max(a, e.t) : a), -999);
-  let tip = `${d.name}: ${d.news}`;
-  if (s.phase === 'pick') tip = '하늘의 큰 물건 둘 중 하나를 톡!';
-  else if (s.phase === 'result') tip = s.newDex.length ? `새 부위 ${PD[s.newDex[s.newDex.length - 1]].name}: ${PD[s.newDex[s.newDex.length - 1]].line}` : s.got === 3 ? '별 셋! 판 점수가 여섯 배' : '별이 많을수록 판 점수가 곱해져요';
-  else if (s.phase === 'fail') tip = '하트를 다 잃었어요 — 이 판만 다시!';
-  else if (s.phase === 'end') tip = s.won ? '하늘 셋을 모두 날았어요!' : '누르면 다시 해요';
-  else if (s.stage === 0 && !s.started) tip = '박쥐 떼를 톡! 꿀꺽 먹으면 불을 뿜어요';
-  else if (bare && s.started) tip = '맨몸이에요! 아무 떼나 톡 — 얼른 먹어요';
-  else if (s.items.length) tip = `대장이 흘린 ${DROP_NAME[s.items[0].k]}을 톡 — 대장의 힘!`;
-  else if (clangA < 90) tip = '안 들어! 반짝이는 놈을 노리는 부위로 바꿔요';
-  else if (full && d.star === 'pop') tip = '기운 가득! 붐비는 떼를 먹으면 큰 폭죽';
-  else if (boss) tip = '대장은 못 먹어요 — 졸개를 먹고 흘린 것을 노려요';
-  font(0.033, 800);
-  text(tip, w / 2, Y(1.462), INK);
+  if (s.stage === 0 && s.phase === 'play') {
+    const tip = !s.started ? '박쥐 떼를 톡! 꿀꺽 먹으면 불을 뿜어요' : me.parts.every((q) => !q) ? '아무 떼나 톡 — 먹으면 몸이 바뀌어요' : '다른 떼를 먹으면 또 바뀌어요';
+    font(0.033, 800);
+    text(tip, w / 2, Y(1.472), INK);
+  }
 
   // ── 대장 체력 띠 ──
   if (boss && s.phase === 'play') {
@@ -4265,7 +4339,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
       ctx.globalAlpha = 1;
     }
   }
-  // ── 스포트라이트: 새 짐승 · 왕 · 대장이 흘린 것 ──
+  // ── 스포트라이트: 새 짐승 · 왕 · 대장이 흘린 것 (글자 없이 점선 고리만) ──
   if (s.spot && s.phase === 'play' && s.started) {
     const sp = s.spot, m = sp.id > 0 ? s.mons.find((o) => o.id === sp.id && !o.dead && o.st !== HELD) : undefined, it = sp.id < 0 ? s.items.find((o) => o.id === -sp.id) : undefined;
     const tx = m ? m.x : it ? it.x : -1, ty = m ? m.y : it ? it.y : -1, tr = m ? m.r : 0.05;
@@ -4278,17 +4352,20 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
       ctx.lineDashOffset = -t * 0.5;
       ctx.stroke();
       ctx.setLineDash([]);
-      font(0.032, 900);
-      const tw = ctx.measureText(sp.label).width + R(0.04), ly = clamp(Y(ty) - u * 2.4 - R(0.03), Y(0.2), Y(1.2)), lx = clamp(X(tx), tw / 2 + 4, w - tw / 2 - 4);
-      rr(ctx, lx - tw / 2, ly - R(0.025), tw, R(0.05), R(0.025));
-      ctx.fillStyle = '#ff5a4e';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      text(sp.label, lx, ly + 0.5, '#ffffff');
     }
   }
+  // ── 대장이 흘린 것: 늘 반짝이는 고리 ──
+  if (s.phase === 'play')
+    for (const it of s.items) {
+      const pul = 0.5 + 0.5 * Math.sin(t * 0.25), u = R(0.07 + 0.012 * pul);
+      ell(ctx, X(it.x), Y(it.y), u, u);
+      ctx.strokeStyle = it.t > ITEM_T - 90 && (t >> 2) % 2 ? '#ffffff' : '#ffd23f';
+      ctx.lineWidth = 3.5;
+      ctx.setLineDash([8, 6]);
+      ctx.lineDashOffset = -t * 0.8;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
   // ── 손가락 (첫 톡) ──
   if (s.phase === 'play' && s.stage === 0 && !s.started) {
     const hm = s.mons.find((m) => !m.dead && hittable(m));
@@ -4303,41 +4380,53 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
       text('톡!', hx + R(0.085), hy - R(0.02), '#ffffff', INK, 4);
     }
   }
-  // ── 큰 순간 띠 (한 번에 하나) ──
-  if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
-    const age = t - s.big.t, pop = age < 7 ? 1.4 - 0.4 * (age / 7) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (62 - age) / 14);
-    const by = Y(0.31);
+  // ── 가운데 이름표 카드 (새 부위 · 별 셋째 · 대장 순간, 0.9초) ──
+  if (s.big && t - s.big.t < CARD_T && s.phase !== 'end') {
+    const b = s.big, age = t - b.t, pop = age < 5 ? 0.7 + 0.45 * (age / 5) : age < 9 ? 1.15 - 0.15 * ((age - 5) / 4) : 1, a = Math.min(1, (CARD_T - age) / 8);
+    const cw = R(0.78), ch = R(0.19), cy = Y(0.34);
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(w / 2, by);
-    ctx.rotate(-0.05);
-    ctx.save();
-    ctx.scale(1, 0.52);
-    burstPath(ctx, 0, 0, R(0.32) * Math.min(1.15, pop), 18, 0.8, age * 0.02);
-    ctx.fillStyle = 'rgba(255,246,190,.94)';
-    ctx.fill();
-    ctx.strokeStyle = s.big.col;
-    ctx.lineWidth = 3.5;
-    ctx.stroke();
-    ctx.restore();
-    font(0.058, 900);
-    ctx.save();
+    ctx.translate(w / 2, cy);
     ctx.scale(pop, pop);
-    text(s.big.text, 0, s.big.sub ? -R(0.02) : 0, '#ff5a2e', '#ffffff', 6);
-    ctx.restore();
-    if (s.big.sub) {
-      font(0.034, 900);
-      if (s.big.star) {
-        const sw = ctx.measureText(s.big.sub).width, k = R(0.022);
-        starPath(ctx, -sw / 2 - k * 0.6, R(0.042), k);
-        ctx.fillStyle = '#ffc93c';
-        ctx.fill();
-        ctx.strokeStyle = '#a06a12';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        text(s.big.sub, k * 0.6, R(0.042), '#b06a00', '#ffffff', 4);
-      } else text(s.big.sub, 0, R(0.042), INK, '#ffffff', 4);
-    }
+    ctx.rotate(-0.025);
+    // 그림자 · 카드
+    rr(ctx, -cw / 2 + 3, -ch / 2 + 5, cw, ch, R(0.04));
+    ctx.fillStyle = 'rgba(59,42,63,.22)';
+    ctx.fill();
+    rr(ctx, -cw / 2, -ch / 2, cw, ch, R(0.04));
+    ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [0, '#ffffff'], [1, '#fff4d6']);
+    ctx.fill();
+    ctx.strokeStyle = b.col;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    // 왼쪽: 큰 그림 (부위 · 별)
+    const ix = -cw / 2 + R(0.115), ir = R(0.075);
+    ell(ctx, ix, 0, ir, ir);
+    ctx.fillStyle = mix(b.col, '#ffffff', 0.55);
+    ctx.fill();
+    ctx.strokeStyle = b.col;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    if (b.star || !b.p) {
+      starPath(ctx, ix, R(0.004), ir * 0.78);
+      ctx.fillStyle = '#ffc93c';
+      ctx.fill();
+      ctx.strokeStyle = '#a06a12';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else drawIcon(ctx, b.p, ix, 0, ir * 0.62 * (1 + 0.06 * Math.sin(age * 0.5)), sc2);
+    // 오른쪽: 이름 (굵게) · 한 줄
+    ctx.textAlign = 'left';
+    const tx = ix + ir + R(0.035), maxW = cw / 2 - tx - R(0.03);
+    font(0.062, 900);
+    const nw = ctx.measureText(b.text).width;
+    if (nw > maxW) font(0.062 * (maxW / nw), 900);
+    text(b.text, tx, -R(0.03), mix(b.col, INK, 0.55), '#ffffff', 0);
+    font(0.034, 800);
+    const sw = ctx.measureText(b.sub).width;
+    if (sw > maxW) font(0.034 * (maxW / sw), 800);
+    text(b.sub, tx, R(0.042), INK);
+    ctx.textAlign = 'center';
     ctx.restore();
   }
 
