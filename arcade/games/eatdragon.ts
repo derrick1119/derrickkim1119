@@ -3333,6 +3333,13 @@ function iconAt(ctx: C2, p: P, x: number, y: number, k: number, base: number, sc
 function warmTasks(stage: number, w: number, h: number, sc: number, sc2: number, tr: number): (() => boolean)[] {
   const R = (r: number) => r * w, ch = STAGES[stage].ch, out: (() => boolean)[] = [];
   const once = (key: string, f: () => void) => () => (DONE.has(key) ? false : (DONE.add(key), f(), true));
+  // 이 판의 새 부위 아이콘이 먼저 (첫 변신 카드), 그다음 나머지
+  const first = KD[STAGES[stage].key].p;
+  for (const p of [first, ...DEXP.filter((q) => q !== first)]) {
+    out.push(once(`il${p}:${w}:${sc2}`, () => icon(p, R(ICON_L) * sc2)));
+    out.push(once(`is${p}:${w}:${sc2}`, () => icon(p, R(ICON_S) * sc2)));
+    out.push(once(`ss${p}:${w}:${sc2}`, () => silIcon(p, R(ICON_S) * sc2)));
+  }
   out.push(once(`bg${ch}:${w}:${h}:${sc2}`, () => getBg(ch, Math.round(w), Math.round(h), sc2)));
   for (const k of [0, 1]) out.push(once(`st${k}:${ch}:${w}:${sc2}`, () => strip(k, ch, Math.round(w), sc2)));
   for (const [k, mood, f] of warmList(stage)) out.push(() => warmSprite(k, mood, f, Math.round(R(KD[k].r) * sc2)));
@@ -3341,11 +3348,6 @@ function warmTasks(stage: number, w: number, h: number, sc: number, sc2: number,
   for (const [sz, wg] of HUD_FONTS) {
     const f = `${wg} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`;
     for (let i = 0; i < GLYPHS.length; i += 24) out.push(once(`tx${f}:${tr}:${i}`, () => warmText(f, GLYPHS.slice(i, i + 24), tr)));
-  }
-  for (const p of DEXP) {
-    out.push(once(`is${p}:${w}:${sc2}`, () => icon(p, R(ICON_S) * sc2)));
-    out.push(once(`il${p}:${w}:${sc2}`, () => icon(p, R(ICON_L) * sc2)));
-    out.push(once(`ss${p}:${w}:${sc2}`, () => silIcon(p, R(ICON_S) * sc2)));
   }
   return out;
 }
@@ -4536,8 +4538,8 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     text(LV_GIFT[s.lv] ?? '몸이 조금 커지고 힘이 세져요', X(0.16) + lw0 + R(0.018), cy0 + R(0.326), LV_GIFT[s.lv] ? '#d9480f' : INK);
     }
     // 도감: 돋아 본 부위 (다음 판에 돋을 것은 점선)
-    if (pt >= 3) {
     const nx: StageDef | undefined = STAGES[s.stage + 1];
+    if (pt >= 3) {
     font(0.031, 800);
     text(`도감 ${s.dex.length}/${DEXP.length} · 조합 ${s.combos.length}/${COMBOS.length} · 모습 ${s.forms.length}가지`, X(0.09), cy0 + R(0.382), MUTED);
     if (s.newDex.length || s.newCombo.length) {

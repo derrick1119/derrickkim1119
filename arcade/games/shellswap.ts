@@ -2013,9 +2013,14 @@ function layer(w: number, h: number, paint: (c: C2) => void) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.ceil(w));
   c.height = Math.max(1, Math.ceil(h));
-  paint(c.getContext('2d')!);
+  const g = c.getContext('2d')!;
+  paint(g);
+  // 굽는 자리에서 바로 그려 둔다(처음 찍을 때 놀이 프레임에서 그리지 않게)
+  g.getImageData(0, 0, 1, 1);
   return c;
 }
+/** 화면의 기기 배율(1~3) — 미리 굽는 크기를 맞춘다 */
+const devScale = (ctx: C2) => (typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1);
 /** 채우고 테두리 */
 function ink(g: C2, fill: string | CanvasGradient, lw = LW, stroke = OUT) {
   g.fillStyle = fill;
@@ -3091,11 +3096,13 @@ const FOE: Record<EK, (g: C2, mood: number) => void> = {
 /** 스티커 틀: 가로 SW · 세로 SH (반지름 단위), 발 가운데 = (SOX, SOY) */
 const SW = 4.4, SH = 3.6, SOX = 2.2, SOY = 3.0;
 const SPR = new Map<string, HTMLCanvasElement>();
+/** 굽는 크기는 1/3옥타브 계단으로 올려 맞춘다 — 깊이·통통에 따라 크기가 조금씩 달라도 새로 굽지 않는다(줄여 찍기만) */
+const sprQ = (px: number) => Math.ceil(2 ** (Math.ceil(Math.log2(Math.max(6, px)) * 3 - 1e-6) / 3));
 function spr(key: string, px: number, paint: (g: C2) => void): HTMLCanvasElement {
-  const q = Math.max(6, Math.round(px)), k = key + ':' + q;
+  const q = sprQ(px), k = key + ':' + q;
   let c = SPR.get(k);
   if (!c) {
-    if (SPR.size > 260) SPR.clear();
+    if (SPR.size > 400) SPR.clear();
     c = layer(SW * q, SH * q, (g) => {
       g.translate(SOX * q, SOY * q);
       g.scale(q, q);
@@ -3122,12 +3129,30 @@ function silSpr(k: SK, px: number) {
 function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
   ctx.drawImage(c, -SOX * u, -SOY * u, SW * u, SH * u);
 }
-/** 아직 안 구운 스티커를 남는 프레임에 조금씩 */
-function warm(key: string, px: number, make: () => void) {
-  if (SPR.has(key + ':' + Math.max(6, Math.round(px)))) return false;
-  make();
-  return true;
+/**
+ * 미리 굽기 줄: 판 시작 전(첫 그림 뒤 쉬는 틈)과 결과·선물 화면에서, 그림 프레임 밖(setTimeout)으로 조금씩 굽는다.
+ * 놀이 중 프레임 안에서는 굽지 않는다 — 느린 폰에서 한 프레임이 길어지지 않게.
+ */
+const WQ: (() => void)[] = [], WK = new Set<string>();
+let pumping = false;
+function want(key: string, make: () => void) {
+  if (WK.has(key)) return;
+  WK.add(key);
+  WQ.push(make);
 }
+function idlePump() {
+  if (pumping || !WQ.length || typeof setTimeout !== 'function') return;
+  pumping = true;
+  const go = () => {
+    const a = performance.now();
+    while (WQ.length && performance.now() - a < 6) WQ.shift()!();
+    if (WQ.length) setTimeout(go, 16);
+    else pumping = false;
+  };
+  setTimeout(go, 0);
+}
+/** 스티커 하나를 그 크기 계단으로 미리 */
+const wantSpr = (key: string, px: number, make: (px: number) => void) => want(key + ':' + sprQ(px), () => make(px));
 
 /** 손가락 (톡 할 곳 안내) */
 function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
@@ -3540,22 +3565,41 @@ function wings(ctx: C2, x: number, y: number, u: number, fc: number, t: number, 
   ctx.fill();
   ctx.restore();
 }
+/** 한 판에 쓸 그림을 미리 굽기 줄에 (한 판에 한 번만 줄 세운다) */
+const PART_MAX = 100;
+function wantStage(st: number, w: number, h: number, sc: number) {
+  const tag = `st${st}:${w}:${h}:${sc}`;
+  if (WK.has(tag)) return;
+  WK.add(tag);
+  const d = STAGES[st], sc2 = Math.min(2, sc), R = (r: number) => r * w;
+  want(`bg${d.ch}:${w}:${h}:${sc}`, () => bakeBg(d.ch, w, h, sc));
+  for (const k of [...unlocked(st), ...(d.bossShell ? [d.bossShell] : [])]) {
+    const r = R(SD[k].r) * sc2;
+    // 모래밭(0.95 · 대장 1.05) · 입은 것(1.25) · 날아가는 것(0.9) × 깊이 0.9~1.1
+    for (const m of [0.95 * 0.9, 0.95 * 1.1, 1.05 * 0.9, 1.05 * 1.1, 1.25 * 0.9, 1.25, 1.25 * 1.1, 0.9]) wantSpr('s' + k, r * m, (px) => shellSpr(k, px));
+    want(`card${k}:${w}:${sc}`, () => cardSpr(k, w, sc));
+  }
+  const foes = new Set<EK>(d.groups.flatMap((g) => g.mons.map(([k]) => k)));
+  if (d.boss) for (const g of SUMMON[d.boss] ?? []) for (const [k] of g) foes.add(k);
+  for (const k of foes) {
+    if (k === 'star') continue;
+    const r = R(ED[k].r) * sc2;
+    for (const m of [F_IDLE, F_ANGRY, F_HURT, F_SCARED, F_DIZZY, ...(k === 'clam' ? [F_HAPPY] : [])]) for (const z of [0.9, 1, 1.05, 1.1, 1.155]) wantSpr('f' + k + m, r * z, (px) => foeSpr(k, m, px));
+  }
+}
 function drawAll(ctx: C2, s: ShellState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
-  const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1, sc2 = Math.min(2, sc);
+  const sc = devScale(ctx), sc2 = Math.min(2, sc);
+  // 소리는 한 프레임에 둘까지 (소리 만들기도 느린 폰에선 무겁다 — 먼저 일어난 일부터)
+  let sn = 0;
+  const snd = (n: Parameters<typeof fx.sound>[0], p = 1, v = 1) => void (sn++ < 2 && fx.sound(n, p, v));
   const d = STAGES[s.stage], ch = d.ch, c = s.crab, seenT = fx.memo.t ?? -1;
-  // 미리 굽기: 결과·선물 화면에서는 다음 장의 배경을, 판 중에는 이 판에 나올 껍데기·놈 스티커를 한 프레임에 하나씩
-  if ((s.phase === 'result' || s.phase === 'pick') && s.pt > 20 && s.stage + 1 < STAGES.length) bakeBg(STAGES[s.stage + 1].ch, Math.round(w), Math.round(h), sc2);
-  {
-    const list: (() => boolean)[] = [];
-    for (const k of unlocked(s.stage)) list.push(() => warm('s' + k, R(SD[k].r) * sc2, () => shellSpr(k, R(SD[k].r) * sc2)));
-    for (const [k] of d.groups.flatMap((g) => g.mons)) for (const m of [F_IDLE, F_HURT, F_DIZZY]) list.push(() => warm('f' + k + m, R(ED[k].r) * sc2, () => foeSpr(k, m, R(ED[k].r) * sc2)));
-    let i = fx.memo['wm' + s.stage] ?? 0;
-    for (; i < list.length; i++) if (list[i]()) break;
-    fx.memo['wm' + s.stage] = i;
-  }
+  // 미리 굽기: 이 판(결과·선물 화면에서는 다음 판)에 나올 배경·껍데기·놈·카드를 그림 프레임 밖에서 조금씩
+  wantStage(s.stage, Math.round(w), Math.round(h), sc);
+  if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, Math.round(w), Math.round(h), sc);
+  idlePump();
   const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
-    if (fx.particles.length < 150) fx.burst(x, y, col, Math.min(n, 150 - fx.particles.length), spd, size);
+    if (fx.particles.length < PART_MAX) fx.burst(x, y, col, Math.min(n, PART_MAX - fx.particles.length), spd, size);
   };
   const say = (x: number, y: number, str: string, col: string, size: number) => {
     let rec = recent.get(s);
@@ -3573,7 +3617,7 @@ function drawAll(ctx: C2, s: ShellState, w: number, h: number, _th: Theme) {
 
   ctx.save();
   fx.begin(ctx);
-  ctx.drawImage(bakeBg(ch, Math.round(w), Math.round(h), sc2), 0, 0, w, h);
+  ctx.drawImage(bakeBg(ch, Math.round(w), Math.round(h), sc), 0, 0, w, h);
   // ── 반짝이는 바다 · 물가 거품 · 물결이 들고 남(껍데기 배달) ──
   ctx.fillStyle = 'rgba(255,255,255,.75)';
   for (let i = 0; i < 9; i++) {
@@ -4198,15 +4242,15 @@ function drawAll(ctx: C2, s: ShellState, w: number, h: number, _th: Theme) {
     if (e.t <= seenT) continue;
     const ex = X(e.x), ey = Y(e.y), k = e.text as SK;
     switch (e.k) {
-      case 'tap': fx.sound('tick', 1.5, 0.45); fx.ring(ex, ey, 'rgba(255,255,255,.9)', R(0.06), 2); break;
-      case 'deny': fx.sound('tick', 0.7, 0.4); break;
-      case 'same': fx.sound('boing', 1.6, 0.4); fx.ring(ex, ey, '#ffffff', R(0.08), 2); break;
-      case 'leap': fx.sound('whoosh', 1.4, 0.9); fx.sound('boing', 1.8, 0.5); puff(ex, ey - R(0.03), '#ffd0dc', 6, 2.6, 2.4); break;
-      case 'throw': fx.sound('whoosh', 1.1 - SD[k].heavy * 0.15, 0.9); break;
+      case 'tap': snd('tick', 1.5, 0.45); fx.ring(ex, ey, 'rgba(255,255,255,.9)', R(0.06), 2); break;
+      case 'deny': snd('tick', 0.7, 0.4); break;
+      case 'same': snd('boing', 1.6, 0.4); fx.ring(ex, ey, '#ffffff', R(0.08), 2); break;
+      case 'leap': snd('whoosh', 1.4, 0.9); snd('boing', 1.8, 0.5); puff(ex, ey - R(0.03), '#ffd0dc', 6, 2.6, 2.4); break;
+      case 'throw': snd('whoosh', 1.1 - SD[k].heavy * 0.15, 0.9); break;
       case 'bang': {
         const hv = e.x2, fit = e.y2 > 0;
-        fx.sound('thud', 1.3 - hv * 0.2, 0.8 + hv * 0.2 + (fit ? 0.3 : 0));
-        fx.sound('crack', fit ? 0.8 : 1.1, fit ? 1.1 : 0.7);
+        snd('thud', 1.3 - hv * 0.2, 0.8 + hv * 0.2 + (fit ? 0.3 : 0));
+        snd('crack', fit ? 0.8 : 1.1, fit ? 1.1 : 0.7);
         fx.kick(4 + hv * 3 + Math.min(8, e.n * 1.5) + (fit ? 4 : 0));
         puff(ex, ey - R(0.02), SD[k].col, (fit ? 16 : 9) + hv * 4, (fit ? 5.5 : 4) + hv, 3.2);
         puff(ex, ey, '#fff3c4', fit ? 10 : 5, 3, 2.6);
@@ -4216,99 +4260,99 @@ function drawAll(ctx: C2, s: ShellState, w: number, h: number, _th: Theme) {
       }
       case 'land': {
         const D = SD[k], hv = D.heavy;
-        fx.sound('pop', 1.4 - hv * 0.25, 1);
-        fx.sound('thud', 1.6 - hv * 0.3, 0.6 + hv * 0.2);
+        snd('pop', 1.4 - hv * 0.25, 1);
+        snd('thud', 1.6 - hv * 0.3, 0.6 + hv * 0.2);
         puff(ex, ey - R(D.r), D.col, 12, 3.6, 3);
         fx.ring(ex, ey - R(D.r * 0.6), D.col, R(D.r * 2.2), 4);
         break;
       }
       case 'kill': {
         const kk = e.text as EK, col = FOECOL[kk];
-        if (e.y2 >= 1.5) fx.sound('pop', 1 + Math.min(20, e.n) * 0.04, 0.8), puff(ex, ey, col, 8, 3.8, 2.8), puff(ex, ey, '#ffffff', 4, 3, 2);
-        else fx.sound('pop', 0.8 + Math.min(10, e.n) * 0.03, 0.5), puff(ex, ey, col, 4, 2.6, 2.2);
+        if (e.y2 >= 1.5) snd('pop', 1 + Math.min(20, e.n) * 0.04, 0.8), puff(ex, ey, col, 8, 3.8, 2.8), puff(ex, ey, '#ffffff', 4, 3, 2);
+        else snd('pop', 0.8 + Math.min(10, e.n) * 0.03, 0.5), puff(ex, ey, col, 4, 2.6, 2.2);
         // 한 번에 여럿: 그 자리의 숫자 하나가 커진다 (글자 없이)
         if (e.n >= 2) {
           if (t - (fx.memo.ct ?? -99) > 40 || e.n < (fx.memo.cn ?? 0)) (fx.memo.cx = ex), (fx.memo.cy = ey - R(0.06));
           if (e.n >= (fx.memo.cn ?? 0) || t - (fx.memo.ct ?? -99) > 40) (fx.memo.cn = e.n), (fx.memo.ct = t);
         }
-        if (ED[kk].boss) fx.sound('clear', 0.8, 1), fx.kick(16), fx.blink('#ffffff', 0.5), puff(ex, ey, '#ffd23f', 24, 6, 4);
+        if (ED[kk].boss) snd('clear', 0.8, 1), fx.kick(16), fx.blink('#ffffff', 0.5), puff(ex, ey, '#ffd23f', 24, 6, 4);
         break;
       }
       case 'match': puff(ex, ey, '#fff6a8', 3, 2.4, 2); break;
-      case 'chain': fx.sound('pop', 1.3 + Math.min(20, e.n) * 0.03, 0.55); fx.ring(ex, ey, '#ffe36b', R(0.08), 3); puff(ex, ey, '#ffe36b', 4, 3, 2.2); break;
+      case 'chain': snd('pop', 1.3 + Math.min(20, e.n) * 0.03, 0.55); fx.ring(ex, ey, '#ffe36b', R(0.08), 3); puff(ex, ey, '#ffe36b', 4, 3, 2.2); break;
 
-      case 'pinch': fx.sound('tick', 2 + e.n * 0.3, 0.6); puff(ex, ey, '#ffffff', 3, 2.4, 2); break;
-      case 'steam': fx.sound('whoosh', 1.7, 0.75); fx.sound('splash', 1.6, 0.4); break;
-      case 'roll': fx.sound('whoosh', 0.8, 0.8); break;
-      case 'bowl': fx.sound('crack', 1.2 + Math.min(8, e.n) * 0.08, 0.7); puff(ex, ey, '#ffffff', 4, 3, 2.4); if (e.n >= 3) fx.kick(2 + e.n); break;
-      case 'wall': fx.sound('thud', 1.4, 0.6); fx.sound('tick', 0.9, 0.5); if (e.n >= 3) fx.kick(4), puff(ex, ey, '#ffffff', 8, 4, 2.6); break;
-      case 'cannon': fx.sound('thud', 0.7, 0.9); fx.kick(3); puff(ex, ey, '#ffffff', 6, 2.6, 3); break;
-      case 'boom': fx.sound('thud', 0.6, 1.2); fx.sound('crack', 0.8, 0.7); fx.kick(6); puff(ex, ey, '#f2cf8a', 12, 4, 3.4); fx.ring(ex, ey, '#fff3c4', R(0.09), 4); break;
-      case 'launch': fx.sound('swell', 1.3, 0.8); fx.sound('whoosh', 0.9, 0.9); puff(ex, ey, '#ffb84a', 10, 3.5, 3.2); break;
-      case 'airhit': fx.sound('crack', 1.5, 0.7); puff(ex, ey, '#ffffff', 8, 3.8, 2.6); fx.ring(ex, ey, '#bff3ff', R(0.06), 3); break;
-      case 'slam': fx.sound('thud', 0.5, 1.3); fx.kick(8 + Math.min(6, e.n)); puff(ex, ey, '#ffe9b8', 14, 4.5, 3.4); break;
-      case 'spike': fx.sound('crack', 1.8 - Math.min(4, e.n) * 0.12, 0.45 + Math.min(4, e.n) * 0.1); if (e.n >= 4) fx.kick(3); break;
-      case 'thorn': fx.sound('tick', 2.4, 0.5); puff(ex, ey, '#c9a8ff', 3, 2.4, 2); break;
-      case 'beamcharge': fx.sound('swell', 1.8, 0.5); break;
-      case 'beam': fx.sound('zap', 1.2, 0.9); fx.kick(3 + Math.min(6, e.n)); break;
-      case 'scare': if (t - (fx.memo.sc ?? -99) > 10) (fx.memo.sc = t), fx.sound('boing', 0.6, 0.5); puff(ex, ey, '#e9d6ff', 3, 2.2, 2); break;
-      case 'skullroll': fx.sound('whoosh', 0.75, 0.8); fx.sound('fail', 1.6, 0.25); break;
-      case 'bonk': fx.sound('thud', 1.3, 0.7); puff(ex, ey, '#ffffff', 4, 3, 2.4); break;
-      case 'flash': fx.sound('zap', 1.6, 0.8); fx.sound('ding', 1.3, 0.6); fx.blink('#fff7b0', 0.25 + Math.min(0.2, e.n * 0.03)); break;
-      case 'bounce': fx.sound('boing', 1.1 + Math.min(6, e.n) * 0.1, 0.7); puff(ex, ey, '#ff8fb0', 3, 2.6, 2.2); break;
-      case 'horn': fx.sound('swell', 0.55, 1.2); fx.sound('fail', 0.5, 0.35); fx.kick(4); break;
-      case 'tide': fx.sound('splash', 0.7, 1.2); fx.sound('whoosh', 0.5, 1); fx.kick(6); break;
-      case 'tidehit': fx.sound('splash', 1.4, 0.4); puff(ex, ey, '#bff3ff', 3, 2.4, 2.4); break;
+      case 'pinch': snd('tick', 2 + e.n * 0.3, 0.6); puff(ex, ey, '#ffffff', 3, 2.4, 2); break;
+      case 'steam': snd('whoosh', 1.7, 0.75); snd('splash', 1.6, 0.4); break;
+      case 'roll': snd('whoosh', 0.8, 0.8); break;
+      case 'bowl': snd('crack', 1.2 + Math.min(8, e.n) * 0.08, 0.7); puff(ex, ey, '#ffffff', 4, 3, 2.4); if (e.n >= 3) fx.kick(2 + e.n); break;
+      case 'wall': snd('thud', 1.4, 0.6); snd('tick', 0.9, 0.5); if (e.n >= 3) fx.kick(4), puff(ex, ey, '#ffffff', 8, 4, 2.6); break;
+      case 'cannon': snd('thud', 0.7, 0.9); fx.kick(3); puff(ex, ey, '#ffffff', 6, 2.6, 3); break;
+      case 'boom': snd('thud', 0.6, 1.2); snd('crack', 0.8, 0.7); fx.kick(6); puff(ex, ey, '#f2cf8a', 12, 4, 3.4); fx.ring(ex, ey, '#fff3c4', R(0.09), 4); break;
+      case 'launch': snd('swell', 1.3, 0.8); snd('whoosh', 0.9, 0.9); puff(ex, ey, '#ffb84a', 10, 3.5, 3.2); break;
+      case 'airhit': snd('crack', 1.5, 0.7); puff(ex, ey, '#ffffff', 8, 3.8, 2.6); fx.ring(ex, ey, '#bff3ff', R(0.06), 3); break;
+      case 'slam': snd('thud', 0.5, 1.3); fx.kick(8 + Math.min(6, e.n)); puff(ex, ey, '#ffe9b8', 14, 4.5, 3.4); break;
+      case 'spike': snd('crack', 1.8 - Math.min(4, e.n) * 0.12, 0.45 + Math.min(4, e.n) * 0.1); if (e.n >= 4) fx.kick(3); break;
+      case 'thorn': snd('tick', 2.4, 0.5); puff(ex, ey, '#c9a8ff', 3, 2.4, 2); break;
+      case 'beamcharge': snd('swell', 1.8, 0.5); break;
+      case 'beam': snd('zap', 1.2, 0.9); fx.kick(3 + Math.min(6, e.n)); break;
+      case 'scare': if (t - (fx.memo.sc ?? -99) > 10) (fx.memo.sc = t), snd('boing', 0.6, 0.5); puff(ex, ey, '#e9d6ff', 3, 2.2, 2); break;
+      case 'skullroll': snd('whoosh', 0.75, 0.8); snd('fail', 1.6, 0.25); break;
+      case 'bonk': snd('thud', 1.3, 0.7); puff(ex, ey, '#ffffff', 4, 3, 2.4); break;
+      case 'flash': snd('zap', 1.6, 0.8); snd('ding', 1.3, 0.6); fx.blink('#fff7b0', 0.25 + Math.min(0.2, e.n * 0.03)); break;
+      case 'bounce': snd('boing', 1.1 + Math.min(6, e.n) * 0.1, 0.7); puff(ex, ey, '#ff8fb0', 3, 2.6, 2.2); break;
+      case 'horn': snd('swell', 0.55, 1.2); snd('fail', 0.5, 0.35); fx.kick(4); break;
+      case 'tide': snd('splash', 0.7, 1.2); snd('whoosh', 0.5, 1); fx.kick(6); break;
+      case 'tidehit': snd('splash', 1.4, 0.4); puff(ex, ey, '#bff3ff', 3, 2.4, 2.4); break;
       case 'tideend': break;
-      case 'ram': fx.sound('whoosh', 0.6, 1); fx.sound('swell', 0.7, 0.7); break;
-      case 'swing': fx.sound('whoosh', 0.55, 0.7); break;
-      case 'clonk': fx.sound('thud', 1.1, 0.6); fx.sound('crack', 0.9, 0.4); fx.kick(2); break;
-      case 'torp': fx.sound('whoosh', 1.3, 0.7); fx.sound('tick', 0.8, 0.5); break;
-      case 'torpboom': fx.sound('thud', 0.8, 1); fx.kick(5); puff(ex, ey, '#ffd23f', 10, 4, 3); fx.ring(ex, ey, '#ffe9a0', R(0.08), 3); break;
-      case 'bite': fx.sound('tick', 1.2, 0.35); break;
-      case 'snip': fx.sound('tick', 1.0, 0.45); break;
-      case 'bump': fx.sound('boing', 1.4, 0.4); break;
-      case 'peck': fx.sound('tick', 1.6, 0.5); puff(ex, ey, '#ffffff', 3, 2, 2); break;
-      case 'punch': fx.sound('thud', 0.75, 1.1); fx.kick(6); puff(ex, ey, '#f2cf8a', 10, 3.6, 3); break;
-      case 'windup': fx.sound('swell', 1.4, 0.4); break;
-      case 'dash': fx.sound('whoosh', 1.0, 0.6); break;
-      case 'swoop': fx.sound('whoosh', 1.6, 0.5); break;
-      case 'zapme': fx.sound('zap', 2.0, 0.35); break;
-      case 'clamopen': fx.sound('pop', 0.9, 0.35); break;
-      case 'clamup': fx.sound('pop', 1.1, 0.4); puff(ex, ey, '#f3dfb0', 5, 2.6, 2.6); break;
-      case 'splat': fx.sound('splash', 1.8, 0.4); puff(ex, ey, '#ffffff', 4, 2.4, 2); break;
-      case 'clang': if (t - (fx.memo.cl ?? -99) > 8) (fx.memo.cl = t), fx.sound('ding', 0.8, 0.6), puff(ex, ey, '#fff3a8', 5, 3.2, 1.8); break;
-      case 'clink': if (t - (fx.memo.ck ?? -99) > 8) (fx.memo.ck = t), fx.sound('ding', 1.5, 0.4), puff(ex, ey, '#ffe9f2', 3, 2.4, 1.8); break;
-      case 'sting': fx.sound('zap', 2.2, 0.4); break;
-      case 'ouch': fx.sound('thud', 1.9, 0.35); puff(ex, ey, '#ffffff', 2, 2, 2); break;
-      case 'crack': fx.sound('crack', 1.4, 0.8); puff(ex, ey, '#ffffff', 4, 2.6, 2); break;
-      case 'break': fx.sound('crack', 0.8, 1.2); fx.sound('fail', 1.3, 0.6); fx.kick(7); puff(ex, ey, SD[k].col, 16, 4.5, 3.2); break;
-      case 'ouchN': fx.sound('boing', 2, 0.6); puff(ex, ey, '#ffd0dc', 5, 2.6, 2.2); break;
-      case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '-1', '#ff5a6e', 22); break;
-      case 'auto': fx.sound('whoosh', 1.6, 0.5); break;
-      case 'pearl': fx.sound('chime', 1.4, 0.5); puff(ex, ey - R(0.05), '#ffffff', 10, 4.5, 2.6); break;
-      case 'whirl': fx.sound('whoosh', 1.8, 0.5); fx.ring(ex, ey, '#7fe3ff', R(0.3), 3); break;
-      case 'surge': fx.sound('splash', 0.9, 0.55); break;
+      case 'ram': snd('whoosh', 0.6, 1); snd('swell', 0.7, 0.7); break;
+      case 'swing': snd('whoosh', 0.55, 0.7); break;
+      case 'clonk': snd('thud', 1.1, 0.6); snd('crack', 0.9, 0.4); fx.kick(2); break;
+      case 'torp': snd('whoosh', 1.3, 0.7); snd('tick', 0.8, 0.5); break;
+      case 'torpboom': snd('thud', 0.8, 1); fx.kick(5); puff(ex, ey, '#ffd23f', 10, 4, 3); fx.ring(ex, ey, '#ffe9a0', R(0.08), 3); break;
+      case 'bite': snd('tick', 1.2, 0.35); break;
+      case 'snip': snd('tick', 1.0, 0.45); break;
+      case 'bump': snd('boing', 1.4, 0.4); break;
+      case 'peck': snd('tick', 1.6, 0.5); puff(ex, ey, '#ffffff', 3, 2, 2); break;
+      case 'punch': snd('thud', 0.75, 1.1); fx.kick(6); puff(ex, ey, '#f2cf8a', 10, 3.6, 3); break;
+      case 'windup': snd('swell', 1.4, 0.4); break;
+      case 'dash': snd('whoosh', 1.0, 0.6); break;
+      case 'swoop': snd('whoosh', 1.6, 0.5); break;
+      case 'zapme': snd('zap', 2.0, 0.35); break;
+      case 'clamopen': snd('pop', 0.9, 0.35); break;
+      case 'clamup': snd('pop', 1.1, 0.4); puff(ex, ey, '#f3dfb0', 5, 2.6, 2.6); break;
+      case 'splat': snd('splash', 1.8, 0.4); puff(ex, ey, '#ffffff', 4, 2.4, 2); break;
+      case 'clang': if (t - (fx.memo.cl ?? -99) > 8) (fx.memo.cl = t), snd('ding', 0.8, 0.6), puff(ex, ey, '#fff3a8', 5, 3.2, 1.8); break;
+      case 'clink': if (t - (fx.memo.ck ?? -99) > 8) (fx.memo.ck = t), snd('ding', 1.5, 0.4), puff(ex, ey, '#ffe9f2', 3, 2.4, 1.8); break;
+      case 'sting': snd('zap', 2.2, 0.4); break;
+      case 'ouch': snd('thud', 1.9, 0.35); puff(ex, ey, '#ffffff', 2, 2, 2); break;
+      case 'crack': snd('crack', 1.4, 0.8); puff(ex, ey, '#ffffff', 4, 2.6, 2); break;
+      case 'break': snd('crack', 0.8, 1.2); snd('fail', 1.3, 0.6); fx.kick(7); puff(ex, ey, SD[k].col, 16, 4.5, 3.2); break;
+      case 'ouchN': snd('boing', 2, 0.6); puff(ex, ey, '#ffd0dc', 5, 2.6, 2.2); break;
+      case 'heart': snd('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '-1', '#ff5a6e', 22); break;
+      case 'auto': snd('whoosh', 1.6, 0.5); break;
+      case 'pearl': snd('chime', 1.4, 0.5); puff(ex, ey - R(0.05), '#ffffff', 10, 4.5, 2.6); break;
+      case 'whirl': snd('whoosh', 1.8, 0.5); fx.ring(ex, ey, '#7fe3ff', R(0.3), 3); break;
+      case 'surge': snd('splash', 0.9, 0.55); break;
       case 'washout': puff(ex, ey, '#ffffff', 4, 2, 2.4); break;
-      case 'plunk': fx.sound('thud', 2, 0.4); puff(ex, ey, '#f3dfb0', 4, 2, 2.4); break;
-      case 'convoy': fx.sound('whoosh', 1.2, 0.5); break;
-      case 'group': fx.sound('splash', 0.75, 0.6); break;
-      case 'gullin': fx.sound('tick', 2.4, 0.4); break;
-      case 'bombs': fx.sound('whoosh', 1.4, 0.6); break;
-      case 'bomb': fx.sound('thud', 0.7, 1); fx.sound('crack', 1, 0.6); fx.kick(6); puff(ex, ey, '#ffb84a', 10, 4, 3); break;
-      case 'tentacle': fx.sound('swell', 0.6, 0.7); break;
-      case 'enemytorp': fx.sound('whoosh', 1.1, 0.6); break;
-      case 'boomE': fx.sound('thud', 0.9, 0.9); fx.kick(4); puff(ex, ey, '#bff3ff', 8, 3.4, 3); break;
-      case 'summon': fx.sound('swell', 1, 0.8); break;
-      case 'bossdrop': fx.sound('crack', 0.6, 1.2); fx.sound('swell', 0.8, 1); fx.kick(10); fx.blink('#fff3c4', 0.3); puff(ex, ey, '#ffe36b', 16, 5, 3); break;
-      case 'bossshell': fx.sound('clear', 0.7, 1.2); fx.sound('thud', 0.45, 1.5); fx.kick(16); fx.blink('#ffffff', 0.55); puff(ex, ey - R(0.1), '#ffe36b', 30, 7, 4); fx.ring(ex, ey - R(0.05), '#ffe36b', R(0.4), 7); break;
+      case 'plunk': snd('thud', 2, 0.4); puff(ex, ey, '#f3dfb0', 4, 2, 2.4); break;
+      case 'convoy': snd('whoosh', 1.2, 0.5); break;
+      case 'group': snd('splash', 0.75, 0.6); break;
+      case 'gullin': snd('tick', 2.4, 0.4); break;
+      case 'bombs': snd('whoosh', 1.4, 0.6); break;
+      case 'bomb': snd('thud', 0.7, 1); snd('crack', 1, 0.6); fx.kick(6); puff(ex, ey, '#ffb84a', 10, 4, 3); break;
+      case 'tentacle': snd('swell', 0.6, 0.7); break;
+      case 'enemytorp': snd('whoosh', 1.1, 0.6); break;
+      case 'boomE': snd('thud', 0.9, 0.9); fx.kick(4); puff(ex, ey, '#bff3ff', 8, 3.4, 3); break;
+      case 'summon': snd('swell', 1, 0.8); break;
+      case 'bossdrop': snd('crack', 0.6, 1.2); snd('swell', 0.8, 1); fx.kick(10); fx.blink('#fff3c4', 0.3); puff(ex, ey, '#ffe36b', 16, 5, 3); break;
+      case 'bossshell': snd('clear', 0.7, 1.2); snd('thud', 0.45, 1.5); fx.kick(16); fx.blink('#ffffff', 0.55); puff(ex, ey - R(0.1), '#ffe36b', 30, 7, 4); fx.ring(ex, ey - R(0.05), '#ffe36b', R(0.4), 7); break;
       case 'bosskill': puff(ex, ey, '#ffffff', 20, 6, 4); break;
-      case 'star3': fx.sound('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
-      case 'stage': fx.sound('ding', 1, 0.6); break;
-      case 'clear': fx.sound('clear', 1, 1); puff(X(0.5), Y(0.7), '#ffd84a', 24, 6, 3.5); break;
-      case 'pickopen': fx.sound('swell', 1.1, 0.9); break;
-      case 'perk': fx.sound('coin', 1, 1); fx.sound('chime', 1.1, 0.9); puff(ex, ey - R(0.1), '#ffe36b', 16, 5, 3.2); fx.ring(ex, ey - R(0.08), '#ffe36b', R(0.2), 5); break;
-      case 'end': fx.sound(e.n ? 'clear' : 'fail', 0.9, 1); break;
+      case 'star3': snd('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
+      case 'stage': snd('ding', 1, 0.6); break;
+      case 'clear': snd('clear', 1, 1); puff(X(0.5), Y(0.7), '#ffd84a', 24, 6, 3.5); break;
+      case 'pickopen': snd('swell', 1.1, 0.9); break;
+      case 'perk': snd('coin', 1, 1); snd('chime', 1.1, 0.9); puff(ex, ey - R(0.1), '#ffe36b', 16, 5, 3.2); fx.ring(ex, ey - R(0.08), '#ffe36b', R(0.2), 5); break;
+      case 'end': snd(e.n ? 'clear' : 'fail', 0.9, 1); break;
     }
   }
   // 한 번에 쓰러뜨린 수: 숫자 하나
@@ -4617,19 +4661,102 @@ function drawCrab(ctx: C2, s: ShellState, X: (x: number) => number, Y: (y: numbe
 
 // ───────────────────────────── 그리기: 띠 · 결과 · 선물 ─────────────────────────────
 const STAR_WORDS = (s: ShellState) => ['모두 쫓아내기', '하트 지키기', starWord(STAGES[s.stage].star)];
+/** 글자 띠는 내용이 바뀔 때만 다시 그려 두고, 프레임마다는 그 한 장을 찍는다 */
+const BARS = new Map<string, { c: HTMLCanvasElement; key: string }>();
+/** 아래 띠 셋째 칸 글자 자리 (띠를 다시 그릴 때 잡는다) */
+const BOT_LIVE = { x: 0, y: 0, off: false };
+function bar(id: string, w: number, hpx: number, sc: number, key: string, paint: (g: C2) => void): HTMLCanvasElement {
+  const slot = `${id}:${Math.round(w)}:${sc}`;
+  let b = BARS.get(slot);
+  if (!b) BARS.set(slot, (b = { c: document.createElement('canvas'), key: '' }));
+  if (b.key !== key) {
+    b.key = key;
+    const c = b.c, cw = Math.ceil(w * sc), chh = Math.ceil(hpx * sc);
+    if (c.width !== cw || c.height !== chh) (c.width = cw), (c.height = chh);
+    const g = c.getContext('2d')!;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cw, chh);
+    g.setTransform(sc, 0, 0, sc, 0, 0);
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.textBaseline = 'middle';
+    paint(g);
+  }
+  return b.c;
+}
+/** 첫 이사 이름표 카드 스티커: 껍데기마다 한 번 굽는다 (판 시작 전 미리 굽기 줄에서) */
+const CARD_W = 0.86, CARD_H = 0.2, CARD_M = 0.02, CARD_U = 0.068;
+const CARDS = new Map<string, HTMLCanvasElement>();
+function cardSpr(k: SK, w: number, sc: number): HTMLCanvasElement {
+  const key = `${k}:${Math.round(w)}:${sc}`;
+  let c = CARDS.get(key);
+  if (c) return c;
+  const R = (r: number) => r * w, cw = R(CARD_W), ch = R(CARD_H), m = R(CARD_M), half = cw / 2, pic = -half + ch * 0.56, D = SD[k];
+  const font = (g: C2, sz: number, wgt: number) => (g.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  c = layer((cw + 2 * m) * sc, (ch + 2 * m) * sc, (g) => {
+    g.scale(sc, sc);
+    g.translate(half + m, ch / 2 + m);
+    g.lineJoin = 'round';
+    g.textBaseline = 'middle';
+    rr(g, -half, -ch / 2 + R(0.01), cw, ch, R(0.036));
+    g.fillStyle = 'rgba(74,44,29,.22)';
+    g.fill();
+    rr(g, -half, -ch / 2, cw, ch, R(0.036));
+    g.fillStyle = lin(g, 0, -ch / 2, 0, ch / 2, [0, '#ffffff'], [1, '#fff1c9']);
+    g.fill();
+    g.strokeStyle = '#f08c00';
+    g.lineWidth = Math.max(3, R(0.008));
+    g.stroke();
+    // 그림 자리 (하늘색 동그라미) + 큰 껍데기 그림
+    g.beginPath();
+    g.arc(pic, 0, ch * 0.45, 0, TAU);
+    g.fillStyle = '#dff4ff';
+    g.fill();
+    g.strokeStyle = '#8fd0f0';
+    g.lineWidth = 2;
+    g.stroke();
+    const u = R(CARD_U);
+    g.save();
+    g.translate(pic, u * 0.9);
+    stamp(g, shellSpr(k, u * sc), u);
+    g.restore();
+    // 이름은 굵게, 아래에 공격 한 줄
+    const tx = pic + ch * 0.56, tw = half - tx - R(0.028);
+    g.textAlign = 'left';
+    font(g, 0.064, 900);
+    g.fillStyle = '#4a2c1d';
+    g.fillText(D.name, tx, -R(0.034));
+    let fs = 0.031;
+    font(g, fs, 800);
+    while (g.measureText(D.line).width > tw && fs > 0.021) font(g, (fs -= 0.001), 800);
+    g.fillStyle = '#d9480f';
+    g.fillText(D.line, tx, R(0.042));
+  });
+  if (CARDS.size > 40) CARDS.clear();
+  CARDS.set(key, c);
+  return c;
+}
 function drawHud(ctx: C2, s: ShellState, w: number, h: number, sc2: number) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
-  const d = STAGES[s.stage], c = s.crab;
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  const d = STAGES[s.stage], c = s.crab, scD = devScale(ctx);
+  let G: C2 = ctx;
+  const font = (sz: number, wgt = 800) => (G.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
-    ctx.lineJoin = 'round';
-    if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
-    ctx.fillStyle = fill;
-    ctx.fillText(str, x, y);
+    G.lineJoin = 'round';
+    if (lw > 0) (G.lineWidth = lw), (G.strokeStyle = stroke), G.strokeText(str, x, y);
+    G.fillStyle = fill;
+    G.fillText(str, x, y);
   };
+  const cached = (id: string, hpx: number, key: string, paint: (g: C2) => void) =>
+    bar(id, w, hpx, scD, key, (g) => {
+      G = g;
+      paint(g);
+      G = ctx;
+    });
   const INK = '#4a2c1d', MUTED = '#a08a70', CREAM = '#fff6dc';
   ctx.textBaseline = 'middle';
   // ── 위 띠: 판 · 판 이름 · 하트 · 별 · 소라게 레벨 ──
+  ctx.drawImage(cached('top', Y(0.1), `${s.stage}|${s.hearts}|${s.stars}|${s.lv}`, (ctx) => {
   ctx.fillStyle = CREAM;
   ctx.fillRect(0, 0, w, Y(0.1));
   ctx.fillStyle = '#e3c48c';
@@ -4663,26 +4790,46 @@ function drawHud(ctx: C2, s: ShellState, w: number, h: number, sc2: number) {
   ctx.stroke();
   font(0.04, 900);
   text(String(s.stars), X(0.754), Y(0.053), INK);
-  // 레벨: 작은 소라게 얼굴
-  crabBits(ctx, 'conch', X(0.84), Y(0.085), R(0.04), 1, t, 0.3, F_HAPPY, s.lv, false);
   font(0.036, 900);
   text(`Lv${s.lv}`, X(0.882), Y(0.053), '#e8663a');
+  }), 0, 0, w, Y(0.1));
+  // 레벨: 작은 소라게 얼굴 (깜빡이니 프레임마다)
+  crabBits(ctx, 'conch', X(0.84), Y(0.085), R(0.04), 1, t, 0.3, F_HAPPY, s.lv, false);
 
   // ── 아래 띠: 별 셋 · 한 줄 도움말 · 도감 ──
-  ctx.fillStyle = CREAM;
-  ctx.fillRect(0, Y(1.305), w, h - Y(1.305));
-  ctx.fillStyle = '#e3c48c';
-  ctx.fillRect(0, Y(1.305), w, 2);
   const words = STAR_WORDS(s), res = s.phase === 'result', st = d.star;
   const got3 = st.k === 'boss' ? s.bossByShell : s.star3T >= 0;
   const third = res ? (s.starOk[2] ? 1 : -1) : got3 ? 1 : 0;
   const state = [res ? 1 : 0, s.lost ? -1 : res ? 1 : 0, third];
-  font(0.032, 800);
   const now = st.k === 'pair' ? s.pairKills : st.k === 'multi' ? s.best : st.k === 'throw' ? s.bestThrow : st.k === 'kinds' ? s.kinds.length : 0;
   const prog = res || got3 || st.k === 'boss' ? '' : ` ${Math.min(now, st.n)}/${st.n}`;
   const labels = words.map((q, i) => q + (i === 2 ? prog : ''));
-  const gap = R(0.012), pad = Math.min(R(0.07), (w - R(0.03) - gap * 2 - labels.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
-  const ws = labels.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, b) => a + b, 0) + gap * 2;
+  const boss = s.foes.find((f) => !f.dead && ED[f.k].boss);
+  let tip = `${SD[d.key].name}: ${SD[d.key].line}`;
+  if (s.phase === 'pick') tip = '바닷가의 큰 물건 둘 중 하나를 톡!';
+  else if (s.phase === 'result') tip = s.newDex.length ? `새 껍데기 ${SD[s.newDex[s.newDex.length - 1]].name}: ${SD[s.newDex[s.newDex.length - 1]].line}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
+  else if (s.phase === 'end') tip = s.won ? '바닷가를 모두 지켰어요!' : '누르면 다시 해요';
+  else if (s.stage === 0 && s.firstTap < 0) tip = '반짝이는 찻주전자를 톡! 소라게가 쏙 이사해요';
+  else if (!c.k && !c.leap) tip = '맨몸이에요! 아무 껍데기나 톡';
+  else if (c.k && c.hp / c.max < 0.3) tip = '껍데기가 곧 깨져요 — 다른 껍데기로 톡!';
+  else if (spotBoss(s)) tip = '무서운 껍데기다! 톡 해서 차지해요';
+  else if (boss && !s.bossDrop) tip = `${ED[boss.k].name} — 반쯤 다치면 무서운 껍데기를 떨궈요`;
+  else if (s.stage < 2 && s.swaps < 3) tip = '버린 껍데기는 붐비는 쪽으로 날아가 쾅!';
+  else if (s.stage < 3) tip = '어울리는 껍데기는 모래가 반짝 — 더 크게 쾅!';
+  const perks = PERKS.map((p, i) => (s.perk[i] ? p[s.perk[i] - 1].name : '')).filter(Boolean);
+  const lvLine = `소라게 Lv${s.lv} · 도감 ${s.dex.length}/${DEX.length}${perks.length ? ' · ' + perks.join(' · ') : ''}`, yb = Y(1.305);
+  // 칸 너비는 가장 긴 진행 글자(n/n)로 잡아 두고, 바뀌는 글자(진행 숫자·도움말)만 프레임마다 쓴다
+  const wide = words.map((q, i) => q + (i === 2 && prog ? ` ${st.n}/${st.n}` : ''));
+  const live = BOT_LIVE;
+  ctx.drawImage(cached('bot', h - yb, `${words.join('|')}#${prog ? 1 : 0}#${state.join(',')}#${lvLine}#${s.stage}#${res ? 1 : 0}`, (ctx) => {
+  ctx.translate(0, -yb);
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, Y(1.305), w, h - Y(1.305));
+  ctx.fillStyle = '#e3c48c';
+  ctx.fillRect(0, Y(1.305), w, 2);
+  font(0.032, 800);
+  const gap = R(0.012), pad = Math.min(R(0.07), (w - R(0.03) - gap * 2 - wide.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
+  const ws = wide.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, b) => a + b, 0) + gap * 2;
   let cx = (w - total) / 2;
   labels.forEach((q, i) => {
     const cw = ws[i], cy = Y(1.348), on = state[i] > 0, off = state[i] < 0;
@@ -4697,29 +4844,22 @@ function drawHud(ctx: C2, s: ShellState, w: number, h: number, sc2: number) {
     ctx.fill();
     ctx.textAlign = 'left';
     font(0.032, 800);
-    text(q, cx + pad * 0.76, cy + 0.5, off ? '#b8a688' : INK);
+    if (i < 2) text(q, cx + pad * 0.76, cy + 0.5, off ? '#b8a688' : INK);
+    else (live.x = cx + pad * 0.76), (live.y = cy + 0.5), (live.off = off);
     if (off) (ctx.fillStyle = '#b8a688'), ctx.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
     if (on && (fx.memo['st' + i] ?? -1) !== s.stage * 10 + (res ? 1 : 0)) (fx.memo['st' + i] = s.stage * 10 + (res ? 1 : 0)), fx.burst(cx + pad * 0.42, cy, '#ffd84a', 8, 3, 2.4);
     cx += cw + gap;
   });
   ctx.textAlign = 'center';
-  const boss = s.foes.find((f) => !f.dead && ED[f.k].boss);
-  let tip = `${SD[d.key].name}: ${SD[d.key].line}`;
-  if (s.phase === 'pick') tip = '바닷가의 큰 물건 둘 중 하나를 톡!';
-  else if (s.phase === 'result') tip = s.newDex.length ? `새 껍데기 ${SD[s.newDex[s.newDex.length - 1]].name}: ${SD[s.newDex[s.newDex.length - 1]].line}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
-  else if (s.phase === 'end') tip = s.won ? '바닷가를 모두 지켰어요!' : '누르면 다시 해요';
-  else if (s.stage === 0 && s.firstTap < 0) tip = '반짝이는 찻주전자를 톡! 소라게가 쏙 이사해요';
-  else if (!c.k && !c.leap) tip = '맨몸이에요! 아무 껍데기나 톡';
-  else if (c.k && c.hp / c.max < 0.3) tip = '껍데기가 곧 깨져요 — 다른 껍데기로 톡!';
-  else if (spotBoss(s)) tip = '무서운 껍데기다! 톡 해서 차지해요';
-  else if (boss && !s.bossDrop) tip = `${ED[boss.k].name} — 반쯤 다치면 무서운 껍데기를 떨궈요`;
-  else if (s.stage < 2 && s.swaps < 3) tip = '버린 껍데기는 붐비는 쪽으로 날아가 쾅!';
-  else if (s.stage < 3) tip = '어울리는 껍데기는 모래가 반짝 — 더 크게 쾅!';
+  font(0.032, 700);
+  text(lvLine, w / 2, Y(1.452), MUTED);
+  }), 0, yb, w, h - yb);
+  ctx.textAlign = 'left';
+  font(0.032, 800);
+  text(labels[2], live.x, live.y, live.off ? '#b8a688' : INK);
+  ctx.textAlign = 'center';
   font(0.034, 800);
   text(tip, w / 2, Y(1.402), INK);
-  font(0.032, 700);
-  const perks = PERKS.map((p, i) => (s.perk[i] ? p[s.perk[i] - 1].name : '')).filter(Boolean);
-  text(`소라게 Lv${s.lv} · 도감 ${s.dex.length}/${DEX.length}${perks.length ? ' · ' + perks.join(' · ') : ''}`, w / 2, Y(1.452), MUTED);
 
   // ── 판 시작 띠 (NEW 한 줄) ──
   if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
@@ -4754,48 +4894,17 @@ function drawHud(ctx: C2, s: ShellState, w: number, h: number, sc2: number) {
       ctx.globalAlpha = 1;
     }
   }
-  // ── 첫 이사 이름표 카드: 바다 위 한가운데에 0.9초 — 그 뒤 위아래로 접혀 사라진다 ──
+  // ── 첫 이사 이름표 카드: 바다 위 한가운데에 0.9초 — 그 뒤 위아래로 접혀 사라진다 (카드는 미리 구운 한 장) ──
   if (s.big && s.big.k && t - s.big.t < BIG_SHOW + BIG_FOLD && s.phase === 'play') {
-    const age = t - s.big.t, k = s.big.k, D = SD[k];
+    const age = t - s.big.t, k = s.big.k;
     const open = age < 6 ? (age / 6) * 1.1 : age < 9 ? 1.1 - 0.1 * ((age - 6) / 3) : 1, f = age > BIG_SHOW ? (age - BIG_SHOW) / BIG_FOLD : 0;
-    const cw = R(0.86), ch = R(0.2), half = cw / 2, pic = -half + ch * 0.56;
+    const cw = R(CARD_W), ch = R(CARD_H), m = R(CARD_M), half = cw / 2, u = R(CARD_U);
     ctx.save();
     ctx.translate(w / 2, Y(0.415));
     ctx.scale(1 - f * 0.08, Math.max(0.02, open * (1 - f * f)));
-    rr(ctx, -half, -ch / 2 + R(0.01), cw, ch, R(0.036));
-    ctx.fillStyle = 'rgba(74,44,29,.22)';
-    ctx.fill();
-    rr(ctx, -half, -ch / 2, cw, ch, R(0.036));
-    ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [0, '#ffffff'], [1, '#fff1c9']);
-    ctx.fill();
-    ctx.strokeStyle = '#f08c00';
-    ctx.lineWidth = Math.max(3, R(0.008));
-    ctx.stroke();
-    // 그림 자리 (하늘색 동그라미) + 큰 껍데기 그림
-    ctx.beginPath();
-    ctx.arc(pic, 0, ch * 0.45, 0, TAU);
-    ctx.fillStyle = '#dff4ff';
-    ctx.fill();
-    ctx.strokeStyle = '#8fd0f0';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    const u = R(0.068);
-    ctx.save();
-    ctx.translate(pic, u * 0.9);
-    stamp(ctx, shellSpr(k, u * sc2), u);
-    crabBits(ctx, k, 0, 0, u, 1, t, 0.8, F_HAPPY, s.lv, false);
+    ctx.drawImage(cardSpr(k, w, scD), -half - m, -ch / 2 - m, cw + 2 * m, ch + 2 * m);
+    crabBits(ctx, k, -half + ch * 0.56, u * 0.9, u, 1, t, 0.8, F_HAPPY, s.lv, false);
     ctx.restore();
-    // 이름은 굵게, 아래에 공격 한 줄
-    const tx = pic + ch * 0.56, tw = half - tx - R(0.028);
-    ctx.textAlign = 'left';
-    font(0.064, 900);
-    text(D.name, tx, -R(0.034), INK);
-    let fs = 0.031;
-    font(fs, 800);
-    while (ctx.measureText(D.line).width > tw && fs > 0.021) font((fs -= 0.001), 800);
-    text(D.line, tx, R(0.042), '#d9480f');
-    ctx.restore();
-    ctx.textAlign = 'center';
   }
   // ── 결과 · 선물 · 끝 ──
   if (s.phase === 'result') drawResult(ctx, s, w, sc2);
