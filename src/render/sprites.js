@@ -225,7 +225,7 @@ LOOKS.tigerboss_calm = Object.assign({}, LOOKS.tigerboss, { body: g => tiger(g, 
 LOOKS.jangsan_calm = Object.assign({}, LOOKS.jangsan, { body: g => tiger(g, Object.assign({}, JANGSAN, { roar: false, blink: true, calm: true })), blinkBody: null });
 // 엎드린 범(눈을 뜨고 순하게)과 잠든 범(꼬리를 앞으로 감고): 인형극의 'bow'·'sleep'
 for (const [k, base, o] of [['tigerboss', LOOKS.tigerboss, TTEOK], ['jangsan', LOOKS.jangsan, JANGSAN]]) {
-  const q = Object.assign({}, o, { roar: false, calm: true, lie: true });
+  const q = Object.assign({}, o, { roar: false, calm: true, lie: true, eye: '#e8b85a' });   // 순해진 범은 붉은 눈빛을 거둔다
   LOOKS[k + '_lie'] = Object.assign({}, base, { body: g => tiger(g, q), blinkBody: g => tiger(g, Object.assign({ blink: true }, q)), h: 30 });
   LOOKS[k + '_sleep'] = Object.assign({}, base, { body: g => tiger(g, Object.assign({ blink: true }, q)), blinkBody: null, h: 30 });
 }
