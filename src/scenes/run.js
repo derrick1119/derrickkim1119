@@ -315,7 +315,8 @@ export class RunScene {
         // 알림 칸: 두목 체력 아래 한 칸에 지금 할 일을 하나만 쓴다 (빈틈 > 꼬리 > 홀림). 불투명한 한지 바탕에 짙은 글씨
         if (boss && !this.aim && b.waveT >= 7) {
           const charmed = b.units.some(u => !u.dead && u.team === 0 && u.charm > 0), tk = boss.tails !== undefined && this.tailT > 0;
-          const note = boss.open > 0 ? ['빈틈! 지금 몰아쳐라', '#8a2a14', true] : tk ? ['꼬리가 떨어졌다 — 더 사나워진다', RED, false] : charmed ? ['홀림 — 홀린 부대를 끌어서 깨워라', '#8a2f6a', false] : null;
+          const mirror = boss.ai && boss.ai.mirror && !boss.ai.mirror.dead;
+          const note = boss.open > 0 ? ['빈틈! 지금 몰아쳐라', '#8a2a14', true] : mirror ? ['업경대 — 때린 만큼 되돌아온다. 먼저 깨뜨려라', '#7a1f1c', false] : tk ? ['꼬리가 떨어졌다 — 더 사나워진다', RED, false] : charmed ? ['홀림 — 홀린 부대를 끌어서 깨워라', '#8a2f6a', false] : null;
           if (note) { g.font = `400 19px ${FONT_B}`; const w = g.measureText(note[0]).width + 40, x0 = 640 - w / 2; rr(g, x0 + 2, 111, w, 32, 8, 'rgba(30,24,20,0.3)'); rr(g, x0, 108, w, 32, 8, '#fbf3df', note[1], 2.6); if (note[2]) { g.globalAlpha = 0.5 + 0.5 * Math.sin(this.T * 10); rr(g, x0 - 3, 105, w + 6, 38, 10, null, '#f0b020', 3); g.globalAlpha = 1; } text(g, note[0], 640, 125, { size: 19, font: FONT_B, fill: note[1] }); }
         }
     }

@@ -177,8 +177,8 @@ export function bulgasari(g, o = {}) {
   // 소 꼬리
   rope(g, p => { p.moveTo(-22, -27); p.quadraticCurveTo(-30, -24, -28.6, -13.6); }, C, 1.6); part(g, P(-30.6, -14.6, -26.6, -14.6, -27.6, -7.6, -29.8, -7.6), D, null, { lw: 0.9 });
   paw(g, -12, -18, far, false, 4.2); paw(g, 12, -18, far, false, 4.2);
-  // 등에 돋은 쇠 바늘
-  for (const [x, h, a] of [[-17, 9, -0.5], [-11, 12, -0.3], [-4.6, 13.4, -0.1], [2, 12.6, 0.1], [8.4, 10.6, 0.3], [14, 8, 0.5]]) { g.save(); g.translate(x, -36 + Math.abs(x) * 0.12); g.rotate(a); part(g, P(-2.4, 2, 0, -h, 2.4, 2), STEEL, P(0.4, -h, 3, 2, 0.6, 2), { k: 0.24, lw: 1 }); g.restore(); }
+  // 등에 빽빽이 돋은 긴 쇠 바늘
+  for (const [x, h, a] of [[-20, 9, -0.7], [-17, 12.6, -0.5], [-11, 16, -0.3], [-4.6, 17.6, -0.1], [2, 16.6, 0.1], [8.4, 14, 0.3], [14, 10.6, 0.5]]) { g.save(); g.translate(x, -36 + Math.abs(x) * 0.12); g.rotate(a); part(g, P(-2.4, 2, 0, -h, 2.4, 2), STEEL, P(0.4, -h, 3, 2, 0.6, 2), { k: 0.24, lw: 1 }); g.restore(); }
   // 몸통
   part(g, p => { p.moveTo(-23, -14); p.bezierCurveTo(-27.6, -26, -22, -37.6, -8, -38.4); p.bezierCurveTo(2, -39.4, 12, -39, 18, -34); p.bezierCurveTo(23.6, -28.6, 22.6, -17, 17, -11.6); p.bezierCurveTo(6, -7.4, -11, -7.6, -23, -14); p.closePath(); }, C, p => { p.moveTo(-27, -18); p.quadraticCurveTo(0, -12, 24, -19); p.lineTo(24, -5); p.lineTo(-27, -5); p.closePath(); }, { hi: E(-6, -35.4, 10.6, 2), hk: 0.24, lw: 1.3 });
   path(g, p => { p.moveTo(-15, -11.4); p.quadraticCurveTo(0, -8, 14, -12); p.quadraticCurveTo(0, -15, -15, -11.4); p.closePath(); }, rust);
@@ -190,10 +190,10 @@ export function bulgasari(g, o = {}) {
   // 소 귀와 머리
   part(g, p => { p.moveTo(17, -40); p.quadraticCurveTo(10.6, -46, 9.6, -38.6); p.quadraticCurveTo(13, -37, 16.6, -36.6); p.closePath(); }, C, null, { lw: 1.1 });
   part(g, p => { p.moveTo(14, -34); p.bezierCurveTo(14, -44, 33.6, -44.6, 34, -33.6); p.bezierCurveTo(34.4, -27.6, 30, -24, 24, -24); p.bezierCurveTo(18, -24, 14, -27.6, 14, -34); p.closePath(); }, C, P(27, -46, 36, -46, 36, -22, 23, -22, 29, -31), { k: 0.2, lw: 1.3 });
-  // 코끼리 코: 아래로 늘어뜨렸다가 끝을 말아 올렸다
-  part(g, p => { p.moveTo(20.6, -30); p.bezierCurveTo(20, -21, 22.6, -14.6, 28.6, -12.6); p.bezierCurveTo(33.6, -11.6, 35, -16.6, 31.6, -18.6); p.bezierCurveTo(30.6, -16, 28, -16.4, 27.4, -19.6); p.bezierCurveTo(26.6, -23.6, 27.6, -27, 27.4, -30); p.closePath(); }, C, p => { p.moveTo(24.6, -31); p.lineTo(36, -31); p.lineTo(36, -11); p.lineTo(26, -11); p.quadraticCurveTo(23.6, -20, 24.6, -31); p.closePath(); }, { k: 0.2, lw: 1.2 });
-  for (const y of [-26.4, -23, -19.6]) curve(g, p => { p.moveTo(21, y); p.quadraticCurveTo(24, y + 1.4, 27.2, y + 0.4); }, D, 0.8);
-  for (const s of [-1, 1]) part(g, p => { p.moveTo(24 + s * 5, -28.6); p.quadraticCurveTo(24 + s * 10.6, -26, 24 + s * 9.6, -20); p.quadraticCurveTo(24 + s * 6.6, -23.6, 24 + s * 4, -25.6); p.closePath(); }, '#f3e7c8', null, { lw: 0.9 });
+  // 짧은 코: 맥처럼 뭉툭하게 내민 쇠 주둥이 (길게 늘어뜨리면 코끼리로 읽힌다)
+  part(g, p => { p.moveTo(20.6, -30); p.bezierCurveTo(20.2, -25, 21.6, -21, 25.6, -20.4); p.bezierCurveTo(29, -20, 30, -22.6, 29, -24.6); p.bezierCurveTo(28, -26.6, 27.4, -28, 27.4, -30); p.closePath(); }, C, null, { lw: 1.1 });
+  for (const y of [-27, -23.6]) curve(g, p => { p.moveTo(21, y); p.quadraticCurveTo(24, y + 1.4, 27.4, y + 0.4); }, D, 0.8);   // 쇠 고리 마디
+  for (const s of [-1, 1]) part(g, P(24 + s * 4.6, -27.6, 24 + s * 6.4, -23.6, 24 + s * 3.6, -25.4), '#c9ccd4', null, { lw: 0.7 });   // 짧은 쇠 송곳니 (긴 상아는 코끼리처럼 보인다)
   // 이글거리는 눈
   for (const s of [-1, 1]) { const ex = 24 + s * 5.2; if (o.blink) line(g, [ex - 2, -35, ex + 2, -35.4], INK, 1.4); else { path(g, p => { p.moveTo(ex - 2.6, -34.6); p.quadraticCurveTo(ex, -38, ex + 2.6, -35); p.quadraticCurveTo(ex, -33, ex - 2.6, -34.6); p.closePath(); }, '#ffb03a', INK, 0.9); ell(g, ex, -35.2, 0.8, 1.2, '#7a1f1c'); } line(g, [24 + s * 1.6, -37.6, 24 + s * 8.6, -39.4], INK, 1.6); }
 }

@@ -17,7 +17,7 @@ const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Mat
 const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168 };
 export const bossSay = (b, u, s, c) => say(b, u, s, c);
 const say = (b, u, s, c = '#c8402f') => {
-  const x = Math.max(200, Math.min(1080, u.x)), top = x > 900 || x < 380 ? 112 : VIEW.y0 + 18; let y = u.y - (TALL[u.type] || 140) - 24, under = false;
+  const x = Math.max(200, Math.min(1080, u.x)), top = x > 900 || x < 380 ? 124 : VIEW.y0 + 18;   // 양옆 위는 패널이 있어 한 칸 더 내린다 let y = u.y - (TALL[u.type] || 140) - 24, under = false;
   if ((u.ai && u.ai.g) || y < top) { y = Math.min(VIEW.y1 - 14, u.y + 30); under = true; }   // 끊기 게이지가 떠 있거나 머리 위에 자리가 없으면 발밑에
   b.ev('text', { x, y, s, c, big: true, tail: under ? -1 : 1 });
 };
@@ -264,7 +264,7 @@ export const BOSS_AI = {
     moves: {
       verdict: { cd: 9, use: (b, u) => circles(b, u, 3, 68, 1.6, { style: 'dark', dmg: 76, weaken: 4 }, '죄를 묻겠다!', '#5a4a8a') },
       gavel: { cd: 13, use: (b, u) => chain(b, u, { dmg: 96, say: '판결이다!', whiff: '판결이 빗나갔다! 지금이다' }) },
-      mirror: { cd: 19, use(b, u, a) { if (a.phase < 1 || (a.mirror && !a.mirror.dead)) return false; a.mt = 8; a.mirror = prop(b, u, 'mirror', u.x - 160, u.y < MID_Y ? VIEW.y1 - 92 : VIEW.y0 + 92); say(b, u, '업경대 — 때린 만큼 되돌아간다!', '#7a1f1c'); return true; } },
+      mirror: { cd: 19, use(b, u, a) { if (a.phase < 1 || (a.mirror && !a.mirror.dead)) return false; a.mt = 8; a.mirror = prop(b, u, 'mirror', u.x - 160, u.y < MID_Y ? VIEW.y1 - 92 : VIEW.y0 + 92); say(b, u, '업경대를 세워라!', '#7a1f1c'); return true; } },
       doom: { cd: 17, use: (b, u, a) => a.phase >= 2 && doom(b, u, a) },
     },
     hit(b, u, a, d, src, kind) { if (a.mirror && !a.mirror.dead && src && src.team === 0 && !src.dead && (kind === 'melee' || kind === 'proj')) { b.damage(src, d * 0.3, null, 'burn'); a.refT = b.time; } return d; },

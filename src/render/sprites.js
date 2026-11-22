@@ -171,18 +171,19 @@ export const LOOKS = {
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
   // 요괴
-  // 도깨비 살빛은 흙빛·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼 보인다). 패랭이·벙거지·상투·삼베 등거리를 걸친다
-  goblin: DK({ skin: '#b8704f', hat: 'paeraeng' }, { scale: 0.78 }),
+  // 도깨비 살빛은 사람 살빛이 아닌 벽돌빛·이끼 낀 황토·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼, 갈색 살에 곱슬머리는 사람을 희화화한 것처럼 보인다)
+  // 패랭이·벙거지·상투·삼베 등거리를 걸친다
+  goblin: DK({ skin: '#c8643f', hat: 'paeraeng' }, { scale: 0.78 }),
   orc: DK({ skin: '#7d8597', cloth: '#b98a55', warts: true, knot: true }, { scale: 1.04 }),
-  garcher: DK({ skin: '#b88a52', cloth: '#7a4f3a', item: DITEM.sling, hat: 'beong' }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
-  rshield: DK({ skin: '#9a8670', cloth: '#d9c39a', item: DITEM.lid, warts: true, vest: '#cdbb92' }, { scale: 1.0 }),
+  garcher: DK({ skin: '#a89a58', cloth: '#7a4f3a', item: DITEM.sling, hat: 'beong' }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
+  rshield: DK({ skin: '#909497', cloth: '#d9c39a', item: DITEM.lid, warts: true, vest: '#cdbb92', hair: '#4a3a34' }, { scale: 1.0 }),
   rassassin: { body: fox, blinkBody: g => fox(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 46 },
   foxrun: { body: foxRun, blinkBody: g => foxRun(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 34 },   // 사건에서 꼬리를 밟혀 달아나는 여우
   treant: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 1.2, still: true },
   sapling: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 0.66 },
   bomber: { body: wisp, blinkBody: g => wisp(g, { blink: true }), weapon: 'none', hold: hold(0, 'none'), h: 46, float: true, border: '#e8f8fd' },
   wolf: { body: boar, blinkBody: g => boar(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 42, w: 130, ox: 62, scale: 1.05 },
-  shaman: DK({ skin: '#a07a62', cloth: '#3f6b5c', item: DITEM.drum, vest: '#3f6b5c' }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
+  shaman: DK({ skin: '#6a7fa0', cloth: '#3f6b5c', item: DITEM.drum, vest: '#3f6b5c', hair: '#5a3a2a' }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
   skel: { doll: Object.assign({}, GHOST, { hat: 'jeonrip', plain: true }), weapon: 'rusty', hold: hold(0.3), float: true, border: '#e6f3f7', h: 63 },
   skelarcher: { doll: Object.assign({}, GHOST, { hat: 'band', bandCol: '#c5d9df', item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot'), float: true, border: '#e6f3f7', h: 60 },
   catapult: { body: catapult, weapon: 'arm', hold: hold(-0.9, 'lob', 0, -17), h: 50, scale: 1.15, still: true },

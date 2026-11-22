@@ -50,7 +50,9 @@ export class Fx {
   bolt(x, y, col = '#f0d264') { const pts = []; let px = x + (Math.random() - 0.5) * 60; for (let yy = y - 560; yy < y; yy += 56) { pts.push(px, yy); px += (x - px) * 0.35 + (Math.random() - 0.5) * 46; } pts.push(x, y); this.add({ k: 'bolt', x, y, pts, col, life: 0.32 }); }
   beam(x0, y0, x1, y1, col, life = 0.25, lw = 5) { this.add({ k: 'beam', x: x0, y: y0, x1, y1, col, life, lw }); }
   drawLayer(g, ground) {
-    for (const p of this.p) {
+    // 두목의 외침 같은 큰 꼬리표는 피해 숫자·효과보다 나중에(위에) 그린다
+    const list = ground ? this.p : this.p.filter(q => !q.big).concat(this.p.filter(q => q.big));
+    for (const p of list) {
       if (!!p.ground !== ground) continue;
       const k = p.t / p.life, a = 1 - k;
       switch (p.k) {

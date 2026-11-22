@@ -56,7 +56,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
   if (u.slow > 0) { g.globalAlpha = alpha * 0.8; ell(g, u.x, u.y + 1, u.r * 1.05, u.r * 0.46, 'rgba(143,211,232,0.5)', '#4f8fb8', 1.2); g.globalAlpha = alpha; }
   if (u.gauge !== undefined && u.def && u.def.hero && u.team === 0) { const gz = clamp(u.gauge, 0, 1), rx = u.r * 1.75, ry = u.r * 0.82; g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, 0, TAU); st(g, 'rgba(38,42,54,0.3)', 4.4); if (gz > 0.01) { g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, -PI / 2, -PI / 2 + TAU * gz); st(g, gz > 0.9 && Math.sin(T * 14) > 0 ? '#fff3b0' : OCHRE, 3.2); } }
-  const by = y - hop * k, fl = u.flash > 0 ? u.flash * 0.85 : 0;
+  const by = y - hop * k, fl = u.flash > 0 ? (u.def && u.def.boss ? Math.min(0.35, u.flash * 0.45) : u.flash * 0.85) : 0;   // 두목은 쉴 새 없이 맞으므로 옅게만 번쩍인다 (하얗게 바래면 유령처럼 보인다)
   if (u.root > 0) { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + u.id; g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, INK, 4); g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, '#5f9a4a', 2); } }
   const sx = dir * k * flip * sxm;
   const bl = blinking(T, u.id);
@@ -157,14 +157,20 @@ export class BattleView {
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
-    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : 0), u }); }   // 두목은 둘레에 겹친 인형보다 위에
+    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : u.def && u.def.prop ? 60 : 0), u }); }   // 두목과 쳐야 할 소품(종·업경대 …)은 둘레에 겹친 인형보다 위에
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
-    // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
+    this.dust -= opt.dt || 0;
+    if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
+    for (const p of b.proj) this.drawProj(g, p, T);
+    this.drawSky(g, b, T, opt.dt || 0);
+    this.drawAmbient(g, T, opt.dt || 0, opt.march);
+    fx.drawLayer(g, false);
+    // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형·효과·피해 숫자에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
       if (u.dead || !u.def.prop) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
@@ -176,15 +182,9 @@ export class BattleView {
     // 명부: 이름이 적힌 부대와 명부 든 사자를 먹줄로 잇는다
     { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], INK, 5); line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#f3e7c8', 2.4); g.setLineDash([]); g.restore(); } }
     // 붉지 않은 원의 이름과 연타의 차례: 부대에 가리지 않게 원 위쪽 테두리에 단다
-    { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (z.style === 'fox' || put.some(q => q[2] === s2)) continue; put.push([z.x, ty, s2]); tag(z.x, ty, s2, TELE[z.style] || RED); } }   // 같은 이름표는 하나만 (여우불은 두목이 외치므로 원에는 달지 않는다)
+    { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (z.style === 'fox' || put.some(q => q[2] === s2)) continue; const busy = fx.p.some(q => q.k === 'text' && Math.abs(q.x - z.x) < 150 && Math.abs(q.y - ty) < 36), ty2 = busy ? Math.min(VIEW.y1 - 4, z.y + z.r * 0.62 + 6) : ty; put.push([z.x, ty2, s2]); tag(z.x, ty2, s2, TELE[z.style] || RED); } }   // 같은 이름표는 하나만 (여우불은 두목이 외치므로 원에는 달지 않는다)
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
     for (const q of b.squads) if (q.doom > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `명부에 적혔다 ${Math.ceil(q.doom)}`, q.doom < 3 ? RED : '#5a4a8a');
-    this.dust -= opt.dt || 0;
-    if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
-    for (const p of b.proj) this.drawProj(g, p, T);
-    this.drawSky(g, b, T, opt.dt || 0);
-    this.drawAmbient(g, T, opt.dt || 0, opt.march);
-    fx.drawLayer(g, false);
     g.restore();
     g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }

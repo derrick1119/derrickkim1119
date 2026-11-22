@@ -95,10 +95,14 @@ const LANDMARK = {
     if (alt) { // 모루와 그루터기
       part(g, RC(-7, -9, 14, 9), '#6f5a48', RC(0, -9, 7, 9), { lw: 1 }); part(g, p => { p.moveTo(-12, -18); p.lineTo(10, -18); p.lineTo(15, -15); p.lineTo(6, -13); p.lineTo(5, -9); p.lineTo(-5, -9); p.lineTo(-6, -13); p.lineTo(-12, -14); p.closePath(); }, '#4a4a55', RC(0, -18, 15, 9), { lw: 1.1 }); return;
     }
-    // 그을린 기둥과 무너진 들보, 남은 불씨
-    part(g, RC(-11, -36, 5, 36), C, RC(-8.6, -36, 2.6, 36), { lw: 1.1 }); part(g, RC(8, -26, 4.6, 26), C, RC(10.4, -26, 2.2, 26), { lw: 1.1 });
-    g.save(); g.translate(-9, -33); g.rotate(0.42); part(g, RC(0, -2.4, 30, 4.8), A, RC(0, 0, 30, 2.4), { lw: 1.1 }); g.restore();
-    for (const [x, y] of [[-3, -3], [4, -6], [-14, -2], [14, -4]]) { ell(g, x, y, 2.4, 1.6, '#2b2a30'); ell(g, x, y - 0.6, 1, 0.8, '#ff9a2e'); }
+    // 돌을 쌓은 대장간 화덕과 굴뚝, 아궁이에 남은 불씨 (두 기둥에 들보를 얹은 폐허는 남의 나라 문처럼 보여 쓰지 않는다)
+    part(g, RC(4.6, -36, 6.4, 16), '#6a5a50', RC(8, -36, 3, 16), { lw: 1.1 }); rr(g, 3.8, -37.4, 8, 2.6, 0.8, '#5a4c44', INK, 0.9);
+    part(g, p => { p.moveTo(-17, 0); p.quadraticCurveTo(-18, -23, 0, -25); p.quadraticCurveTo(18, -23, 17, 0); p.closePath(); }, '#7a6a5e', RC(3, -27, 16, 27), { lw: 1.3 });
+    for (const [y, n] of [[-6, 5], [-12.4, 4], [-18.6, 3]]) for (let i = 0; i < n; i++) { const w = 30 - (6 - n) * 6, x0 = -w / 2 + i * w / n + 1; rr(g, x0, y - 2.6, w / n - 2, 4.6, 1.6, null, 'rgba(38,42,54,0.35)', 0.8); }
+    path(g, p => { p.moveTo(-6, 0); p.lineTo(-6, -7); p.quadraticCurveTo(0, -13.4, 6, -7); p.lineTo(6, 0); p.closePath(); }, '#2b2a30', INK, 1);
+    ell(g, 0, -2.6, 3.6, 2, '#ff9a2e'); ell(g, 0, -3, 1.8, 1, '#ffd27a');
+    g.globalAlpha = 0.45; for (const [x, y, r] of [[8, -41, 3.4], [10.6, -46.6, 4.2], [8.4, -53, 5]]) ell(g, x, y, r, r * 0.8, '#c9c2b8'); g.globalAlpha = 1;
+    for (const [x, y] of [[-14, -2], [14, -3], [20, -1.4]]) { ell(g, x, y, 2.4, 1.6, '#2b2a30'); ell(g, x, y - 0.6, 1, 0.8, '#ff9a2e'); }
   },
 };
 // 바닥: 한지 위에 번진 풀빛, 가운데로 이어지는 흙길, 위쪽 가장자리의 솔숲
