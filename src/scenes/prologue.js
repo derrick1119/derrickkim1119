@@ -1,4 +1,4 @@
-// 출정 프롤로그: 인형극 한 편. 앞부분은 모두 같고(도깨비가 왜 내려오는지), 뒷부분은 영웅마다 다르다(왜 고개에 오르는지)
+// 출정 프롤로그: 영웅마다 인형극 한 편 (긴 밤이 찾아온 일과 그 영웅이 고개에 오르는 까닭을 한 이야기로)
 import { nav } from '../nav.js';
 import { newRun } from '../state.js';
 import { UNITS } from '../data/units.js';

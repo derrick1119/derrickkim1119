@@ -6,7 +6,7 @@ import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
-import { makeGround, makeFar, makeFrame, makeBackdrop, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
+import { makeGround, makeFar, makeFrame, makeBackdrop, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
 import { Fx, glow } from './fx.js';
 import { icon } from '../ui/ui.js';
 
@@ -145,7 +145,8 @@ export class BattleView {
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
     for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
-    g.drawImage(makeBackdrop(this.theme), 0, 0, W, 300);   // 화면에 고정된 큰 산과 언덕
+    // 큰 산과 언덕: 먼 산보다 빠르고 바닥보다 느리게 흐른다
+    const back = makeBackdrop(this.theme); for (let x = -((sc * 0.5) % BW); x < W; x += BW) g.drawImage(back, x, 0, BW, 300);
     for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
     // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
     g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(backlight(isNight(this.theme)), 0, 0, W, H); g.restore();
@@ -153,7 +154,8 @@ export class BattleView {
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
     if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
-    g.drawImage(makeFrame(this.theme), 0, 0, W, H);   // 무대 양옆의 세트 (흐르지 않는다)
+    // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
+    const frame = makeFrame(this.theme); for (let x = -(sc % GW); x < W; x += GW) g.drawImage(frame, x, 0, GW, H);
     if (opt.deploy) this.drawDeployZone(g, opt.deploy, T);
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {

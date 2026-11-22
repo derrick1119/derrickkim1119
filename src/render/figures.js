@@ -577,52 +577,14 @@ export const LEFTOVER = {
 };
 export function stakeLog(g) { g.save(); g.rotate(0.12); part(g, P(-5, 2, -5, -30, 0, -40, 5, -30, 5, 2), WOOD, P(1, -41, 6, -41, 6, 3, 1.6, 3), { hi: P(-4, -29, -2.6, -30, -2.6, 0, -4, 0), hk: 0.2, lw: 1.3 }); rr(g, -5.6, -14, 11.2, 3.4, 1, '#d9b77a', INK, 0.8); g.restore(); ell(g, 0, 2, 7, 2.6, '#8a6844', INK, 1); }
 export function bannerCart(g) {
-  // 통북 수레: 긴 나무 평상 위에 배부른 통북을 눕혀 얹고, 앞에 큰 바퀴 하나. 선은 먹 대신 짙은 갈색
-  const LB = '#3b2416', W1 = '#b07a44', W2 = '#7e5030', W3 = '#5e3820', BR = '#d9a441', HIDE = '#f2e4c2';
-  const o = { line: LB, lw: 1.3 }, ln = (pts, col, w) => line(g, pts, col, w), cv = (fn, col, w) => curve(g, fn, col, w);
-  g.save(); g.translate(40, 50);   // 수레가 화면 왼쪽 밖으로 잘리지 않고, 깃발이 위쪽 표시에 가리지 않게 비켜 그린다 (자리는 그대로)
-  // 깃대와 군기 (북 뒤, 조금 작게)
-  g.save(); g.translate(-42, -24); g.scale(0.82, 0.82); g.translate(42, 24);
-  ln([-42, -24, -42, -112], LB, 4.4); ln([-42, -24, -42, -112], '#7a3a2a', 2.6); poly(g, [-45, -112, -42, -120, -39, -112], OCHRE, LB, 0.9);
-  part(g, p => { p.moveTo(-42, -110); p.lineTo(-6, -107); p.quadraticCurveTo(-10, -96, -6, -84); p.lineTo(-42, -82); p.closePath(); }, INDIGO, p => { p.moveTo(-24, -112); p.quadraticCurveTo(-18, -96, -22, -80); p.lineTo(-4, -80); p.lineTo(-4, -112); p.closePath(); }, Object.assign({ hi: P(-41, -108, -35, -107.6, -34, -84, -41, -83), hk: 0.14 }, o));
-  path(g, P(-42, -110, -6, -107, -6.6, -104, -42, -107), RED); path(g, P(-42, -82, -6, -84, -6.6, -87, -42, -85), RED);
-  part(g, E(-24, -95.6, 7.6, 7.6), WHITE, E(-22.6, -94.2, 6.4, 6.4), Object.assign({ k: 0.1 }, o, { lw: 0.9 })); taegeuk(g, -24, -95.6, 5.6, -0.5, [RED, INDIGO, OCHRE], 0.7);
-  g.restore();
-  // 긴 평상: 오른쪽으로 길게 뻗고 다리 둘이 받친다. 끌채는 왼쪽으로
-  part(g, P(-52, -29, -76, -46, -74, -50, -50, -24), W2, null, o); ell(g, -75, -48, 2.4, 2.4, W3, LB, 0.9);   // 비스듬히 들린 끌채
-  for (const x of [44, 72]) part(g, R(x - 2.6, -26, 5.2, 26), W3, R(x, -26, 2.6, 26), o);
-  part(g, p => p.rect(-56, -32, 134, 8), W2, R(-56, -27, 134, 3), Object.assign({ hi: R(-55, -31.4, 132, 1.6) }, o));
-  for (const x of [-36, -6, 24, 54]) ln([x, -31, x, -25], 'rgba(59,36,22,0.6)', 0.8);
-  for (let i = 0; i < 9; i++) { const x0 = -52 + i * 14.6 + (i % 3) * 2; cv(p => { p.moveTo(x0, -29.6 + (i % 2) * 2.4); p.quadraticCurveTo(x0 + 5, -30.4 + (i % 2) * 2.4, x0 + 10, -29.2 + (i % 2) * 2.4); }, 'rgba(60,34,18,0.35)', 0.6); }   // 평상의 나뭇결
-  for (const x of [-52, -20, 12, 44, 74]) ell(g, x, -28, 1, 1, BR, LB, 0.5);
-  // 북 받침
-  for (const x of [-22, 22]) part(g, P(x - 9, -32, x - 3, -40, x + 3, -40, x + 9, -32), W3, P(x, -42, x + 10, -42, x + 10, -32, x, -32), o);
-  // 통북 몸통: 비스듬히 보여 오른쪽 북면이 넓은 타원으로 보인다
-  const body = p => { p.moveTo(-38, -70); p.quadraticCurveTo(-2, -80, 30, -72); p.lineTo(30, -32); p.quadraticCurveTo(-2, -24, -38, -34); p.quadraticCurveTo(-43, -52, -38, -70); p.closePath(); };
-  // 둥근 통: 위아래는 어둡고 가운데 띠가 밝다
-  part(g, body, W1, null, Object.assign({}, o, { lw: 1.6 }));
-  g.save(); g.beginPath(); body(g); g.clip(); { const gr = g.createLinearGradient(0, -78, 0, -26); gr.addColorStop(0, 'rgba(60,34,18,0.5)'); gr.addColorStop(0.3, 'rgba(255,236,200,0.18)'); gr.addColorStop(0.46, 'rgba(255,240,210,0.42)'); gr.addColorStop(0.62, 'rgba(255,236,200,0.1)'); gr.addColorStop(1, 'rgba(50,28,14,0.6)'); g.fillStyle = gr; g.fillRect(-46, -80, 82, 56); } g.restore();
-  g.beginPath(); body(g); st(g, LB, 1.6);
-  // 널빤지 결과 나뭇결
-  g.save(); g.beginPath(); body(g); g.clip();
-  for (let i = 1; i < 7; i++) { const yy = -70 + i * 5.6; cv(p => { p.moveTo(-42, yy + (yy < -52 ? 1.4 : -1)); p.quadraticCurveTo(-4, yy + (yy + 52) * 0.2 - (yy < -52 ? 4.6 : -3), 32, yy + (yy < -52 ? 1 : -1)); }, 'rgba(106,64,38,0.5)', 0.8); }
-  for (let i = 0; i < 16; i++) { const x0 = -36 + (i * 37 % 64), y0 = -66 + (i * 11 % 36); cv(p => { p.moveTo(x0, y0); p.quadraticCurveTo(x0 + 4, y0 + 1.6, x0 + 9, y0 + 0.4); }, 'rgba(70,40,20,0.4)', 0.7); }   // 나뭇결
-  g.restore();
-  // 두 겹의 테와 놋쇠 징
-  for (const x of [-28, 18]) { const band = p => { p.moveTo(x - 3, -73.6 + Math.abs(x) * 0.06); p.quadraticCurveTo(x - 4.4, -52, x - 3, -29.4 - Math.abs(x) * 0.04); p.lineTo(x + 3, -29 - Math.abs(x) * 0.04); p.quadraticCurveTo(x + 1.6, -52, x + 3, -74 + Math.abs(x) * 0.06); p.closePath(); }; part(g, band, W3, null, Object.assign({ hi: p => { p.moveTo(x - 2.4, -72); p.quadraticCurveTo(x - 3.6, -52, x - 2.4, -31); p.lineTo(x - 1.4, -31); p.quadraticCurveTo(x - 2.6, -52, x - 1.4, -72); p.closePath(); }, hk: 0.3 }, o)); for (let j = 0; j < 7; j++) ell(g, x - 0.6 - Math.sin(j / 6 * Math.PI) * 1.2, -70 + j * 6.4, 1.15, 1.15, BR, LB, 0.5); }
-  // 오른쪽 북면: 칠하지 않은 소가죽, 둘레에 징 한 바퀴. 테두리 두께가 보인다
-  part(g, E(31, -52, 12, 20.6), W3, E(33, -50, 11, 19), Object.assign({ k: 0.2 }, o, { lw: 1.6 }));
-  part(g, E(32.4, -52, 10, 18.4), HIDE, E(35, -49, 8.6, 16.6), Object.assign({ k: 0.1, hi: E(29.6, -58, 3.4, 6), hk: 0.35 }, o));
-  for (let j = 0; j < 14; j++) { const an = j / 14 * TAU; ell(g, 32.4 + Math.cos(an) * 8.4, -52 + Math.sin(an) * 15.8, 1, 1, BR, LB, 0.45); }
-  cv(p => { p.moveTo(27, -60); p.quadraticCurveTo(25.6, -52, 27.4, -44); }, 'rgba(106,64,38,0.25)', 1.2);
-  // 북 위의 작은 붉은 북 (소고) — 오른쪽에
-  part(g, p => p.rect(2, -88, 16, 13), '#a8322a', R(12, -89, 7, 15), o); part(g, E(10, -88, 8, 2.8), HIDE, E(12, -87, 6.6, 2.2), Object.assign({ k: 0.12 }, o, { lw: 1 })); for (const x of [5, 10, 15]) ln([x, -85, x, -76], OCHRE, 1);
-  // 큰 바퀴 하나: 통만큼 높다. 굵은 테·바퀴살 여덟·통
-  const cx = -12, cy = -22, r = 22;
-  part(g, E(cx, cy, r, r), W2, E(cx + r * 0.3, cy + r * 0.3, r * 0.9, r * 0.9), Object.assign({ k: 0.28 }, o, { lw: 1.6 }));
-  part(g, E(cx, cy, r * 0.8, r * 0.8), '#ead9b2', E(cx + r * 0.2, cy + r * 0.2, r * 0.74, r * 0.74), Object.assign({ k: 0.12 }, o, { lw: 1.1 }));
-  for (let i = 0; i < 8; i++) { const an = i / 8 * TAU + 0.2, a1 = [cx + Math.cos(an) * r * 0.2, cy + Math.sin(an) * r * 0.2, cx + Math.cos(an) * r * 0.8, cy + Math.sin(an) * r * 0.8]; ln(a1, LB, 3.8); ln(a1, W2, 2.3); }
-  part(g, E(cx, cy, r * 0.24, r * 0.24), W3, E(cx + 1, cy + 1, r * 0.2, r * 0.2), o); ell(g, cx, cy, r * 0.08, r * 0.08, BR, LB, 0.6);
-  for (let i = 0; i < 12; i++) { const an = i / 12 * TAU; ell(g, cx + Math.cos(an) * r * 0.9, cy + Math.sin(an) * r * 0.9, 0.9, 0.9, BR); }
-  g.restore();
+  line(g, [-22, -12, -34, -6], INK, 4.2); line(g, [-22, -12, -34, -6], WOODD, 2.6);
+  line(g, [-6, -16, -6, -100], INK, 4.4); line(g, [-6, -16, -6, -100], '#7a3a2a', 2.6); poly(g, [-9, -100, -6, -108.6, -3, -100], OCHRE, INK, 0.9);
+  part(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); p.closePath(); }, INDIGO, p => { p.moveTo(14, -100); p.quadraticCurveTo(20, -80, 16, -60); p.lineTo(36, -60); p.lineTo(36, -100); p.closePath(); }, { hi: P(-5, -96, 2, -95.6, 3, -64, -5, -63), hk: 0.14, lw: 1.4 });
+  path(g, P(-6, -98, 34, -95, 33.2, -91.4, -6, -94.4), RED); path(g, P(-6, -61, 34, -64, 33.2, -67.6, -6, -64.6), RED);
+  curve(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); }, INK, 1.4);
+  part(g, E(13, -79.6, 9.4, 9.4), WHITE, E(15, -77.6, 8, 8), { k: 0.1, lw: 1 }); taegeuk(g, 13, -79.6, 6.9, -0.5, [RED, INDIGO, OCHRE], 0.8);   // 군기 가운데의 삼태극
+  for (const y of [-58, -50]) line(g, [-6, y, -12, y + 6], OCHRE, 1.3);
+  part(g, p => p.rect(-24, -20, 48, 10), '#9a6a3c', R(-24, -14.6, 48, 5), { hi: R(-23, -19.4, 46, 1.4), lw: 1.3 }); for (const x of [-18, -8, 2, 12]) line(g, [x, -19, x, -11], WOODD, 0.9);
+  part(g, p => p.rect(4, -36, 18, 16), '#a8322a', R(15, -37, 8, 18)); part(g, E(13, -36, 9, 3.4), '#f3e7c8', E(15, -35, 7.6, 2.6), { k: 0.12, lw: 1.1 }); for (const x of [8, 13, 18]) line(g, [x, -32, x, -21], OCHRE, 1);
+  for (const s of [-1, 1]) { part(g, E(s * 15, -8, 9.2, 9.2), WOODD, E(s * 15 + 2.6, -5.4, 8, 8)); part(g, E(s * 15, -8, 6, 6), '#d9c39a', null, { lw: 0.9 }); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; line(g, [s * 15, -8, s * 15 + Math.cos(a) * 6, -8 + Math.sin(a) * 6], WOODD, 1.2); } ell(g, s * 15, -8, 1.9, 1.9, '#3a2a22', INK, 0.6); }
 }
