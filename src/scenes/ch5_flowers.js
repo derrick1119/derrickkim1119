@@ -159,6 +159,10 @@
     flags: { bramGone: true },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * 0.5; },
     onHill(g, h, S) {
+      if (S.roofK != null && h === T.world.hillOf(T.plot.HX)) {   /* the ridge beam, coming up the side of the house on the rope */
+        const x = T.plot.HX, gy = T.world.y3(x), y = gy - 40 - 210 * S.roofK;
+        P.fill(g, P.rr(x - 150, y - 8, 300, 16, 6), '#b98a5a'); P.fill(g, P.rr(x - 150, y - 8, 300, 5, 3), '#d1a676');
+      }
       const m = S.pie;
       if (!m || h !== T.world.hillOf(T.plot.BOARD_X)) return;
       const t = T.time, flap = m.land ? 0 : Math.sin(t * 16), dir = m.dx == null ? 1 : m.dx;
@@ -201,7 +205,11 @@
       await X.TALK.say('son', '저도 집사람 기다리는 중이라,\n손은 남아돌아요.');
       await X.TALK.say('kid', '이번엔 나 맨 앞!');
       T.announce('지붕 올리기. 셋에 맞춰 눌러 다 같이 마룻대를 끌어 올린다. 이번에는 네 번.');
-      await X.play(T.puzzle.heave({ pulls: 4, crew: [F.styles.kidA, F.styles.villagerC, F.styles.rosaSon, F.styles.rosa, F.styles.mom] }));
+      /* the ridge beam lies along the grass; everyone takes the rope on the far side of the house */
+      const pullers = [leo].concat(folk);
+      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.x = PL.HX + 190 + i * 58; }); S.roofK = 0; X.cam(PL.HX + 180, py + 10, 0.95); }, { out: 0.6, in: 0.8 });
+      await X.play(T.puzzle.heave({ pulls: 4, crew: pullers, top: () => [PL.HX, W.y3(PL.HX) - 40 - 210 * (S.roofK || 0)], raise: (k) => { S.roofK = k; } }));
+      S.roofK = null; X.cam(px, py, 1);
       ps.stage = 4; A.sfx('knock', 0.6); X.notes(5);
       T.announce('지붕이 올라간다. 집이 다 지어졌다.');
       const cheer = (o, a, t) => { o.armF = { a: 2.4 + Math.sin(t * 9 + a.x) * 0.25, b: 0.3 }; o.face.eye = 'happy'; };

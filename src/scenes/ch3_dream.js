@@ -54,7 +54,9 @@
       await TALK.say('bram', '기둥 될 나무는 바다에서 건져 왔네.');
       await TALK.say('bram', '배 짓는 거나 집 짓는 거나, 나무 켜는 건 똑같아.\n밀 때 힘 주고, 당길 땐 쉬고.');
       T.announce('나무 켜기. 왼쪽과 오른쪽을 번갈아 눌러 통나무를 켠다.');
-      await X.play(T.puzzle.saw({ logs: 2, strokes: 8 }));
+      X.cam(PL.HX - 260, py + 30, 1.25);
+      await X.play(T.puzzle.saw({ logs: 2, strokes: 8, leo, at: PL.HX - 260 }));
+      X.cam(px, py, 1);
       await TALK.say('bram', '손이 제법이야.');
 
       /* ---- the frame ---- */
@@ -117,8 +119,12 @@
       await TALK.say('kid', '나도 당길래!');
       await TALK.say('mom', '다 같이 하면 금방이야.');
       T.announce('다 같이 당기기. 하나, 둘, 셋 구령의 셋에 맞춰 눌러 다 함께 줄을 당긴다.');
-      await X.play(T.puzzle.heave({ pulls: 3, crew: [F.styles.bram, F.styles.rosa, F.styles.mom, F.styles.villagerA, F.styles.kidA] }));
-      S.fallen = 0; ps.stage = 2; crew[1].prop = null;
+      /* everyone takes the rope, in a line down the hill from the fallen frame */
+      const pullers = [leo].concat(crew);
+      crew[1].prop = null;
+      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.sit = 0; a.x = PL.HX + 190 + i * 62; }); X.cam(PL.HX + 200, py + 10, 1.0); }, { out: 0.6, in: 0.8 });
+      await X.play(T.puzzle.heave({ pulls: 3, crew: pullers, top: () => [PL.HX, W.y3(PL.HX) - 30 - 200 * Math.max(0.05, ps.raise)], raise: (k) => { ps.raise = Math.max(0.02, k); S.fallen = T.clamp(1 - k * 1.5); } }));
+      S.fallen = 0; ps.stage = 2; ps.raise = 0; X.cam(px, py, 1);
       A.sfx('knock', 0.4); X.notes(4);
       T.announce('뼈대가 다시 선다. 사람들이 손뼉을 친다.');
       const clap = (o, a, t) => { o.armF = { a: 1.35 + Math.sin(t * 16 + a.x) * 0.16, b: 1.1 }; o.armB = { a: 1.2 - Math.sin(t * 16 + a.x) * 0.16, b: 1.1 }; o.face.eye = 'happy'; };

@@ -54,7 +54,9 @@
       await X.TALK.say('leo', '돌을 어디서 구해야 할지 모르겠어요.');
       await X.TALK.say('bram', '바닷가에 둥근 돌이 많아.\n혼자선 못 올리지. 내 수레를 쓰게.');
       T.announce('돌 나르기. 누를 때마다 돌을 한 번씩 밀어 올린다. 숨이 차면 잠깐 쉬어야 한다.');
-      await X.play(T.puzzle.haul({ trips: 2 }));
+      X.follow(leo, 160, 1.6);
+      await X.play(T.puzzle.haul({ trips: 2, leo, from: C.PLOT - 420, to: PL.SX[0] - 50 }));
+      X.cam(px, py, 1);
       bram.cart.stones = 3;
       T.announce('바닷가의 둥근 돌 네 개가 집터에 모였다.');
       /* sitting on the stones they brought up */

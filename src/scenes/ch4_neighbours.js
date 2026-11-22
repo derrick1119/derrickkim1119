@@ -165,7 +165,17 @@
       await TALK.say('kid', '히히. 찾아봐!\n풀숲 어딘가에 숨겼지롱.');
       bean.sit = 0; A.sfx('bark');
       T.announce('빈의 냄새 찾기. 풀숲을 눌러 빈을 보낸다. 가까울수록 꼬리를 세게 흔든다.');
-      await X.play(T.puzzle.sniff({ finds: [5, 1, 4] }));
+      X.cam(PL.HX + 40, py + 20, 0.92);
+      await X.play(T.puzzle.sniff({
+        bean, walk: X.walk,
+        spots: [{ x: PL.BOARD_X - 60 }, { x: PL.HX - 150 }, { x: PL.HX - 20 }, { x: PL.LAMP_X + 26 }, { x: PL.TABLE_X - 4 }, { x: PL.TREE_X - 10 }, { x: PL.TREE_X + 110 }],
+        finds: [
+          { at: 0, thing: '망치', clue: '망치는 팻말 바로 밑 풀숲에 숨겼어.' },
+          { at: 4, thing: '모자', clue: '모자는 등불이랑 나무 사이. 아저씨가 밥 먹는 데 밑.' },
+          { at: 6, thing: '세 번째 보물', clue: '나무 밑은 아니야. 나무보다 바다 쪽으로 한 발짝 더.' },
+        ],
+      }));
+      X.cam(px, py, 1);
       leo.pose = null;
       T.announce('빈이 망치와 모자를 물어 온다. 뼈다귀도 하나.');
       await TALK.say('kid', '빈 반칙이야!\n코로 찾는 건 반칙이라고!');
