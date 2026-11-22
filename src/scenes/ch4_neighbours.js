@@ -193,13 +193,13 @@
       const GZ = T.puzzle;
       await X.dip(async () => {
         pipi.pose = null; bean.wagRate = null;
-        leo.x = GZ.PATCH_X + 200; leo.flip = true; pipi.x = GZ.PATCH_X + 250; pipi.flip = true; bean.x = GZ.PATCH_X + 150; bean.flip = true; bean.sit = 1;
-        ps.patch = 0;
+        leo.x = GZ.PATCH_X + 230; leo.flip = true; pipi.x = GZ.PATCH_X + 275; pipi.flip = true; bean.x = GZ.PATCH_X + 330; bean.flip = true; bean.sit = 1;
+        ps.patchHide = true;
         const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap();
       });
       T.announce('텃밭 물길 내기. 고랑이 셋으로 늘었다. 뾰족한 갈림판은 물을 반씩 나눈다.');
       await X.play(GZ.trough({ which: 1 }));
-      ps.patch = 2; ps.fruit = 0.5;
+      ps.patch = 2; ps.fruit = 0.5; ps.patchHide = false;
       bean.sit = 0; A.sfx('bark');
       T.announce('젖은 흙 냄새에 빈이 고랑으로 뛰어든다.');
       await X.walk(bean, GZ.PATCH_X - 40, 170);

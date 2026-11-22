@@ -290,20 +290,20 @@
     function drawVow(g) {
       const c = S.vow, V = T.view;
       if (!c || c.a < 0.01) return;
-      const v = T.state.vows || { w: [], k: [], n: [] }, a = T.ease.out3(c.a), RH = 40, H = 62 + VOWS.length * RH;
-      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 300, 30 + (1 - a) * -30);
+      const v = T.state.vows || { w: [], k: [], n: [] }, a = T.ease.out3(c.a), RH = 46, H = 62 + VOWS.length * RH, BW = 330;
+      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 340, 92 + (1 - a) * -30);
       g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
-      P.fill(g, P.rr(-20, 0, 290, H, 10), '#fbf4e2'); g.shadowColor = 'transparent';
+      P.fill(g, P.rr(-20, 0, BW, H, 10), '#fbf4e2'); g.shadowColor = 'transparent';
       P.fill(g, P.rr(-20, 0, 16, H, 6), '#d7a23c');
-      P.text(g, '여기서 한 약속', 125, 30, { size: 30, color: '#b54a36', seed: 2 });
+      P.text(g, '여기서 한 약속', BW / 2 - 12, 30, { size: 30, color: '#b54a36', seed: 2, fit: BW - 50 });
       VOWS.forEach((s, i) => {
         const y = 66 + i * RH, writing = c.i === i && c.how === 'write', shown = (v.w && v.w[i]) || writing;
-        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, 220, 1.2); return; }
-        P.text(g, s, 125, y, { size: 21, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i });
+        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, BW - 70, 1.2); return; }
+        P.text(g, s, BW / 2 - 12, y, { size: 21, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i, fit: BW - 56 });
         const struck = v.k && v.k[i] ? 1 : c.i === i && c.how === 'keep' ? c.p : 0;
-        if (struck > 0) P.line(g, 10, y - 4, 10 + 230 * struck, y - 6, 2.4, '#c9573f');
+        if (struck > 0) P.line(g, 10, y - 4, 10 + (BW - 60) * struck, y - 6, 2.4, '#c9573f');
         const note = c.i === i && c.note ? c.note : v.n && v.n[i];
-        if (note) P.text(g, note, 132, y + 19, { size: 15, color: '#8a5a50', k: c.i === i && c.note ? T.clamp(c.p * 1.4) : 1, seed: 20 + i });
+        if (note) P.text(g, note, BW / 2 - 6, y + 20, { size: 15, color: '#8a5a50', k: c.i === i && c.note ? T.clamp(c.p * 1.4) : 1, seed: 20 + i, fit: BW - 64 });
       });
       g.restore();
     }
@@ -459,7 +459,7 @@
     S.update = function (dt) {
       S.idle += dt;
       if (S.yr.tick) S.yr.tick();
-      T.gardenOn = !!(S.ps && S.ps.patch) || !!(S.game && S.game.garden);
+      T.gardenOn = !!(S.ps && (S.ps.patch || S.ps.site)) || !!(S.game && S.game.garden);
       if (S.game) S.game.update(dt);
       const W_ = Wd();
       for (const a of S.actors) {

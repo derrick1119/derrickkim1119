@@ -160,16 +160,16 @@
       let pipi0;
       await X.dip(async () => {
         ps.food.show = false; leo.chair = 0;
-        leo.x = GZ.PATCH_X + 200; leo.flip = true; bean.x = GZ.PATCH_X + 150; bean.flip = true; bean.sit = 1;
-        pipi0 = X.actor('kid', { x: GZ.PATCH_X + 250, style: F.styles.kidA, s: 100, flip: true });
-        ps.patch = 0;
+        leo.x = GZ.PATCH_X + 230; leo.flip = true; bean.x = GZ.PATCH_X + 330; bean.flip = true; bean.sit = 1;
+        pipi0 = X.actor('kid', { x: GZ.PATCH_X + 275, style: F.styles.kidA, s: 100, flip: true });
+        ps.patchHide = true;
         const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap();
       });
       await TALK.say('kid', '올해는 고랑 다섯 개!\n울타리도 쳤으니까 빈은 못 들어와.');
       await TALK.say('leo', '물은 여덟 바가지.\n두 바가지 먹는 고랑이 셋이야.');
       T.announce('텃밭 물길 내기. 고랑이 다섯으로 늘었다. 갈림판이 셋, 기울일 판자가 넷. 물통의 빗물은 고랑들이 먹을 만큼뿐이다.');
       await X.play(GZ.trough({ which: 2 }));
-      ps.patch = 3; ps.fruit = 1;
+      ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
       A.sfx('star', 0.6);
       await TALK.say('kid', '빨개졌다! 진짜 빨개졌어!');
       await X.vowNote(4, '드디어: 울타리 치고, 빨간 거 스무 알');

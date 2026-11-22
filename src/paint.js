@@ -244,8 +244,15 @@
   /* Draw text that can appear a character at a time.
      o: { font:'hand'|'serif', size, color, k (0..1 reveal, default 1), align, lh, alpha, seed, glow } */
   P.text = function (g, str, x, y, o = {}) {
-    const kind = o.font || 'hand', size = (o.size || 48) * (T.trScale ? T.trScale(str) : 1);
+    const kind = o.font || 'hand';
+    let size = (o.size || 48) * (T.trScale ? T.trScale(str) : 1);
     if (T.tr) str = T.tr(str);   /* the other language, if one is chosen */
+    if (o.fit) {   /* o.fit: the widest a line may be; longer ones are set smaller */
+      g.save(); g.font = P.font(kind, size);
+      const wd = Math.max.apply(null, str.split('\n').map((s2) => g.measureText(s2).width));
+      g.restore();
+      if (wd > o.fit) size *= o.fit / wd;
+    }
     const lh = o.lh || (kind === 'hand' ? 1.12 : 1.5);
     const L = layout(g, str, kind, size, lh, o.track || 0);
     const k = o.k == null ? 1 : o.k;

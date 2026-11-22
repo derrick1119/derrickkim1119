@@ -98,7 +98,8 @@
       const GZ = T.puzzle;
       await X.dip(async () => {
         kid0.pose = null;
-        leo.x = GZ.PATCH_X + 200; leo.flip = true; kid0.x = GZ.PATCH_X + 250; kid0.flip = true;
+        ps.site = true;   /* he has cleared the slope for it */
+        leo.x = GZ.PATCH_X + 230; leo.flip = true; kid0.x = GZ.PATCH_X + 275; kid0.flip = true;
         const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap();
       });
       await TALK.say('leo', '빗물을 통에 받아서, 판자로 고랑마다 나눠 주면 돼.');

@@ -222,7 +222,7 @@
   /* the garden as it stands between years: o.which's beds, their plants, the rack with its boards set right */
   Z.patchDraw = function (g, ps) {
     const L = LAYOUTS[ps.patch - 1];
-    if (!L) return;
+    if (!L || ps.patchHide) return;
     const SOL = answer(L), t = T.time;
     g.save(); g.translate(AX, WY()); g.scale(SC, SC);
     frame(g, L);

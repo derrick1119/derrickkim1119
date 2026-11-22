@@ -19,7 +19,7 @@
       X.title();
       await X.wait(4.4);
       await X.years(0, 1, { age: 37 });
-      X.vowsAt([0, 0, 0, 0], [0, 0, 0, 0]);
+      X.vowsAt([0, 0, 0, 0], [0, 0, 0, 0], []);
 
       /* the list */
       await X.tap(() => [leo.x, W.groundAt(leo.x) - 50, 60]);
