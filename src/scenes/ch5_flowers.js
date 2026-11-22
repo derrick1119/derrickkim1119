@@ -102,7 +102,7 @@
       /* Ana, Lily, and beside Lily's free arm the one who is not there */
       const hug = T.ease.io(V.hug.k);
       const ana = { x: LX + 180 - hug * 62, y: SHORE - 6 - F.hipHeight(F.styles.ana, 176), s: 176, style: F.anaAt(61), flip: hug > 0.4, lean: 0.05, face: { eye: 'happy', mouth: 'smile', blush: 0.24, tear: 0.6, tearY: (t * 2) % 3 } };
-      const lst = F.lilyAt(27, { top: '#fbf7ec', bottom: '#fbf7ec', skirt: 44, shoe: '#fbf7ec' });
+      const lst = F.lilyAt(31, { top: '#fbf7ec', bottom: '#fbf7ec', skirt: 44, shoe: '#fbf7ec' });
       const lily = { x: LX + 92, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
       if (V.going) { ana.walk = V.ph + 0.6; lily.walk = V.ph + 0.3; }
       ana.armB = { hand: F.local(ana, lily.x + 20, lily.y - 40) };
@@ -225,8 +225,8 @@
       await X.TALK.say('rosa', '빈 방엔 뭘 들일 거야?');
       await X.TALK.say('leo', '…그건 아나가 정하게 둘래요.');
       await X.TALK.say('rosa', '레오, 하나만 부탁하자.');
-      await X.TALK.say('rosa', '며느리까지 오면, 우리 셋은 건너갈 거야.\n그때 종은 네가 쳐 줘.');
-      await X.TALK.say('leo', '…네. 제가 칠게요.');
+      await X.TALK.say('rosa', '며느리까지 오면, 우리 셋은 건너갈 거야.\n그때 종이 물으면, 네가 대답해 줘.');
+      await X.TALK.say('leo', '…네. 제가 대답할게요.');
       await X.vow(6, 'write');
       await X.wait(1);
       folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
@@ -252,7 +252,7 @@
       await X.TALK.say('leo', '…벌써요?');
       await X.TALK.say('mom', '넌 이제 혼자서도 기다릴 수 있잖니.\n로사도, 빈도, 그 집도 있고.');
       await X.TALK.say('leo', '조금만 더 있다 가면 안 돼요?');
-      await X.TALK.say('mom', '네 아빠도 그렇게 말하더라.\n그래도 먼저 갔어. 가서 집 짓고 기다린다고.');
+      await X.TALK.say('mom', '나도 네 아빠한테 그렇게 말했지.\n그래도 먼저 갔어. 가서 집 짓고 기다린다고.');
       await X.walk(mom2, 60, 50);
       await X.board(mom2, far, -10);
       mom2.flip = true;
@@ -334,7 +334,7 @@
       await X.wait(1.6);
       const eve = T.lake({ paint: T.vig.eve, leo: F.leoAt(2) });
       await X.view(eve, { color: '#1b2a40' });
-      X.age('릴리, 27');
+      X.age('릴리, 31');
       T.announce('거울 호수. 결혼식 전날 밤, 어릴 적 방에서 릴리가 잠들지 못하고 있다. 손에는 아빠 사진.');
       await X.wait(2.6);
       await TALK.say('leo', '…내일인데, 못 자고 있구나.');
@@ -359,9 +359,10 @@
       await X.tween(D.near, 'k', 1, 2.6, T.ease.io);
       await TALK.say('lily', '…아빠?');
       await TALK.say('leo', '편지 받았어.\n까치가 물고 왔더라.');
+      await TALK.say('lily', '…정말? 아빠 사진 앞에 두기만 했는데.');
       await TALK.say('lily', '내일, 아빠 자리는 그냥 비워 두려고.\n…이상하지?');
       await TALK.say('leo', '아니. 그 자리, 내가 걸을게.');
-      await TALK.say('leo', '팔 한쪽만 비워 둬.\n옆에서 같이 걸을게.');
+      await TALK.say('leo', '팔 한쪽만 비워 둬.');
       await X.tween(D.hold, 'k', 1, 1.2);
       await TALK.say('lily', '…약속.', { slow: true });
       await TALK.say('leo', '약속.', { slow: true });
@@ -372,6 +373,7 @@
       X.bed(4, 0.13, 'walk');
       /* the whole town weaves the road she will not walk on */
       T.announce('꽃길에 걸 화환을 엮는다. 꽃이 되풀이되는 차례를 보고 빈자리를 채운다.');
+      await X.TALK.say('leo', '내일 걸을 길에\n꽃이라도 걸어 둬야지.');
       await X.play(T.puzzle.garland({ pattern: [0, 1, 0, 2], len: 13, gaps: [5, 7, 10, 11, 12] }));
 
       /* ---- the walk ---- */
@@ -401,6 +403,7 @@
       /* it was made for a six-year-old */
       let stepN = 0;
       leo.pose = (o, a, t) => { o.armF = { a: 1.2, b: 0.5 }; o.lean = 0.16; };
+      await X.TALK.say('leo', '릴리 타라고 만든 건데…\n이젠 둘이 앉게 넓혀야겠다.');
       await X.drag({
         axis: 'x', sign: 1, dist: 240,
         on: (p) => { ps.swingW = p; const n = Math.floor(p * 5); if (n > stepN) { stepN = n; X.note(); A.sfx('knock', n / 5); } },

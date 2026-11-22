@@ -66,7 +66,7 @@
       await X.dip(async () => { leo.x = SLIP - 120; leo.flip = false; leo.pose = null; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
       T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
       await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
-      await TALK.say('bram', '이 배가 뜨는 날,\n자네도 꼭 있어 주게.');
+      await TALK.say('bram', '이 배 띄우는 날,\n자네가 좀 거들어 주게.');
       await TALK.say('leo', '네. 꼭요.');
       await X.vow(0, 'write');
       await X.dip(async () => { leo.x = PL.HX + 30; bram.x = PL.HX - 200; bram.flip = false; X.cam(px, py, 1); X.camSnap(); });
@@ -169,7 +169,7 @@
       await X.wait(2.4);
       crew.forEach((a) => { a.pose = null; });
       await TALK.say('leo', '…고맙습니다.');
-      await TALK.say('kid', '아저씨, 이거.\n밤에 잡은 반딧불이야. 어두운 데 갈 때 쓰래.');
+      await TALK.say('kid', '아저씨, 이거.\n밤에 잡은 반딧불이야. 어두운 데 갈 때 써.');
       await X.gift('light', [0, 520]);
       await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n오늘은 혼자 보기가 좀 그래서.');
 
@@ -212,15 +212,16 @@
       await X.tween(lake.cover, 'k', 1, 1.8);
       lake.beat = 4;
       await X.wait(0.6);
-      await TALK.say('rosa', '저 담요… 백일 때 내가 떠 준 거야.');
+      await TALK.say('rosa', '저 담요… 백일 날 덮어 주려고 떠 둔 거야.');
       await TALK.say('rosa', '아직도 갖고 있었네.', { slow: true });
       await TALK.say('leo', '그 사람도 언젠가 오겠죠.');
       await TALK.say('rosa', '다 늙어서 오겠지.\n그래도 난 단번에 알아볼 거야.');
-      await TALK.say('rosa', '이거 가져가. 저 자장가 한 소절.\n아나도 아이 재울 때 부를 테니까.');
+      await TALK.say('rosa', '이거 가져가. 저 자장가 한 소절.');
+      await TALK.say('leo', '…아나도 릴리 재울 때 이 노래 불렀어요.');
+      await X.gift('sound', [lake.things[1].x, 160]);
       await TALK.say('rosa', '그 애 오면 덮어 줄 새 담요를 뜨는데,\n저 줄무늬를 자꾸 잊어버려.');
       await TALK.say('leo', '같이 떠요. 제가 같이 봐 둘게요.');
       await X.vow(2, 'write');
-      await X.gift('sound', [lake.things[1].x, 160]);
       await X.wait(0.8);
 
       /* ---- Ana ---- */

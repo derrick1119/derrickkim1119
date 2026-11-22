@@ -80,28 +80,29 @@
       await X.TALK.say('kid', '아저씨 집 지어?\n나 그거 봐도 돼?');
       await X.TALK.say('leo', '…넌 누구니?');
       await X.TALK.say('kid', '피피. 일곱 살 때 왔어.\n엄마 아빠 기다려.');
-      await X.TALK.say('bram', '피피는 여기 꽤 오래 있었지.\n삼십 년쯤 됐나.');
+      await X.TALK.say('bram', '피피도 여기 온 지 꽤 됐지.\n한 오 년 됐나.');
       await X.TALK.say('kid', '아저씨는 누구 기다려?');
       await X.TALK.say('leo', '아나. 내 아내.');
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
       await X.TALK.say('leo', '그래. 약속.');
       await X.vow(1, 'write');
+      X.tween(bram, 'sit', 0, 0.6);
+      X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
       /* ---- that night on the quay: what you do while you wait ---- */
       await X.TALK.say('kid', '기다릴 땐 별을 봐.\n엄마가 그랬어. 별을 이으면 그림이 된대.');
       await X.TALK.say('kid', '오늘 밤에 부두에서 같이 보자.\n내가 그림 그려 줄 테니까, 아저씨가 하늘에서 찾아.');
+      await X.dip(async () => { ps.night = 0.9; }, { color: '#141b36', out: 1, in: 0.6 });
       T.announce('그날 밤, 부두. 피피가 종이에 그린 모양을 별들 사이에서 찾는다. 갈수록 별이 많아지고, 마지막 별자리는 기울어져 있다.');
       await X.play(T.puzzle.stars({ rounds: [
         { name: '집', pts: [[-50, 40], [50, 40], [50, -10], [0, -60], [-50, -10]], edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [4, 2]], at: [180, 330], scale: 1.3, filler: 10 },
         { name: '배', pts: [[-70, 0], [70, 0], [-45, 30], [45, 30], [0, 0], [0, -80]], edges: [[0, 2], [2, 3], [3, 1], [1, 4], [4, 0], [4, 5], [5, 1]], at: [-150, 300], scale: 1.25, filler: 18 },
         { name: '아나의 냄비', pts: [[-60, -10], [60, -10], [45, 40], [-45, 40], [-88, -18], [88, -18], [0, -70]], edges: [[4, 0], [0, 1], [1, 5], [1, 2], [2, 3], [3, 0], [0, 6], [6, 1]], at: [250, 350], scale: 1.15, rot: 0.5, filler: 24 },
       ] }));
-      await X.TALK.say('kid', '마지막 건 아저씨가 그렸지?\n그거 냄비 맞아?');
-      await X.TALK.say('leo', '아나가 스튜 끓이던 냄비.\n…그 앞에 있을 때 제일 좋아 보였거든.');
+      await X.TALK.say('kid', '마지막 건 아저씨가 그려 달라던 거지?\n그거 냄비 맞아?');
+      await X.TALK.say('leo', '내가 아나한테 스튜 끓여 주던 냄비.\n…그 옆에서 아나가 제일 잘 웃었거든.');
       await X.TALK.say('kid', '그럼 이제 저 별 보면,\n아나 아줌마 생각나겠다.');
+      await X.dip(async () => { ps.night = 0; leo.sit = 0; }, { color: '#141b36', out: 0.8, in: 1.2 });
       pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
-      X.tween(bram, 'sit', 0, 0.6); X.tween(leo, 'sit', 0, 0.6);
-      await X.wait(0.6);
-      X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
       await X.wait(1.4);
 
       /* a year to the day. His mother comes for him: there is a place where he can see her */
@@ -111,7 +112,7 @@
       leo.flip = true;
       mom.pose = (o, a, t) => { o.armB = { a: 1.6 + Math.sin(t * 5) * 0.3, b: 0.4 }; };
       await X.wait(0.9);
-      await X.TALK.say('mom', '오늘로 꼭 일 년이구나.\n보고 싶으면 따라오렴.');
+      await X.TALK.say('mom', '오늘로 꼭 일 년이구나.\n이제는 봐도 괜찮겠지. 따라오렴.');
       mom.pose = null;
       X.walk(mom, C.PLOT + 420, 96);
       await X.wait(0.5);
@@ -124,7 +125,8 @@
       });
       await X.view(lake, { color: '#1b2a40' });
       T.announce('거울 호수. 물속에 아나의 부엌이 비친다. 아나가 레오의 공책을 펴 놓고, 레오가 서던 자리에서 스튜를 끓인다.');
-      await X.TALK.say('mom', '이 호수엔 두고 온 사람들이 비친단다.\n나도 여기서, 네가 크는 걸 다 봤지.');
+      await X.TALK.say('mom', '이 호수엔 두고 온 사람이 비친단다.\n그 사람이 우릴 생각할 때면.');
+      await X.TALK.say('mom', '나도 여기서, 네가 크는 걸 다 봤지.');
       T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');
       await lake.rhyme();
       T.announce('세 그림자가 제자리를 찾는다. 물결이 멎고, 잠깐, 한 부엌에 두 사람이 있다.');
@@ -150,7 +152,8 @@
       lake.beat = 3; lake.leoFace = { eye: 'happy', mouth: 'open' };
       X.tween(lake.sip, 'k', 0, 0.8);
       X.notes(3, { voice: 'pluck', vel: 0.34 });
-      await X.TALK.say('leo', '소금을 두 번 넣었네.');
+      await X.TALK.say('leo', '조금만 넣으랬더니…\n두 번이나 넣었네.');
+      await X.TALK.say('leo', '나도 저렇게 끓여 볼래.\n아나가 끓이는 그대로.');
       await X.vow(3, 'write');
       await X.wait(0.8);
       /* and then she looks at the place on the counter she used to watch him from */
@@ -174,6 +177,7 @@
       await X.tap(() => [17, 120, 70], { screen: true });
       lake.wisp = 0;
       await X.gift('scent', [17, 120]);
+      await X.TALK.say('mom', '냄새 하나, 소리 하나, 빛 하나.\n셋이 모이면 그때 알려 주마.');
       await X.tween(lake.reach, 'k', 0, 1);
       await X.wait(0.8);
 

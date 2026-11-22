@@ -100,6 +100,7 @@
       leo.pose = (o) => { o.armF = { a: 2.7, b: 2.2 }; o.headTilt = -0.1; }; leo.flip = false;
       await X.wait(1.2);
       leo.flip = true;
+      await TALK.say('leo', '아직 집도 다 못 지었는데….');
       await TALK.say('mom', '저 애는 집 보러 온 게 아니라\n너 보러 온 거야.');
       leo.pose = null;
       await X.tap(() => [bean.x, PIER - 30, 56]);
@@ -267,8 +268,8 @@
       X.notes(3, { voice: 'felt', vel: 0.3 });
       await X.wait(2.4);
       await TALK.say('bram', '…곧 오겠구먼.');
-      await TALK.say('bram', '그 사람 오면,\n배 띄우는 것 좀 도와주게.');
-      await TALK.say('leo', '네. 꼭요.');
+      await TALK.say('bram', '그 사람 오면,\n그 약속 잊지 말게.');
+      await TALK.say('leo', '그럼요. 수첩에도 적어 뒀어요.');
 
       /* ---- a year on: Captain Bram's wife, and she is in no hurry now either ---- */
       let wife;
@@ -283,6 +284,7 @@
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
+      await TALK.say('mom', '누가 오는구나.\n이번엔 네가 등불로 대답해 주렴.');
       const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 3, 0, 1]] });
       X.sail(S.b1, -74, 30);
       await pressed;
@@ -296,7 +298,7 @@
       bram.flip = false;
       await TALK.say('bram', '그 사람은 원래 뭐든 천천히 했어.');
       bram.flip = true;
-      await TALK.say('wife', '육십 년 동안\n배만 지었다면서요.');
+      await TALK.say('wife', '칠십 년 동안\n배만 지었다면서요.');
       await X.wait(0.8);
       /* his boat goes into the water for the first time, with her in it */
       await X.dip(async () => {
@@ -315,7 +317,7 @@
       await X.play(T.puzzle.rope({ order: [0, 2, 1, 0, 2] }));
       S.rope = null;
       X.vow(0, 'keep');
-      await TALK.say('bram', '이제 건너가세.\n기다릴 사람이 더는 없으니.');
+      await TALK.say('bram', '나는 이제 건너가네.\n기다릴 사람이 더는 없으니.');
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
       [leo, mom].concat(crowd).forEach((a) => { a.pose = wave; });
@@ -382,6 +384,8 @@
       lake.leo = F.leoAt(1);
       T.announce('레오는 그 옆에 비친 자기 얼굴을 오래 본다.');
       X.notes(3, { voice: 'felt', vel: 0.3 });
+      await X.wait(1.6);
+      await TALK.say('leo', '…그럼 나도, 여기서 같이 늙을게.', { slow: true });
       await X.wait(4.5);
       X.end();
     },

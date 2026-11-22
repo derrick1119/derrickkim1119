@@ -155,7 +155,7 @@
         g.strokeStyle = T.shade(it.c, -0.2); g.lineWidth = 2;
         for (let k = -2; k <= 2; k++) { g.beginPath(); g.ellipse(x, BY, 34, 12 + Math.abs(k) * 5, k * 0.5, 0, TAU); g.stroke(); }
         g.save(); g.translate(x, BY - 62); ICON[it.icon](g, t); g.restore();
-        P.text(g, it.name, x, BY + 68, { font: 'serif', size: 22, color: '#fbf4e2', seed: 2 });
+        P.text(g, it.name, x, BY + 68, { font: 'serif', size: 22, fit: 116, color: '#fbf4e2', seed: 2 });
       });
       g.restore();
       G.hintRing(g, t);

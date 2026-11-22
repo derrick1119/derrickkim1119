@@ -38,7 +38,7 @@
     P.fill(g, P.rr(150, FL - 200, 60, 200, 4), '#5d4a5a');
     P.fill(g, P.poly([[156, FL - 280], [204, FL - 280], [214, FL - 236], [146, FL - 236]]), '#f4d9a8');
     P.glow(g, 180, FL - 250, 200, '#ffd98a', 0.55 * lamp);
-    const ls = F.lilyAt(27, { top: '#e9e0f0', bottom: '#e9e0f0' });
+    const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
     const lily = { x: -40, y: FL - 150, s: 330, style: ls, sit: true, flip: true, lean: 0.08, headTilt: b ? 0.3 : 0.1, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: b > 1 ? 'closed' : 'open', mouth: b > 1 ? 'smile' : 'line', blush: 0.2 } };
     lily.armF = { hand: F.local(lily, lily.x - 70, lily.y - 70) }; lily.armB = { hand: F.local(lily, lily.x - 50, lily.y - 60) };
     F.person(g, lily);
@@ -293,7 +293,7 @@
         g.strokeStyle = '#a8735a'; g.lineWidth = 9; g.strokeRect(150, 300, 150, 364);
         for (let j = 0; j < 8; j++) P.fill(g, P.circle(170 + (j % 3) * 50 + Math.sin(t + j) * 4, 640 - Math.floor(j / 3) * 16, 6), ['#e58aa0', '#f6f0e0', '#f1c04a', '#f6b6c2'][j % 4]);
         P.fill(g, P.rr(-470, 540, 360, 130, 18), '#b48ab0'); P.fill(g, P.rr(-462, 518, 344, 40, 16), '#fbf4ee');
-        const ls = F.lilyAt(27, { top: '#e9e0f0', bottom: '#e9e0f0' });
+        const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
         const lily = { x: -250, y: 540, s: 300, style: ls, sit: true, lean: 0.06, headTilt: 0.12 - D.hold.k * 0.16, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: D.hold.k > 0.6 ? 'closed' : 'open', mouth: 'smile', blush: 0.26 } };
         const nk = T.ease.io(D.near.k), lx = T.lerp(225, -40, nk);
         const leo = { x: lx, y: 664 - F.hipHeight(F.styles.leoHome, 300), s: 300, style: F.styles.leoHome, flip: true, lean: 0.06, headTilt: 0.1, face: { mouth: 'smile', blush: 0.14 } };
@@ -323,7 +323,7 @@
         arrows(g, t, busy ? 0.45 : 1);
         if (idle > 9 && !busy) { const h = D.hintAt(); if (h) P.beacon(g, h[0], h[1], 60, t, 1, '#fff0c8'); }
         T.band(g, 1);
-        const cap = sayT > 0 ? say : round === 2 ? '빈의 공도 같이 내보내 주세요. 왼쪽·오른쪽을 눌러 방을 돌려요' : round === 1 ? '이번엔 둘 다. 방을 돌리면 떠 있는 것은 모두 미끄러져요' : '꿈속의 방이 기울어져 있어요. 왼쪽·오른쪽을 눌러 방을 돌려, 아빠 인형을 문으로 내보내세요';
+        const cap = sayT > 0 ? say : round === 2 ? '빈의 공도 같이 내보내 주세요. 왼쪽·오른쪽을 눌러 방을 돌려요' : round === 1 ? '이번엔 아빠랑 릴리, 둘이 같이 문 밖으로. 방을 돌리면 떠 있는 것은 모두 미끄러져요' : '꿈속의 방이 기울어져 있어요. 왼쪽·오른쪽을 눌러 방을 돌려, 아빠 인형을 문 밖 꽃길로 내보내세요';
         P.text(g, cap, 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
         for (let i = 0; i < BOARDS.length; i++) P.fill(g, P.circle(-((BOARDS.length - 1) * 26) / 2 + i * 26, 806, 7), i < round ? '#ffd98a' : i === round ? '#fbf6ff' : 'rgba(251,246,255,0.35)');
       }

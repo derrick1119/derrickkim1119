@@ -380,7 +380,7 @@
       P.fill(g, P.rr(-200, 136, 400 * T.clamp(G.heat), 14, 7), '#ffcf8a');
       for (let k = 0; k < o.bands.length; k++) P.fill(g, P.circle(-((o.bands.length - 1) * 28) / 2 + k * 28, 186, 8), k < G.i ? '#ffd98a' : 'rgba(243,234,216,0.4)');
       G.hintRing(g, t);
-      G.caption(g, G.on ? '김이 초록 칸에 들어오면 눌러서 꺼내세요' : '눌러서 판자를 김에 쬐기 시작하세요');
+      G.caption(g, G.on ? '노란 눈금이 초록 칸에 들면 눌러서 판자를 꺼내세요' : '눌러서 판자를 김에 쬐기 시작하세요');
     };
     return G;
   };

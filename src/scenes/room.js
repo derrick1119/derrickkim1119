@@ -1065,7 +1065,7 @@
     if (S.intro && S.intro.a > 0.01) {
       const x = -T.view.W / 2 + 96, a = S.intro.a;
       P.text(g, '늦가을, 병실', x, 762, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: a, align: 'left' });
-      P.text(g, '레오는 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 816, { font: 'serif', size: 25, color: '#f1e8d6', alpha: a, align: 'left' });
+      P.text(g, '레오는 아내 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 816, { font: 'serif', size: 25, color: '#f1e8d6', alpha: a, align: 'left' });
     }
     if (S.title.a > 0.003) drawTitle(g);
     if (S.dip.a > 0.003) { g.fillStyle = T.rgba('#fff6e2', S.dip.a); g.fillRect(-W / 2, 0, W, V.H); }

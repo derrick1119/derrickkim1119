@@ -86,6 +86,7 @@
       };
       await X.years(25, 30, { age: 66 });
       T.announce('해마다 그날이면, 레오는 호수에서 본 대로 아나의 스튜를 끓인다. 처음엔 차례만 지키면 된다.');
+      await X.TALK.say('leo', '해마다 이날이면,\n호수에 아나 부엌이 비쳐.');
       await X.TALK.say('leo', '감자, 당근, 양파, 토마토.\n아나가 넣던 차례 그대로.');
       await cookYear({ steps: ['potato', 'carrot', 'onion', 'tomato'], caption: '아나가 넣던 차례대로 재료를 눌러 넣으세요' });
       await X.tap(bowl);
@@ -93,7 +94,7 @@
       leo.mood = 'good'; await X.wait(1.3); leo.mood = null;
       await bite(); ps.food.fill = 0;
       await X.wait(0.5);
-      await X.vowNote(3, '첫해: 짰다. 내년엔 소금을 나중에');
+      await X.vowNote(3, '올해: 싱거웠다. 불은 약하게, 소금은 끝에');
 
       /* ---- Rosa's daughter-in-law comes; with her, the three of them have no one left to wait for ---- */
       let rosa, son, dil, qleo0;
@@ -121,7 +122,7 @@
       await X.tween(son.hug, 'k', 1, 0.8, T.ease.out);
       A.motif({ voice: 'box', vel: 0.34, beat: 0.7 });
       await TALK.say('dil', '…당신, 하나도 안 변했네.');
-      await TALK.say('son', '변했지. 당신 기다리느라 많이 늙었어.');
+      await TALK.say('son', '변했지. 당신 기다리느라 목이 다 빠졌어.');
       await TALK.say('rosa', '이제 다 왔다.\n우리도 건너가자.');
       await X.wait(0.8);
       son.pose = null; dil.pose = null;
@@ -184,7 +185,7 @@
       leo.mood = 'wonder';
       A.fragment(6);
       T.announce('호수 속 아나의 스튜는 빛깔이 다르다. 레오의 공책에 없는 풀이 들어갔다.');
-      await X.TALK.say('leo', '…올해는 뭘 넣은 거지? 내 공책엔 없는 건데.');
+      await X.TALK.say('leo', '호수 속 아나 스튜, 올해는 빛깔이 달라.\n…내 공책엔 없는 걸 넣었네.');
       leo.mood = null;
       T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라, 호수에 비친 아나의 스튜와 견주어 본다.');
       await X.play(T.puzzle.taste({ answer: [0, 2] }));
@@ -242,7 +243,7 @@
       await X.wait(1.2);
       await X.TALK.say('pmom', '…우리 피피, 그대로구나.', { slow: true });
       await X.TALK.say('kid', '아빠는?');
-      await X.TALK.say('pmom', '아빠는 아직이야.\n손주들 다 키우고, 천천히 오실 거야.');
+      await X.TALK.say('pmom', '아빠는 아직이야.\n할 일 다 하고, 천천히 오실 거야.');
       await X.TALK.say('kid', '그럼 이제 엄마랑 같이 기다리면 되겠다.');
       await X.TALK.say('kid', '엄마, 이거. 내가 키운 토마토.\n레오 아저씨랑 같이.');
       T.announce('피피가 주머니에서 빨간 토마토를 꺼내 엄마 손에 쥐여 준다.');
@@ -274,6 +275,7 @@
           await crossOff(c, 0); await crossOff(c, 1); await crossOff(c, 3);
         },
       });
+      await TALK.say('leo', '다 해 놨어.\n이제 당신만 오면 돼.');
 
       /* ---- Pipi's father, at last; and then nobody is left for them to wait for ---- */
       await X.years(40, 43, { age: 79 });
@@ -332,7 +334,7 @@
       qleo2.pose = null;
       X.cam(...X.place.quay(), 1.05, 0.5);
       await X.wait(1.4);
-      await TALK.say('leo', '…이제 우리만 남았네, 빈.', { slow: true });
+      await TALK.say('leo', '…이제 피피네도 갔네, 빈.', { slow: true });
       A.sfx('bark');
       await X.wait(1.2);
       await home();
@@ -344,7 +346,7 @@
       await X.years(43, 45, { age: 81 });
       const lake = T.lake({
         paint: T.vig.grand, leo: F.leoAt(3), shore: true, leoFace: { eye: 'happy', old: true },
-        rhText: '등불은 창에, 냄비는 아나의 화구에, 레오는 늘 앉던 조리대에. 좌우로 끌어 점선에 맞춰 보세요',
+        rhText: '등불은 창에, 냄비는 아나의 화구에, 레오는 아나가 앉던 조리대 자리에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [{ kind: 'lamp', x: 300, at: [-428, 300] }, { kind: 'pot', x: -250, at: [24, 548] }, { kind: 'leo', x: 120, at: [-330, 588], flip: false, lockFlip: false }],
       });
       await X.view(lake, { color: '#1b2a40' });
@@ -379,6 +381,7 @@
       await X.wait(1.2);
       await X.paint({ goal: 2600 });
       A.promise();
+      await TALK.say('leo', '당신 오면, 같이 보자.');
       await X.wait(2.2);
       await X.card(PL.boardCard, {
         init: { w: 5, cross: [1, 1, 0, 1, 0], glow: 0 }, max: 12,

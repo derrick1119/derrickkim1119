@@ -344,6 +344,7 @@
     await TALK.say('leo', '엄마… 그 말, 진짜였어?\n나 울지 말라고 한 말인 줄 알았는데.');
     await TALK.say('mom', '나도 그런 줄 알았지.\n와 보니 정말 있더구나.');
     await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
+    await TALK.say('mom', '아까 종이 물을 때, 네가 등불로 대답했지?\n그래야 배가 안개 속에서 길을 찾는단다.');
     await TALK.say('leo', '…아나한테도 똑같이 말하고 왔는데.');
     await TALK.say('mom', '그럼 이제 지키면 되지.');
     await k.wait(0.9);
@@ -472,7 +473,8 @@
     A.sfx('chalk'); A.scaleStep(18, { vel: 0.44, voice: 'felt' });
     await k.tween(S.marks, 'fresh', 1, 0.5, T.ease.out);
     T.announce('엄마가 레오의 키를 새로 긋는다. 일곱 살에서 멈춘 눈금 위로, 해마다 어림해 그어 둔 눈금보다 조금 더 높다.');
-    await k.wait(1.4);
+    await k.wait(0.6);
+    await TALK.say('mom', '해마다 이쯤 컸겠지 하고\n그어 봤단다.');
     await k.tween(S.stool, 'k', 0, 0.8, T.ease.io);
     await tap('sweater');
     /* the jumper she knitted to the size she guessed */
@@ -526,9 +528,11 @@
     await k.tween(S.point, 'k', 1, 0.9, T.ease.out);
     await k.wait(0.6);
     await TALK.say('mom', '저기가 네 자리야.\n네 사람 오면 같이 살 데.', { slow: true });
-    await TALK.say('leo', '…아빠는요?');
+    await TALK.say('leo', '…아빠는?');
     await TALK.say('mom', '네 아빠는 먼저 건너갔지.\n구름바다 너머로. 거기서 집 짓고 기다린다더라.');
     await TALK.say('mom', '여긴 기다릴 사람이 있는 동안만 머무는 데란다.\n다 맞이하고 나면, 건너가는 거야.');
+    await TALK.say('leo', '…그럼 엄마도?');
+    await TALK.say('mom', '나는 네 집에 지붕 올라가는 건\n보고 갈란다.');
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }

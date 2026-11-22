@@ -266,7 +266,7 @@
 
     /* ---------- the promises he makes here, in his notebook ----------
        Not the ones to Ana on the board: the ones to the neighbours. Written down when made, struck through when kept. */
-    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기', '피피랑 토마토 키우기', '릴리 결혼식에 같이 걷기', '로사네 건너갈 때 종 쳐 주기'];
+    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기', '피피랑 토마토 키우기', '릴리 결혼식에 같이 걷기', '로사네 건너갈 때 종에 대답하기'];
     const pad = (a) => VOWS.map((_, i) => (a && a[i]) || 0);
     X.vowsAt = function (written, kept, notes) { T.state.vows = { w: pad(written), k: pad(kept), n: VOWS.map((_, i) => (notes ? notes[i] : T.state.vows && T.state.vows.n && T.state.vows.n[i]) || '') }; };
     /* how: 'write' a new line · 'keep' strike it through · 'note' only a little line in the margin under it */

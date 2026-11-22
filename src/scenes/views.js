@@ -352,7 +352,7 @@
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
         T.band(g, 1);
-        P.text(g, L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 늘 앉던 조리대에. 물가에서 좌우로 끌어 점선에 맞춰 보세요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+        P.text(g, L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 물가에서 좌우로 끌어 점선에 맞춰 보세요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
         if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
       } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }

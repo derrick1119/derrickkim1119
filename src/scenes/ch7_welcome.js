@@ -152,7 +152,7 @@
       await X.wait(7.5);          /* the long quiet */
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
       await X.wait(2.5);
-      await TALK.say('leo', '기다리는 동안… 당신을 위해서 참 많은 걸 했어.', { slow: true });
+      await TALK.say('leo', '기다리는 동안… 할 얘기가 많이 생겼어.', { slow: true });
       /* the ones who waited with him */
       X.cam(200, 520, 1.2, 0.8);
       await X.walk(folk[0], 196, 60);
@@ -250,7 +250,11 @@
       await X.view(null, { color: '#161d2a', out: 1.6, in: 2.2 });
       X.bed(5, 0.14, 'night');
       T.announce('밤. 오로라 아래, 둘이 앉게 넓힌 그네에 레오와 아나가 나란히 앉아 있다.');
-      await X.wait(4.4);
+      await X.wait(3.2);
+      ana.look = true;
+      await TALK.say('ana', '…오로라네.');
+      ana.look = false;
+      await TALK.say('leo', '같이 보자고 했잖아.');
       /* Rosa's yarn: a stripe for every story, in the order it happened */
       await TALK.say('leo', '이거, 로사라는 이웃이 남긴 실이야.\n당신 오면 같이 뜨라고.');
       ana.look = true;
@@ -260,7 +264,7 @@
       T.announce('이야기 담요. 아나가 처음부터 들려 달라고 한다. 그 일이 있었던 차례대로 실을 골라 한 줄씩 뜬다.');
       await X.play(T.puzzle.story({
         items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '반딧불', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
-          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
+          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
         order: [3, 0, 5, 1, 6, 2, 4],
       }));
       ana.look = true;
