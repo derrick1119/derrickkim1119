@@ -1,5 +1,5 @@
 // 고갯길에서 만나는 사건. pick() 은 [이야기, 결과...] 를 돌려준다.
-import { G, act } from '../state.js';
+import { G, act, CART_MAX } from '../state.js';
 import { UNITS } from './units.js';
 
 const chance = p => Math.random() < p;
@@ -19,8 +19,8 @@ export const EVENTS = {
     { label: '"예, 제 금도끼입니다"', desc: '50%: 엽전 +130  ·  50%: 부정', pick: () => chance(0.5) ? ['산신령이 한숨을 쉬며 금도끼를 던져 주고 사라집니다.', act.gold(130)] : ['"고얀 놈!" 호통과 함께 물벼락이 떨어집니다.', act.curse()] },
   ] },
   shrine: { title: '서낭당', art: 'priest', text: '고갯마루 서낭당에 돌무더기가 쌓여 있습니다. 무녀가 말합니다.\n"정성을 올리면 산신께서 굽어보실 겁니다."', choices: () => [
-    hero('sangsoe', { label: '상쇠: 지신밟기 한 판을 벌인다', desc: '깃발 +1, 다음 싸움을 사기 +3 으로 시작', pick: () => ['쇳소리에 돌무더기의 오색 천이 춤을 춥니다. 다들 어깨가 들썩입니다.', act.flag(1), act.morale(3)] }),
-    { label: '엽전을 바친다', cost: 40, desc: '엽전 40 → 깃발 +1 (깃발이 가득하면 받지 않는다)', pick: () => { if (G.run.flags >= 3) return ['"깃발이 이미 가득하군요. 정성만 받겠습니다." 무녀가 엽전을 돌려줍니다.']; act.gold(-40); return ['오색 천이 바람에 나부낍니다.', act.flag(1)]; } },
+    hero('sangsoe', { label: '상쇠: 지신밟기 한 판을 벌인다', desc: '군기 수레 보강, 다음 싸움을 사기 +3 으로 시작', pick: () => ['쇳소리에 돌무더기의 오색 천이 춤을 춥니다. 다들 어깨가 들썩입니다.', act.cart(1), act.morale(3)] }),
+    { label: '엽전을 바친다', cost: 40, desc: '엽전 40 → 군기 수레 보강 (수레 체력 +15%, 셋까지)', pick: () => { if ((G.run.cartUp || 0) >= CART_MAX) return ['"수레는 이미 넉넉히 단단합니다. 정성만 받겠습니다." 무녀가 엽전을 돌려줍니다.']; act.gold(-40); return ['오색 천을 군기 수레에 감아 줍니다.', act.cart(1)]; } },
     { label: '돌 하나를 얹는다', desc: '부정이나 [잡념]이 있으면 하나 씻긴다. 없으면 엽전 +15', pick: () => { const c = act.cleanse() || act.clearDoubt(); return c ? ['마음이 한결 가벼워졌습니다.', c] : ['돌 틈에서 누가 놓고 간 엽전을 발견했습니다.', act.gold(15)]; } },
   ] },
   peddler: { title: '떠돌이 약장수', art: 'wizard', text: '"이 약으로 말할 것 같으면, 애들은 가라!"\n약장수가 봇짐을 풀어 놓습니다. 솜씨 좋은 의병도 소개해 준다고 합니다.', choices: () => [
@@ -59,7 +59,7 @@ export const EVENTS = {
   ] },
   fox: { title: '여우 고개', art: 'foxlady', after: 'foxrun', text: '고운 여인이 손짓합니다. "이리 오세요, 지름길을 알려 드리지요."\n치맛자락 아래로 꼬리가… 아홉 개?', choices: () => [
     hero('blade', { label: '검객: 삿갓을 들어 눈을 마주친다', desc: '보물 하나 (홀리지 않는다)', pick: () => ['"…네 눈은 홀릴 수가 없구나." 여우가 꼬리를 내리고 구슬을 내밉니다. "아버지 칼을 찾는다지? 이거라도 가져가라."', act.relic()] }),
-    { label: '따라간다', desc: '50%: 보물 하나  ·  50%: 깃발 -1', pick: () => chance(0.5) ? ['여우가 홀린 듯 구슬을 떨어뜨리고 달아났습니다.', act.relic()] : ['정신을 차려 보니 엉뚱한 골짜기를 헤매고 있었습니다.', act.flag(-1)] },
+    { label: '따라간다', desc: '50%: 보물 하나  ·  50%: 군기 수레가 상한다', pick: () => chance(0.5) ? ['여우가 홀린 듯 구슬을 떨어뜨리고 달아났습니다.', act.relic()] : ['정신을 차려 보니 엉뚱한 골짜기에서 수레가 바위에 부딪혔습니다.', act.cart(-1)] },
     { label: '꼬리를 밟는다', desc: '엽전 +40', pick: () => ['"캥!" 여우가 패물을 흘리고 달아납니다.', act.gold(40)] },
   ] },
   jangseung: { title: '길가의 장승', art: 'treant', text: '마을 어귀에 서 있던 장승 하나가 길 한가운데까지 걸어 나와 있습니다.\n정성껏 절을 올리면 길을 지켜 준다고 합니다.', choices: () => [

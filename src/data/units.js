@@ -54,7 +54,7 @@ export const UNITS = {
     desc: '쌍도끼를 든 녹림의 두령', tip: '가까운 적이 두령에게 몰리고, 근접 피해를 덜 받습니다. 기력이 차면 땅울림 → 도발 → 메치기를 차례로 씁니다.' },
   // ───── 본진 ─────
   banner: { name: '군기 수레', role: '본진', side: 0, cost: 0, n: 1, hp: 520, atk: 0, as: 9, range: 0, spd: 0, r: 20, structure: true, banner: true,
-    desc: '서낭대와 큰북을 실은 수레', tip: '서낭신을 모신 깃대와 북을 실었습니다. 부서지면 깃발 하나를 잃고, 셋을 다 잃으면 신이 떠납니다. 싸움이 끝날 때마다 수리됩니다.' },
+    desc: '서낭대와 큰북을 실은 수레', tip: '서낭신을 모신 깃대와 북을 실었습니다. 부서지면 원정이 끝납니다. 싸움이 끝날 때마다 수리되고, 주막·서낭당에서 보강할 수 있습니다.' },
   // ───── 패로 불러내는 것 ─────
   stake: { name: '목책', role: '방벽', side: 0, cost: 0, n: 1, hp: 120, atk: 0, as: 9, range: 0, spd: 0, r: 12, structure: true, stake: true,
     desc: '길을 막는다', tip: '요괴의 길을 막는 말뚝.' },
@@ -162,4 +162,6 @@ for (let i = 0; i < HEROES.length; i++) for (let j = i + 1; j < HEROES.length; j
   COMBOS[key] = { id: key, parts: pr, name: COMBO_NAME[key] || `${COMBO_PART[HEROES[j]].word} ${COMBO_PART[HEROES[i]].word}`, desc: `${COMBO_PART[pr[0]].desc} · ${COMBO_PART[pr[1]].desc}` };
 }
 export const LVL_GROWTH = 0.2;
+// 부대의 병사 수는 단련할수록 는다: 1단은 정원의 6할, 5단쯤 정원, 8단부터 1.3배 (영웅·수레처럼 하나뿐인 것은 그대로)
+export const squadN = (n, lvl = 1) => n <= 1 ? n : Math.max(2, Math.round(n * Math.min(1.3, 0.62 + 0.1 * (lvl - 1))));
 export function lvlMult(lvl) { return 1 + LVL_GROWTH * (lvl - 1); }

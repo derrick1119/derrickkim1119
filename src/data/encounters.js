@@ -67,7 +67,7 @@ export const BOSSES = {
 // 고개마다의 세기: [첫 싸움 예산, 칸마다 더]. 요괴의 단계는 고개 번호 + 1 (아군 병력도 고개마다 한 단계씩 단련된다).
 // 뒤 고개로 갈수록 머릿수보다는 단계로 세진다. 밸런스는 tools/campaign.mjs 로 맞춘다
 const CURVE = [[13, 1.1], [16, 1.2], [19.5, 1.4], [23, 1.4], [26.5, 1.5], [29, 1.5], [29, 1.5], [32, 1.5], [34, 1.5], [35, 1.5], [36, 1.5], [37.5, 1.5]];
-export function budgetFor(ch, row, kind, eliteMul = 1) { const c = CURVE[Math.min(N_CH - 1, ch)]; return (c[0] + row * c[1]) * (kind === 'elite' ? 1.28 * eliteMul : 1); }
+export function budgetFor(ch, row, kind, eliteMul = 1) { const c = CURVE[Math.min(N_CH - 1, ch)]; return (c[0] + row * c[1]) * (kind === 'elite' ? 1.16 * eliteMul : 1); }
 
 const sky = (C, R) => { const x = R(); return x < C.sky[0] ? 'day' : x < C.sky[0] + C.sky[1] ? 'night' : 'rain'; };
 export function genEncounter(ch, row, kind, R, eliteMul = 1) {

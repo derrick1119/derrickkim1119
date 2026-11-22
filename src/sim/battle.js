@@ -2,7 +2,7 @@
 // 한 원정 동안 이어지는 하나의 전장: 아군은 왼쪽, 요괴 무리(물결)는 오른쪽 화면 밖에서 걸어 들어온다.
 // 병력·영웅·전술이 모두 패이고, 손패에서 사기를 내고 쓴다.
 import { W, H, FIELD, VIEW, CELL, BANNER_POS, spawnPos } from '../config.js';
-import { UNITS, lvlMult, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS } from '../data/units.js';
+import { UNITS, lvlMult, squadN, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS } from '../data/units.js';
 import { TERRAINS } from '../data/terrain.js';
 import { CARDS, cardVals, cardCost, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
@@ -135,7 +135,7 @@ export class Battle {
 
   // ───────── 생성 ─────────
   addSquad(team, s) {
-    const def = defOf(s.type, s.wpn), pos = { x: s.x, y: s.y }, n = s.n || def.n;
+    const def = defOf(s.type, s.wpn), pos = { x: s.x, y: s.y }, n = s.n || (team === 0 && !def.hero && !def.structure ? squadN(def.n, s.lvl || 1) : team === 1 && this.foe && this.foe.nMul && !def.boss && def.n > 1 ? Math.max(1, Math.round(def.n * this.foe.nMul)) : def.n);   // 우리 부대는 단련한 만큼, 요괴 무리는 고개를 따라 병사가 는다
     const sq = { id: this.sid++, team, type: s.type, def, lvl: s.lvl || 1, units: [], alive: 0, total: n, order: { kind: 'auto' }, cx: pos.x, cy: pos.y, hero: !!def.hero, home: { x: pos.x, y: pos.y } };
     // 측면 돌격: 길 가장자리를 따라 들어와 후방을 노린다
     if (s.flank) { const y = s.flank === 'L' ? VIEW.y0 + 30 : VIEW.y1 - 30; sq.order = { kind: 'move', path: [[VIEW.x1 - 240, y], [VIEW.x0 + 330, y]], x: VIEW.x1 - 240, y, then: 'auto', wait: this.time + (s.wait || 0) }; pos.y = y; sq.cy = y; }
@@ -147,11 +147,11 @@ export class Battle {
   spawn(type, team, x, y, sq, lvl, off) {
     const def = sq && sq.type === type ? sq.def : defOf(type), m = lvlMult(lvl), md = this.mods;
     const um = team === 0 ? md.unit[type] : null;
-    let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp);
+    let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp * (def.boss ? this.foe.bossK || 1 : 1));   // 두목은 고개를 따라 세진다
     if (team === 0) { if (def.hero) hp *= md.heroHp; else if (def.banner) hp *= md.cartHp || 1; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
     const u = {
       id: this.uid++, team, type, def, squad: sq, lvl, x, y, px: x, py: y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp,
-      atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? 0 : PI,
+      atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk * (def.boss ? Math.sqrt(this.foe.bossK || 1) : 1)), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? 0 : PI,
       target: null, cd: 0.2 + this.rand() * 0.5, retarget: this.rand() * 0.3, swing: 0, swingTarget: null, atkT: -9, cast: 0,
       moving: false, walk: this.rand() * 10, still: 0, stuck: 0, run: 0, stun: 0, root: 0, haste: 0, weaken: 0, rage: 0, burn: 0, burnDmg: 0, burnAcc: 0,
       gauge: 0, skillI: 0, slow: 0, slowAmt: 0, guard: 0, guardAmt: 0, dmgUp: 0, dmgUpAmt: 0, regen: 0, regenAmt: 0, life: 0, temp: false, born: this.time, hitT: -9, hitX: 0, hitY: 0,
@@ -390,7 +390,7 @@ export class Battle {
     const c = this.hand[i]; if (!c || this.over) return 'none';
     const d = CARDS[c.id];
     if (d.kind === 'unit' && this.squadCount() >= this.cap) return 'cap';
-    if (d.kind === 'lead' && this.heroUnit(d.unit)) return 'hero';
+    if (d.kind === 'lead' && this.units.some(u => !u.dead && u.team === 0 && u.def.hero)) return 'hero';   // 영웅은 한 번에 한 명만
     if (d.hero && !this.heroUnit(d.hero)) return 'hero';
     return this.free > 0 || this.morale >= this.costOf(c) ? '' : 'morale';
   }

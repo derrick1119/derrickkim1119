@@ -57,13 +57,14 @@ export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
 export const packN = id => CARDS[id].hero ? 1 : [2, 1, 1][CARDS[id].rare || 0];
 // 시작 덱은 영웅마다 다르다: 이끄는 영웅의 병법(HERO_TRAIT)에 맞춘 병력과 전술 패. 전술 패는 쓰면 사라진다
 const START = {
-  commander: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'horn', 'strike', 'order'] },
-  blade: { units: ['sword', 'xbow', 'shield', 'xbow'], cards: ['sling', 'rain', 'heal', 'flash', 'flash', 'veil'] },
-  hunter: { units: ['shield', 'xbow', 'shield', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'mark', 'mark', 'snare'] },
-  bishop: { units: ['sword', 'shield', 'xbow', 'spear', 'priest'], cards: ['sling', 'rain', 'heal', 'wall', 'sanctuary', 'sutra'] },
-  archmage: { units: ['shield', 'xbow', 'shield', 'xbow'], cards: ['sling', 'rain', 'rain', 'thunder', 'thunder', 'caltrop', 'meteor', 'blink'] },
-  sangsoe: { units: ['sword', 'shield', 'xbow', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'horn', 'pangut', 'deong'] },
-  chief: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow'], cards: ['sling', 'sling', 'rain', 'heal', 'decoy', 'bulwark', 'raid'] },
+  // 처음엔 영웅과 병력 패 셋, 전술 패 셋쯤: 길에서 패와 병사를 모아 점점 큰 군대를 꾸린다
+  commander: { units: ['sword', 'shield', 'xbow'], cards: ['sling', 'rain', 'horn'] },
+  blade: { units: ['sword', 'xbow'], cards: ['sling', 'flash', 'heal'] },
+  hunter: { units: ['shield', 'xbow', 'xbow'], cards: ['sling', 'mark', 'rain'] },
+  bishop: { units: ['sword', 'shield', 'priest'], cards: ['sling', 'heal', 'sanctuary'] },
+  archmage: { units: ['shield', 'xbow'], cards: ['sling', 'rain', 'thunder', 'meteor'] },
+  sangsoe: { units: ['sword', 'shield', 'xbow'], cards: ['sling', 'horn', 'pangut'] },
+  chief: { units: ['sword', 'shield', 'xbow'], cards: ['sling', 'rain', 'raid'] },
 };
 export function starterDeck(hero) {
   const st = START[hero] || START.commander, ids = ['h_' + hero].concat(st.units.map(u => 'u_' + u), st.cards);

@@ -98,8 +98,9 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   const lie = wide && !pose && (act === 'sleep' || act === 'fall' || act === 'bow'), down = !wide && (act === 'fall' || act === 'sleep');   // 엎드리거나 잠든 범은 따로 그린 그림을 쓴다
   if (act === 'talk') dy = -Math.abs(Math.sin(t * 8.5)) * 7 * s;
   else if (act === 'hop') dy = -Math.abs(Math.sin(t * 6.5)) * 15 * s;
-  else if (act === 'shake') { dx = Math.sin(t * 36) * 3.4 * s; rot = Math.sin(t * 36) * 0.05; }
-  else if (act === 'tremble') dx = Math.sin(t * 52) * 1.6 * s;
+  // 떨림은 느리고 작게 (빠른 진동은 화면이 깨진 것처럼 보인다): 고개를 젓듯 좌우로 / 오들오들 천천히 움츠렸다 펴진다
+  else if (act === 'shake') { dx = Math.sin(t * 9) * 3 * s; rot = Math.sin(t * 9) * 0.06; }
+  else if (act === 'tremble') { const q = Math.sin(t * 5.5 + x * 0.05); rot = q * 0.035; dy = (1 - Math.abs(q)) * 1.2 * s; }
   else if (pose) rot = 0;
   else if (lie) { rot = (act === 'fall' ? -f : f) * 0.07; dy = act === 'sleep' ? Math.sin(t * 2) * 1.2 : 0; }
   else if (act === 'bow') rot = f * 0.4 * (0.6 + 0.4 * Math.sin(t * 3));

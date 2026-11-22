@@ -127,8 +127,8 @@ export class RunScene {
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
     // 번 엽전이 주머니로 날아간다
     for (let q = 0; q < Math.min(8, 3 + Math.round(gold / 15)); q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s, true), x0: 590 + q * 14, y0: 382, x1: SPOT.gold[0], y1: SPOT.gold[1], s0: 1, s1: 0.8, arc: 60 + q * 8, delay: 0.35 + q * 0.05, dur: 0.5, col: '#f0d264' });   // 전리품 화면이 뜨기 전에 다 닿는다
-    // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 깃발을 지켜 낸 공을 적는다
-    this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && r.flags >= 3 ? noteDeed('safe') : []));
+    // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 군기 수레를 지켜 낸 공을 적는다
+    this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && b.bannerHp() >= 0.9 ? noteDeed('safe') : []));
   }
   // 새로 인연을 맺은 영물은 그 자리에서 군대에 합류한다 (알림은 다른 알림이 끝난 뒤에 차례로 뜬다)
   welcome(list) { if (!list || !list.length) return; for (const bt of list) { addCard('u_' + bt.id); this.joinQ.push(bt); } this.sync(); }
@@ -140,9 +140,9 @@ export class RunScene {
     if (kind && !r.seen[kind] && !this.talk) { r.seen[kind] = 1; this.say(FIRST_SIGHT[kind]); }
   }
   bannerDown() {
-    const r = this.r, b = this.b; r.flags--; save();
-    if (r.flags > 0) { b.raiseBanner(); this.note = { s: '군기 수레가 부서졌다!', sub: `깃발 하나를 잃고 다시 세웁니다 — 남은 깃발 ${r.flags}`, col: RED, t: 2.6 }; }
-    else { this.phase = 'over'; this.endT = 1.8; this.order = null; this.aim = null; sfx('lose'); }
+    // 군기 수레가 부서지면 원정이 끝난다 (다시 세우지 않는다)
+    const r = this.r; r.fallen = true; save();
+    this.phase = 'over'; this.endT = 1.8; this.order = null; this.aim = null; sfx('lose');
   }
 
   // ───────── 입력 ─────────
@@ -277,12 +277,14 @@ export class RunScene {
     textBlock(g, a.armed ? tip + '  ▸ 쓸 자리를 누르세요' : tip, 496, 92, 550, 20, { size: 15.5, align: 'left', weight: 400 });
   }
 
-  // ───────── 머리 띠: 깃발·군기, 노정, 엽전 ─────────
+  // ───────── 머리 띠: 군기 수레, 노정, 엽전 ─────────
   drawHud(g, b) {
     const r = this.r, rd = r.road, fight = this.phase === 'fight', T = this.T;
     panel(g, 0, 0, W, HUD_H, 'hud');
-    for (let k = 0; k < 3; k++) icon.flag(g, 24 + k * 26, 30, 1.15, k < r.flags ? RED : '#566078');
-    const hp = b.bannerHp(); text(g, '군기', 104, 21, { size: 14, fill: '#8fb6e6', align: 'left' }); bar(g, 104, 32, 120, 14, hp, hp < 0.35 ? '#e4826a' : '#8fb6e6');
+    // 군기 수레의 체력: 다 닳으면 원정이 끝난다 (보강한 만큼 북 아이콘 옆에 점)
+    const hp = b.bannerHp(), low = hp < 0.35, pulse = low && fight ? 0.6 + 0.4 * Math.sin(T * 8) : 1;
+    icon.flag(g, 26, 31, 1.15, low ? RED : '#8fb6e6'); text(g, '군기 수레', 44, 21, { size: 14, fill: '#cfe0f4', align: 'left' }); for (let k = 0; k < (r.cartUp || 0); k++) ell(g, 116 + k * 9, 20, 2.6, 2.6, C.gilt, INK, 0.8);
+    g.globalAlpha = pulse; bar(g, 44, 32, 180, 14, hp, low ? '#e4826a' : '#8fb6e6'); g.globalAlpha = 1;
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
     text(g, chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
