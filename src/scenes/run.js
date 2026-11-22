@@ -56,7 +56,7 @@ export class RunScene {
     // 말할 거리가 있으면 그만큼 더 걷는다 (고개 이름 띠가 걷힌 뒤에 말을 꺼낸다)
     if (lines) { this.say(lines); dist = Math.max(dist, (lines.reduce((a, l) => a + talkTime(l[1]), 0) + (this.note ? this.note.t : 0) + 0.3) * MARCH_V); }
     this.left = dist;
-    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010));
+    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010), FIGHT(st.type) ? 196 : 152);   // 싸움터의 깃대는 '요괴 N' 패널 아래로 내려 꽂는다
     if (!quiet) sfx('order');
   }
   arrive() {
@@ -302,15 +302,22 @@ export class RunScene {
     if (iconBtn(g, 'speed', 1138, 13, 58, 38, (gg, x, y) => text(gg, '×' + this.speed, x, y + 1, { size: 22, font: FONT_B, fill: this.speed > 1 ? RED : INK }), { on: this.speed > 1 })) this.speed = this.speed === 1 ? 2 : 1;
     if (iconBtn(g, 'menu', 1206, 13, 60, 38, icon.menu)) this.menu = true;
     // 싸움 중: 전공 조건과 두목 체력
-    if (b.sky !== 'day' && (fight || this.phase === 'prep')) { const lit = b.sky === 'night' && b.torch > 0; g.globalAlpha = 0.95; panel(g, 272, 74, lit ? 112 : 64, 28, 'tag'); g.globalAlpha = 1; text(g, lit ? `횃불 ${Math.ceil(b.torch)}초` : SKY[b.sky].name, lit ? 328 : 304, 89, { size: 15, fill: lit ? '#d9702a' : b.sky === 'night' ? '#3d3560' : '#2f6f9a' }); if (tapped('sky', 272, 74, 112, 28)) this.toast(`${SKY[b.sky].name} — ${SKY[b.sky].desc}`, 4); }
+    if (b.sky !== 'day' && (fight || this.phase === 'prep')) { const lit = b.sky === 'night' && b.torch > 0; g.globalAlpha = 0.95; panel(g, 284, 74, lit ? 100 : 60, 28, 'tag'); g.globalAlpha = 1; text(g, lit ? `횃불 ${Math.ceil(b.torch)}초` : SKY[b.sky].name, lit ? 334 : 314, 89, { size: 15, fill: lit ? '#d9702a' : b.sky === 'night' ? '#3d3560' : '#2f6f9a', maxW: 90 }); if (tapped('sky', 284, 74, 100, 28)) this.toast(`${SKY[b.sky].name} — ${SKY[b.sky].desc}`, 4); }
     if (fight && this.enc) {
       const e = this.enc, cl = b.chaseLeft();
       if (cl < 40) { g.globalAlpha = 0.95; panel(g, 1016, 74, 126, 28, 'tag'); g.globalAlpha = 1; text(g, cl > 0 ? `본대 ${Math.ceil(cl)}초` : '본대 도착!', 1079, 89, { size: 15, fill: cl < 12 ? RED : INK }); }
-      [[`잃은 병사 ${b.waveLost}/${e.starDeaths}`, b.waveLost <= e.starDeaths], [`시간 ${Math.ceil(b.waveT)}/${e.starTime}초`, b.waveT <= e.starTime]].forEach(([s, ok], k) => { const x = 16 + k * 128; g.globalAlpha = 0.95; panel(g, x, 74, 122, 28, 'tag'); g.globalAlpha = 1; if (ok) icon.check(g, x + 15, 88, 0.7, true); else text(g, '✕', x + 15, 89, { size: 15, fill: RED }); text(g, s, x + 71, 89, { size: 14, fill: ok ? INK : RED, maxW: 90 }); });
+      // 전공 조건: 한도를 넘기면 분수 대신 넘긴 값만 붉게 쓴다 (✕ 가 이미 실패를 알린다)
+      const lostOk = b.waveLost <= e.starDeaths, timeOk = b.waveT <= e.starTime;
+      [[lostOk ? `잃은 병사 ${b.waveLost}/${e.starDeaths}` : `잃은 병사 ${b.waveLost}명`, lostOk], [timeOk ? `시간 ${Math.ceil(b.waveT)}/${e.starTime}초` : `시간 ${Math.ceil(b.waveT)}초`, timeOk]].forEach(([s, ok], k) => { const x = 16 + k * 134; g.globalAlpha = 0.95; panel(g, x, 74, 130, 28, 'tag'); g.globalAlpha = 1; if (ok) icon.check(g, x + 15, 88, 0.7, true); else text(g, '✕', x + 15, 89, { size: 15, fill: RED }); text(g, s, x + 74, 89, { size: 15, fill: ok ? INK : RED, maxW: 100 }); });
       const left = b.count(1) + b.pending; g.globalAlpha = 0.95; panel(g, 1150, 74, 114, 28, 'tag'); g.globalAlpha = 1; text(g, `요괴 ${left}`, 1207, 89, { size: 15, fill: RED });
       const boss = b.units.find(u => !u.dead && u.def.boss);
-      if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, boss.open > 0 ? '#d9a41e' : RED, { back: '#d9cdb0' }); if (boss.tails !== undefined) for (let n = 1; n < 9; n++) { const tx = 584 + 296 * n / 9; line(g, [tx, 79, tx, 99], INK, 2); } if (boss.tails !== undefined) { if (this.tailsSeen !== boss.tails) { this.tailsSeen = boss.tails; this.tailT = 1.6; } const k = this.tailT > 0 ? (this.tailT -= 1 / 60) : 0, sc = 1 + 0.25 * Math.max(0, k - 1.2) / 0.4; g.save(); g.translate(944, 89); g.scale(sc, sc); panel(g, -48, -17, 96, 34, 'tag'); text(g, `꼬리 ${boss.tails}`, 0, 1, { size: 19, font: FONT_B, fill: RED }); g.restore(); if (k > 0) { g.globalAlpha = Math.min(1, k); text(g, '꼬리가 떨어졌다 — 더 사나워진다', 640, 122, { size: 18, font: FONT_B, fill: RED, stroke: PAPER, lw: 5 }); g.globalAlpha = 1; } }
-        if (boss.open > 0) { const p = 0.7 + 0.3 * Math.sin(this.T * 10); g.globalAlpha = p; rr(g, 540, 108, 200, 34, 8, '#2b2a30', '#f0d264', 2.6); text(g, '빈틈! 몰아쳐라', 640, 126, { size: 20, font: FONT_B, fill: '#f0d264' }); g.globalAlpha = 1; } }
+      if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, boss.open > 0 ? '#d9a41e' : RED, { back: '#d9cdb0' }); if (boss.tails !== undefined) for (let n = 1; n < 9; n++) { const tx = 584 + 296 * n / 9; line(g, [tx, 79, tx, 99], INK, 2); } if (boss.tails !== undefined) { if (this.tailsSeen !== boss.tails) { this.tailsSeen = boss.tails; this.tailT = 1.6; } const k = this.tailT > 0 ? (this.tailT -= 1 / 60) : 0, sc = 1 + 0.25 * Math.max(0, k - 1.2) / 0.4; g.save(); g.translate(944, 89); g.scale(sc, sc); panel(g, -48, -17, 96, 34, 'tag'); text(g, `꼬리 ${boss.tails}`, 0, 1, { size: 19, font: FONT_B, fill: RED }); g.restore(); } }
+        // 알림 칸: 두목 체력 아래 한 칸에 지금 할 일을 하나만 쓴다 (빈틈 > 꼬리 > 홀림). 불투명한 한지 바탕에 짙은 글씨
+        if (boss && !this.aim && b.waveT >= 7) {
+          const charmed = b.units.some(u => !u.dead && u.team === 0 && u.charm > 0), tk = boss.tails !== undefined && this.tailT > 0;
+          const note = boss.open > 0 ? ['빈틈! 지금 몰아쳐라', '#8a2a14', true] : tk ? ['꼬리가 떨어졌다 — 더 사나워진다', RED, false] : charmed ? ['홀림 — 홀린 부대를 끌어서 깨워라', '#8a2f6a', false] : null;
+          if (note) { g.font = `400 19px ${FONT_B}`; const w = g.measureText(note[0]).width + 40, x0 = 640 - w / 2; rr(g, x0 + 2, 111, w, 32, 8, 'rgba(30,24,20,0.3)'); rr(g, x0, 108, w, 32, 8, '#fbf3df', note[1], 2.6); if (note[2]) { g.globalAlpha = 0.5 + 0.5 * Math.sin(this.T * 10); rr(g, x0 - 3, 105, w + 6, 38, 10, null, '#f0b020', 3); g.globalAlpha = 1; } text(g, note[0], 640, 125, { size: 19, font: FONT_B, fill: note[1] }); }
+        }
     }
   }
   // 왼쪽 가장자리: 전장의 영웅(기력과 다음 고유기), 합동기, 진법

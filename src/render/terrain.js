@@ -201,7 +201,7 @@ const post = (g, x, h, lw = 3.4) => { line(g, [x, 0, x, -h], INK, lw + 1.6); lin
 const jar = (g, x, y, s, col) => { part(g, p => { p.moveTo(x - 3.4 * s, y - 15 * s); p.bezierCurveTo(x - 8.6 * s, y - 13 * s, x - 7.6 * s, y - s, x - 4 * s, y); p.lineTo(x + 4 * s, y); p.bezierCurveTo(x + 7.6 * s, y - s, x + 8.6 * s, y - 13 * s, x + 3.4 * s, y - 15 * s); p.closePath(); }, col, RC(x + 1.4 * s, y - 16 * s, 8 * s, 17 * s), { k: 0.28, hi: E(x - 3.7 * s, y - 9 * s, 1.1 * s, 3.6 * s), lw: 1.1 }); part(g, E(x, y - 15.4 * s, 4.4 * s, 1.5 * s), dk(col, 0.12), null, { lw: 1 }); };
 const glint = (g, x, y, r) => { line(g, [x - r, y, x + r, y], BRASS, 1.5); line(g, [x, y - r, x, y + r], BRASS, 1.5); ell(g, x, y, r * 0.32, r * 0.32, '#fff6d0'); };
 const STOPS = {
-  rest(g) { // 주막: 초가지붕 아래 띠살문, 처마 끝의 붉은 등
+  rest(g) { // 주막: 초가지붕 아래 띠살문, 장대 끝에 매단 용수
     part(g, RC(-42, -6, 84, 6), GREY[0], RC(-42, -3, 84, 3), { lw: 1.1 }); for (const x of [-22, 4, 26]) line(g, [x, -6, x, 0], rgba(INK, 0.5), 0.8);
     part(g, RC(-40, -40, 80, 34), '#efe2c4', RC(-40, -40, 80, 9), { k: 0.24, lw: 1.5 });
     for (const x of [-40, -8, 36]) part(g, RC(x, -40, 4, 34), WOODD, RC(x + 2.2, -40, 1.8, 34), { lw: 0.9 });
@@ -212,9 +212,13 @@ const STOPS = {
     for (let i = -5; i <= 5; i++) curve(g, p => { p.moveTo(i * 6, -74 + Math.abs(i) * 2.2); p.quadraticCurveTo(i * 8.6, -60, i * 10.2, -42 - (5 - Math.abs(i)) * 0.4); }, '#a8843c', 0.8);
     rope(g, p => { p.moveTo(-22, -70.4); p.quadraticCurveTo(0, -80, 22, -70.4); }, '#e9cc78', 2.2); for (let x = -18; x <= 18; x += 6) line(g, [x - 1, -74.6 + Math.abs(x) * 0.16, x + 1, -72.2 + Math.abs(x) * 0.16], '#a8843c', 0.7);
     post(g, 56, 62, 2.6); line(g, [56, -60, 71, -60], INK, 2.6); line(g, [56, -60, 71, -60], WOODD, 1.2);
-    g.globalAlpha = 0.28; ell(g, 70, -47, 15, 15, '#ffd27a'); g.globalAlpha = 1;
-    part(g, p => rrPath(p, 63, -58, 14, 20, 5.4), RED, RC(70.6, -58, 7, 20), { hi: E(66.4, -49, 1.5, 5), lw: 1.2 }); rr(g, 65.4, -60, 9.2, 3, 1, '#2b2a30'); rr(g, 65.4, -39, 9.2, 2.6, 1, '#2b2a30'); line(g, [70, -36.4, 70, -31], OCHRE, 1.2);
-    symbol(g, 'rest', 70, -47.6, 15, WHITE);   // 주막 등에 그린 호리병
+    // 용수: 대나무로 엮은 술거르개를 장대 끝에 거꾸로 매단다 (주막의 표식)
+    line(g, [70, -60, 70, -55], INK, 1.3);
+    const yong = p => { p.moveTo(64.6, -53.6); p.quadraticCurveTo(70, -57.8, 75.4, -53.6); p.lineTo(77.2, -35.6); p.quadraticCurveTo(70, -33.4, 62.8, -35.6); p.closePath(); };
+    part(g, yong, '#d9b46a', RC(71, -58, 8, 25), { k: 0.24, hi: P(64.8, -51.6, 66.6, -52.6, 65.8, -37, 64, -37), hk: 0.25, lw: 1.3 });
+    g.save(); g.beginPath(); yong(g); g.clip(); for (let i = -7; i < 8; i++) { line(g, [62 + i * 2.8, -58, 69 + i * 2.8, -32], '#a8843c', 0.6); line(g, [78 - i * 2.8, -58, 71 - i * 2.8, -32], '#a8843c', 0.6); } g.restore();
+    for (const y of [-48, -41]) { const w2 = 5.6 + (y + 54) * 0.1; curve(g, p => { p.moveTo(70 - w2, y); p.quadraticCurveTo(70, y + 1.8, 70 + w2, y); }, '#8a6a3c', 1.4); }
+    ell(g, 70, -35.4, 7.2, 1.7, '#6a4a2c', INK, 1);
     jar(g, -52, 0, 1, '#6b4a3a'); jar(g, -41.4, 1, 0.76, '#8a6248'); grassTuft(g, 44, 1, 0.7, TEAL, SR());
   },
   shop(g) { // 장터 좌판: 줄무늬 차일 아래 늘어놓은 물건

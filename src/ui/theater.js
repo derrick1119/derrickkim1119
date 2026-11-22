@@ -94,11 +94,13 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   const bare = type.endsWith('~'); if (bare) type = type.slice(0, -1);
   const act = o.act || 'idle', f = o.face || 1, ph = t * 1 + x * 0.013; let dx = 0, dy = 0, rot = Math.sin(ph * 1.7) * 0.025;
   // 네 발 짐승(범·해태)은 옆으로 길어서, 쓰러지거나 자거나 엎드릴 때 세우지 않고 납작 엎드린다
-  const wide = type[0] !== '*' && LOOKS[type] && LOOKS[type].w > 110, lie = wide && (act === 'sleep' || act === 'fall' || act === 'bow'), down = !lie && (act === 'fall' || act === 'sleep');
+  const wide = type[0] !== '*' && LOOKS[type] && LOOKS[type].w > 110, pose = wide && act === 'sleep' && LOOKS[type + '_sleep'] ? '_sleep' : wide && act === 'bow' && LOOKS[type + '_lie'] ? '_lie' : '';
+  const lie = wide && !pose && (act === 'sleep' || act === 'fall' || act === 'bow'), down = !wide && (act === 'fall' || act === 'sleep');   // 엎드리거나 잠든 범은 따로 그린 그림을 쓴다
   if (act === 'talk') dy = -Math.abs(Math.sin(t * 8.5)) * 7 * s;
   else if (act === 'hop') dy = -Math.abs(Math.sin(t * 6.5)) * 15 * s;
   else if (act === 'shake') { dx = Math.sin(t * 36) * 3.4 * s; rot = Math.sin(t * 36) * 0.05; }
   else if (act === 'tremble') dx = Math.sin(t * 52) * 1.6 * s;
+  else if (pose) rot = 0;
   else if (lie) { rot = (act === 'fall' ? -f : f) * 0.07; dy = act === 'sleep' ? Math.sin(t * 2) * 1.2 : 0; }
   else if (act === 'bow') rot = f * 0.4 * (0.6 + 0.4 * Math.sin(t * 3));
   else if (act === 'fall') { rot = -f * 1.4; dy = -22 * s; }
@@ -107,12 +109,12 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   else if (act === 'dance') { dy = -Math.abs(Math.sin(t * 7.5)) * 12 * s; rot = Math.sin(t * 7.5) * 0.2; dx = Math.sin(t * 3.75) * 8 * s; }
   else if (act === 'wave') rot = Math.sin(t * 7) * 0.12;
   if (type[0] === '*') { prop(g, type.slice(1), x + dx, y + dy, s, t); return; }
-  if ((act === 'sleep' || (lie && act === 'bow') || o.calm) && LOOKS[type + '_calm']) type = type + '_calm';   // 엎드리거나 잠든 범은 입을 다문다
+  if (pose) type = type + pose; else if ((act === 'sleep' || (lie && act === 'bow') || o.calm) && LOOKS[type + '_calm']) type = type + '_calm';   // 엎드리거나 잠든 범은 입을 다문다
   const L = getLook(type), sc = (o.scale || 1), ps = s * (L.boss ? 0.62 : 1) * sc / (L.scale / 1.1);
   // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다
   if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#9a7440', 2.4 * s); }
-  const shut = act === 'sleep' || (lie && act === 'bow');
-  g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
+  const shut = act === 'sleep' || (lie && act === 'bow'), breathe = pose === '_sleep' ? 1 + Math.sin(t * 2) * 0.025 : 1;   // 잠든 범은 숨 쉬듯 부푼다
+  g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (breathe !== 1) g.scale(1, breathe); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
   portrait(g, type, 0, 0, ps * (L.scale / 1.1), shut ? 0 : t, false, bare ? 'none' : undefined, shut);
   g.restore();
   // 잠든 인형 위로 붓글씨 '쿨쿨' 이 번갈아 떠오른다

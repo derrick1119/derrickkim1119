@@ -157,7 +157,7 @@ export class BattleView {
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
-    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y, u }); }
+    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : 0), u }); }   // 두목은 둘레에 겹친 인형보다 위에
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
@@ -172,12 +172,11 @@ export class BattleView {
       const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라' }[u.type] || u.def.name, s = u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
       tag(u.x, yy - 32, s, rest ? '#8a8474' : a.count > 0 && a.count < 5 ? RED : '#7a4a2c');
     }
-    // 홀린 부대: 무엇을 해야 하는지 알려 준다
-    for (const q of b.squads) if (q.team === 0 && q.alive > 0 && q.units.some(e => !e.dead && e.charm > 0)) tag(q.cx, q.cy - 78, '홀림 — 끌어서 깨운다', '#b8559a');
+    // (홀린 부대에 할 일은 두목 체력 아래 알림 칸에 쓴다. 부대 위에는 소용돌이 표시만)
     // 명부: 이름이 적힌 부대와 명부 든 사자를 먹줄로 잇는다
     { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], INK, 5); line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#f3e7c8', 2.4); g.setLineDash([]); g.restore(); } }
     // 붉지 않은 원의 이름과 연타의 차례: 부대에 가리지 않게 원 위쪽 테두리에 단다
-    { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (put.some(q => q[2] === s2 && Math.hypot(q[0] - z.x, q[1] - ty) < 130)) continue; put.push([z.x, ty, s2]); tag(z.x, ty, s2, TELE[z.style] || RED); } }   // 겹친 원에는 이름표를 하나만
+    { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (z.style === 'fox' || put.some(q => q[2] === s2)) continue; put.push([z.x, ty, s2]); tag(z.x, ty, s2, TELE[z.style] || RED); } }   // 같은 이름표는 하나만 (여우불은 두목이 외치므로 원에는 달지 않는다)
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
     for (const q of b.squads) if (q.doom > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `명부에 적혔다 ${Math.ceil(q.doom)}`, q.doom < 3 ? RED : '#5a4a8a');
     this.dust -= opt.dt || 0;
@@ -375,8 +374,11 @@ export class BattleView {
         case 'plague': fx.ring(e.x, e.y, 70, '#8ac04a', 0.6, 6); fx.wisp(e.x, e.y - 20, 3); sfx('warn'); break;
         case 'bossOpen': fx.ring(e.x, e.y, 120, '#f0d264', 0.6, 8); fx.flash = Math.max(fx.flash, 0.35); fx.flashCol = '#fff3b0'; sfx('star'); break;
         case 'pounce': fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 80, OCHRE, 0.45, 7); fx.shake = Math.max(fx.shake, 7); sfx('charge'); break;
-        case 'text': { let ty = e.y; if (e.big) for (let k = 0; k < 3; k++) { const hit = fx.p.find(q => q.big && q.t < q.life * 0.9 && Math.abs(q.x - e.x) < 230 && Math.abs(q.y - ty) < 42); if (!hit) break; ty = e.tail < 0 ? hit.y + 44 : hit.y - 44; }   // 큰 글이 겹치면 비켜 쌓는다
-          fx.add({ k: 'text', x: e.x, y: ty, vy: e.big ? -6 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big, tail: e.tail }); if (e.big) sfx('warn'); break; }
+        case 'text': {
+          // 같은 외침이 아직 떠 있으면 새로 쌓지 않고 그 꼬리표를 다시 오래 띄운다
+          const same = e.big && fx.p.find(q => q.k === 'text' && q.big && q.s === e.s && q.t < q.life * 0.9); if (same) { same.t = Math.min(same.t, 0.2); sfx('warn'); break; }
+          let ty = e.y, tail = e.tail; if (e.big) for (let k = 0; k < 3; k++) { const hit = fx.p.find(q => q.big && q.t < q.life * 0.9 && Math.abs(q.x - e.x) < 230 && Math.abs(q.y - ty) < 42); if (!hit) break; ty = e.tail < 0 ? hit.y + 44 : hit.y - 44; tail = 0; }   // 큰 글이 겹치면 비켜 쌓는다 (비킨 것은 꼬리 없이 앞 꼬리표에 잇댄다)
+          fx.add({ k: 'text', x: e.x, y: ty, vy: e.big ? -6 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big, tail }); if (e.big) sfx('warn'); break; }
         case 'blink': fx.puff(e.x, e.y - 14, 3, '#eef3f4', 9); fx.puff(e.tx, e.ty - 14, 3, '#eef3f4', 9); break;
         case 'redraw': case 'shuffle': sfx('card'); break;
         case 'cast': {

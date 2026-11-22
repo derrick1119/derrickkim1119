@@ -58,13 +58,14 @@ function trayPanel(g, w, h) {
   g.fillStyle = vgrad(g, 0, 16, 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0)'); g.fillRect(0, 0, w, 16);
   g.fillStyle = INK; g.fillRect(0, -5, w, 6); g.fillStyle = '#e2b85a'; g.fillRect(0, 1, w, 2.2); g.fillStyle = 'rgba(200,64,47,0.95)'; g.fillRect(0, 5.2, w, 1.3);
 }
-// 머리 띠: 쪽빛 바탕, 아래 단에 회문(번개무늬)과 금선
+// 머리 띠: 쪽빛 바탕, 아래 단에 겹고리(칠보) 띠와 금선 (회문 번개무늬는 중국풍으로 읽혀 쓰지 않는다)
 function hudPanel(g, w, h) {
   g.fillStyle = vgrad(g, 0, h, '#2c3c62', '#1a2440'); g.fillRect(0, 0, w, h); chilbo(g, w, h, 0.05);
   g.fillStyle = 'rgba(8,12,26,0.3)'; g.fillRect(0, h - 11, w, 11);
-  g.strokeStyle = 'rgba(226,184,90,0.5)'; g.lineWidth = 1; g.lineJoin = 'miter'; g.beginPath();
-  for (let x = 2; x < w; x += 15) { g.moveTo(x, h - 2.5); g.lineTo(x, h - 9); g.lineTo(x + 11, h - 9); g.lineTo(x + 11, h - 4.6); g.lineTo(x + 4, h - 4.6); g.lineTo(x + 4, h - 6.8); g.lineTo(x + 7.6, h - 6.8); }
-  g.stroke();
+  g.save(); g.beginPath(); g.rect(0, h - 11, w, 11); g.clip(); g.strokeStyle = 'rgba(226,184,90,0.55)'; g.lineWidth = 1;
+  for (let x = 0; x < w + 8; x += 7) { g.beginPath(); g.arc(x, h - 5.6, 4.6, 0, TAU); g.stroke(); }
+  g.fillStyle = 'rgba(226,184,90,0.5)'; for (let x = 3.5; x < w; x += 7) { g.beginPath(); g.arc(x, h - 5.6, 0.9, 0, TAU); g.fill(); }
+  g.restore();
   g.fillStyle = '#e2b85a'; g.fillRect(0, h, w, 3); g.fillStyle = 'rgba(120,34,26,0.9)'; g.fillRect(0, h + 3, w, 1.4);
 }
 export function panel(g, x, y, w, h, style = 'paper') {

@@ -8,11 +8,14 @@ const BRASS = '#c9962e', BRONZE = '#6f8a78', BRONZED = '#4f6a5c';
 // ── 구미호: 여우 몸에 꼬리 n 개 (끝이 붉다). 꼬리 수마다 그림을 따로 굽는다 ──
 export function gumiho(g, o = {}) {
   const n = o.tails === undefined ? 9 : o.tails, fur = '#e0b060';   // 누런 털의 여우 (흰 여우에 붉은 무늬는 쓰지 않는다)
-  for (let i = 0; i < n; i++) {
-    const a = (i - (n - 1) / 2) * (n > 6 ? 0.21 : 0.28), far = Math.abs(i - (n - 1) / 2) > 2;
+  // 꼬리는 두세 다발로 묶여 한쪽(왼쪽 위)으로 휘어 흐른다 (공작 꼬리처럼 고르게 펼치지 않는다)
+  const nb = Math.min(3, n), base = [-1.05, -0.62, -0.22];
+  for (let i = n - 1; i >= 0; i--) {
+    const b = Math.min(nb - 1, Math.floor(i * nb / n)), inB = [...Array(n).keys()].filter(k => Math.min(nb - 1, Math.floor(k * nb / n)) === b), j = inB.indexOf(i);
+    const a = base[b + (3 - nb)] + (j - (inB.length - 1) / 2) * 0.11, far = b === 0 && nb === 3, len = 40 - b * 2 + j * 1.6;
     g.save(); g.translate(0, -9); g.rotate(a);
-    part(g, p => { p.moveTo(-3, 0); p.bezierCurveTo(-10, -14, -8.4, -30, 0, -40); p.bezierCurveTo(8.4, -30, 10, -14, 3, 0); p.closePath(); }, far ? dk(fur, 0.08) : fur, P(0.6, -42, 11, -42, 11, 1, 1.6, 1), { k: 0.1, lw: 1.1 });
-    part(g, p => { p.moveTo(-4.6, -27); p.quadraticCurveTo(-1.6, -32, 0, -40); p.quadraticCurveTo(1.6, -32, 4.6, -27); p.quadraticCurveTo(0, -30.6, -4.6, -27); p.closePath(); }, '#fbf7ec', null, { lw: 0.8 });
+    part(g, p => { p.moveTo(-3, 0); p.bezierCurveTo(-10, -14, -14, -len * 0.75, -8, -len); p.bezierCurveTo(0, -len * 0.75, 8, -14, 3, 0); p.closePath(); }, far ? dk(fur, 0.1) : j % 2 ? fur : dk(fur, 0.04), P(-1, -len - 2, 11, -len - 2, 11, 1, 1.6, 1), { k: 0.1, lw: 1.1 });
+    part(g, p => { p.moveTo(-11.4, -len * 0.7); p.quadraticCurveTo(-11, -len * 0.86, -8, -len); p.quadraticCurveTo(-3.4, -len * 0.84, -2.6, -len * 0.7); p.quadraticCurveTo(-7, -len * 0.75, -11.4, -len * 0.7); p.closePath(); }, '#fbf7ec', null, { lw: 0.8 });
     g.restore();
   }
   fox(g, Object.assign({ noTail: true, fur, tip: '#fbf7ec' }, o));
@@ -73,7 +76,7 @@ HATS.myeonryu = g => {
   part(g, R(-7, -8.6, 14, 6), '#f3ecdd', R(0, -8.6, 7, 6), { k: 0.14, lw: 1 }); rr(g, -7, -8.6, 2.6, 6, 0.5, '#2f4d7e', INK, 0.6); for (const y of [-6.6, -4.6]) line(g, [-2.6, y, 5, y], '#8a8474', 0.6);
   for (const x of [-15, -11, -7, 7, 11, 15]) { line(g, [x, 1.6, x, 11], '#3a3640', 0.6); for (let k = 0; k < 3; k++) ell(g, x, 4 + k * 3, 1.05, 1.05, [RED, '#f6efdc', '#3f8a6a'][k], INK, 0.4); }
   g.restore();
-  for (const s of [-1, 1]) line(g, [s * 7.6, -49.6, s * 6, -37], '#8a2a26', 1);
+  for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 9.4, -50); p.quadraticCurveTo(s * 11.4, -45, s * 10.6, -39); }, '#3a3640', 0.7);   // 관끈: 얼굴 밖(귀 옆)으로 가는 검은 끈 (얼굴을 가로지르는 붉은 줄은 상처처럼 보인다)
 };
 
 // ── 소품 ──

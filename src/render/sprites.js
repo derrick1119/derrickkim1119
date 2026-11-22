@@ -1,7 +1,7 @@
 // 병종 인형 스프라이트 — 몸 한 장 + (사람·도깨비는) 머리 한 장 + 손에 든 무기 한 장. 그림은 figures.js
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
-import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
+import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
 
@@ -150,7 +150,7 @@ export const LOOKS = {
   knight: { doll: { riding: true, lift: 25.5, under: g => { g.save(); g.translate(3, 0); g.scale(1.35, 1.35); horse(g); g.restore(); }, robe: '#a84a32', top: '#b8553a', legs: '#3a3640', studs: true, pauldron: '#aeb6bd', sash: OCHRE, hem: OCHRE, hat: 'tugu', metal: '#aeb6bd', jaw: 'square', brow: 'thick', eyes: 'calm', beard: 'mustache', mouth: 'flat' }, hold: hold(0.18, 'thrust', HX, HY - 25.5), h: 96, w: 150, ox: 64, scale: 0.86 },
   xbow: { doll: { robe: '#f3ecdd', top: '#f6f0e2', vest: INDIGO, git: '#22385c', legs: CREAM, sash: RED, hat: 'band', bandCol: INDIGO, jaw: 'slim', brow: 'thin', eyes: 'calm', mouth: 'flat', back: ITEM.quiver }, hold: hold(0, 'shoot'), h: 60 },
   wizard: { doll: { robe: '#8fa6b8', top: '#9db3c4', git: '#5f7890', sash: BLACK, hem: '#5f7890', dots: '#dfe8ee', hat: 'yugeon', beard: 'goatee', skin: '#f3d6b2', jaw: 'long', brow: 'arch', eyes: 'heavy', mouth: 'flat' }, hold: hold(0, 'cast'), h: 64 },
-  priest: { doll: { robe: WHITE, top: '#fffaf0', git: RED, stripes: [RED, OCHRE, INDIGO], goreum: RED, sash: RED, hem: RED, hat: 'gokkal', skin: '#f6dcc0', jaw: 'round', brow: 'thin', eyes: 'soft', lash: true, lip: '#b8443a', mouth: 'flat' }, hold: hold(0, 'cast'), h: 66 },
+  priest: { doll: { robe: WHITE, top: '#fffaf0', git: RED, stripes: [RED, OCHRE, INDIGO], goreum: RED, sash: RED, hem: RED, hat: 'gokkal', skin: '#f6dcc0', jaw: 'round', brow: 'thin', eyes: 'soft', lip: '#b8443a', mouth: 'smile' }, hold: hold(0, 'cast'), h: 66 },
   cannon: { body: cart, weapon: 'none', hold: hold(0, 'shoot'), h: 46, still: true },
   berserk: { doll: { robe: '#6b5a44', legs: '#d9cdb0', bare: true, bareChest: true, sash: RED, hem: '#4a3d2e', hat: 'band', bandCol: RED, skin: '#dcae80', jaw: 'square', brow: 'bushy', eyes: 'glare', nose: 'broad', beard: 'short', mouth: 'grit', scar: true }, hold: hold(0.4), wide: 1.16, h: 60 },
   // 영웅
@@ -171,16 +171,18 @@ export const LOOKS = {
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
   // 요괴
-  goblin: DK({ skin: '#b8704f' }, { scale: 0.78 }),
-  orc: DK({ skin: '#6a8a7a', cloth: '#b98a55', warts: true }, { scale: 1.04 }),
-  garcher: DK({ skin: '#b88a52', cloth: '#7a4f3a', item: DITEM.sling }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
-  rshield: DK({ skin: '#7a6a8a', cloth: '#d9c39a', item: DITEM.lid, warts: true }, { scale: 1.0 }),
+  // 도깨비 살빛은 흙빛·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼 보인다). 패랭이·벙거지·상투·삼베 등거리를 걸친다
+  goblin: DK({ skin: '#b8704f', hat: 'paeraeng' }, { scale: 0.78 }),
+  orc: DK({ skin: '#7d8597', cloth: '#b98a55', warts: true, knot: true }, { scale: 1.04 }),
+  garcher: DK({ skin: '#b88a52', cloth: '#7a4f3a', item: DITEM.sling, hat: 'beong' }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
+  rshield: DK({ skin: '#9a8670', cloth: '#d9c39a', item: DITEM.lid, warts: true, vest: '#cdbb92' }, { scale: 1.0 }),
   rassassin: { body: fox, blinkBody: g => fox(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 46 },
+  foxrun: { body: foxRun, blinkBody: g => foxRun(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 34 },   // 사건에서 꼬리를 밟혀 달아나는 여우
   treant: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 1.2, still: true },
   sapling: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 0.66 },
   bomber: { body: wisp, blinkBody: g => wisp(g, { blink: true }), weapon: 'none', hold: hold(0, 'none'), h: 46, float: true, border: '#e8f8fd' },
   wolf: { body: boar, blinkBody: g => boar(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 42, w: 130, ox: 62, scale: 1.05 },
-  shaman: DK({ skin: '#a8707a', cloth: '#3f6b5c', item: DITEM.drum }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
+  shaman: DK({ skin: '#a07a62', cloth: '#3f6b5c', item: DITEM.drum, vest: '#3f6b5c' }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
   skel: { doll: Object.assign({}, GHOST, { hat: 'jeonrip', plain: true }), weapon: 'rusty', hold: hold(0.3), float: true, border: '#e6f3f7', h: 63 },
   skelarcher: { doll: Object.assign({}, GHOST, { hat: 'band', bandCol: '#c5d9df', item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot'), float: true, border: '#e6f3f7', h: 60 },
   catapult: { body: catapult, weapon: 'arm', hold: hold(-0.9, 'lob', 0, -17), h: 50, scale: 1.15, still: true },
@@ -206,9 +208,9 @@ export const LOOKS = {
   reaper: { doll: { robe: '#24232a', top: '#2e2d35', git: '#8a2a26', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#8a2a26', hem: '#8a2a26', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.9, boss: true, h: 66 },
   scribe: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.25, h: 66, still: true },
   yeomra: { doll: { robe: '#7a1f1c', top: '#8a2a26', git: '#d9b24a', collar: '#f3ecdd', cuff: '#d9b24a', sash: OCHRE, hem: '#d9b24a', studs: true, skin: '#e9d2b0', hat: 'myeonryu', beard: 'full', jaw: 'square', brow: 'bushy', eyes: 'glare', mouth: 'frown', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 2.25, boss: true, h: 70 },
-  // 주막의 주모, 여우 고개의 고운 여인 (치마 밑으로 꼬리가 보인다)
-  jumo: { doll: { robe: '#4f6a8a', top: '#f3ecdd', git: '#8a2a26', goreum: '#8a2a26', hem: '#3a5270', hat: 'jjok', skin: '#f3d6b2', jaw: 'round', brow: 'thin', eyes: 'soft', lash: true, lip: '#b8443a', mouth: 'flat', item: bottleItem }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
-  foxlady: { doll: { robe: '#b8342a', top: '#e8c86a', git: '#7a1f1c', goreum: '#7a1f1c', hem: '#8a2a26', hat: 'jjok', skin: '#f6dcc0', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#b8443a', mouth: 'flat', under: foxTails }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
+  // 주막의 주모(손님을 맞는 웃는 얼굴), 여우 고개의 고운 여인(꾀는 듯한 옅은 웃음, 치마 밑으로 꼬리가 보인다)
+  jumo: { doll: { robe: '#4f6a8a', top: '#f3ecdd', git: '#8a2a26', goreum: '#8a2a26', hem: '#3a5270', hat: 'jjok', skin: '#f3d6b2', jaw: 'round', brow: 'thin', eyes: 'soft', lip: '#b8443a', mouth: 'smile', item: bottleItem }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
+  foxlady: { doll: { robe: '#b8342a', top: '#e8c86a', git: '#7a1f1c', goreum: '#7a1f1c', hem: '#8a2a26', hat: 'jjok', skin: '#f6dcc0', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#b8443a', mouth: 'smirk', under: foxTails }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   bell: { body: bell, weapon: 'none', hold: hold(0, 'bite'), h: 76, scale: 1.25, still: true },
   pearl: { body: pearl, weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 1.5, still: true, float: true },
   mirror: { body: mirror, weapon: 'none', hold: hold(0, 'bite'), h: 58, scale: 1.4, still: true },
@@ -221,6 +223,12 @@ const HEAD = { w: 74, h: 68, ox: 37, oy: 80, bw: 1.7 };
 // 인형극에서 엎드리거나 잠든 범은 이빨을 드러내지 않는다
 LOOKS.tigerboss_calm = Object.assign({}, LOOKS.tigerboss, { body: g => tiger(g, Object.assign({}, TTEOK, { roar: false, blink: true, calm: true })), blinkBody: null });
 LOOKS.jangsan_calm = Object.assign({}, LOOKS.jangsan, { body: g => tiger(g, Object.assign({}, JANGSAN, { roar: false, blink: true, calm: true })), blinkBody: null });
+// 엎드린 범(눈을 뜨고 순하게)과 잠든 범(꼬리를 앞으로 감고): 인형극의 'bow'·'sleep'
+for (const [k, base, o] of [['tigerboss', LOOKS.tigerboss, TTEOK], ['jangsan', LOOKS.jangsan, JANGSAN]]) {
+  const q = Object.assign({}, o, { roar: false, calm: true, lie: true });
+  LOOKS[k + '_lie'] = Object.assign({}, base, { body: g => tiger(g, q), blinkBody: g => tiger(g, Object.assign({ blink: true }, q)), h: 30 });
+  LOOKS[k + '_sleep'] = Object.assign({}, base, { body: g => tiger(g, Object.assign({ blink: true }, q)), blinkBody: null, h: 30 });
+}
 for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho, { body: g => gumiho(g, { tails: n }), blinkBody: g => gumiho(g, { tails: n, blink: true }) });
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
