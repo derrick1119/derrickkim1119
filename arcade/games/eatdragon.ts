@@ -127,7 +127,7 @@ export const PERKS: { name: string; line: string }[][] = [
   [{ name: '무지개 비늘', line: '떨어진 부위가 큰 폭죽' }, { name: '꿀단지', line: '같은 걸 또 먹으면 두 단계' }],
 ];
 /** 배우는 판은 너그럽게: 적이 주는 피해 배수 */
-const EZ = [0.35, 0.6, 0.85, 0.95, 1.3, 1.45, 1.6, 1.65, 1.75, 1.85, 1.95, 2.0];
+const EZ = [0.35, 0.6, 0.85, 0.95, 1.2, 1.3, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65];
 /** 대장이 흘린 것: 잡히는 거리 · 머무는 틱 */
 const ITEM_R = 0.13, ITEM_T = 360;
 /** 대장이 제 부위를 흘리는 체력 */
@@ -170,7 +170,7 @@ interface Shot { k: number; x: number; y: number; vx: number; vy: number; dmg: n
 /** 내 것: 가시 · 거품 · 바람 물결 · 폭풍 · 고래 물결 */
 interface Mine { k: 'needle' | 'bubble' | 'gust' | 'storm' | 'wave'; x: number; y: number; vx: number; vy: number; t: number; T: number; r: number; dmg: number; eid: number; hit: number[]; tgt: number }
 interface Twister { id: number; x: number; y: number; t: number; T: number; r: number; fire: boolean; eid: number; pw: number }
-interface Item { id: number; k: K; p: P; x: number; y: number; vy: number; t: number }
+interface Item { id: number; k: K; p: P; x: number; y: number; vy: number; t: number; tx: number; ty: number }
 /** 뒤에 일어날 일: 번개 용의 낙뢰 · 딱 맞는 공격의 연쇄 */
 interface Q { t: number; k: 'strike' | 'chain'; x: number; y: number; r: number; dmg: number; eid?: number; kind?: Atk; left?: number; first?: boolean; hit?: number[] }
 interface Ev { t: number; k: string; x: number; y: number; n: number; x2: number; y2: number; text: string }
@@ -1269,7 +1269,8 @@ function bossHurt(s: DrState, m: Mon) {
 }
 function dropItem(s: DrState, m: Mon) {
   if (s.items.length >= 2) return;
-  s.items.push({ id: ++s.nid, k: m.k, p: KD[m.k].p, x: clamp(m.x - 0.05, 0.3, 0.8), y: m.y + m.r * 0.3, vy: 0.004, t: 0 });
+  // 흘린 것은 용과 먼 쪽으로 둥실 날아간다 — 보고 톡해야 잡힌다
+  s.items.push({ id: ++s.nid, k: m.k, p: KD[m.k].p, x: clamp(m.x - 0.05, 0.3, 0.8), y: m.y + m.r * 0.3, vy: 0, t: 0, tx: 0.84, ty: s.me.y < 0.75 ? 1.04 : 0.4 });
   s.dropT = 0;
   ev(s, 'drop', m.x, m.y, 0, 0, 0, m.k);
   see(s, 'drop:' + m.k);
@@ -1373,8 +1374,8 @@ function queueStep(s: DrState) {
 function itemStep(s: DrState) {
   for (const it of s.items) {
     it.t++;
-    it.y = clamp(it.y + it.vy, FY0 + 0.05, FY1 - 0.1);
-    it.vy *= 0.975;
+    it.x += (it.tx - it.x) * 0.03;
+    it.y = clamp(it.y + (it.ty - it.y) * 0.03, FY0 + 0.05, FY1 - 0.1);
     it.x += Math.sin(it.t * 0.03) * 0.0006;
     if (it.t > ITEM_T) ev(s, 'fade', it.x, it.y);
   }
@@ -1475,7 +1476,7 @@ function playStep(s: DrState) {
   if (s.started && s.wave < d.waves.length && (n <= d.waves[s.wave].need || s.waveT >= d.waves[s.wave].wait)) spawnWave(s);
   if (boss && boss.st !== ENTER && s.started) {
     // 대장 판: 졸개를 부르고, 부위를 흘린다 (기다리지 않게 처음엔 금방)
-    if (d.summon && ++s.summonT >= 200 && n <= 5) (s.summonT = 0), s.inbox.push(...d.summon[s.summonI++ % d.summon.length]), ev(s, 'summon', boss.x, boss.y - boss.r, 0, 0, 0, boss.k);
+    if (d.summon && ++s.summonT >= 40 && n <= 5) (s.summonT = 0), s.inbox.push(...d.summon[s.summonI++ % d.summon.length]), ev(s, 'summon', boss.x, boss.y - boss.r, 0, 0, 0, boss.k);
     if (++s.dropT >= (boss.drops || s.skyBest ? 720 : 150) && !s.items.length) (boss.drops = Math.max(boss.drops, 0)), dropItem(s, boss);
   }
   if (s.wave >= d.waves.length && !s.inbox.length && s.mons.length === 0 && !s.me.fly) {
@@ -1586,7 +1587,7 @@ function candidates(s: DrState): Mon[] {
 /** 지금 몸에 이 짐승과 어울리는 부위가 있나 */
 const covered = (s: DrState, k: K) => s.me.parts.some((q) => q && WEAK[k].includes(ATK_OF[q.p]));
 /**
- * 봇(잘하는): 한 줄 판단 — 대장이 흘린 것이 있으면 그것, 아니면 '지금 하늘에 가장 많은 짐승'과 어울리는 부위를 주는 떼를 톡.
+ * 봇(잘하는): 한 줄 판단 — 대장이 흘린 것이 있으면 그것, 아니면 '지금 하늘에 가장 많은(남은 체력 합) 짐승'과 어울리는 부위를 주는 떼를 톡.
  * 이미 어울리는 부위가 있으면 먹지 않고 싸운다(같은 부위 떼가 있으면 먹어 키운다).
  */
 export const eatdragonSmart: Bot<DrState> = {
@@ -1608,7 +1609,7 @@ export const eatdragonSmart: Bot<DrState> = {
       if (bm) return tapOn(bm);
     }
     const cnt = new Map<K, number>();
-    for (const m of s.mons) if (hittable(m) && !isBoss(m)) cnt.set(m.k, (cnt.get(m.k) ?? 0) + 1);
+    for (const m of s.mons) if (hittable(m) && !isBoss(m)) cnt.set(m.k, (cnt.get(m.k) ?? 0) + Math.max(0, m.hp));
     const kinds = [...cnt.keys()].sort((a, b) => cnt.get(b)! - cnt.get(a)! || a.localeCompare(b));
     // 덮인 자리는 지킨다: 위쪽(많은) 짐승을 덮고 있는 부위는 바꾸지 않는다
     const keep = new Set<number>();
