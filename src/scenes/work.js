@@ -391,7 +391,7 @@
   const YARN = ['#e9c45a', '#c9573f', '#7fb0c9', '#f6efe0'];
   Z.knit = function (o) {
     const G = make({ r: 0, i: 0, phase: 'show', peek: 0, rows: [] });
-    const seq = () => o.rounds[G.r];
+    const seq = () => o.rounds[Math.min(G.r, o.rounds.length - 1)];
     async function show(sec) { G.phase = 'show'; G.peek = 1; await G.clock.wait(sec); G.clock.tween(G, 'peek', 0, 0.6); G.phase = 'knit'; G.idle = 0; }
     G.start = () => show(o.show || 3);
     G.hit = (x, y) => { const a = o.at(), s = a[2]; for (let n = 0; n < 4; n++) if (Math.hypot(x - (a[0] + (n - 1.5) * 110 * s), y - (a[1] + 150 * s)) < 46 * s) return n; return -1; };

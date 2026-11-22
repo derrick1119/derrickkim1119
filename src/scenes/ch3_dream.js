@@ -65,7 +65,7 @@
       const SLIP = 900;
       await X.dip(async () => { leo.x = SLIP - 120; leo.flip = false; leo.pose = null; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
       T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
-      await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.5, 0.8, 0.45], [0.58, 0.76, 0.6], [0.64, 0.73, 0.75]] }));
+      await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
       await TALK.say('bram', '이 배가 뜨는 날,\n자네도 꼭 있어 주게.');
       await TALK.say('leo', '네. 꼭요.');
       await X.vow(0, 'write');
