@@ -53,7 +53,8 @@ export function buyUnlock(id) { const u = UNLOCKS.find(x => x.id === id); if (!u
 export const FREE_HEROES = ['commander', 'blade', 'hunter'];
 export const heroOpen = h => FREE_HEROES.includes(h) || has(h);
 const BASE_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard'];
-export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has), BEAST_TYPES.filter(has));
+// (영물은 전리품·장터에 나오지 않는다: 저마다의 인연 사건으로만 합류한다)
+export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has));
 // ───────── 영물의 인연: 원정을 거듭하며 공을 쌓으면 영물이 군대에 합류한다 ─────────
 // deed = 세는 공(tales 는 들은 옛이야기 수, 나머지는 meta.deeds 에 쌓인다), need = 채워야 하는 수
 export const BEASTS = [
@@ -289,7 +290,8 @@ export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it
 // ───────── 사건에서 쓰는 도우미 ─────────
 export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang'];
 const EVENT_MIN = { well: 1, tomb: 1 };
-export function pickEvent() { const r = G.run, pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && (EVENT_MIN[e] || 0) <= r.ch), ev = pick(pool.length ? pool : EVENT_IDS); r.evSeen.push(ev); return ev; }
+// 인연을 맺은 영물이 이번 원정의 덱에 없으면, 사건 자리에서 가끔 그 영물을 다시 만난다 ('beast:까치' 처럼)
+export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && (EVENT_MIN[e] || 0) <= r.ch), ev = pick(pool.length ? pool : EVENT_IDS); r.evSeen.push(ev); return ev; }
 const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
@@ -297,6 +299,8 @@ export const act = {
   curse() { const r = G.run, pool = CURSES.filter(id => !r.relics.includes(id)); if (!pool.length) return act.gold(-20); const id = pick(pool); r.relics.push(id); return `부정 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
   cleanse() { const r = G.run, id = r.relics.find(x => RELICS[x].curse); if (!id) return null; r.relics = r.relics.filter(x => x !== id); return `부정 [${RELICS[id].name}] 이 씻겨 나갔습니다`; },
   train(filter) { const c = unitCards().filter(c => CARDS[c.id].kind === 'unit' && (c.lv || 1) < MAX_LV && (!filter || filter(UNITS[CARDS[c.id].unit]))); if (!c.length) return act.hero(); return lvUp(pick(c)); },
+  // 영물 패: 영물의 인연 사건으로만 얻는다 (up = 한 단 높여서)
+  beast(id, up) { addCard('u_' + id, { lv: up ? 2 : 1 }); return `영물 패 [${UNITS[id].name}]${up ? ' +1단' : ''}`; },
   recruit() { const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
   hero() { const c = G.run.deck.filter(c => CARDS[c.id].kind === 'lead' && (c.lv || 1) < MAX_LV); if (!c.length) return act.gold(40); return lvUp(c[0]); },
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },

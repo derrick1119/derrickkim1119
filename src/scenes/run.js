@@ -5,13 +5,13 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, tex
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
 import { G, act, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP } from '../state.js';
-import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay } from '../data/story.js';
+import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
 import { CHAPTERS, ORD, chapterOf } from '../data/stages.js';
 import { AFFIX, TWIST } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
-import { eventView } from '../data/events.js';
+import { eventView, beastEventView } from '../data/events.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES } from '../data/units.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
@@ -71,7 +71,7 @@ export class RunScene {
       if (e.boss) sfx('boss');
       this.routN = 0; this.emptyWarned = false;
     }
-    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); }
+    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; if (id.startsWith('beast:')) this.beastScene(id.slice(6), false, done); else { const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); } }
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new ShopOverlay({ items, onDone: done }); }
     else if (st.type === 'rest') { this.phase = 'stop'; const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new ChoiceOverlay({ title: '주막', art: 'jumo', col: '#2f6f5c', text: '고갯마루 주막에서 쉬어 갑니다.\n주모가 옛이야기를 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
@@ -132,8 +132,15 @@ export class RunScene {
     // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 부대를 하나도 잃지 않고 두목을 이긴 공을 적는다
     this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && !this.routN ? noteDeed('safe') : []));
   }
-  // 새로 인연을 맺은 영물은 그 자리에서 군대에 합류한다 (알림은 다른 알림이 끝난 뒤에 차례로 뜬다)
-  welcome(list) { if (!list || !list.length) return; for (const bt of list) { addCard('u_' + bt.id); this.joinQ.push(bt); } this.sync(); }
+  // 영물의 인연: 공을 채우면 바로 패를 주지 않고, 다음 행군 길에 그 영물의 인형극과 사건으로 맞이한다
+  welcome(list) { if (!list || !list.length) return; const r = this.r; r.beastQ = r.beastQ || []; for (const bt of list) if (!r.beastQ.includes(bt.id)) r.beastQ.push(bt.id); save(); }
+  // first: 처음 인연을 맺는 인형극부터 / 아니면 길에서 다시 만나는 사건만. 끝나면 패가 덱으로 날아가고 done()
+  beastScene(id, first, done) {
+    const r = this.r, nm = UNITS[id].name;
+    const ev = () => { const v = beastEventView(id, first); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, col: v.col, onDone: () => { this.over = null; this.sync(); const c = r.deck[r.deck.length - 1]; if (c && c.id === 'u_' + id) { juice.reveal({ title: first ? '영물의 인연' : '영물이 다시 함께한다', name: `${nm}${(c.lv || 1) > 1 ? ' · ' + c.lv + '단' : ''}`, desc: UNITS[id].tip, icon: (gg, px, py, sc) => { const k = sc / 2.3 * 1.15; cardFace(gg, c, px - 56 * k, py - 79 * k, 112 * k, 158 * k); }, to: SPOT.deck }); juice.burst(640, 300, '#8fe0bf', 14); } sfx('star'); save(); done(); } }); };
+    this.phase = 'stop'; this.talk = null;
+    if (first) this.over = new Play({ beats: beastPlay(id, r.hero), title: `영물의 인연 — ${nm}`, onDone: ev }); else ev();
+  }
   // 요괴가 쓰러질 때: 두목의 마지막 한마디, 처음 보는 것에 놀란 병사의 한마디
   onDeath(e) {
     const r = this.r;
@@ -146,6 +153,7 @@ export class RunScene {
     const o = this.over, p = this.phase;
     if (p === 'over') return 'story';
     if (p === 'fight' || p === 'prep') return this.enc && this.enc.boss ? 'boss' : 'battle';
+    if (o instanceof Play) return 'story';
     if (o && (o instanceof ShopOverlay || o instanceof ChoiceOverlay || o instanceof StoryOverlay)) return 'rest';
     return 'march';
   }
@@ -189,6 +197,8 @@ export class RunScene {
     }
   }
   key(k) {
+    // 인형극(두목의 사연·영물의 인연)은 엔터·스페이스로 넘긴다
+    if (this.over instanceof Play && !this.coach.tip) { this.over.key(k); return; }
     const b = this.b; if (this.over || this.sub) return;
     if (k === 'Escape' || k === ' ') { this.menu = !this.menu; return; }
     if (this.menu || this.phase === 'over') return;
@@ -210,7 +220,7 @@ export class RunScene {
     const busy = !!(this.over || this.sub || this.menu || coaching);   // 다른 화면이 떠 있으면 알림은 멈춰 기다린다
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { if (!busy) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; } }
     else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
-    else if (this.joinQ.length && !busy && (this.phase === 'march' || this.phase === 'prep')) { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${nm} 패가 덱에 들어왔습니다`, col: TEAL, t: 4.4, ch: 'bond', beast: bt.id }; sfx('star'); }
+    else if (r.beastQ && r.beastQ.length && !busy && this.phase === 'march' && !(this.curtain && this.curtain.t < 3)) { const id = r.beastQ.shift(); save(); this.beastScene(id, true, () => { this.phase = 'march'; }); }
     const live = !this.menu && !this.over && !this.sub && !coaching && this.phase !== 'over' && this.phase !== 'stop';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;

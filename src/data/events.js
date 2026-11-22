@@ -116,4 +116,25 @@ export const EVENTS = {
     { label: '헌 신을 내놓는다', desc: '50%: 엽전 +70 · 50%: 부정', pick: () => chance(0.5) ? ['야광귀가 신값이라며 엽전을 놓고 갑니다.', act.gold(70)] : ['헌 신 대신 영웅 신을 신고 갔습니다!', act.curse()] },
   ] },
 };
+// ───── 영물의 인연: 인형극이 끝나면 영물을 어떻게 맞이할지 고른다 (어느 쪽이든 영물 패가 덱에 들어온다) ─────
+// first = 처음 인연을 맺을 때 (인형극 뒤), 아니면 다음 원정에서 길에서 다시 만날 때
+const BEAST_EV = {
+  magpie: { title: '까치의 인연', art: 'magpie', first: '까치 떼가 군기 둘레를 맴돕니다. 함께 가려는 모양입니다.', again: '까치 떼가 군기 위를 맴돕니다. 지난 원정의 인연을 기억하나 봅니다.',
+    gift: ['곡식을 한 줌 뿌려 준다', 20, '배불리 먹은 까치들이 더 힘차게 납니다.'], plain: ['손짓해 부른다', '까치들이 깍깍 울며 깃대에 내려앉습니다.'] },
+  sapsal: { title: '삽살개의 인연', art: 'sapsal', first: '삽살개가 꼬리를 흔들며 수레 곁을 맴돕니다.', again: '북슬북슬한 삽살개가 길가에 앉아 기다리고 있습니다. 낯익은 눈빛입니다.',
+    gift: ['고깃국을 나눠 준다', 25, '국 한 사발을 비운 삽살개가 우렁차게 짖습니다.'], plain: ['쓰다듬어 준다', '삽살개가 손을 핥고 앞장섭니다.'] },
+  samjoko: { title: '삼족오의 인연', art: 'samjoko', first: '삼족오가 군기 꼭대기에 앉아 날개를 고릅니다.', again: '어둠 속에서 작은 해처럼 빛나는 새가 내려옵니다. 삼족오입니다.',
+    gift: ['등잔 기름을 바친다', 25, '기름을 마신 삼족오의 깃이 환하게 타오릅니다.'], plain: ['함께 가자고 한다', '삼족오가 길 앞으로 불씨를 떨굽니다.'] },
+  tiger: { title: '산군의 인연', art: 'tiger', first: '산군이 길 앞에 엎드려 기다립니다.', again: '산마루에서 산군이 내려옵니다. “또 왔구나.”',
+    gift: ['고기를 바친다', 30, '산군이 단숨에 먹고 크게 포효합니다.'], plain: ['예를 갖춰 절한다', '산군이 고개를 끄덕이고 앞장섭니다.'] },
+  haetae: { title: '해태의 인연', art: 'haetae', first: '해태가 서낭당 앞에서 군대를 지켜봅니다.', again: '길목의 돌짐승이 눈을 뜹니다. 해태입니다.',
+    gift: ['정화수를 떠 바친다', 30, '물을 마신 해태의 뿔이 맑게 빛납니다.'], plain: ['고개 숙여 맞이한다', '해태가 묵묵히 곁에 섭니다.'] },
+};
+export function beastEventView(id, first) {
+  const e = BEAST_EV[id] || BEAST_EV.magpie, [gl, cost, gs] = e.gift, [pl, ps] = e.plain;
+  return { title: e.title, art: e.art, text: first ? e.first : e.again, col: '#2f6f5c', choices: [
+    { label: gl, cost, desc: `엽전 ${cost} → 영물 패 +1단`, pick: () => { act.gold(-cost); return [gs, act.beast(id, true)]; } },
+    { label: pl, desc: '영물 패를 얻는다', pick: () => [ps, act.beast(id, false)] },
+  ] };
+}
 export function eventView(p) { const e = EVENTS[p.id] || EVENTS.ssireum; return { title: e.title, art: e.art, after: e.after, text: e.text, choices: e.choices(p).filter(Boolean) }; }

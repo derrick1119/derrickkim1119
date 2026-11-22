@@ -579,7 +579,7 @@ export class Battle {
     if (o.kind === 'move') {
       const gx = o.x + u.slot.dx, gy = o.y + u.slot.dy;
       if (u.stuck > 0.5 && !def.heal && !def.range && !def.flee) { // 길이 막히면 눈앞의 적과 싸운다
-        let e = null, bd = 34; this.near(u.x, u.y, 60, n => { if (n.team !== u.team && !n.dead) { const d = hyp(n.x - u.x, n.y - u.y) - n.r - u.r; if (d < bd) { bd = d; e = n; } } });
+        let e = null, bd = 34; this.near(u.x, u.y, 60, n => { if (n.team !== u.team && !n.dead && !n.def.banner) { const d = hyp(n.x - u.x, n.y - u.y) - n.r - u.r; if (d < bd) { bd = d; e = n; } } });
         if (e) { this.engage(u, e, dt, o); return; }
       }
       if (hyp(gx - u.x, gy - u.y) > 5) this.moveTo(u, gx, gy, dt); else this.idle(u, dt);
@@ -592,7 +592,7 @@ export class Battle {
   }
   idle(u, dt) {
     u.moving = false; u.still += dt; if (u.still > 0.4) u.run = 0;
-    let e = null, bd = 260; this.near(u.x, u.y, 260, n => { if (n.team !== u.team && !n.dead) { const d = hyp(n.x - u.x, n.y - u.y); if (d < bd) { bd = d; e = n; } } });
+    let e = null, bd = 260; this.near(u.x, u.y, 260, n => { if (n.team !== u.team && !n.dead && !n.def.banner) { const d = hyp(n.x - u.x, n.y - u.y); if (d < bd) { bd = d; e = n; } } });
     this.face(u, e ? Math.atan2(e.y - u.y, e.x - u.x) : (u.team === 0 ? 0 : PI), dt, 6);
   }
   toSlot(u, o, dt) { const gx = o.x + u.slot.dx, gy = o.y + u.slot.dy; if (hyp(gx - u.x, gy - u.y) > 6) this.moveTo(u, gx, gy, dt); else this.idle(u, dt); }
@@ -870,13 +870,13 @@ export class Battle {
   bomberAI(u, dt) {
     if (u.fuse > 0) { u.fuse -= dt; u.moving = false; if (u.fuse <= 0) { u.exploded = true; const b = u.def.bomber; this.aoe(u.x, u.y, b.r, b.dmg * lvlMult(u.lvl), 1 - u.team, u, { kb: 22 }); this.ev('impact', { x: u.x, y: u.y, r: b.r, style: 'bomb' }); this.kill(u, null, true); } return; }
     u.retarget -= dt;
-    if (u.retarget <= 0 || !u.target || u.target.dead) { u.retarget = 0.4; let best = null, bs = 1e9; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const d0 = hyp(e.x - u.x, e.y - u.y), s = d0 - 12 * Math.min(4, this.clusterScore(e, 50)) - (e.taunt && d0 < e.taunt + 40 ? 400 : 0); if (s < bs) { bs = s; best = e; } } u.target = best; }
+    if (u.retarget <= 0 || !u.target || u.target.dead) { u.retarget = 0.4; let best = null, bs = 1e9; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0 || e.def.banner) continue; const d0 = hyp(e.x - u.x, e.y - u.y), s = d0 - 12 * Math.min(4, this.clusterScore(e, 50)) - (e.taunt && d0 < e.taunt + 40 ? 400 : 0); if (s < bs) { bs = s; best = e; } } u.target = best; }
     const t = u.target; if (!t) { this.idle(u, dt); return; }
     if (hyp(t.x - u.x, t.y - u.y) - u.r - t.r <= 7) { u.fuse = 0.5; this.ev('fuse', { x: u.x, y: u.y }); } else this.moveTo(u, t.x, t.y, dt);
   }
   catapultAI(u) {
     u.moving = false; if (u.cd > 0) return;
-    let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const s = this.clusterScore(e, 60) + this.rand() * 1.5; if (s > bs) { bs = s; best = e; } }
+    let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0 || e.def.banner) continue; const s = this.clusterScore(e, 60) + this.rand() * 1.5; if (s > bs) { bs = s; best = e; } }
     if (!best) return;
     const lob = u.def.lob; u.cd = u.def.as; u.atkT = this.time; u.facing = Math.atan2(best.y - u.y, best.x - u.x);
     const z = { kind: 'tele', style: 'boulder', x: best.x, y: best.y, r: lob.r, t: 0, delay: lob.delay, hits: 1 - u.team, dmg: u.atk, kb: 24, src: u, fx: u.x, fy: u.y };
@@ -899,7 +899,7 @@ export class Battle {
   useAbility(u, id) {
     const m = lvlMult(u.lvl);
     if (id === 'slam') {
-      let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d > 300) continue; const s = this.clusterScore(e, 80) - d * 0.004; if (s > bs) { bs = s; best = e; } }
+      let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0 || e.def.banner) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d > 300) continue; const s = this.clusterScore(e, 80) - d * 0.004; if (s > bs) { bs = s; best = e; } }
       if (!best) return false;
       this.zones.push({ kind: 'tele', style: 'slam', x: best.x, y: best.y, r: 95, t: 0, delay: 1.6, hits: 1 - u.team, dmg: 112 * m, stun: 0.9, kb: 30, src: u });
       u.cast = 1.0; u.atkT = this.time + 0.7; bossSay(this, u, '땅 가르기!', '#c8402f'); return true;
