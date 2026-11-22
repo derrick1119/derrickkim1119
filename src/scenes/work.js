@@ -355,7 +355,7 @@
       if (G.on) { G.heat += dt * band()[2]; if (G.heat > 1.05) { G.on = false; G.wrong('너무 오래 쪘어요. 판자에 금이 갔어요'); G.crack = 1; G.heat = 0; } }
       G.crack = Math.max(0, G.crack - dt * 1.5);
     };
-    G.next = () => { if (G.done || G.bend > 0) return null; if (!G.on) return '1'; const b = band(); return G.heat > (b[0] + b[1]) / 2 - 0.01 && G.heat < b[1] ? '1' : null; };
+    G.next = () => { if (G.done || G.bend > 0) return null; if (!G.on) return '1'; const b = band(); return G.heat > b[0] + 0.02 && G.heat < b[1] - 0.02 ? '1' : null; };
     G.hintAt = () => { const a = o.at(); return [a[0], a[1] - 60 * a[2]]; };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
