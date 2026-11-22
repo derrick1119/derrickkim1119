@@ -76,7 +76,7 @@
   function paint() {
     const s = T.director.cur, key = Object.keys(T.scenes).find((k) => T.scenes[k] === s);
     now.textContent = '지금: ' + (NAMES[key] || key || '') + (key === 'harbor' && T.state.cp ? ' (' + T.state.cp + ')' : '');
-    artBtn.textContent = '프롤로그 그림체: ' + (T.ART === 'concept' ? '컨셉' : '이전') + ' (바꾸기)';
+    artBtn.textContent = '그림체: ' + (T.ART === 'concept' ? '컨셉' : '이전(크레용)') + ' (바꾸기)';
     speedBtn.forEach((q) => { const on = (T.speed || 1) === q[0]; q[1].style.background = on ? '#33405c' : 'transparent'; q[1].style.color = on ? '#fff6e4' : '#33405c'; });
   }
   function show(on) {

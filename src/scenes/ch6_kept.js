@@ -61,6 +61,7 @@
         await X.tween(ps.food, 'drop', 1, 0.7, T.ease.out3);
         A.sfx('knock', 0.5);
       };
+      X.vowsAt([1, 1, 1, 1], [1, 0, 1, 0]);
       X.title();
       await X.wait(4.4);
 
@@ -118,6 +119,7 @@
       T.announce('이번엔 처음 보는 풀까지. 그 풀은 맨 마지막, 불을 끄기 직전에 넣는다.');
       await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt', 'herb'], pantry: ['potato', 'carrot', 'herb', 'onion', 'tomato', 'salt'], heat: true, caption: '공책대로 끓이고, 처음 보는 풀은 맨 마지막에 넣으세요' });
       ps.food.herb = true; ps.food.color = '#c8742f';
+      await X.vow(3, 'keep');
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.45;
       leo.mood = 'laugh'; await X.wait(1.4); leo.mood = null;
@@ -165,6 +167,7 @@
       await X.TALK.say('kid', '나 그동안 레오 아저씨 집 짓는 거 도왔다?\n뼈대도 당기고, 지붕도 올리고.');
       await X.TALK.say('pmom', '…고맙습니다.\n우리 애 곁에 있어 주셔서.');
       await X.TALK.say('leo', '제가 도움을 받았는걸요.');
+      await X.vow(1, 'keep');
       await X.wait(1.4);
       await X.dip(async () => {
         S.actors = keep; S.boats = [];

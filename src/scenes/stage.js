@@ -17,7 +17,7 @@
     S.enter = function (args) {
       S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
       S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
-      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false;
+      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false; S.vow = null;
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
       Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
@@ -263,6 +263,43 @@
       if (!S.trayHold) k.tween(S.tray, 'a', 0, 0.8);
     };
     X.spendDream = function () { T.state.dream = {}; };
+
+    /* ---------- the promises he makes here, in his notebook ----------
+       Not the ones to Ana on the board: the ones to the neighbours. Written down when made, struck through when kept. */
+    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기'];
+    X.vowsAt = function (written, kept) { T.state.vows = { w: written.slice(), k: kept.slice() }; };
+    X.vow = async function (i, how) {
+      const k = S.clock, v = T.state.vows = T.state.vows || { w: [0, 0, 0, 0], k: [0, 0, 0, 0] };
+      S.vow = { a: 0, i, how, p: 0 };
+      T.audio.sfx('page');
+      await k.tween(S.vow, 'a', 1, 0.6, T.ease.out3);
+      T.audio.sfx('crayon');
+      T.announce((how === 'keep' ? '수첩: 지킨 약속. ' : '수첩: 새 약속. ') + VOWS[i]);
+      await k.tween(S.vow, 'p', 1, how === 'keep' ? 0.9 : 1.4, T.ease.lin);
+      if (how === 'keep') v.k[i] = 1; else v.w[i] = 1;
+      X.note();
+      await k.wait(1.6);
+      await k.tween(S.vow, 'a', 0, 0.6);
+      S.vow = null;
+    };
+    function drawVow(g) {
+      const c = S.vow, V = T.view;
+      if (!c || c.a < 0.01) return;
+      const v = T.state.vows || { w: [], k: [] }, a = T.ease.out3(c.a);
+      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 280, 40 + (1 - a) * -30);
+      g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
+      P.fill(g, P.rr(-20, 0, 270, 208, 10), '#fbf4e2'); g.shadowColor = 'transparent';
+      P.fill(g, P.rr(-20, 0, 16, 208, 6), '#d7a23c');
+      P.text(g, '여기서 한 약속', 115, 32, { size: 30, color: '#b54a36', seed: 2 });
+      VOWS.forEach((s, i) => {
+        const y = 70 + i * 36, writing = c.i === i && c.how === 'write', shown = v.w[i] || writing;
+        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, 200, 1.2); return; }
+        P.text(g, s, 115, y, { size: 22, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i });
+        const struck = v.k[i] ? 1 : c.i === i && c.how === 'keep' ? c.p : 0;
+        if (struck > 0) P.line(g, 10, y - 4, 10 + 210 * struck, y - 6, 2.4, '#c9573f');
+      });
+      g.restore();
+    }
     function trayIcon(g, name, x, y, a, t) {
       g.save(); g.globalAlpha *= a; g.translate(x, y);
       if (name === 'scent') { P.fill(g, P.rr(-11, -6, 22, 22, 6), 'rgba(226,240,236,0.9)'); P.fill(g, P.rr(-9, -12, 18, 7, 3), '#b98a5a'); for (let i = 0; i < 3; i++) { const life = (t * 0.6 + i / 3) % 1; P.glow(g, Math.sin(t * 2 + i) * 4, -14 - life * 20, 5 + life * 6, '#fff3dc', Math.sin(life * Math.PI) * 0.8); } }
@@ -477,7 +514,7 @@
         g.fillStyle = T.rgba(dark ? '#f1e8d6' : '#3d3a5c', 0.5 * a); g.fillRect(x + 2, 812, 150 * T.ease.out(a), 1.4);
       }
       if (S.cardO) { S.cardO.draw(g, S.cardO.c); if (S.cardO.c.ready) T.continueDot(g, 0, 866, '#f3ead8'); }
-      drawTray(g, t);
+      drawTray(g, t); drawVow(g);
       if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
       TALK.draw(g);
       if (S.cards.end.a > 0.01) {

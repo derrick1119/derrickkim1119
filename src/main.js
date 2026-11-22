@@ -33,6 +33,7 @@
 
   function start(saved) {
     T.P.clearLayout();
+    if (T.ART === 'concept') T.P.look = 'plain';   /* the painted look replaces the crayon one */
     const st = T.state;
     let first = ['room', { title: true }];
     if (saved && saved.chapter === 1) first = saved.cp ? ['harbor', { cp: saved.cp }] : ['kitchen', {}];

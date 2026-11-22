@@ -243,7 +243,7 @@
       T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
       await X.TALK.say('mom', '이제 나도 건너가야겠다.');
       await X.TALK.say('leo', '…벌써요?');
-      await X.TALK.say('mom', '넌 이제 혼자서도 기다릴 수 있잖니.\nRosa도, 빈도, 그 집도 있고.'.replace('Rosa', '로사'));
+      await X.TALK.say('mom', '넌 이제 혼자서도 기다릴 수 있잖니.\n로사도, 빈도, 그 집도 있고.');
       await X.TALK.say('leo', '조금만 더 있다 가면 안 돼요?');
       await X.TALK.say('mom', '네 아빠도 그렇게 말하더라.\n그래도 먼저 갔어. 가서 집 짓고 기다린다고.');
       await X.walk(mom2, 60, 50);

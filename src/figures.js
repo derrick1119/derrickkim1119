@@ -13,7 +13,7 @@
     lily: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'apple', tie: '#c9573f', top: '#7fb0c9', bottom: '#7fb0c9', skirt: 17, shoe: '#c9573f', kid: true },
     /* chapter one */
     anaBlack: { skin: '#f0c7a9', hair: '#2a2024', hairStyle: 'bob', top: '#2f2b35', bottom: '#2f2b35', skirt: 30, shoe: '#221d24' },
-    leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f' },
+    leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#eee3d0', scarf: '#c9443a', bottom: '#4b5669', shoe: '#33291f' },
     leoKid: { skin: '#f0c4a6', hair: '#3a2b25', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
     /* his mother: she has been here since he was seven, and has let herself grow old watching him */
     mom: { skin: '#eec3a6', hair: '#a59a94', hairStyle: 'bun', top: '#7b5a86', scarf: '#e9dcc3', bottom: '#3f6b70', skirt: 34, shoe: '#4a3530' },
@@ -48,7 +48,7 @@
     return Object.assign({ skin: '#f3ccb0', hair: T.mix('#3b2a23', '#d9d2c6', u), hairStyle: 'bob', top: '#7fb0c9', bottom: '#5d8fb0', skirt: 28, shoe: '#c9573f' }, o || {});
   };
 
-  const ADULT = { thigh: 24, shin: 24, torso: 30, sh: 26, neck: 11, R: 9.5, ua: 15, fa: 14, legW: 7.6, armW: 5.6, torsoW: 17, hand: 3.1 };
+  const ADULT = { thigh: 25, shin: 25, torso: 32, sh: 26, neck: 10, R: 8.4, ua: 15.5, fa: 14.5, legW: 7.4, armW: 5.4, torsoW: 16.5, hand: 3 };
   const KID = { thigh: 14.5, shin: 14.5, torso: 21, sh: 18, neck: 12, R: 11, ua: 10, fa: 9.5, legW: 6.4, armW: 5, torsoW: 15, hand: 2.9 };
 
   function ik(ax, ay, tx, ty, l1, l2, bend) {
@@ -245,6 +245,13 @@
     if (st.scarf) {
       g.strokeStyle = st.scarf; g.lineWidth = 5.4; g.lineCap = 'round';
       g.beginPath(); g.moveTo(nk[0] - 4.2, nk[1] + 2.2); g.lineTo(nk[0] + 4.6, nk[1] + 2.6); g.stroke();
+      if (st.scarf === '#c9443a' || st.scarfTail) {   /* a long scarf: its end lifts and drifts behind him */
+        const tt = T.time + (o.x || 0) * 0.01, w1 = Math.sin(tt * 2.1) * 2.4, w2 = Math.sin(tt * 2.6 + 1) * 3.4;
+        g.lineWidth = 4.2;
+        g.beginPath(); g.moveTo(nk[0] - 3, nk[1] + 3); g.quadraticCurveTo(nk[0] - 10, nk[1] + 5 + w1, nk[0] - 17, nk[1] + 2 + w2); g.stroke();
+        g.lineWidth = 3.4; g.strokeStyle = T.shade(st.scarf, -0.12);
+        g.beginPath(); g.moveTo(nk[0] - 2, nk[1] + 4); g.quadraticCurveTo(nk[0] - 8, nk[1] + 10 + w1 * 0.6, nk[0] - 13, nk[1] + 9 + w2 * 0.8); g.stroke();
+      }
     }
     /* neck + head */
     g.strokeStyle = T.shade(st.skin, -0.09); g.lineWidth = 4.6; g.lineCap = 'round';
@@ -355,7 +362,7 @@
     const ph = o.walk == null ? null : o.walk;
     const wag = o.wag || 0, sit = o.sit || 0;
     const sc = o.tintAll || (o.shadow ? '#101c33' : null);
-    const body = sc || '#f2e7d3', patch = sc || '#b57c50', dark = sc || '#e0d2ba';
+    const body = sc || '#f8f4ec', patch = sc || '#eadfcc', dark = sc || '#e6ddcf';
     g.save();
     g.translate(o.x, o.y);
     if (o.rot) g.rotate(o.rot);

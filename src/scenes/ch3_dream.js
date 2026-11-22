@@ -39,7 +39,8 @@
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const [px, py] = X.place.plot();
       S.fallen = 0; S.storm = 0; S.flash = 0;
-      T.state.dream = Object.assign({ scent: true }, T.state.dream || {});   /* the scent came up out of the lake in chapter 2 */
+      T.state.dream = Object.assign({ scent: true }, T.state.dream || {});
+      X.vowsAt([0, 1, 0, 1], [0, 0, 0, 0]);   /* the scent came up out of the lake in chapter 2 */
       X.cam(px, py, 1); X.camSnap();
       const leo = X.actor('leo', { x: PL.HX + 30, style: F.leoAt(0) });
       leo.pose = (o, a, t) => { if (!a.moving && !a.push && !a.sit) { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = 0.1; } };
@@ -59,6 +60,16 @@
       await X.play(T.puzzle.saw({ logs: 2, strokes: 8, leo, at: PL.HX - 260 }));
       X.cam(px, py, 1);
       await TALK.say('bram', '손이 제법이야.');
+      /* and in return, a hand with his boat */
+      await TALK.say('bram', '그 손 좀 빌리세.\n배 판자를 휘어야 하는데, 혼자선 김 쐬는 때를 못 맞춰.');
+      const SLIP = 900;
+      await X.dip(async () => { leo.x = SLIP - 120; leo.flip = false; leo.pose = null; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
+      T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
+      await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.5, 0.8, 0.45], [0.58, 0.76, 0.6], [0.64, 0.73, 0.75]] }));
+      await TALK.say('bram', '이 배가 뜨는 날,\n자네도 꼭 있어 주게.');
+      await TALK.say('leo', '네. 꼭요.');
+      await X.vow(0, 'write');
+      await X.dip(async () => { leo.x = PL.HX + 30; bram.x = PL.HX - 200; bram.flip = false; X.cam(px, py, 1); X.camSnap(); });
 
       /* ---- the frame ---- */
       const push = (o) => { o.armF = { a: 1.9, b: 0.3 }; o.armB = { a: 1.7, b: 0.3 }; o.lean = 0.2; };
@@ -181,6 +192,9 @@
       await TALK.say('leo', '그 사람도 언젠가 오겠죠.');
       await TALK.say('rosa', '다 늙어서 오겠지.\n그래도 난 단번에 알아볼 거야.');
       await TALK.say('rosa', '이거 가져가. 저 자장가 한 소절.\n아나도 아이 재울 때 부를 테니까.');
+      await TALK.say('rosa', '그 애 오면 덮어 줄 새 담요를 뜨는데,\n저 줄무늬를 자꾸 잊어버려.');
+      await TALK.say('leo', '같이 떠요. 제가 같이 봐 둘게요.');
+      await X.vow(2, 'write');
       await X.gift('sound', [lake.things[1].x, 160]);
       await X.wait(0.8);
 

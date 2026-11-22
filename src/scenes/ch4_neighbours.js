@@ -49,6 +49,7 @@
       const PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
       S.rb = { a: 0, run: 0 }; RB[2][1] = C.PIER_Y - 2;
+      X.vowsAt([1, 1, 1, 1], [0, 0, 0, 0]);
       X.cam(px, py, 1); X.camSnap();
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
@@ -187,6 +188,21 @@
       /* walls, year after year, with a dog under his feet */
       await X.years(5, 9, { age: 45, during: (d) => { X.tween(ps, 'tree', 0.4, d); X.wait(d * 0.5).then(() => { ps.stage = 3; A.sfx('knock', 0.5); }); } });
 
+      /* ---- Rosa's porch: the new blanket, from memory ---- */
+      const PORCH = 2070;
+      let rosa0;
+      await X.dip(async () => {
+        S.actors = S.actors.filter((a2) => a2 !== pipi);
+        leo.x = PORCH + 80; leo.flip = true; leo.pose = null; bean.x = PORCH + 140; bean.sit = 1;
+        rosa0 = X.actor('rosa', { x: PORCH - 30, style: F.styles.rosa, s: 138, sit: 1 });
+        X.cam(PORCH, W.groundAt(PORCH) - 180, 1.15); X.camSnap();
+      });
+      await TALK.say('rosa', '그 애 담요 줄무늬, 기억나?\n난 자꾸 순서가 헷갈려.');
+      T.announce('로사의 담요 뜨기. 호수에서 본 옛 담요의 줄무늬가 잠깐 보였다가 사라진다. 기억한 차례대로 실을 골라 뜬다.');
+      await X.play(T.puzzle.knit({ at: () => { const q = W.toScreen(PORCH, W.groundAt(PORCH) - 120); return [q[0], q[1] + 60, S.cam.z * 0.85]; }, rounds: [[0, 1, 2, 1], [2, 0, 3, 1, 0, 2]], show: 3 }));
+      await TALK.say('rosa', '됐다. 이제 그 애만 오면 돼.');
+      await X.dip(async () => { S.actors = S.actors.filter((a2) => a2 !== rosa0); leo.x = PL.HX + 90; bean.x = PL.HX + 150; X.cam(px, py, 1); X.camSnap(); });
+
       /* ---- Bram's wife, in the lake ---- */
       let bram = X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.08 });
       await X.walk(bram, PL.HX - 200, 74);
@@ -274,6 +290,7 @@
       T.announce('밧줄 풀기. 말뚝 셋에 감긴 밧줄을, 감긴 차례의 거꾸로 푼다.');
       await X.play(T.puzzle.rope({ order: [0, 2, 1, 0, 2] }));
       S.rope = null;
+      X.vow(0, 'keep');
       await TALK.say('bram', '이제 건너가세.\n기다릴 사람이 더는 없으니.');
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
@@ -315,8 +332,9 @@
       await X.wait(1.4);
       await TALK.say('rosa', '우리 아기.', { slow: true });
       await TALK.say('son', '…엄마?');
-      T.announce('로사가 떠 둔 노란 담요를 늙은 아들의 어깨에 둘러 준다.');
-      await X.wait(2.4);
+      T.announce('로사가 같이 뜬 새 담요를 늙은 아들의 어깨에 둘러 준다.');
+      await X.vow(2, 'keep');
+      await X.wait(0.8);
 
       /* ---- that night ---- */
       const lake = T.lake({ paint: T.vig.gray, leo: F.leoAt(0), found: { k: 0 }, mirror: 0.25, leoFace: {} });

@@ -402,7 +402,7 @@
     try { d = g.getImageData(0, 0, w, h).data; } catch (e) { return; }
     const L = (i) => d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11, cl = (v) => (v < 0 ? 0 : v > 255 ? 255 : v | 0);
     const r = T.rng((w * 7 + h * 13) % 9973);
-    const n = Math.min(70000, Math.round((w * h) / (46 * ps * ps)));
+    const n = Math.min(45000, Math.round((w * h) / (46 * ps * ps)));
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop'; g.lineCap = 'round';
     for (let k = 0; k < n; k++) {
       const x = 2 + Math.floor(r() * (w - 4)), y = 2 + Math.floor(r() * (h - 4)), i = (y * w + x) * 4;

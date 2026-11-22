@@ -391,8 +391,9 @@
   /* the painted concept look, tried on the prologue first ('concept' | 'classic'); the test menu flips it */
   T.ART = (T.store.get('tyt-art') || {}).look || 'concept';
   const PROLOGUE = ['room', 'ending', 'stew', 'walk', 'swing', 'home'];
-  T.artOn = function () { if (T.ART !== 'concept') return false; const s = D.cur; return !!s && PROLOGUE.some((n) => T.scenes[n] === s); };
-  T.setArt = function (look) { T.ART = look; T.store.set('tyt-art', { look }); T.gen++; const s = D.cur; if (s && s.build) s.build(); };
+  /* the painted look now covers the whole game (PROLOGUE is kept for reference) */
+  T.artOn = function () { if (T.ART !== 'concept') return false; void PROLOGUE; return !!D.cur; };
+  T.setArt = function (look) { T.ART = look; T.store.set('tyt-art', { look }); if (T.P) T.P.look = look === 'concept' ? 'plain' : 'crayon'; T.gen++; const s = D.cur; if (s && s.build) s.build(); };
   /* change the look and paint every baked layer again */
   T.restyle = function (look) { T.P.look = look; T.gen++; const s = D.cur; if (s && s.build) s.build(); };
   T.step = function (dt) {

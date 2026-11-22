@@ -19,6 +19,7 @@
       X.title();
       await X.wait(4.4);
       await X.years(0, 1, { age: 37 });
+      X.vowsAt([0, 0, 0, 0], [0, 0, 0, 0]);
 
       /* the list */
       await X.tap(() => [leo.x, W.groundAt(leo.x) - 50, 60]);
@@ -83,6 +84,8 @@
       await X.TALK.say('kid', '아저씨는 누구 기다려?');
       await X.TALK.say('leo', '아나. 내 아내.');
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
+      await X.TALK.say('leo', '그래. 약속.');
+      await X.vow(1, 'write');
       pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
       X.tween(bram, 'sit', 0, 0.6); X.tween(leo, 'sit', 0, 0.6);
       await X.wait(0.6);
@@ -136,6 +139,7 @@
       X.tween(lake.sip, 'k', 0, 0.8);
       X.notes(3, { voice: 'pluck', vel: 0.34 });
       await X.TALK.say('leo', '소금을 두 번 넣었네.');
+      await X.vow(3, 'write');
       await X.wait(0.8);
       /* and then she looks at the place on the counter she used to watch him from */
       lake.beat = 4; lake.leoFace = { mouth: 'line' };

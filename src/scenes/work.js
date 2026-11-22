@@ -228,7 +228,7 @@
       const f = o.finds[Math.min(G.r, o.finds.length - 1)];
       if (!G.done) {
         P.fill(g, P.rr(-430, 112, 860, 92, 16), 'rgba(251,244,226,0.94)');
-        P.text(g, '피피의 힌트 ' + (G.r + 1) + '/' + o.finds.length + ' · ' + f.thing, 0, 140, { font: 'serif', size: 20, color: '#8a5a50' });
+        P.text(g, T.tr('피피의 힌트') + ' ' + (G.r + 1) + '/' + o.finds.length + ' · ' + T.tr(f.thing), 0, 140, { font: 'serif', size: 20, color: '#8a5a50' });
         P.text(g, f.clue, 0, 180, { font: 'serif', size: 26, color: '#33405c' });
       }
       g.restore();
@@ -320,6 +320,109 @@
       g.restore();
       G.hintRing(g, t);
       G.caption(g, o.caption || '공책에 적은 차례대로 재료를 눌러 넣으세요');
+    };
+    return G;
+  };
+})();
+
+/* ---------- bending a plank for Bram's boat, and knitting Rosa's blanket from memory ---------- */
+(function () {
+  'use strict';
+  const T = window.TYT, P = T.P, Z = T.puzzle, make = Z.make;
+
+  /* Steam a plank until it will bend: tap to start the steam, tap again to lift it out while the heat is in the
+     right band. Too soon and it springs back; too long and it cracks. The band narrows plank by plank.
+     o: { at: () => screen [x, y, scale], bands: [[lo, hi, speed], …] } */
+  Z.steam = function (o) {
+    const G = make({ i: 0, heat: 0, on: false, bend: 0, crack: 0 });
+    const band = () => o.bands[Math.min(G.i, o.bands.length - 1)];
+    G.keyOf = (key) => (key === ' ' || key === 'Enter' || key === '1' ? 0 : -1);
+    G.hit = () => 0;
+    G.tap = function () {
+      if (G.done || G.bend > 0) return;
+      G.idle = 0;
+      if (!G.on) { G.on = true; G.heat = 0; G.say = ''; T.audio.sfx('whoosh'); return; }
+      G.on = false;
+      const b = band();
+      if (G.heat < b[0]) { G.wrong('아직 덜 쪘어요. 판자가 도로 튕겨 나와요'); G.heat = 0; return; }
+      if (G.heat > b[1]) { G.wrong('너무 오래 쪘어요. 판자에 금이 갔어요'); G.crack = 1; G.heat = 0; return; }
+      G.say = ''; T.audio.sfx('knock', 0.5); T.audio.step(G.i * 2 + 1, { voice: 'box', vel: 0.4 });
+      G.clock.tween(G, 'bend', 1, 0.9, T.ease.out).then(() => { G.bend = 0; G.heat = 0; G.i++; if (G.i >= o.bands.length) { T.audio.promise(); G.finish(1.2); } });
+    };
+    const up = G.update;
+    G.update = function (dt) {
+      up(dt);
+      if (G.on) { G.heat += dt * band()[2]; if (G.heat > 1.05) { G.on = false; G.wrong('너무 오래 쪘어요. 판자에 금이 갔어요'); G.crack = 1; G.heat = 0; } }
+      G.crack = Math.max(0, G.crack - dt * 1.5);
+    };
+    G.next = () => { if (G.done || G.bend > 0) return null; if (!G.on) return '1'; const b = band(); return G.heat > (b[0] + b[1]) / 2 - 0.01 && G.heat < b[1] ? '1' : null; };
+    G.hintAt = () => { const a = o.at(); return [a[0], a[1] - 60 * a[2]]; };
+    G.draw = function (g, t) {
+      if (G.a < 0.005) return;
+      const a = o.at(), s = a[2], x = a[0], y = a[1];
+      g.save(); g.globalAlpha = G.a; g.translate(x, y); g.scale(s, s);
+      /* the steam box over a fire, and the hull's ribs beyond it */
+      for (let k = 0; k < 5; k++) { const ph = t * 9 + k; P.fill(g, P.ellipse(-120 + (k - 2) * 10, 30 - Math.abs(Math.sin(ph)) * 14, 7, 12 + 8 * Math.abs(Math.sin(ph))), k % 2 ? '#ffb45a' : '#ff7a3a'); }
+      P.fill(g, P.rr(-200, -10, 160, 34, 6), '#7a5a3c');
+      if (G.on) for (let k = 0; k < 5; k++) { const life = (t * 0.8 + k / 5) % 1; P.glow(g, -190 + k * 30, -20 - life * 70, 14 + life * 18, '#fff3dc', Math.sin(life * Math.PI) * 0.8); }
+      g.strokeStyle = '#8a5a3b'; g.lineWidth = 7; g.lineCap = 'round';
+      for (let k = 0; k < 5; k++) { const rx = 40 + k * 44; g.beginPath(); g.moveTo(rx, 30); g.quadraticCurveTo(rx - 30, -30, rx + 4, -90); g.stroke(); }
+      for (let k = 0; k < G.i; k++) { g.beginPath(); g.moveTo(20, -76 + k * 22); g.quadraticCurveTo(130, -36 + k * 18, 240, -76 + k * 22); g.stroke(); }
+      /* the plank: straight in the box, then laid round the ribs */
+      const bk = T.ease.io(G.bend), py = -76 + G.i * 22;
+      g.strokeStyle = G.crack > 0.05 ? '#5a3d28' : T.mix('#d9b384', '#b07a4a', T.clamp(G.heat)); g.lineWidth = 9;
+      g.beginPath(); g.moveTo(T.lerp(-196, 20, bk), T.lerp(4, py, bk)); g.quadraticCurveTo(T.lerp(-120, 130, bk), T.lerp(4, py + 40, bk), T.lerp(-44, 240, bk), T.lerp(4, py, bk)); g.stroke();
+      g.restore();
+      /* the heat, and the band where it will bend */
+      const b = band();
+      P.fill(g, P.rr(-200, 132, 400, 22, 11), 'rgba(20,26,44,0.45)');
+      P.fill(g, P.rr(-200 + 400 * b[0], 130, 400 * (b[1] - b[0]), 26, 6), 'rgba(159,207,134,0.85)');
+      P.fill(g, P.rr(-200, 136, 400 * T.clamp(G.heat), 14, 7), '#ffcf8a');
+      for (let k = 0; k < o.bands.length; k++) P.fill(g, P.circle(-((o.bands.length - 1) * 28) / 2 + k * 28, 186, 8), k < G.i ? '#ffd98a' : 'rgba(243,234,216,0.4)');
+      G.hintRing(g, t);
+      G.caption(g, G.on ? '김이 초록 칸에 들어오면 눌러서 꺼내세요' : '눌러서 판자를 김에 쬐기 시작하세요');
+    };
+    return G;
+  };
+
+  /* Knit the stripes of the old blanket from memory: the pattern shows, then is put away, and the rows are knitted
+     a colour at a time. A wrong colour unravels the row and the pattern shows again, briefly.
+     o: { at: () => screen [x, y, scale], rounds: [[colour index, …], …], show: seconds } */
+  const YARN = ['#e9c45a', '#c9573f', '#7fb0c9', '#f6efe0'];
+  Z.knit = function (o) {
+    const G = make({ r: 0, i: 0, phase: 'show', peek: 0, rows: [] });
+    const seq = () => o.rounds[G.r];
+    async function show(sec) { G.phase = 'show'; G.peek = 1; await G.clock.wait(sec); G.clock.tween(G, 'peek', 0, 0.6); G.phase = 'knit'; G.idle = 0; }
+    G.start = () => show(o.show || 3);
+    G.hit = (x, y) => { const a = o.at(), s = a[2]; for (let n = 0; n < 4; n++) if (Math.hypot(x - (a[0] + (n - 1.5) * 110 * s), y - (a[1] + 150 * s)) < 46 * s) return n; return -1; };
+    G.tap = function (n) {
+      if (G.phase !== 'knit' || n > 3) return;
+      G.idle = 0;
+      if (n !== seq()[G.i]) { G.wrong('그 줄이 아니에요. 한 번 더 보여 줄게요'); G.rows = []; G.i = 0; show(1.6); return; }
+      G.say = ''; G.rows.push(n); G.i++; T.audio.sfx('crayon'); T.audio.step(G.i + G.r * 4, { voice: 'felt', vel: 0.34 });
+      if (G.i >= seq().length) {
+        G.phase = 'pause'; G.r++;
+        G.clock.wait(1.1).then(() => { if (G.r >= o.rounds.length) { T.audio.promise(); G.finish(1.2); } else { G.rows = []; G.i = 0; show(o.show || 3); } });
+      }
+    };
+    G.next = () => (G.phase === 'knit' && !G.done ? String(seq()[G.i] + 1) : null);
+    G.hintAt = () => { if (G.phase !== 'knit') return null; const a = o.at(), s = a[2]; return [a[0] + (seq()[G.i] - 1.5) * 110 * s, a[1] + 150 * s]; };
+    G.draw = function (g, t) {
+      if (G.a < 0.005) return;
+      const a = o.at(), s = a[2], sq = seq();
+      g.save(); g.globalAlpha = G.a; g.translate(a[0], a[1]); g.scale(s, s);
+      /* the old blanket, held up for a moment */
+      if (G.peek > 0.01) { g.save(); g.globalAlpha = G.a * G.peek; P.fill(g, P.rr(-260, -260, 170, 200, 10), '#fbf4e2'); sq.forEach((c, i) => P.fill(g, P.rr(-250, -250 + i * (180 / sq.length), 150, 180 / sq.length - 4, 4), YARN[c])); P.text(g, '그 애의 담요', -175, -36, { font: 'serif', size: 20, color: '#33405c' }); g.restore(); }
+      /* the new one, on the needles */
+      P.fill(g, P.rr(-60, -260, 200, 200, 10), 'rgba(251,244,226,0.25)');
+      G.rows.forEach((c, i) => P.fill(g, P.rr(-50, -250 + i * (180 / sq.length), 180, 180 / sq.length - 4, 4), YARN[c]));
+      P.line(g, -70, -262, 150, -262, 4, '#c9c3ba'); P.line(g, -64, -270, 148, -254, 3, '#c9c3ba');
+      /* the yarn */
+      for (let n = 0; n < 4; n++) { const x = (n - 1.5) * 110, on = G.hintAt && G.idle > 9 && G.phase === 'knit' && sq[G.i] === n; P.fill(g, P.circle(x, 150, 34), YARN[n]); g.strokeStyle = 'rgba(0,0,0,0.12)'; g.lineWidth = 2; for (let k = 0; k < 3; k++) { g.beginPath(); g.ellipse(x, 150, 30 - k * 8, 12 + k * 4, 0.6, 0, Math.PI * 2); g.stroke(); } P.text(g, String(n + 1), x, 205, { font: 'serif', size: 16, color: '#fff6e4', alpha: 0.7, glow: 'rgba(14,20,32,0.9)' }); void on; }
+      g.restore();
+      for (let k = 0; k < o.rounds.length; k++) P.fill(g, P.circle(-((o.rounds.length - 1) * 28) / 2 + k * 28, 120, 8), k < G.r ? '#ffd98a' : 'rgba(243,234,216,0.4)');
+      G.hintRing(g, t);
+      G.caption(g, G.phase === 'show' ? '옛 담요의 줄무늬를 잘 봐 두세요' : '기억한 차례대로 실을 눌러 한 줄씩 뜨세요');
     };
     return G;
   };
