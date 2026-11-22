@@ -26,7 +26,7 @@ import { juice } from '../juice.ts';
 
 const A = 1.5, TAU = Math.PI * 2;
 /** 판 띠(화면 y, 가로 폭 = 1): 위 HUD 아래 ~ 아래 HUD 위 · 정령이 머무는 높이 */
-const TOP = 0.1, BOT = 1.31, HOME_SY = 1.05, ME_TOP = 0.55;
+const TOP = 0.1, BOT = 1.31, HOME_SY = 0.88, ME_TOP = 0.68, ME_BOT = 1.03;
 /** 카메라: 빠르기 · 이만큼 붐비면 멈춤 · 적이 모자라면 빨리 */
 const CAM_V = 0.0011, CAM_STOP = 10;
 /** 한 화면 상한: 적 · 총알 · 독구름 */
@@ -60,20 +60,21 @@ export const CHEX: Record<number, [string, string, string]> = {
 export type FK = 'white' | 'lion' | 'whale' | 'bird' | 'dragon' | 'octo' | 'turtle' | 'snake' | 'golem' | 'narwhal' | 'eagle' | 'rainbow';
 /** 공격 종류 — 무엇에 닿고 무엇을 뚫는지가 정해진다 */
 type AK = 'spark' | 'pounce' | 'jet' | 'chain' | 'fire' | 'poison' | 'slam' | 'vine' | 'quake' | 'wave' | 'bolt' | 'rain' | 'pop';
-interface FDef { name: string; mask: number; ak: AK; r: number; does: string; good: string; z: number }
+/** r = 그림 크기(몸 반지름) · hr = 맞고 때리는 몸 크기(판의 셈은 이것으로) */
+interface FDef { name: string; mask: number; ak: AK; r: number; hr: number; does: string; good: string; z: number }
 export const FD: Record<FK, FDef> = {
-  white: { name: '하얀 정령', mask: 0, ak: 'spark', r: 0.062, does: '반짝 별만 쏴요 — 맞으면 하트 -1', good: '', z: 0.02 },
-  lion: { name: '불 사자', mask: R, ak: 'pounce', r: 0.068, does: '떼에 뛰어들어 불꽃 펑', good: '떼', z: 0 },
-  whale: { name: '물 고래', mask: B, ak: 'jet', r: 0.084, does: '물줄기로 큰 놈을 밀어내요', good: '큰 놈', z: 0.015 },
-  bird: { name: '번개 새', mask: Y, ak: 'chain', r: 0.058, does: '번개가 적에서 적으로 튕겨요', good: '날아다니는 놈', z: 0.012 },
-  dragon: { name: '불 용', mask: R, ak: 'fire', r: 0.1, does: '하늘을 날며 불을 휩쓸어요', good: '떼 · 하늘', z: 0.07 },
-  octo: { name: '독구름 문어', mask: 3, ak: 'poison', r: 0.074, does: '독구름은 방패도 뚫어요', good: '방패', z: 0.01 },
-  turtle: { name: '용암 거북', mask: 5, ak: 'slam', r: 0.078, does: '쿵 내려찍어 단단한 껍데기를 깨요', good: '단단한 놈', z: 0 },
-  snake: { name: '덩굴 뱀', mask: 6, ak: 'vine', r: 0.066, does: '덩굴로 빠른 놈을 꽁꽁 묶어요', good: '빠른 놈', z: 0 },
-  golem: { name: '진흙 골렘', mask: 7, ak: 'quake', r: 0.105, does: '쿵쿵쿵! 온 땅이 흔들려요', good: '모두(땅)', z: 0 },
-  narwhal: { name: '파도 일각고래', mask: B, ak: 'wave', r: 0.1, does: '큰 파도가 줄 선 놈을 쓸어요', good: '줄 선 놈', z: 0.02 },
-  eagle: { name: '천둥 독수리', mask: Y, ak: 'bolt', r: 0.1, does: '하늘에서 벼락이 쏟아져요', good: '흩어진 놈', z: 0.075 },
-  rainbow: { name: '무지개 고래', mask: RAIN, ak: 'rain', r: 0.11, does: '온 화면을 무지개로 휩쓸어요', good: '모두', z: 0.05 },
+  white: { name: '하얀 정령', mask: 0, ak: 'spark', r: 0.078, hr: 0.062, does: '반짝 별만 쏴요 — 맞으면 하트 -1', good: '', z: 0.02 },
+  lion: { name: '불 사자', mask: R, ak: 'pounce', r: 0.095, hr: 0.068, does: '떼에 뛰어들어 불꽃 펑', good: '떼', z: 0 },
+  whale: { name: '물 고래', mask: B, ak: 'jet', r: 0.1, hr: 0.084, does: '물줄기로 큰 놈을 밀어내요', good: '큰 놈', z: 0.015 },
+  bird: { name: '번개 새', mask: Y, ak: 'chain', r: 0.082, hr: 0.058, does: '번개가 적에서 적으로 튕겨요', good: '날아다니는 놈', z: 0.012 },
+  dragon: { name: '불 용', mask: R, ak: 'fire', r: 0.125, hr: 0.1, does: '하늘을 날며 불을 휩쓸어요', good: '떼 · 하늘', z: 0.07 },
+  octo: { name: '독구름 문어', mask: 3, ak: 'poison', r: 0.098, hr: 0.074, does: '독구름은 방패도 뚫어요', good: '방패', z: 0.01 },
+  turtle: { name: '용암 거북', mask: 5, ak: 'slam', r: 0.104, hr: 0.078, does: '쿵 내려찍어 단단한 껍데기를 깨요', good: '단단한 놈', z: 0 },
+  snake: { name: '덩굴 뱀', mask: 6, ak: 'vine', r: 0.095, hr: 0.066, does: '덩굴로 빠른 놈을 꽁꽁 묶어요', good: '빠른 놈', z: 0 },
+  golem: { name: '진흙 골렘', mask: 7, ak: 'quake', r: 0.125, hr: 0.105, does: '쿵쿵쿵! 온 땅이 흔들려요', good: '모두(땅)', z: 0 },
+  narwhal: { name: '파도 일각고래', mask: B, ak: 'wave', r: 0.12, hr: 0.1, does: '큰 파도가 줄 선 놈을 쓸어요', good: '줄 선 놈', z: 0.02 },
+  eagle: { name: '천둥 독수리', mask: Y, ak: 'bolt', r: 0.12, hr: 0.1, does: '하늘에서 벼락이 쏟아져요', good: '흩어진 놈', z: 0.075 },
+  rainbow: { name: '무지개 고래', mask: RAIN, ak: 'rain', r: 0.13, hr: 0.11, does: '온 화면을 무지개로 휩쓸어요', good: '모두', z: 0.05 },
 };
 /** 도감 차례(되어 본 모습) */
 export const DEX: FK[] = ['lion', 'whale', 'bird', 'dragon', 'octo', 'turtle', 'snake', 'golem', 'narwhal', 'eagle', 'rainbow'];
@@ -110,6 +111,8 @@ type Star = { k: 'multi'; n: number; f?: FK } | { k: 'form'; f: FK; n: number; f
 interface StageDef {
   ch: number; name: string; news: string; unlock: FK | null; newFoe: EK | null; D: number; cols: number[]; groups: Grp[]; star: Star;
   boss?: EK; patches?: number[]; seg?: number; summon?: [EK, number][];
+  /** 2단계 짐승 판: 처음부터 뒤쪽에 진한 색 하나 (앞에는 미끼 색) */
+  early?: EK;
 }
 export const CHAPTERS = ['회색 골목 마을', '물감 운하 마을', '구름 위 성 마을'];
 const G = (at: number, form: 0 | 1 | 2 | 3, ...f: [EK, number][]): Grp => ({ at, f, form });
@@ -120,29 +123,29 @@ const G = (at: number, form: 0 | 1 | 2 | 3, ...f: [EK, number][]): Grp => ({ at,
 export const STAGES: StageDef[] = [
   { ch: 0, name: '불 사자', news: '빨강을 먹으면 불 사자! 떼에 뛰어들어 펑', unlock: 'lion', newFoe: 'blob', D: 1.0, cols: [R], star: { k: 'multi', n: 7 },
     groups: [G(0.25, 2, ['blob', 9]), G(0.6, 3, ['blob', 9], ['bucket', 1]), { at: 1, f: [['blob', 7]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.7, cols: [R, B], star: { k: 'form', f: 'whale', n: 30 },
+  { ch: 0, name: '물 고래', news: '파랑을 먹으면 물 고래! 큰 놈을 물줄기로 밀어내요', unlock: 'whale', newFoe: 'bucket', D: 1.7, cols: [R, B], star: { k: 'form', f: 'whale', n: 10, foe: 'bucket', foeName: '큰 놈' },
     groups: [G(0, 0, ['bucket', 2], ['blob', 4]), G(0.2, 0, ['bucket', 2], ['blob', 4]), G(0.4, 0, ['bucket', 3], ['blob', 3]), G(0.6, 0, ['bucket', 2], ['blob', 5]), G(0.8, 0, ['bucket', 3], ['blob', 3]), { at: 1, f: [['bucket', 1], ['blob', 3]], form: 3, champ: 'bucket' }] },
-  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.8, cols: [R, B, Y], star: { k: 'multi', f: 'bird', n: 6 },
+  { ch: 0, name: '번개 새', news: '노랑을 먹으면 번개 새! 하늘의 도둑도 찌릿', unlock: 'bird', newFoe: 'kite', D: 1.8, cols: [R, B, Y], star: { k: 'form', f: 'bird', n: 21, foe: 'kite', foeName: '연 도둑' },
     groups: [G(0, 0, ['kite', 5], ['blob', 3]), G(0.2, 0, ['kite', 6], ['blob', 2], ['bucket', 1]), G(0.4, 0, ['kite', 4], ['blob', 5]), G(0.6, 0, ['kite', 6], ['blob', 3]), G(0.8, 0, ['kite', 6], ['bucket', 1], ['blob', 2]), { at: 1, f: [['kite', 4], ['blob', 2]], form: 3, champ: 'kite' }] },
-  { ch: 0, name: '대장 먹물 문어', news: '빨강 셋을 이어 먹으면 불 용! 대장의 색을 뜯어 먹어요', unlock: 'dragon', newFoe: 'inkboss', D: 0, cols: [R, B, Y], star: { k: 'time', n: 40 },
+  { ch: 0, name: '대장 먹물 문어', news: '빨강 셋을 이어 먹으면 불 용! 대장의 색을 뜯어 먹어요', unlock: 'dragon', newFoe: 'inkboss', D: 0, cols: [R, B, Y], star: { k: 'time', n: 44 },
     boss: 'inkboss', patches: [R, B, R, Y], seg: 260, summon: [['blob', 5], ['kite', 2], ['bucket', 1]],
     groups: [G(0, 2, ['blob', 6], ['kite', 2])] },
-  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 40 },
+  { ch: 1, name: '독구름 문어', news: '빨강+파랑 = 보라 문어! 독구름은 방패도 뚫어요', unlock: 'octo', newFoe: 'crayon', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'octo', n: 27, foe: 'crayon', foeName: '병정' },
     groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 7], ['blob', 3]), G(0.85, 1, ['crayon', 6], ['kite', 2]), { at: 1, f: [['crayon', 5]], form: 3, champ: 'crayon' }] },
-  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 20 },
+  { ch: 1, name: '용암 거북', news: '빨강+노랑 = 용암 거북! 쿵 내려찍어 굳은 껍데기를 깨요', unlock: 'turtle', newFoe: 'shell', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'turtle', n: 12, foe: 'shell', foeName: '달팽이' },
     groups: [G(0, 0, ['shell', 3], ['blob', 5]), G(0.17, 0, ['shell', 3], ['crayon', 2], ['blob', 3]), G(0.34, 2, ['blob', 8], ['kite', 2]), G(0.51, 0, ['shell', 4], ['blob', 4]), G(0.68, 1, ['shell', 3], ['crayon', 3], ['blob', 2]), G(0.85, 0, ['shell', 4], ['blob', 4]), { at: 1, f: [['shell', 3], ['blob', 3]], form: 3, champ: 'shell' }] },
-  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 28 },
+  { ch: 1, name: '덩굴 뱀', news: '파랑+노랑 = 덩굴 뱀! 휙휙 피하는 놈을 꽁꽁', unlock: 'snake', newFoe: 'brush', D: 1.9, cols: [R, B, Y], star: { k: 'form', f: 'snake', n: 8, foe: 'brush', foeName: '붓 도깨비' },
     groups: [G(0, 0, ['brush', 4], ['blob', 4]), G(0.17, 0, ['brush', 5], ['shell', 1], ['blob', 2]), G(0.34, 1, ['crayon', 4], ['kite', 2], ['blob', 2]), G(0.51, 0, ['brush', 5], ['blob', 3]), G(0.68, 0, ['brush', 4], ['kite', 2], ['bucket', 1]), G(0.85, 0, ['brush', 5], ['blob', 4]), { at: 1, f: [['brush', 4]], form: 3, champ: 'brush' }] },
-  { ch: 1, name: '대장 물감 통 거인', news: '세 색을 다 섞으면 진흙 골렘! 쿵쿵쿵', unlock: 'golem', newFoe: 'giant', D: 0, cols: [R, B, Y], star: { k: 'time', n: 45 },
+  { ch: 1, name: '대장 물감 통 거인', news: '세 색을 다 섞으면 진흙 골렘! 쿵쿵쿵', unlock: 'golem', newFoe: 'giant', D: 0, cols: [R, B, Y], star: { k: 'time', n: 40 },
     boss: 'giant', patches: [R, Y, B, R, Y], seg: 220, summon: [['shell', 1], ['crayon', 2], ['brush', 2], ['blob', 3]],
     groups: [G(0, 2, ['crayon', 3], ['shell', 2], ['blob', 3])] },
-  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 20 },
+  { ch: 2, name: '파도 일각고래', news: '파랑 셋을 이어 먹으면 파도 일각고래! 줄 선 놈을 쓸어요', unlock: 'narwhal', newFoe: null, early: 'bucket', D: 2.0, cols: [R, B, B, Y], star: { k: 'form', f: 'narwhal', n: 13, foe: 'crayon', foeName: '병정' },
     groups: [G(0, 1, ['crayon', 6], ['blob', 3]), G(0.17, 1, ['crayon', 6], ['bucket', 1]), G(0.34, 2, ['blob', 8], ['shell', 2]), G(0.51, 1, ['crayon', 6], ['bucket', 1]), G(0.68, 1, ['crayon', 6], ['brush', 2], ['bucket', 1]), G(0.85, 1, ['crayon', 6], ['bucket', 2]), { at: 1, f: [['crayon', 6]], form: 3, champ: 'bucket' }] },
-  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 16 },
+  { ch: 2, name: '천둥 독수리', news: '노랑 셋을 이어 먹으면 천둥 독수리! 벼락 비', unlock: 'eagle', newFoe: 'balloon', early: 'kite', D: 2.0, cols: [R, B, Y, Y], star: { k: 'form', f: 'eagle', n: 12 },
     groups: [G(0, 0, ['balloon', 5], ['kite', 2], ['blob', 2]), G(0.17, 0, ['balloon', 6], ['brush', 2]), G(0.34, 0, ['kite', 4], ['balloon', 3], ['blob', 3]), G(0.51, 0, ['balloon', 6], ['shell', 1], ['blob', 2]), G(0.68, 0, ['balloon', 5], ['kite', 3], ['brush', 2]), G(0.85, 0, ['balloon', 6], ['kite', 2]), { at: 1, f: [['balloon', 5]], form: 3, champ: 'kite' }] },
   { ch: 2, name: '무지개 고래', news: '무지개 도둑을 잡으면 무지개 고래! 놓치면 달아나요', unlock: 'rainbow', newFoe: 'rainbow', D: 2.0, cols: [R, B, Y], star: { k: 'form', f: 'rainbow', n: 18 },
     groups: [G(0, 0, ['tower', 1], ['blob', 5], ['rainbow', 1]), G(0.17, 0, ['crayon', 3], ['shell', 2], ['brush', 2]), G(0.34, 0, ['tower', 1], ['balloon', 3], ['rainbow', 1], ['blob', 2]), G(0.51, 2, ['blob', 6], ['bucket', 1], ['kite', 2]), G(0.68, 0, ['tower', 1], ['crayon', 3], ['rainbow', 1], ['brush', 2]), G(0.85, 0, ['shell', 2], ['brush', 2], ['balloon', 2], ['rainbow', 1]), { at: 1, f: [['crayon', 3], ['brush', 2]], form: 3, champ: 'bucket' }] },
-  { ch: 2, name: '대장 회색 왕', news: '마지막 대장! 왕의 색을 다 뜯으면 마을이 무지개로', unlock: null, newFoe: 'king', D: 0, cols: [R, B, Y], star: { k: 'time', n: 55 },
+  { ch: 2, name: '대장 회색 왕', news: '마지막 대장! 왕의 색을 다 뜯으면 마을이 무지개로', unlock: null, newFoe: 'king', D: 0, cols: [R, B, Y], star: { k: 'time', n: 34 },
     boss: 'king', patches: [R, B, Y, B, R, RAIN], seg: 200, summon: [['crayon', 2], ['brush', 1], ['balloon', 2], ['shell', 1], ['blob', 2]],
     groups: [G(0, 2, ['crayon', 3], ['balloon', 2], ['brush', 2])] },
 ];
@@ -178,17 +181,19 @@ export interface Me {
   x: number; y: number; z: number; mask: number; tier: number; f: FK; T: number; Tmax: number; face: number; vx: number; vy: number;
   st: number; tm: number; cool: number; inv: number; hitT: number; tx: number; ty: number; aid: number; ang: number; legs: number; bornT: number;
   lx: number; ly: number; lt: number; tgt: number;
+  /** 방금 맞기 전 크기 ÷ 지금 크기 (퓨슝 작아지는 연출) */
+  ps: number;
 }
 export interface SoulState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result' | 'pick' | 'fail' | 'end'; pt: number; stageT: number;
   hearts: number; tries: number; pts: number; sp: number; stars: number; got: number; starOk: boolean[]; dead: boolean; won: boolean;
   lv: number; perk: number[]; picked: number; dex: FK[]; newDex: FK[]; seenForm: FK[];
-  me: Me; eat: { id: number; patch: number; ph: number; t: number; T: number; x0: number; y0: number } | null; rest: number;
+  me: Me; eat: { id: number; patch: number; ph: number; t: number; T: number; x0: number; y0: number; sk: number } | null; rest: number;
   foes: Foe[]; nid: number; shots: Shot[]; clouds: Cloud[]; waves: Wave[]; q: Q[]; lines: Line[]; paints: Paint[]; events: Ev[];
-  camY: number; gi: number; trickT: number; awake: boolean; tapped: boolean; taps: number; clearT: number; lostHeart: boolean;
+  camY: number; gi: number; trickT: number; awake: boolean; tapped: boolean; tapped0: boolean; taps: number; clearT: number; lostHeart: boolean;
   aid: number; multi: Record<number, number>; best: number; star3: boolean; fkills: number; kills: number; gain: number;
   patches: Patch[]; bossK: number; bossT: number; summonT: number; bossDown: boolean; bossAtk: number;
-  grid: Uint8Array; gridRows: number; painted: number; pct: number; villages: number[]; paintN: number; runId: number;
+  grid: Uint8Array; gridRows: number; stolenN: number; painted: number; pct: number; villages: number[]; paintN: number; runId: number;
   freeze: number; down: boolean; wowN: number; firstTap: number; firstBig: number; denyT: number;
   seen: Set<string>;
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
@@ -209,7 +214,7 @@ const hittable = (m: Foe) => !m.dead && !m.held;
 export const powOf = (s: SoulState, tier = s.me.tier) => (1 + 0.24 * (tier - 1)) * (1 + 0.05 * (s.lv - 1));
 export const sizeOf = (s: SoulState, tier = s.me.tier) => (s.me.f === 'white' ? 1 : 1 + 0.12 * (Math.min(5, tier) - 1)) * (1 + 0.012 * (s.lv - 1));
 const reachK = (s: SoulState) => (1 + 0.08 * (s.me.tier - 1)) * (1 + 0.02 * (s.lv - 1));
-const meR = (s: SoulState) => FD[s.me.f].r * sizeOf(s);
+const meR = (s: SoulState) => FD[s.me.f].hr * sizeOf(s);
 
 function formOf(s: SoulState, mask: number, tier: number): FK {
   if (mask === RAIN) return 'rainbow';
@@ -259,6 +264,13 @@ function wow(s: SoulState, text: string, sub = '', n = 0, col = 0) {
 
 // ───────────────────────────── 칠하기 ─────────────────────────────
 const GX = 12, CELL = 1 / GX;
+/** 도둑이 끌고 간 회색 자국 두 줄 (판마다 모양이 다르다) — 회색은 여기에만 남고, 칠하기 비율도 여기서 센다 */
+export const trailX = (stage: number, y: number, k: number) => {
+  const p = stage * 1.7 + k * 2.4;
+  return (k ? 0.67 : 0.33) + 0.1 * Math.sin(2.1 * y + p) + 0.035 * Math.sin(5.3 * y + p * 1.9);
+};
+export const trailHW = (y: number, k: number) => 0.088 + 0.02 * Math.sin(3.1 * y + k * 1.3);
+export const stolenAt = (stage: number, x: number, y: number) => Math.abs(x - trailX(stage, y, 0)) < trailHW(y, 0) || Math.abs(x - trailX(stage, y, 1)) < trailHW(y, 1);
 function paint(s: SoulState, x: number, y: number, r: number, c: number) {
   r *= 1 + 0.04 * (s.lv - 1);
   s.paints.push({ x, y, r, c, seed: Math.floor(s.rng() * 1e6) });
@@ -268,9 +280,9 @@ function paint(s: SoulState, x: number, y: number, r: number, c: number) {
   for (let row = Math.max(0, r0); row <= Math.min(s.gridRows - 1, r1); row++)
     for (let col = Math.max(0, Math.floor((x - r) / CELL)); col <= Math.min(GX - 1, Math.floor((x + r) / CELL)); col++) {
       const cx = (col + 0.5) * CELL, cy = (row + 0.5) * CELL - D;
-      if (dist(cx, cy, x, y) <= r + CELL * 0.3 && !s.grid[row * GX + col]) (s.grid[row * GX + col] = 1), s.painted++;
+      if (dist(cx, cy, x, y) <= r + CELL * 0.3 && s.grid[row * GX + col] === 1) (s.grid[row * GX + col] = 2), s.painted++;
     }
-  s.pct = s.painted / Math.max(1, s.grid.length);
+  s.pct = s.painted / Math.max(1, s.stolenN);
 }
 
 // ───────────────────────────── 도둑 ─────────────────────────────
@@ -296,7 +308,7 @@ function spawnGroup(s: SoulState, g: Grp, pre: boolean) {
   for (const [k, n] of g.f) for (let j = 0; j < n; j++) list.push(k);
   const room = CAP - s.foes.filter(alive).length;
   const n = Math.min(list.length, Math.max(0, room - (g.champ ? 1 : 0)));
-  const baseY = pre ? s.camY + 0.36 : s.camY + TOP - 0.04, form = g.form ?? 0;
+  const baseY = pre ? s.camY + 0.36 : s.camY + TOP - 0.04, form = g.form ?? 0, spots: [EK, number, number][] = [];
   const cx = 0.25 + s.rng() * 0.5;
   for (let i = 0; i < n; i++) {
     const k = list[i], r = ED[k].r;
@@ -311,9 +323,17 @@ function spawnGroup(s: SoulState, g: Grp, pre: boolean) {
     } else (x = 0.1 + s.rng() * 0.8), (y = baseY - s.rng() * 0.14);
     if (pre) y += 0.08 + s.rng() * 0.3;
     x = clamp(x, r + 0.02, 0.98 - r);
-    const col = k === 'rainbow' ? RAIN : pickCol(s, cols);
-    add(s, k, x, y, col, !pre);
+    spots.push([k, x, y]);
   }
+  // 이 판에 맞는 색은 뒤쪽에, 다른 색(미끼)이 앞쪽에 온다 — '가장 가까운 것'만 먹으면 맞는 모습이 잘 안 된다
+  const key = d.star.k === 'form' && FD[d.star.f].mask !== RAIN ? FD[d.star.f].mask : 0;
+  const keyCols = cols.filter((c) => key && (c & key) === c), bait = cols.filter((c) => key && (c & key) === 0);
+  const order = spots.map((_, i) => i).sort((a, b) => spots[b][2] - spots[a][2]);
+  const front = new Set(order.slice(0, Math.ceil(order.length * 0.5)));
+  spots.forEach(([k, x, y], i) => {
+    const col = k === 'rainbow' ? RAIN : keyCols.length && bait.length ? (front.has(i) ? pickCol(s, bait) : s.rng() < 0.8 ? pickCol(s, keyCols) : pickCol(s, bait)) : pickCol(s, cols);
+    add(s, k, x, y, col, !pre);
+  });
   if (g.champ) {
     // 판의 '무서운 것': 크고 진한 색 — 먹으면 단숨에 한 단계 더 (그 판의 새 모습 색)
     const ck = g.champ, sf = d.star.k !== 'time' && d.star.f ? FD[d.star.f].mask : R, col = sf === RAIN ? R : sf;
@@ -377,15 +397,20 @@ function newStage(s: SoulState) {
   s.awake = s.stage > 0;
   s.gridRows = Math.ceil((d.D + A) / CELL);
   s.grid = new Uint8Array(s.gridRows * GX);
+  s.stolenN = 0;
+  for (let row = 0; row < s.gridRows; row++) for (let col = 0; col < GX; col++) if (stolenAt(s.stage, (col + 0.5) * CELL, (row + 0.5) * CELL - d.D)) (s.grid[row * GX + col] = 1), s.stolenN++;
   s.painted = 0;
   s.pct = 0;
   s.me = blankMe();
   if (s.stage === 0 && !s.tapped) {
     // 1판 첫 장면: 진한 빨강 물감 통 도깨비 둘레에 먹물 꼬마 일곱 — 첫 톡이 '불 사자! 8마리 한 방'
-    const c = add(s, 'bucket', 0.5, 0.62, R, false, true);
+    const c = add(s, 'bucket', 0.44, 0.66, R, false, true);
     s.spot = { id: c.id, t: s.t, label: '진한 빨강!' };
-    for (let i = 0; i < 7; i++) add(s, 'blob', 0.5 + Math.cos(0.4 + (i * TAU) / 7) * 0.13, 0.64 + Math.sin(0.4 + (i * TAU) / 7) * 0.1, R, false);
-    for (const [x, y] of [[0.16, 0.36], [0.84, 0.4], [0.2, 0.84], [0.8, 0.8]]) add(s, 'blob', x, y, R, false);
+    for (let i = 0; i < 7; i++) add(s, 'blob', 0.44 + Math.cos(0.4 + (i * TAU) / 7) * 0.13, 0.68 + Math.sin(0.4 + (i * TAU) / 7) * 0.1, R, false);
+    for (const [x, y] of [[0.16, 0.38], [0.84, 0.42], [0.18, 0.98], [0.86, 0.96]]) add(s, 'blob', x, y, R, false);
+    // 정령은 진한 빨강 바로 옆 (첫 톡이 곧바로 빨기)
+    s.me.x = s.me.tx = 0.7;
+    s.me.y = s.me.ty = 0.74;
   } else if (d.boss) {
     spawnBoss(s);
     spawnGroup(s, d.groups[0], true);
@@ -393,6 +418,10 @@ function newStage(s: SoulState) {
   } else {
     spawnGroup(s, { ...d.groups[0], at: 0, champ: undefined }, true);
     s.gi = 1;
+    if (d.early && d.star.k === 'form') {
+      const m = add(s, d.early, 0.5 + (s.rng() - 0.5) * 0.3, s.camY + 0.24, FD[d.star.f].mask, false, true);
+      s.spot = { id: m.id, t: s.t, label: '진한 색!' };
+    }
   }
   const first = s.stage === 0 || STAGES[s.stage - 1].ch !== d.ch;
   s.banner = { head: `${first ? CHAPTERS[d.ch] + ' · ' : ''}${s.stage + 1}판`, sub: d.news, t: s.t };
@@ -402,7 +431,7 @@ function newStage(s: SoulState) {
   ev(s, 'stage', 0.5, s.camY + 0.6, s.stage);
 }
 function blankMe(): Me {
-  return { x: 0.5, y: HOME_SY, z: 0, mask: 0, tier: 1, f: 'white', T: 0, Tmax: 1, face: 1, vx: 0, vy: 0, st: 0, tm: 0, cool: 30, inv: 0, hitT: -99, tx: 0.5, ty: HOME_SY, aid: 0, ang: -Math.PI / 2, legs: 0, bornT: -99, lx: 0.5, ly: HOME_SY, lt: 0, tgt: 0 };
+  return { x: 0.5, y: HOME_SY, z: 0, mask: 0, tier: 1, f: 'white', T: 0, Tmax: 1, face: 1, vx: 0, vy: 0, st: 0, tm: 0, cool: 30, inv: 0, hitT: -99, tx: 0.5, ty: HOME_SY, aid: 0, ang: -Math.PI / 2, legs: 0, bornT: -99, lx: 0.5, ly: HOME_SY, lt: 0, tgt: 0, ps: 1 };
 }
 
 // ───────────────────────────── 때리기 ─────────────────────────────
@@ -429,7 +458,8 @@ function kill(s: SoulState, m: Foe, aid: number, byForm = true) {
       if (k === d.star.n) starWow(s, `${FD[d.star.f].name}으로 ${d.star.foeName ? d.star.foeName + ' ' : ''}${k}마리!`);
     }
   }
-  if (m.col) paint(s, m.x, m.y, 0.06 + m.r * 1.2, m.col === RAIN ? [R, B, Y][m.seed % 3] : m.col);
+  const pc0 = s.me.mask && s.me.mask !== RAIN ? s.me.mask : m.col && m.col !== RAIN ? m.col : [R, B, Y][m.seed % 3];
+  if (m.col || s.me.mask) paint(s, m.x, m.y, 0.06 + m.r * 1.2, pc0);
   ev(s, 'kill', m.x, m.y - m.r, n, m.r, m.col, m.k);
 }
 /** 같은 색을 이어 먹을수록 점수 배수 (×1 · ×1.5 · ×2 · ×2.5 · ×3) — 섞으면 ×1부터 */
@@ -526,12 +556,19 @@ function hitMe(s: SoulState, u: number, x: number, y: number) {
     if (me.f === 'golem' || me.f === 'rainbow') return void (me.inv = 30);
     // 맞으면 색이 튀어 나가 한 단계 작아진다 (1단계에서 맞거나 내려찍기면 하얀 맨몸)
     me.inv = 40;
-    if (u >= 3 || me.tier <= u) return void (ev(s, 'knock', me.x, me.y - meR(s), 0, 0, 0, String(me.mask)), fade(s, true));
+    const before = FD[me.f].r * sizeOf(s);
+    if (u >= 3 || me.tier <= u) {
+      ev(s, 'knock', me.x, me.y - meR(s), 0, 0, 0, String(me.mask));
+      fade(s, true);
+      me.ps = before / FD.white.r;
+      return;
+    }
     const was = me.f;
     me.tier -= u;
     me.T = Math.max(60, me.T - 40 * u);
     me.f = formOf(s, me.mask, me.tier);
     if (me.f !== was) (me.st = 0), (me.z = 0), (me.cool = 20);
+    me.ps = before / (FD[me.f].r * sizeOf(s));
     ev(s, 'drip', me.x, me.y - meR(s), u, me.f !== was ? 1 : 0, 0, String(me.mask));
     return;
   }
@@ -599,7 +636,9 @@ function onTap(s: SoulState, x: number, sy: number) {
   if (tg.patch >= 0) [tx, ty] = patchXY(s, m, s.patches[tg.patch]);
   else m.held = true;
   const me = s.me;
-  s.eat = { id: tg.id, patch: tg.patch, ph: 0, t: 0, T: DASH_MIN + Math.round(dist(me.x, me.y, tx, ty) * 26), x0: me.x, y0: me.y };
+  const quick = s.stage === 0 && !s.tapped0;
+  s.tapped0 = true;
+  s.eat = { id: tg.id, patch: tg.patch, ph: 0, t: 0, T: quick ? 3 : DASH_MIN + Math.round(dist(me.x, me.y, tx, ty) * 26), x0: me.x, y0: me.y, sk: quick ? 9 : SUCK_T };
   me.z = 0;
   ev(s, 'tap', x, y);
   ev(s, 'dash', me.x, me.y, 0, tx, ty);
@@ -624,7 +663,7 @@ function eatStep(s: SoulState) {
     return;
   }
   // 쭉 빨아들인다 (색 띠가 소용돌이로)
-  if (e.t < SUCK_T) return;
+  if (e.t < e.sk) return;
   s.eat = null;
   s.rest = REST_T;
   const aid = ++s.aid;
@@ -830,7 +869,7 @@ function myStep(s: SoulState) {
     case 'white': {
       // 하얀 정령: 집 둘레에서 둥실, 가까운 도둑에 반짝 별 (약하다)
       const o = nearest(s, me.x, me.y, 'spark');
-      const fx = 0.5 + Math.sin(s.t * 0.013) * 0.22, fy = home + Math.sin(s.t * 0.021) * 0.05;
+      const pre = s.stage === 0 && !s.tapped, fx = pre ? me.tx + Math.sin(s.t * 0.05) * 0.012 : 0.5 + Math.sin(s.t * 0.013) * 0.22, fy = pre ? s.camY + me.ty + Math.sin(s.t * 0.07) * 0.01 : home + Math.sin(s.t * 0.021) * 0.05;
       let ax = fx, ay = fy;
       if (o && dist(o.x, o.y, me.x, me.y) < 0.16) (ax = me.x - (o.x - me.x) * 0.8), (ay = me.y - (o.y - me.y) * 0.5 + 0.02);
       moveTo(me, ax, ay, 0.0045);
@@ -868,7 +907,7 @@ function myStep(s: SoulState) {
         me.lx = me.x;
         me.ly = me.y;
         me.tx = clamp(cx, 0.06, 0.94);
-        me.ty = clamp(cy + 0.02, s.camY + ME_TOP, s.camY + 1.25);
+        me.ty = clamp(cy + 0.02, s.camY + ME_TOP, s.camY + ME_BOT);
         me.legs = 14 + Math.round(dist(me.x, me.y, me.tx, me.ty) * 18);
         me.face = me.tx > me.x ? 1 : -1;
         ev(s, 'pounce', me.x, me.y);
@@ -918,7 +957,7 @@ function myStep(s: SoulState) {
         if (me.tm >= 40) (me.st = 0), (me.cool = 34);
         break;
       }
-      if (o) moveTo(me, clamp(o.x, 0.1, 0.9), clamp(o.y + 0.28, s.camY + 0.5, s.camY + 1.24), 0.0042);
+      if (o) moveTo(me, clamp(o.x, 0.1, 0.9), clamp(o.y + 0.28, s.camY + ME_TOP, s.camY + ME_BOT), 0.0042);
       else moveTo(me, 0.5, home, 0.003);
       if (o && me.cool <= 0 && dist(o.x, o.y, me.x, me.y) < 0.6) (me.st = 1), (me.tm = 0), (me.tgt = o.id), (me.aid = ++s.aid), (me.ang = Math.atan2(o.y - me.y, o.x - me.x)), ev(s, 'jet', me.x, me.y);
       break;
@@ -933,7 +972,7 @@ function myStep(s: SoulState) {
     case 'bird': {
       // 도둑들 둘레를 휙휙 돌며 찌릿 — 번개가 적에서 적으로 튕긴다
       const [cx, cy] = densest(s, 0.25, 'chain', me.x, me.y, 1.2);
-      const a = s.t * 0.045, ox = clamp(cx + Math.cos(a) * 0.2, 0.08, 0.92), oy = clamp(cy + 0.18 + Math.sin(a) * 0.1, s.camY + ME_TOP, s.camY + 1.24);
+      const a = s.t * 0.045, ox = clamp(cx + Math.cos(a) * 0.2, 0.08, 0.92), oy = clamp(cy + 0.18 + Math.sin(a) * 0.1, s.camY + ME_TOP, s.camY + ME_BOT);
       moveTo(me, ox, oy, 0.008);
       me.z = 0.012 + Math.abs(Math.sin(s.t * 0.2)) * 0.012;
       if (me.cool <= 0 && nearest(s, me.x, me.y, 'chain')) {
@@ -984,7 +1023,7 @@ function myStep(s: SoulState) {
         break;
       }
       const [cx, cy, n] = densest(s, 0.13 * K, 'slam', me.x, me.y, 0.7);
-      if (me.cool <= 0 && n > 0) (me.st = 1), (me.tm = 0), (me.lx = me.x), (me.ly = me.y), (me.tx = clamp(cx, 0.07, 0.93)), (me.ty = clamp(cy + 0.03, s.camY + ME_TOP, s.camY + 1.25)), (me.legs = 22), (me.face = me.tx > me.x ? 1 : -1), ev(s, 'hop', me.x, me.y);
+      if (me.cool <= 0 && n > 0) (me.st = 1), (me.tm = 0), (me.lx = me.x), (me.ly = me.y), (me.tx = clamp(cx, 0.07, 0.93)), (me.ty = clamp(cy + 0.03, s.camY + ME_TOP, s.camY + ME_BOT)), (me.legs = 22), (me.face = me.tx > me.x ? 1 : -1), ev(s, 'hop', me.x, me.y);
       else moveTo(me, n > 0 ? cx : 0.5, n > 0 ? cy + 0.16 : home, 0.0025);
       break;
     }
@@ -1040,7 +1079,7 @@ function myStep(s: SoulState) {
     for (const m of s.foes) if (hittable(m) && dist(m.x, m.y, me.x, me.y) < 0.09 + m.r) hurt(s, m, 4 * P, 'pop', aid);
   }
   me.x = clamp(me.x, 0.06, 0.94);
-  me.y = clamp(me.y, s.camY + ME_TOP, s.camY + 1.27);
+  me.y = clamp(me.y, s.camY + ME_TOP, s.camY + ME_BOT);
 }
 function shoot(s: SoulState, x: number, y: number, vx: number, vy: number, r: number, u: number, t: number, mine: boolean, k: number, aid = 0) {
   if (s.shots.length >= SHOT_CAP) return;
@@ -1056,7 +1095,7 @@ function foeStep(s: SoulState, m: Foe) {
   if (m.st === ENTER) {
     m.y += 0.0075;
     m.walkT = s.t;
-    if (m.y >= s.camY + TOP + 0.2 + m.r) m.st = IDLE;
+    if (m.y >= s.camY + TOP + 0.22 + m.r) m.st = IDLE;
     return;
   }
   if (m.bind > 0) return void m.bind--;
@@ -1133,7 +1172,7 @@ function foeStep(s: SoulState, m: Foe) {
     case 'kite':
     case 'balloon': {
       // 하늘: 화면 위쪽 반을 흔들흔들 날아다니며 먹물·물감 폭탄을 떨군다
-      const hy = s.camY + (m.k === 'kite' ? 0.52 : 0.62) + Math.sin(m.seed) * 0.1;
+      const hy = s.camY + (m.k === 'kite' ? 0.44 : 0.5) + Math.sin(m.seed) * 0.08;
       const tx = clamp(me.x + Math.sin(s.t * 0.012 + m.seed) * 0.35, 0.08, 0.92);
       m.x += clamp(tx - m.x, -spd, spd);
       m.y += clamp(hy + Math.sin(s.t * 0.04 + m.seed) * 0.04 - m.y, -spd, spd);
@@ -1463,8 +1502,8 @@ const game: GameDef<SoulState> & { wows(s: SoulState): number } = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, stageT: 0, hearts: 3, tries: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], seenForm: [], me: blankMe(), eat: null, rest: 0,
       foes: [], nid: 0, shots: [], clouds: [], waves: [], q: [], lines: [], paints: [], events: [],
-      camY: 0, gi: 0, trickT: 0, awake: false, tapped: false, taps: 0, clearT: 0, lostHeart: false, aid: 0, multi: {}, best: 0, star3: false, fkills: 0, kills: 0, gain: 0,
-      patches: [], bossK: 1, bossT: 0, summonT: 0, bossDown: false, bossAtk: 0, grid: new Uint8Array(1), gridRows: 1, painted: 0, pct: 0, villages: [], paintN: 0, runId: 0,
+      camY: 0, gi: 0, trickT: 0, awake: false, tapped: false, tapped0: false, taps: 0, clearT: 0, lostHeart: false, aid: 0, multi: {}, best: 0, star3: false, fkills: 0, kills: 0, gain: 0,
+      patches: [], bossK: 1, bossT: 0, summonT: 0, bossDown: false, bossAtk: 0, grid: new Uint8Array(1), gridRows: 1, stolenN: 1, painted: 0, pct: 0, villages: [], paintN: 0, runId: 0,
       freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as SoulState;
     newStage(s);
@@ -1632,6 +1671,7 @@ export const colorsoulHabit2: Bot<SoulState> = {
 export const __jump = (s: SoulState, k: number, lv = k + 1, perk: number[] = [k > 3 ? 2 : 0, k > 7 ? 2 : 0]) => ((s.stage = k), (s.lv = lv), (s.perk = perk), (s.tapped = true), newStage(s));
 
 // ───────────────────────────── 그리기: 도구 ─────────────────────────────
+const R_ = R, B_ = B, Y_ = Y;
 type C2 = CanvasRenderingContext2D;
 /** 그림책 연필 선(먹색 보라) */
 const OUT = '#3b3150';
@@ -2827,41 +2867,45 @@ function bake(key: string, q: number, paint: (g: C2) => void): HTMLCanvasElement
 }
 /** 스티커 해상도는 약 15%씩 끊어서 (단계가 바뀔 때마다 새로 굽지 않게) */
 const qOf = (px: number) => Math.max(6, Math.round(Math.pow(2, Math.round(Math.log2(Math.max(6, px)) * 5) / 5)));
-const WARM = new WeakMap<object, { run: number; list: [string, () => void][] }>();
-/** 이 판에 나올 도둑(색·회색 · 몸짓)과 될 수 있는 모습(단계별 크기)의 스티커 목록 */
-function warmList(s: SoulState, w: number, sc: number): [string, () => void][] {
-  let wl = WARM.get(s);
-  if (wl && wl.run === s.runId) return wl.list;
-  const d = STAGES[s.stage], list: [string, () => void][] = [], kinds = new Set<EK>();
+const WARM = new Map<string, [string, () => void][]>();
+/** 이 판(stage, 정령 레벨)에 나올 도둑(색·회색 · 몸짓)과 될 수 있는 모습(1~5단계 · 몸짓 셋)의 스티커 목록 — 판 중엔 한 프레임에 하나, 결과·선물 화면에선 다음 판 것을 셋씩 */
+function warmList(stage: number, lv: number, w: number, sc: number): [string, () => void][] {
+  const wkey = `${stage}:${lv}:${w}:${sc}`;
+  let list = WARM.get(wkey);
+  if (list) return list;
+  if (WARM.size > 8) WARM.clear();
+  const d = STAGES[stage], kinds = new Set<EK>();
+  list = [];
   for (const gp of d.groups) for (const [k] of gp.f) kinds.add(k);
   if (d.summon) for (const [k] of d.summon) kinds.add(k);
   kinds.add('blob');
-  const push = (key: string, make: () => void) => list.push([key, make]);
+  const push = (key: string, make: () => void) => list!.push([key, make]);
+  const form = (f: FK, tier: number, pose: number, white = false) => {
+    const px = w * FD[f].r * (white ? 1 : (f === 'white' ? 1 : 1 + 0.12 * (tier - 1)) * (1 + 0.012 * (lv - 1))) * sc * 1.05;
+    push(`f:${f}:${pose}:${qOf(px)}`, () => formSprite(f, pose, px));
+  };
+  for (const pose of [0, 1, 2]) form('white', 1, pose), form('white', 1, pose, true);
+  const key = d.star.k !== 'time' && d.star.f ? d.star.f : null;
+  if (key) for (let tier = 1; tier <= 5; tier++) for (const pose of [0, 1, 2]) form(key, tier, pose);
   for (const k of kinds)
     for (const col of [...new Set(d.cols), 0])
       for (const pose of col ? [0, 1] : [2]) {
-        const px = w * ED[k].r * sc * 1.05, q = qOf(px);
+        const px = w * ED[k].r * EDRAW * sc * 1.05, q = qOf(px);
         push(`e:${k}:${col}:${pose}:${q}`, () => foeSprite(k, col, pose, px));
       }
   if (d.boss)
     for (const pose of [0, 1, 2]) {
-      const px = w * ED[d.boss].r * sc * 1.05;
+      const px = w * ED[d.boss].r * EDRAW * sc * 1.05;
       push(`e:${d.boss}:0:${pose}:${qOf(px)}`, () => foeSprite(d.boss!, 0, pose, px));
     }
-  for (const gp of d.groups)
+  for (const gp of [...d.groups, { champ: d.early }])
     if (gp.champ) {
-      const k = gp.champ, st = d.star, col = st.k !== 'time' && st.f ? (FD[st.f].mask === RAIN ? R : FD[st.f].mask) : R, px = w * ED[k].r * 1.45 * sc * 1.05;
+      const k = gp.champ, st = d.star, col = st.k !== 'time' && st.f ? (FD[st.f].mask === RAIN ? R : FD[st.f].mask) : R, px = w * ED[k].r * 1.45 * EDRAW * sc * 1.05;
       for (const [c, pose] of [[col, 0], [col, 1], [0, 2]]) push(`e:${k}:${c}:${pose}:${qOf(px)}`, () => foeSprite(k, c, pose, px));
     }
-  for (const f of DEX) {
-    if (!unl(s, f)) continue;
-    for (let tier = 1; tier <= 3; tier++)
-      for (const pose of [0, 1]) {
-        const px = w * FD[f].r * (1 + 0.12 * (tier - 1)) * (1 + 0.012 * (s.lv - 1)) * sc * 1.05, q = qOf(px);
-        push(`f:${f}:${pose}:${q}`, () => formSprite(f, pose, px));
-      }
-  }
-  WARM.set(s, (wl = { run: s.runId, list }));
+  const forms = DEX.filter((f) => UNLOCK_AT[f] <= Math.min(STAGES.length - 1, stage + 1));
+  for (let tier = 1; tier <= 5; tier++) for (const f of forms) for (const pose of [0, 1, 2]) form(f, tier, pose);
+  WARM.set(wkey, list);
   return list;
 }
 const formSprite = (f: FK, pose: number, px: number) => bake(`f:${f}:${pose}:${qOf(px)}`, qOf(px), (g) => FPAINT[f](g, pose));
@@ -2896,9 +2940,9 @@ function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
 const TH = 0.5;
 interface Pal { ground: [string, string]; stone: string[]; walk: string; roof: string[]; wall: string[]; tree: string[]; flower: string[]; edge: string }
 const PALS: Pal[] = [
-  { ground: ['#f3dfb8', '#ebcf9c'], stone: ['#ffb3a8', '#ffe08a', '#a8dcff', '#b8f0a8', '#e0c0ff', '#ffc8e0'], walk: '#d9c9b0', roof: ['#ff6b5a', '#4f9dff', '#ffc93c', '#7ed46a', '#ff8fc4'], wall: ['#fff3dc', '#ffe8c4', '#f4f0ff', '#e6f7ff'], tree: ['#5cc14a', '#3e9e3a', '#8ad86a'], flower: ['#ff5a7a', '#ffd23f', '#ff9a3c', '#c77dff', '#4fc3f7'], edge: '#c9b48e' },
-  { ground: ['#c9ec9a', '#aedc7e'], stone: ['#ffd0a0', '#fff0a0', '#a8e8ff', '#c8f5a8', '#ffb8d0'], walk: '#7ccbe8', roof: ['#ff7a5c', '#a35cff', '#ffcc33', '#3fcf9e'], wall: ['#fff6e6', '#ffeacc', '#eaf6ff'], tree: ['#4fb84a', '#2f9a44', '#7fd65a'], flower: ['#ff6b9a', '#ffe36b', '#7ad1ff', '#ffa04a'], edge: '#6aa850' },
-  { ground: ['#f8eefe', '#ead8fb'], stone: ['#ffd6ec', '#d6ecff', '#fff3c0', '#e6d6ff', '#d0ffe8'], walk: '#cfe8ff', roof: ['#ff8fc4', '#7ab8ff', '#ffd86b', '#b98cff'], wall: ['#ffffff', '#fff6fb', '#f2f6ff'], tree: ['#ffffff', '#f1eaff', '#ffe9f6'], flower: ['#ff9ecb', '#ffe36b', '#9fd8ff', '#c6a4ff', '#9ff0c4'], edge: '#c8b6ee' },
+  { ground: ['#f4e2bf', '#ecd3a4'], stone: ['#f6e6c6', '#efd8ae', '#f3dfb8', '#e8cc9a', '#f8ead0'], walk: '#9fd86a', roof: ['#ff6b5a', '#4f9dff', '#ffc93c', '#7ed46a', '#ff8fc4'], wall: ['#fff3dc', '#ffe8c4', '#f4f0ff', '#e6f7ff'], tree: ['#5cc14a', '#3e9e3a', '#8ad86a'], flower: ['#ff5a7a', '#ffd23f', '#ff9a3c', '#c77dff', '#4fc3f7'], edge: '#7cbf4e' },
+  { ground: ['#f0dfba', '#e6cfa2'], stone: ['#f3e3c2', '#ead5ac', '#f6e9cc', '#e2c996'], walk: '#8fd65e', roof: ['#ff7a5c', '#a35cff', '#ffcc33', '#3fcf9e'], wall: ['#fff6e6', '#ffeacc', '#eaf6ff'], tree: ['#4fb84a', '#2f9a44', '#7fd65a'], flower: ['#ff6b9a', '#ffe36b', '#7ad1ff', '#ffa04a'], edge: '#6aa850' },
+  { ground: ['#f6ecff', '#e9dcfb'], stone: ['#fbf4ff', '#efe3ff', '#f8eefe', '#e8daf8', '#fff6fb'], walk: '#bde4ff', roof: ['#ff8fc4', '#7ab8ff', '#ffd86b', '#b98cff'], wall: ['#ffffff', '#fff6fb', '#f2f6ff'], tree: ['#ffd0ea', '#d8c8ff', '#c8f0ff'], flower: ['#ff9ecb', '#ffe36b', '#9fd8ff', '#c6a4ff', '#9ff0c4'], edge: '#b8a4e8' },
 ];
 /** 집 한 채 (3/4 시점: 앞벽 + 지붕), (x, y) = 앞벽 아래 가운데, k = 폭 */
 function house(g: C2, x: number, y: number, k: number, P: Pal, seed: number, ch: number) {
@@ -2958,8 +3002,21 @@ function tree(g: C2, x: number, y: number, k: number, P: Pal, seed: number) {
   for (let j = 0; j < 3; j++) (ell(g, x + (hsh(seed + j) - 0.5) * k * 0.6, y - k * (0.7 + hsh(seed * 3 + j) * 0.4), k * 0.06, k * 0.06), (g.fillStyle = P.flower[(seed + j) % P.flower.length]), g.fill());
 }
 /** 타일 한 장(가로 폭 w px, 세로 TH·w) 색 그림 */
-function paintTile(g: C2, ch: number, i: number, w: number, plaza: number) {
-  const P = PALS[ch], H = TH * w, R = (v: number) => v * w, sd = (i * 7349 + ch * 131) >>> 0;
+/** 꽃 한 송이 (꽃잎 다섯) */
+function flower(g: C2, x: number, y: number, k: number, c: number, rot = 0) {
+  const col = CHEX[c === RAIN ? 8 : c];
+  for (let j = 0; j < 5; j++) {
+    const a = rot + (j * TAU) / 5;
+    ell(g, x + Math.cos(a) * k * 0.62, y + Math.sin(a) * k * 0.62, k * 0.52, k * 0.38, a);
+    g.fillStyle = j % 2 ? col[0] : col[1];
+    g.fill();
+  }
+  ell(g, x, y, k * 0.34, k * 0.34);
+  g.fillStyle = c === Y ? '#ff9a2a' : '#ffe36b';
+  g.fill();
+}
+function paintTile(g: C2, ch: number, stage: number, i: number, w: number, plaza: number) {
+  const P = PALS[ch], H = TH * w, R = (v: number) => v * w, sd = ((i + 64) * 7349 + ch * 131 + stage * 977) >>> 0;
   g.fillStyle = lin(g, 0, 0, 0, H, [0, P.ground[0]], [1, P.ground[1]]);
   g.fillRect(0, 0, w, H);
   // 돌길 (줄마다 어긋나게)
@@ -2990,6 +3047,31 @@ function paintTile(g: C2, ch: number, i: number, w: number, plaza: number) {
     // 구름 언덕
     for (let k = 0; k < 6; k++) (ell(g, R(hsh(sd + k * 5)), H * hsh(sd + k * 9), R(0.06 + hsh(sd + k) * 0.05), R(0.03 + hsh(sd + k * 2) * 0.02)), (g.fillStyle = 'rgba(255,255,255,.8)'), g.fill());
   }
+  // 길가 풀밭 (꽃이 핀 풀 띠)
+  for (const [x0, x1] of ch === 1 ? [[0.124, 0.18], [0.82, 0.88]] : [[0.12, 0.18], [0.82, 0.88]]) {
+    g.fillStyle = lin(g, R(x0), 0, R(x1), 0, [0, '#8fd65e'], [1, '#6cc44a']);
+    g.fillRect(R(x0), 0, R(x1 - x0), H);
+    for (let j = 0; j < 7; j++) {
+      const fx = R(x0 + 0.008 + hsh(sd + j * 13 + x0 * 100) * (x1 - x0 - 0.016)), fy = H * ((j + hsh(sd + j)) / 7);
+      g.strokeStyle = '#3f9a36';
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.moveTo(fx - 3, fy + 3);
+      g.lineTo(fx - 1, fy - 3);
+      g.moveTo(fx + 2, fy + 3);
+      g.lineTo(fx + 3, fy - 2);
+      g.stroke();
+      if (j % 2 === 0) flower(g, fx, fy - 2, R(0.01), [R_, B_, Y_, 3, 5][(sd + j) % 5]);
+    }
+  }
+  // 도둑이 끌고 간 자국 위의 꽃밭 (지금은 회색 — 칠하면 되살아난다)
+  for (let k = 0; k < 2; k++) {
+    if (hsh(sd + k * 17) > 0.55) continue;
+    const yy = 0.25 + hsh(sd + k * 3) * 0.5, wy = i * TH + yy * TH, cx = R(trailX(stage, wy, k)), cy = H * yy;
+    ell(g, cx, cy, R(0.07), R(0.04));
+    ink(g, '#7fd06a', 1.2);
+    for (let j = 0; j < 6; j++) flower(g, cx + Math.cos(j * 1.05) * R(0.045), cy + Math.sin(j * 1.05) * R(0.022), R(0.013), [R_, Y_, B_, 3, 5, 6][(j + sd) % 6], j);
+  }
   // 가운데 장식 (적이 걷는 곳이라 바닥에 붙은 것만)
   const deco = sd % 5;
   if (plaza) {
@@ -3004,12 +3086,6 @@ function paintTile(g: C2, ch: number, i: number, w: number, plaza: number) {
     rr(g, cx - k * 0.1, cy - k * 0.9, k * 0.2, k * 0.7, k * 0.06);
     ink(g, '#f3e6c8', 1.5);
     for (let j = 0; j < 6; j++) (ell(g, cx + Math.cos(j) * k * 0.9, cy + Math.sin(j) * k * 0.4, k * 0.08, k * 0.06), (g.fillStyle = P.flower[j % P.flower.length]), g.fill());
-  } else if (deco === 0) {
-    // 꽃밭
-    const cx = R(0.3 + hsh(sd) * 0.4), cy = H * (0.3 + hsh(sd + 1) * 0.4);
-    ell(g, cx, cy, R(0.09), R(0.05));
-    ink(g, '#8fd06a', 1.2);
-    for (let j = 0; j < 7; j++) (ell(g, cx + Math.cos(j * 0.9) * R(0.055), cy + Math.sin(j * 0.9) * R(0.028), R(0.016), R(0.016)), (g.fillStyle = P.flower[j % P.flower.length]), g.fill());
   } else if (deco === 1) {
     // 사방치기
     g.strokeStyle = '#ffffff';
@@ -3030,6 +3106,13 @@ function paintTile(g: C2, ch: number, i: number, w: number, plaza: number) {
   g.fillStyle = P.walk;
   g.fillRect(R(0.88), 0, R(0.12), H);
   if (ch !== 1) g.fillRect(0, 0, R(0.12), H);
+  for (let j = 0; j < 4; j++) {
+    for (const bx of ch !== 1 ? [0.06, 0.94] : [0.94]) {
+      ell(g, R(bx + (hsh(sd + j * 7 + bx * 10) - 0.5) * 0.08), H * ((j + 0.5) / 4), R(0.03), R(0.02));
+      g.fillStyle = P.tree[(sd + j) % P.tree.length];
+      g.fill();
+    }
+  }
   g.fillStyle = P.edge;
   g.fillRect(R(0.875), 0, R(0.01), H);
   if (ch !== 1) g.fillRect(R(0.115), 0, R(0.01), H);
@@ -3085,32 +3168,77 @@ function applyPaint(t: Tile, p: Paint, w: number, sc: number) {
   const bw = Math.min(t.col.width - bx, Math.ceil(r * 3.2 * sc) + 2), bh = Math.min(t.col.height - by, Math.ceil(r * 3.2 * sc) + 2);
   if (bw > 0 && bh > 0) g.drawImage(t.col, bx, by, bw, bh, bx, by, bw, bh);
   g.restore();
-  g.globalAlpha = 0.28;
-  g.fillStyle = CHEX[p.c][0];
-  g.beginPath();
-  splatPath(g, x, y, r * 0.8, p.seed + 1, 7);
-  g.fill();
+  // 내 모습의 색은 꽃 몇 송이 · 튄 물감 몇 방울로만
+  const c = p.c === RAIN ? R_ : p.c;
+  g.globalAlpha = 0.55;
+  g.fillStyle = CHEX[c][0];
+  for (let j = 0; j < 4; j++) {
+    const a = hsh(p.seed + j * 5) * TAU, q = r * (0.3 + hsh(p.seed + j) * 0.75);
+    ell(g, x + Math.cos(a) * q, y + Math.sin(a) * q, r * 0.06 + 1, r * 0.05 + 1);
+    g.fill();
+  }
   g.globalAlpha = 1;
+  for (const [fx, fy, k] of bloomSpots(p, r)) flower(g, x + fx, y + fy, k, c, p.seed);
   g.restore();
+}
+/** 칠한 자리에 피는 꽃 자리 (구울 때와 피어나는 연출이 같은 자리) */
+function bloomSpots(p: Paint, r: number): [number, number, number][] {
+  const n = 2 + (p.seed % 3), out: [number, number, number][] = [];
+  for (let j = 0; j < n; j++) {
+    const a = hsh(p.seed * 3 + j * 11) * TAU, q = r * (0.15 + hsh(p.seed + j * 7) * 0.5);
+    out.push([Math.cos(a) * q, Math.sin(a) * q, Math.max(2.2, r * 0.1)]);
+  }
+  return out;
 }
 function getTile(s: SoulState, i: number, w: number, sc: number): Tile {
   const TILES = tilesOf(s), key = `${i}:${w}:${sc}`;
   let t = TILES.get(key);
   if (!t) {
     const d = STAGES[s.stage], plaza = i === Math.floor((-d.D + 0.3) / TH) ? 1 : 0;
-    const col = layer(w, TH * w, sc, (g) => ((g.lineJoin = 'round'), paintTile(g, d.ch, i, w, plaza)));
+    const col = layer(w, TH * w, sc, (g) => ((g.lineJoin = 'round'), paintTile(g, d.ch, s.stage, i, w, plaza)));
     const rev = document.createElement('canvas');
     rev.width = col.width;
     rev.height = col.height;
     const g = rev.getContext('2d')!;
     g.drawImage(col, 0, 0);
-    // 색을 도둑맞은 회색 (채도만 빼고 살짝 밝게)
+    // 색을 도둑맞은 곳은 도둑이 끌고 간 자국 두 줄뿐 — 거기만 회색(채도를 빼고 살짝 밝게), 먹물 발자국과 연필 테두리
+    g.setTransform(sc, 0, 0, sc, 0, 0);
+    const trails = () => {
+      g.beginPath();
+      for (let k = 0; k < 2; k++) {
+        const pts: [number, number][] = [];
+        for (let y = i * TH - 0.03; y <= (i + 1) * TH + 0.03; y += 0.025) pts.push([trailX(s.stage, y, k), y]);
+        pts.forEach(([x, y], j) => (j ? g.lineTo : g.moveTo).call(g, (x - trailHW(y, k)) * w, (y - i * TH) * w));
+        for (let j = pts.length - 1; j >= 0; j--) g.lineTo((pts[j][0] + trailHW(pts[j][1], k)) * w, (pts[j][1] - i * TH) * w);
+        g.closePath();
+      }
+    };
+    g.save();
+    trails();
+    g.clip();
     g.globalCompositeOperation = 'saturation';
     g.fillStyle = '#808080';
-    g.fillRect(0, 0, rev.width, rev.height);
+    g.fillRect(0, 0, w, TH * w);
     g.globalCompositeOperation = 'source-over';
-    g.fillStyle = 'rgba(255,247,232,.42)';
-    g.fillRect(0, 0, rev.width, rev.height);
+    g.fillStyle = 'rgba(246,244,250,.38)';
+    g.fillRect(0, 0, w, TH * w);
+    g.fillStyle = 'rgba(70,64,96,.28)';
+    for (let k = 0; k < 2; k++)
+      for (let y = i * TH + 0.02; y < (i + 1) * TH; y += 0.07) {
+        const sd2 = Math.round(y * 100) + k * 7, side = (Math.round(y / 0.07) % 2 ? 1 : -1) * 0.025, x = trailX(s.stage, y, k) + side;
+        ell(g, x * w, (y - i * TH) * w, w * 0.012, w * 0.017, hsh(sd2) - 0.5);
+        g.fill();
+        for (let j = 0; j < 3; j++) (ell(g, (x + (j - 1) * 0.011) * w, (y - i * TH - 0.02) * w, w * 0.005, w * 0.005), g.fill());
+      }
+    g.restore();
+    g.setTransform(sc, 0, 0, sc, 0, 0);
+    trails();
+    g.strokeStyle = 'rgba(90,80,120,.35)';
+    g.lineWidth = 1.5;
+    g.setLineDash([6, 4]);
+    g.stroke();
+    g.setLineDash([]);
+    g.setTransform(1, 0, 0, 1, 0, 0);
     t = { col, rev, i };
     for (const p of s.paints) if (p.y + p.r > i * TH && p.y - p.r < (i + 1) * TH) applyPaint(t, p, w, sc);
     TILES.set(key, t);
@@ -3219,10 +3347,16 @@ const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 const LV_GIFT: Record<number, string> = { 3: '나뭇잎 모자를 썼어요', 5: '목도리가 생겼어요', 7: '별 머리핀을 꽂았어요', 9: '무지개 망토!', 11: '금빛으로 빛나요' };
 export const starWords = (s: SoulState): string[] => {
   const d = STAGES[s.stage], st = d.star;
-  const third = st.k === 'multi' ? `${st.f ? FD[st.f].name + '로 ' : ''}한 번에 ${st.n}마리` : st.k === 'form' ? `${FD[st.f].name}으로 ${st.n}마리` : `${st.n}초 안에 대장 이기기`;
+  const third = st.k === 'multi' ? `${st.f ? FD[st.f].name + '로 ' : ''}한 번에 ${st.n}마리` : st.k === 'form' ? `${FD[st.f].name}으로 ${st.foeName ? st.foeName + ' ' : ''}${st.n}마리` : `${st.n}초 안에 대장 이기기`;
   return ['마을 되살리기', '하트 안 잃기', third];
 };
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+/** 칠해진 자리에서 피어나는 중인 꽃·풀 */
+const BLOOMS = new WeakMap<object, { x: number; y: number; r: number; c: number; seed: number; t: number }[]>();
+/** 도둑 그림은 판의 셈보다 조금 크게 (카메라를 가깝게) */
+const EDRAW = 1.12;
+/** 회색 껍데기를 깨는 모습 */
+const BREAKER: Partial<Record<EK, FK>> = { bucket: 'whale', crayon: 'octo', shell: 'turtle', tower: 'turtle', brush: 'snake' };
 /** 정령 장신구 (레벨) */
 function drawGear(ctx: C2, x: number, y: number, k: number, lv: number, t: number) {
   if (lv >= 3) {
@@ -3246,6 +3380,9 @@ function drawGear(ctx: C2, x: number, y: number, k: number, lv: number, t: numbe
   }
   if (lv >= 7) (starPath(ctx, x + k * 0.55, y - k * 1.85, k * 0.22, 0.45), ink(ctx, '#ffd334', Math.max(1, k * 0.05)));
 }
+const __P: Record<string, number[]> = ((globalThis as any).__P = {});
+let __t0 = 0;
+const __T = (k: string) => { const n = performance.now(); if (k !== 'a') (__P[k] ??= []).push(n - __t0); __t0 = n; };
 function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => (y - s.camY) * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(2, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
@@ -3281,6 +3418,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
   ctx.save();
   fx.begin(ctx);
 
+  __T('a');
   // ── 마을: 보이는 타일 + 새로 떨어진 물감 ──
   const i0 = Math.floor(s.camY / TH), i1 = Math.floor((s.camY + A) / TH), ww = Math.round(w), tsc = Math.min(1.5, sc);
   {
@@ -3293,20 +3431,61 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
         const tl = tilesOf(s).get(`${i}:${ww}:${tsc}`);
         if (tl) applyPaint(tl, p, ww, tsc);
       }
+      let bl = BLOOMS.get(s);
+      if (!bl) BLOOMS.set(s, (bl = []));
+      bl.push({ x: p.x, y: p.y, r: p.r, c: p.c === RAIN ? R_ : p.c, seed: p.seed, t });
+      if (bl.length > 7) bl.shift();
     }
     fx.memo.pa = k;
   }
+  __T('paint');
   // 미리 굽기: 이 판에 나올 스티커를 프레임마다 둘씩
   {
-    const list = warmList(s, w, sc);
-    let i = fx.memo['wm' + s.runId] ?? 0, did = 0;
-    for (; i < list.length && did < 1; i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
-    fx.memo['wm' + s.runId] = i;
+    const rest = s.phase === 'result' || s.phase === 'pick', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
+    const list = warmList(ws, s.lv, w, sc), mk = `wm${ws}:${s.lv}`;
+    let i = fx.memo[mk] ?? 0, did = 0;
+    // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
+    if (!(rest && s.pt < 12)) for (; i < list.length && did < (rest ? 3 : 1); i++) if (!SPR.has(list[i][0])) list[i][1](), did++;
+    fx.memo[mk] = i;
   }
+  __T('warm');
   for (let i = i0; i <= i1; i++) ctx.drawImage(getTile(s, i, ww, tsc).rev, 0, Y(i * TH), w, TH * w + 0.5);
   // 위쪽 한 장 미리 굽기 (카메라가 올라가기 전에)
   if (s.phase === 'play' && t % 4 === 0) getTile(s, i0 - 1, ww, tsc);
+  __T('tiles');
+  // 되살아나는 순간: 풀이 쑥, 꽃이 퐁 (0.3초)
+  {
+    const bl = BLOOMS.get(s);
+    if (bl) {
+      for (const b of bl) {
+        const age = t - b.t;
+        if (age < 0 || age > 16) continue;
+        const bx = X(b.x), by = Y(b.y), r = R(b.r), q = age / 16;
+        ell(ctx, bx, by, r * (0.6 + 0.6 * q), r * (0.6 + 0.6 * q) * 0.7);
+        ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - q)})`;
+        ctx.lineWidth = 3 * (1 - q) + 0.5;
+        ctx.stroke();
+        for (let j = 0; j < 4; j++) {
+          const a = hsh(b.seed + j * 9) * TAU, gq = r * (0.25 + hsh(b.seed + j * 4) * 0.5), gx = bx + Math.cos(a) * gq, gy = by + Math.sin(a) * gq * 0.8, hh = R(0.03) * Math.min(1, age / 8);
+          ctx.strokeStyle = '#3fae3a';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(gx - 3, gy);
+          ctx.quadraticCurveTo(gx - 4, gy - hh * 0.6, gx - 6, gy - hh);
+          ctx.moveTo(gx, gy);
+          ctx.lineTo(gx, gy - hh * 1.2);
+          ctx.moveTo(gx + 3, gy);
+          ctx.quadraticCurveTo(gx + 4, gy - hh * 0.6, gx + 6, gy - hh);
+          ctx.stroke();
+        }
+        const pk = age < 8 ? (age / 8) * 1.5 : 1.5 - 0.5 * Math.min(1, (age - 8) / 8);
+        for (const [fx2, fy2, k] of bloomSpots(b as Paint, r)) flower(ctx, bx + fx2, by + fy2, k * pk, b.c, b.seed);
+      }
+      if (bl.length && t - bl[bl.length - 1].t > 30) bl.length = 0;
+    }
+  }
 
+  __T('bloom');
   // ── 바닥: 빨간 예고 · 독구름 · 파도 · 착지 자국 ──
   for (const m of s.foes) {
     if (m.dead) continue;
@@ -3379,11 +3558,12 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     }
   }
 
+  __T('ground');
   // ── 그림자 ──
   ctx.fillStyle = 'rgba(50,35,70,.2)';
   for (const m of s.foes) {
     if (m.dead) continue;
-    const u = R(m.r) * (ED[m.k].boss ? s.bossK : 1);
+    const u = R(m.r) * EDRAW * (ED[m.k].boss ? s.bossK : 1);
     ell(ctx, X(m.x), Y(m.y), u * 0.95, u * 0.32);
     ctx.fill();
   }
@@ -3407,6 +3587,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     ctx.stroke();
   }
 
+  __T('shadow');
   // ── 세상 속 것들 (아래에 있을수록 앞) ──
   type Item = { y: number; f: () => void };
   const items: Item[] = [];
@@ -3416,7 +3597,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     items.push({
       y: m.y,
       f: () => {
-        const dd = ED[m.k], boss = !!dd.boss, k = boss ? s.bossK : 1, u = R(m.r) * k;
+        const dd = ED[m.k], boss = !!dd.boss, k = boss ? s.bossK : 1, u = R(m.r) * k * EDRAW;
         const air = dd.air ? R(0.05) + Math.sin(t * 0.07 + m.seed) * R(0.012) : 0;
         const walking = t - m.walkT < 4, step = walking ? Math.abs(Math.sin(t * 0.25 + m.seed)) : 0;
         const wind = m.st === WIND || (boss && s.bossAtk > 0);
@@ -3425,7 +3606,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
         let sx = 1, sy = 1;
         if (hurtA < 8) (sx = 1 + 0.12 * (1 - hurtA / 8)), (sy = 1 - 0.1 * (1 - hurtA / 8));
         if (held) {
-          const q = s.eat!.t / SUCK_T;
+          const q = s.eat!.t / s.eat!.sk;
           (sx = 1 + Math.sin(t * 1.3) * 0.08 * q), (sy = 1 - 0.15 * q);
         }
         if (m.st === ENTER) sy *= 1 + step * 0.05;
@@ -3438,10 +3619,23 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
           ctx.fill();
         }
         ctx.scale(sx * (m.face < 0 && !boss ? -1 : 1), sy);
-        if (boss) stamp(ctx, foeSprite(m.k, 0, s.bossDown ? 2 : m.stun > 0 ? 2 : wind ? 1 : 0, R(m.r) * sc * 1.05), u);
-        else stamp(ctx, foeSprite(m.k, m.col, pose, u * sc * 1.05), u);
+        if (boss) stamp(ctx, foeSprite(m.k, 0, s.bossDown ? 2 : m.stun > 0 ? 2 : wind ? 1 : 0, R(m.r) * EDRAW * sc * 1.05), u);
+        else stamp(ctx, foeSprite(m.k, m.col, pose, R(m.r) * EDRAW * sc * 1.05), u);
+        if (!m.col && !boss) {
+          // 금 간 회색 껍데기
+          ctx.strokeStyle = 'rgba(255,255,255,.9)';
+          ctx.lineWidth = Math.max(1.5, u * 0.06);
+          ctx.beginPath();
+          for (let j = 0; j < 3; j++) {
+            const a = -1.2 + j * 1.1 + (m.seed % 7) * 0.1;
+            ctx.moveTo(0, -u);
+            ctx.lineTo(Math.cos(a) * u * 0.4, -u + Math.sin(a) * u * 0.4);
+            ctx.lineTo(Math.cos(a + 0.5) * u * 0.75, -u + Math.sin(a + 0.5) * u * 0.7);
+          }
+          ctx.stroke();
+        }
         ctx.restore();
-        if (m.k === 'shell' && m.arm > 0 && m.arm < m.armMax) {
+        if (m.k === 'shell' && m.arm > 0 && m.arm < m.armMax && m.col) {
           // 껍데기 금
           const q = 1 - m.arm / m.armMax;
           ctx.strokeStyle = '#fff6e6';
@@ -3533,12 +3727,13 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       if (e) (f = me.f === 'white' || e.ph === 0 ? 'white' : me.f), (pose = e.ph === 1 ? 1 : 0);
       else {
         if (born < 10) k = 1 + 0.35 * (1 - born / 10) * Math.sin((born / 10) * Math.PI * 1.5 + 0.5);
+        if (hit < 16 && me.ps > 1.01) k *= 1 + (me.ps - 1) * Math.pow(1 - hit / 16, 2) + 0.06 * Math.sin(hit * 1.6) * (1 - hit / 16);
         if (hit < 14) pose = 2;
         else if ((me.f === 'whale' || me.f === 'lion' || me.f === 'turtle') && me.st === 1) pose = 1;
         else if (me.f === 'dragon' || me.f === 'rainbow' || me.f === 'golem') pose = me.f === 'golem' ? (me.tm % 50 > 36 ? 1 : 0) : 1;
         else if (me.cool > 18 && (me.f === 'bird' || me.f === 'eagle' || me.f === 'octo' || me.f === 'snake')) pose = 1;
       }
-      const fu = R(FD[f].r * (f === me.f ? sizeOf(s) : 1)) * k, fl = me.inv > 0 && !e && (t >> 2) % 2 && hit < 60;
+      const fu0 = R(FD[f].r * (f === me.f ? sizeOf(s) : 1)), fu = fu0 * k, fl = me.inv > 0 && !e && (t >> 2) % 2 && hit < 60;
       ctx.save();
       ctx.translate(X(me.x), Y(me.y) - R(me.z));
       if (f === 'white') {
@@ -3555,7 +3750,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       ctx.translate(0, bob);
       ctx.scale(me.face < 0 && f !== 'eagle' ? -1 : 1, 1);
       if (f === 'snake') ctx.rotate(me.ang * 0.06);
-      stamp(ctx, formSprite(f, pose, fu * sc * 1.05), fu);
+      stamp(ctx, formSprite(f, pose, fu0 * sc * 1.05), fu);
       ctx.restore();
       ctx.globalAlpha = 1;
       if (f === 'white' || f === me.f) drawGear(ctx, X(me.x), Y(me.y) - R(me.z) + bob, fu * (f === 'white' ? 1 : 0.6), s.lv, t);
@@ -3563,7 +3758,25 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
   });
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
+  __T('items');
+  // 이름표: 두 번째부터는 가운데 띠 대신 머리 위 작은 이름표 0.6초
+  if (s.phase === 'play' && !s.eat && t - (fx.memo.nmT ?? -99) < 36 && me.f !== 'white') {
+    const age = t - fx.memo.nmT, a = Math.min(1, (36 - age) / 8), up = Math.min(1, age / 5);
+    const nm = `${FD[me.f].name}${me.tier >= 2 && me.f !== 'golem' && me.f !== 'rainbow' ? ' ' + me.tier : ''}`, c = CHEX[me.mask === RAIN ? 8 : me.mask];
+    font(0.034, 900);
+    const tw = ctx.measureText(nm).width + R(0.04), bx = clamp(X(me.x), tw / 2 + 4, w - tw / 2 - 4), by = Y(me.y) - R(me.z) - mu * 2.5 - R(0.02) * up;
+    ctx.globalAlpha = a;
+    rr(ctx, bx - tw / 2, by - R(0.024), tw, R(0.048), R(0.024));
+    ctx.fillStyle = c[0];
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    text(nm, bx, by + 1, '#ffffff', c[2], 3);
+    ctx.globalAlpha = 1;
+  }
 
+  __T('nametag');
   // ── 공격 그림 ──
   if (s.phase === 'play' && !s.eat) {
     const mx = X(me.x), my = Y(me.y) - R(me.z) - mu * 0.9;
@@ -3685,7 +3898,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     const e = s.eat, m = s.foes.find((o) => o.id === e.id);
     if (m) {
       const [tx, ty] = e.patch >= 0 ? patchXY(s, m, s.patches[e.patch]) : [m.x, m.y - m.r];
-      const col = e.patch >= 0 ? s.patches[e.patch].col : m.col, c = ecol(col), q = e.t / SUCK_T;
+      const col = e.patch >= 0 ? s.patches[e.patch].col : m.col, c = ecol(col), q = e.t / e.sk;
       const x0 = X(tx), y0 = Y(ty), x1 = X(me.x), y1 = Y(me.y) - R(0.05);
       for (let j = 0; j < 4; j++) {
         const ph = t * 0.35 + j * 1.57, amp = R(0.04) * (1 - q * 0.6);
@@ -3718,6 +3931,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     ctx.stroke();
   }
 
+  __T('fx');
   // ── 될 모습 말풍선 (도둑 머리 위: 이 색을 먹으면 무엇이 되나) ──
   if (s.phase === 'play') {
     const res = new Map<string, { mask: number; tier: number; f: FK }>();
@@ -3757,6 +3971,40 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
     }
   }
 
+  __T('badges');
+  // ── 회색 껍데기 위: '이 모습으로 깨요' (금 간 껍데기 + 깨는 모습 실루엣이 계속 떠 있다) ──
+  if (s.phase === 'play')
+    for (const m of s.foes) {
+      const bf = BREAKER[m.k];
+      if (m.dead || m.col || !bf || !unl(s, bf) || !onScreen(s, m)) continue;
+      const mine = me.f === bf, bx = X(m.x), by = Y(m.y) - R(m.r) * EDRAW * 2.35 - R(0.04), k = R(0.034), pul = mine ? 1 + 0.08 * Math.sin(t * 0.3) : 1;
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(pul, pul);
+      ctx.beginPath();
+      ctx.arc(0, 0, k, 0, TAU);
+      ctx.fillStyle = mine ? '#fff3c4' : 'rgba(255,255,255,.92)';
+      ctx.fill();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = mine ? '#ff9a2a' : '#8a86a0';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.translate(0, k * 0.55);
+      stamp(ctx, silhouette(bf, CHEX[FD[bf].mask][0], k * 0.46 * sc * 2), k * 0.46);
+      ctx.restore();
+      // 망치 대신 '쩍' 금 표시
+      ctx.strokeStyle = mine ? '#ff7a2a' : '#6a6680';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx + k * 0.75, by - k * 0.95);
+      ctx.lineTo(bx + k * 1.05, by - k * 0.6);
+      ctx.lineTo(bx + k * 0.85, by - k * 0.45);
+      ctx.lineTo(bx + k * 1.15, by - k * 0.1);
+      ctx.stroke();
+    }
+
+  __T('gray');
   // ── 방금 일어난 일: 소리 · 물감 · 흔들림 · 글자 (한 번만) ──
   for (const e of s.events) {
     if (e.t <= seenT) continue;
@@ -3799,9 +4047,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
         puff(ex, ey - R(0.05), '#ffffff', 8, 4, 2.6);
         fx.ring(ex, ey - R(0.04), c, R(0.2 + 0.03 * e.n), 6);
         fx.kick(same ? 3 : 6);
-        if (s.big && s.big.t === e.t) break;
-        if (same && e.n >= 3 && f !== 'golem' && f !== 'rainbow') say(ex, ey - R(0.16), `${e.n}단계! 점수 ×${1 + 0.5 * (Math.min(5, e.n) - 1)}`, '#ffffff', 15);
-        else say(ex, ey - R(0.16), `${FD[f].name}!`, '#ffffff', 15);
+        if (!s.big || s.big.t !== e.t) fx.memo.nmT = t;
         break;
       }
       case 'roar': fx.sound('thud', 0.7, 1); fx.ring(ex, ey, '#ff7a3a', R(e.x2), 7); puff(ex, ey, '#ffb02e', 14, 5, 3); break;
@@ -3813,7 +4059,7 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       case 'cloud': fx.sound('splash', e.n ? 1.1 : 1.4, e.n ? 1 : 0.6); puff(ex, ey, '#c8a0ff', e.n ? 16 : 8, 3, 3.2); break;
       case 'slam': fx.sound('thud', 0.6, 1.3); fx.sound('crack', 1, 0.8); fx.ring(ex, ey, '#ff8a2a', R(e.x2), 8); puff(ex, ey, '#ffb02e', 14, 5, 3); puff(ex, ey, '#8a6a5a', 8, 3, 3); fx.kick(e.n ? 9 : 6); break;
       case 'net': fx.sound('whoosh', 0.9, 0.9); fx.sound('crack', 1.6, 0.6); fx.ring(ex, ey, '#3fcf5e', R(e.x2), 6); break;
-      case 'stomp': fx.sound('thud', 0.4, 1.5); fx.sound('crack', 0.6, 0.9); fx.ring(ex, ey, '#b07a44', R(0.5), 10); fx.ring(ex, ey, '#ffd334', R(0.32), 6); puff(ex, ey, '#a8743e', 14, 6, 3.6); fx.kick(14); if (e.x2 >= 3) say(ex, ey - R(0.2), `쿵! ${e.x2}`, '#ffe9b0', 20); break;
+      case 'stomp': fx.sound('thud', 0.4, 1.5); fx.sound('crack', 0.6, 0.9); fx.ring(ex, ey, '#b07a44', R(0.5), 10); fx.ring(ex, ey, '#ffd334', R(0.32), 6); puff(ex, ey, '#a8743e', 14, 6, 3.6); fx.kick(14); break;
       case 'rainbow': fx.sound('chime', 1.2, 1.2); fx.blink('#ffffff', 0.35); fx.kick(8); break;
       case 'palette': fx.sound('splash', 1.2, 0.8); fx.ring(ex, ey, '#ff7ad0', R(e.x2), 5); break;
       case 'pounce': fx.sound('whoosh', 1.1, 0.6); break;
@@ -3832,20 +4078,20 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       case 'spark': fx.sound('tick', 2, 0.3); break;
       case 'twinkle': fx.sound('ding', 1.8, 0.25); puff(ex, ey, '#ffffff', 3, 2, 2); break;
       case 'surf': fx.sound('splash', 1.6, 0.4); puff(ex, ey, '#ffffff', 3, 2.5, 2.4); break;
-      case 'block': fx.sound('ding', 0.6, 0.5); puff(ex, ey, '#ffffff', 3, 2.6, 2); say(ex, ey - R(0.03), '팅!', '#e8e6f0', 14, 'block'); break;
-      case 'clank': fx.sound('tick', 0.9, 0.6); say(ex, ey - R(0.03), '탁!', '#e8e6f0', 14, 'clank'); break;
+      case 'block': fx.sound('ding', 0.6, 0.5); puff(ex, ey, '#ffffff', 3, 2.6, 2);  break;
+      case 'clank': fx.sound('tick', 0.9, 0.6); puff(ex, ey, '#e0dee8', 4, 3, 2);  break;
       case 'crackle': fx.sound('crack', 1.4, 0.6); puff(ex, ey, '#fff6e6', 4, 3, 2.2); break;
-      case 'armorbreak': fx.sound('crack', 0.9, 1.2); puff(ex, ey, '#fff6e6', 12, 5, 3); say(ex, ey - R(0.05), '와장창!', '#ffe36b', 17); fx.kick(4); break;
-      case 'shieldbreak': fx.sound('crack', 1, 1.1); puff(ex, ey, '#d8d4e6', 10, 4.5, 3); say(ex, ey - R(0.05), '방패 쾅!', '#ffe36b', 16); break;
-      case 'dodge': fx.sound('whoosh', 2, 0.4); say(ex, ey, '휙!', '#ffffff', 14, 'dodge'); break;
-      case 'miss': fx.sound('whoosh', 1.8, 0.3); say(ex, ey, '안 닿아!', '#d8f4ff', 13, 'miss'); break;
-      case 'stagger': fx.sound('boing', 0.7, 0.6); say(ex, ey, '으악', '#ffffff', 14); break;
-      case 'knock': fx.sound('fail', 1.3, 0.8); fx.sound('shrink', 0.7, 0.8); puff(ex, ey, CHEX[col || 0][0], 16, 5, 3.2); say(ex, ey - R(0.06), '색이 몽땅 튀었다!', '#ffd0c8', 16); fx.kick(8); break;
-      case 'drip': fx.sound('splash', 1.8, 0.6); fx.sound('shrink', 1.2, 0.5); puff(ex, ey, CHEX[col || 0][0], 8, 3.5, 2.8); if (e.x2) say(ex, ey - R(0.06), '앗, 작아졌다', '#ffffff', 14); break;
-      case 'ouch': fx.sound('boing', 1.8, 0.5); say(ex, ey - R(0.04), '어질어질', '#ffffff', 14); break;
-      case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '하트 -1', '#ff8a7a', 18); break;
+      case 'armorbreak': fx.sound('crack', 0.9, 1.2); puff(ex, ey, '#fff6e6', 12, 5, 3);  fx.kick(4); break;
+      case 'shieldbreak': fx.sound('crack', 1, 1.1); puff(ex, ey, '#d8d4e6', 10, 4.5, 3);  break;
+      case 'dodge': fx.sound('whoosh', 2, 0.4); puff(ex, ey, '#ffffff', 4, 4, 1.8);  break;
+      case 'miss': fx.sound('whoosh', 1.8, 0.3); puff(ex, ey, '#d8f4ff', 3, 2, 1.8);  break;
+      case 'stagger': fx.sound('boing', 0.7, 0.6);  break;
+      case 'knock': fx.sound('fail', 1.3, 0.8); fx.sound('shrink', 0.7, 0.8); puff(ex, ey, CHEX[col || 0][0], 22, 6.5, 4.2); puff(ex, ey, CHEX[col || 0][1], 8, 5, 3);  fx.kick(8); break;
+      case 'drip': fx.sound('splash', 1.8, 0.6); fx.sound('shrink', 1.2, 0.5); puff(ex, ey, CHEX[col || 0][0], 14, 5.5, 4); puff(ex, ey, CHEX[col || 0][1], 6, 4, 3); break;
+      case 'ouch': fx.sound('boing', 1.8, 0.5);  break;
+      case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '-1', '#ff6a7a', 22); break;
       case 'fail': fx.sound('fail', 0.7, 1.1); break;
-      case 'fade': fx.sound('shrink', 1.1, 0.7); puff(ex, ey, '#ffffff', 8, 2.5, 2.6); if (!e.n) say(ex, ey - R(0.08), '색이 다 빠졌어요', '#ffffff', 14); break;
+      case 'fade': fx.sound('shrink', 1.1, 0.7); puff(ex, ey, '#ffffff', 8, 2.5, 2.6); break;
       case 'bump': fx.sound('tick', 0.6, 0.3); break;
       case 'wind': fx.sound('swell', 1.6, 0.4); break;
       case 'bslam': fx.sound('thud', 0.7, 1); fx.sound('crack', 1.2, 0.6); fx.ring(ex, ey, '#ff8a7a', R(e.x2), 5); puff(ex, ey, '#b9b6c6', 8, 4, 3); fx.kick(5); break;
@@ -3855,15 +4101,15 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       case 'zip': fx.sound('whoosh', 1.7, 0.5); break;
       case 'puff': fx.sound('splash', 1.5, 0.4); puff(ex, ey, '#4e4a72', 6, 2, 3); break;
       case 'splat': fx.sound('splash', 1.9, 0.5); puff(ex, ey, '#4e4a72', 6, 2.5, 2.6); break;
-      case 'escape': fx.sound('shrink', 1.4, 0.6); say(ex, ey - R(0.04), '무지개 도둑이 달아났다!', '#ffd4f2', 15); break;
+      case 'escape': fx.sound('shrink', 1.4, 0.6);  break;
       case 'spawn': fx.sound('whoosh', 0.6, 0.5); break;
       case 'champ': fx.sound('swell', 0.8, 0.9); break;
-      case 'loose': fx.sound('ding', 1.2, 1); fx.sound('chime', 1.1, 0.8); puff(ex, ey, '#fff6a0', 12, 4, 3); say(ex, ey - R(0.06), '헐거워졌다! 톡!', '#fff6a0', 17); break;
+      case 'loose': fx.sound('ding', 1.2, 1); fx.sound('chime', 1.1, 0.8); puff(ex, ey, '#fff6a0', 12, 4, 3);  break;
       case 'bpatch': fx.sound('swell', 0.7, 1.2); fx.sound('thud', 0.5, 1.3); fx.kick(12); fx.blink(CHEX[col === RAIN ? 8 : col][1], 0.3); puff(ex, ey, CHEX[col === RAIN ? 8 : col][0], 20, 6, 3.4); break;
       case 'bossdown': fx.sound('crack', 0.6, 1.4); fx.sound('clear', 1, 1); fx.kick(16); fx.blink('#ffffff', 0.5); for (const c of ['#ff5246', '#ffd334', '#3b8dff', '#3fcf5e']) puff(ex, ey, c, 10, 7, 3.6); break;
-      case 'summon': fx.sound('swell', 1, 0.8); say(ex, ey - R(0.06), '도둑들아!', '#e8e6f0', 16); break;
+      case 'summon': fx.sound('swell', 1, 0.8);  break;
       case 'inkwave': fx.sound('splash', 0.6, 1.2); fx.kick(5); break;
-      case 'record': fx.sound('coin', 1.1, 0.9); if (!s.big || t - s.big.t > 70) say(ex, ey - R(0.06), `${e.n}마리!`, '#ffd334', 20); break;
+      case 'record': fx.sound('coin', 1.1, 0.9); if (!s.big || t - s.big.t > 70) say(ex, ey - R(0.06), String(e.n), '#ffd334', 24); break;
       case 'star3': fx.sound('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
       case 'stage': fx.sound('ding', 1, 0.6); break;
       case 'clear': fx.sound('clear', 1, 1); for (const c of ['#ff5246', '#ffd334', '#3b8dff']) puff(w / 2, h * 0.5, c, 10, 6, 3.4); break;
@@ -3873,9 +4119,11 @@ function drawAll(ctx: C2, s: SoulState, w: number, h: number, _th: Theme) {
       case 'retry': fx.sound('boing', 1, 0.7); break;
     }
   }
+  __T('events');
   if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1, 1), fx.blink('#fff6c8', 0.22), fx.kick(6);
   ctx.restore();
   drawHud(ctx, s, w, h);
+  __T('hud');
   fx.memo.t = t;
 }
 /** 소용돌이 띠 굵기 차례 */
@@ -3893,7 +4141,7 @@ function drawHud(ctx: C2, s: SoulState, w: number, h: number) {
     ctx.fillStyle = fill;
     ctx.fillText(str, x, y);
   };
-  const INK = '#3b3150', MUTED = '#9a8fb0', CREAM = '#fff8ec', LINE = '#e6d3b0';
+  const INK = '#3b3150', MUTED = '#9a8fb0', CREAM = '#ffeed2', LINE = '#ebc98e';
   ctx.textBaseline = 'middle';
   // ── 위 띠: 판 · 이름 · 하트 · 별 · 정령 레벨 ──
   ctx.fillStyle = CREAM;
@@ -4327,3 +4575,5 @@ export const __art = { formSprite, foeSprite, silhouette, stamp, drawPerk };
 export const __bot = { fit, burstEst, toward, cands, bestForm };
 /** 측정·스크린샷용: 이 색을 먹은 것처럼 변신 */
 export const __morph = (s: SoulState, col: number, bonus = 0) => transform(s, col, bonus, ++s.aid);
+/** 스크린샷용: 정령이 맞은 것처럼 */
+export const __hit = (s: SoulState, u: number) => hitMe(s, u, s.me.x + 0.05, s.me.y - 0.1);
