@@ -6,7 +6,7 @@ import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
-import { makeGround, makeFar, makeFrame, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
+import { makeGround, makeFar, makeFrame, makeBackdrop, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
 import { Fx, glow } from './fx.js';
 import { icon } from '../ui/ui.js';
 
@@ -114,9 +114,11 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.burn > 0) { const yy = top + 4 + Math.sin(T * 14 + u.id) * 1.2; path(g, p => { p.moveTo(x - 9, yy - 9); p.quadraticCurveTo(x - 4, yy - 3, x - 6.5, yy + 1); p.quadraticCurveTo(x - 9, yy + 3, x - 11.5, yy + 1); p.quadraticCurveTo(x - 13.5, yy - 3, x - 9, yy - 9); }, '#ff9a2e', INK, 0.9); }
   if (u.regen > 0 && Math.sin(T * 6 + u.id) > 0) { const yy = top - 6; rr(g, x - 16, yy - 1.4, 8, 2.8, 0.6, '#5fae6a', INK, 0.8); rr(g, x - 13.4, yy - 4, 2.8, 8, 0.6, '#5fae6a', INK, 0.8); rr(g, x - 15.4, yy - 0.8, 6.8, 1.6, 0, '#5fae6a'); }
   if (u.fuse > 0 && Math.sin(T * 50) > 0) { g.globalAlpha = 0.6; ell(g, x, by - 20, u.r * 2, u.r * 2, '#fff'); g.globalAlpha = alpha; }
-  if (u.hp < u.maxHp - 0.5 && u.hp > 0 && !(u.def && u.def.boss)) {
-    const bw = Math.max(20, u.r * 2.1), bx = x - bw / 2, byy = top - 6;
-    rr(g, bx - 1, byy - 1, bw + 2, 5.5, 1.5, PAPER, INK, 1.1); g.fillStyle = u.team === 0 ? INDIGO : RED; g.fillRect(bx, byy, bw * clamp(u.hp / u.maxHp, 0, 1), 3.5);
+  // 체력 띠: 방금 맞았거나 많이 다친 인형에만 가늘게 (줄지은 부대 위로 띠가 사다리처럼 쌓이지 않게)
+  const since = ST - (u.hitT === undefined ? -99 : u.hitT), hpk = u.hp / u.maxHp, showHp = u.hp > 0 && hpk < 0.995 && !(u.def && u.def.boss) && (since < 2.2 || hpk < 0.35 || (L.hero && hpk < 0.9));
+  if (showHp) {
+    const bw = Math.max(18, u.r * 1.9), bx = x - bw / 2, byy = top - 5, fa = hpk < 0.35 || L.hero ? 1 : clamp((2.2 - since) / 0.6, 0, 1); g.save(); g.globalAlpha *= fa;
+    rr(g, bx - 1, byy - 1, bw + 2, 4.4, 1.2, PAPER, 'rgba(38,42,54,0.8)', 0.9); g.fillStyle = u.team === 0 ? INDIGO : RED; g.fillRect(bx, byy, bw * clamp(hpk, 0, 1), 2.4); g.restore();
   }
   if (L.hero && alpha >= 1) icon.flag(g, x - 2, top - 14 + Math.sin(T * 3) * 1.5, 0.75, OCHRE);
   g.restore();
@@ -142,6 +144,7 @@ export class BattleView {
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
     for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
+    g.drawImage(makeBackdrop(this.theme), 0, 0, W, 300);   // 화면에 고정된 큰 산과 언덕
     for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
     // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
     g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(backlight(isNight(this.theme)), 0, 0, W, H); g.restore();
@@ -353,7 +356,7 @@ export class BattleView {
         case 'morale': { const p = fx.p.find(q => q.mor && q.t < 0.45); if (p) { p.val += e.n; p.s = '사기 +' + Math.round(p.val * 10) / 10; p.t = Math.min(p.t, 0.1); } else fx.add({ k: 'text', mor: true, val: e.n, x: 132, y: 548, vy: -34, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); } fx.star(e.x, e.y - 30, 11, '#f0d264'); sfx('coin'); break;
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
-          const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.flare(e.x, e.y - 22, e.boss ? 90 : 22, e.team === 0 ? '#ffd0b0' : '#ffe2a0', e.boss ? 0.6 : 0.22, e.boss ? 4 : 1); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
+          const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
           // 요괴는 먹으로 번져 사라진다: 바닥에 먹 자국이 남고 먹 연기가 피어오른다
           if (e.team === 1) { fx.stain(e.x, e.y + 2, e.boss ? 2.6 : 0.6 + Math.random() * 0.35, e.boss ? 9 : 5); fx.wisp(e.x, e.y - 16, e.boss ? 8 : 2); }

@@ -111,7 +111,7 @@ export class RunScene {
   drawTalk(g) {
     const k = this.talk; if (!k || !k.cur || this.note) return; const u = k.cur.u, L = u.type ? getLook(u.type) : null;
     const top = u.h || (L ? Math.min(150, L.h * L.scale + (L.float ? 12 : 4)) : 70);
-    bubble(g, clamp(u.x, 30, W - 30), Math.max(HUD_H + 70, u.y - top - (u.jumpH || 0)), k.cur.s, easeOutBack(clamp((this.T - k.cur.t0) / 0.18, 0, 1)));
+    bubble(g, clamp(u.x, 30, W - 30), Math.max(HUD_H + 70, u.y - top - 26 - (u.jumpH || 0)), k.cur.s, easeOutBack(clamp((this.T - k.cur.t0) / 0.18, 0, 1)));
   }
   // 지금 칸을 마치고 다시 걷는다 (두목을 물리쳤으면 다음 고개로)
   leave() {
