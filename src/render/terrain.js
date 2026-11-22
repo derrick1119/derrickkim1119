@@ -236,12 +236,7 @@ export function makeFrame(themeId) {
   const R = rng(97), shadow = T.night ? 'rgba(8,8,26,0.5)' : 'rgba(70,46,20,0.45)';
   const near = mixc(mixc(T.wash[0], T.tuft, 0.5), '#2f3a26', 0.16), mid = mixc(mixc(mixc(T.path, T.fiber, 0.42), T.wash[0], 0.15), '#5a4026', 0.08), cream = T.night ? lt(T.paper, 0.1) : '#f4ead2', ochre = '#dcc08a', sage = mixc(T.tuft, '#a3a57c', 0.55);
   const at = (x, r, fn) => { fn(x); if (x - r < 0) fn(x + GW); if (x + r > GW) fn(x - GW); };
-  // 큰 소나무 (그림자를 드리운 스탠디): 한 화면에 한두 무리
-  standee(g, 196, 292, 360, 260, cg => padPine(cg, 0, 0, 2.1, T, false), T.night);
-  standee(g, 1262, 300, 340, 260, cg => padPine(cg, 0, 0, 2.0, T, true), T.night);
-  standee(g, 1180, 196, 240, 180, cg => padPine(cg, 0, 0, 1.2, T, false), T.night);
-  standee(g, 2010, 200, 240, 180, cg => padPine(cg, 0, 0, 1.1, T, true), T.night);
-  standee(g, 1910, 296, 340, 260, cg => padPine(cg, 0, 0, 1.9, T, false), T.night);
+  // (큰 소나무는 여기 굽지 않는다: 인형들과 앞뒤를 맞춰 그리도록 scenePines 로 따로 세운다)
   // 아래쪽에서 솟는 둥근 둔덕 (cx 를 가운데로 양쪽이 흘러내린다). pk 는 꼭대기 높이, sp 는 반너비
   const mound = (cx, pk, sp, col) => at(cx, sp + 20, x => paperLayer(g, p => { p.moveTo(x - sp, H); p.bezierCurveTo(x - sp * 0.66, pk + 64, x - sp * 0.34, pk - 8, x, pk); p.bezierCurveTo(x + sp * 0.34, pk - 8, x + sp * 0.66, pk + 64, x + sp, H); p.closePath(); }, col, { shadow, blur: 22, sy: -7, grad: [pk, H], x0: x - sp - 40, w: sp * 2 + 80, rimA: 0.85 }));
   // 비스듬히 들판 안으로 흘러드는 쑥빛 둔덕 (옅게)
@@ -253,6 +248,22 @@ export function makeFrame(themeId) {
   mound(0, 482, 390, near); mound(1280, 490, 420, near);
   flowerClump(-220, 220, 520, 566, 18); flowerClump(1060, 1500, 528, 566, 18);
   return keep2(FRAME, themeId, c);
+}
+// 들판에 선 큰 소나무 (그림자를 드리운 스탠디). 바닥 그림에 구워 넣으면 인형이 나무 위에 올라선 것처럼 보이므로,
+// 밑동의 높이(y)로 인형들과 앞뒤를 맞춰 그린다. wx 는 바닥 한 장(GW) 안의 자리, 한 화면에 한두 무리
+const PINES = new Map();
+export function scenePines(themeId) {
+  let a = PINES.get(themeId); if (a) return a;
+  const T = THEMES[themeId] || THEMES.pass, S2 = 2, pad = 14;
+  const mk = (s, flip, w, h) => {
+    const inner = makeCanvas(w * S2, (h + 16) * S2), ig = inner.getContext('2d'); ig.scale(S2, S2); ig.translate(w / 2, h); padPine(ig, 0, 0, s, T, flip);
+    const c = makeCanvas((w + pad * 2) * S2, (h + 30) * S2), cg = c.getContext('2d'); cg.scale(S2, S2);
+    cg.shadowColor = T.night ? 'rgba(8,10,26,0.42)' : 'rgba(54,36,18,0.34)'; cg.shadowBlur = 9; cg.shadowOffsetX = 4; cg.shadowOffsetY = 5; cg.drawImage(inner, pad, 0, w, h + 16);
+    return { img: c, ox: pad + w / 2, oy: h, w: w + pad * 2, h: h + 30 };
+  };
+  a = [[196, 264, 2.1, false, 360, 260], [1262, 268, 2.0, true, 340, 260], [1180, 200, 1.2, false, 240, 180], [2010, 202, 1.1, true, 240, 180], [1910, 264, 1.9, false, 340, 260]]
+    .map(([wx, y, s, f, w, h]) => ({ wx, y, hw: w * 0.36, h: h * 0.9, spr: mk(s, f, w, h) }));
+  return keep2(PINES, themeId, a);
 }
 // 먼 산: 바닥보다 천천히 흐른다. 능선은 짙고 산허리는 안개에 풀린다
 export function makeFar(themeId, seed = 7) {

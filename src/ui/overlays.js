@@ -1,6 +1,6 @@
 // 행군 도중 전장 위에 뜨는 화면들: 전리품, 장터, 사건·주막, 갈림길 (장면을 바꾸지 않고 그 자리에서 고른다)
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack, st } from '../render/draw.js';
 import { ui, tapped, isDown, button, panel, brushTitle, seal, stamp, icon, C } from './ui.js';
 import { cardFace, DeckView } from './cards.js';
 import { G, save, STOP, forkDesc, openReward, rollRewards, describeReward, applyReward, buyItem, upgradeCard, removeCard, canUp, act, CART_MAX } from '../state.js';
@@ -29,6 +29,15 @@ class Overlay {
   frame(g, dt) { this.t += dt; const L = ui.layer; ui.layer = L + 1; try { this.draw(g, dt); if (this.sub) this.sub.frame(g, dt); } finally { ui.layer = L; } }
   deck(o) { this.sub = new DeckView(Object.assign({ onClose: () => { this.sub = null; } }, o)); }
 }
+// 조련할 패: 그 패 인물의 얼굴을 둥근 틀에 담고, 곁에 조련 그림과 'N단 → N+1단' 을 둔다
+function trainArt(g, unit, lv, cx, cy, t) {
+  const mx = cx - 46, my = cy - 2, r = 40;
+  ell(g, mx + 2, my + 3, r, r, 'rgba(50,36,20,0.25)'); ell(g, mx, my, r, r, '#efe3c4', INK, 2.2);
+  g.save(); g.beginPath(); g.arc(mx, my, r - 2, 0, Math.PI * 2); g.clip(); portrait(g, unit, mx, my + 52, 1.15, t, false); g.restore();
+  g.beginPath(); g.arc(mx, my, r, 0, Math.PI * 2); st(g, INK, 2.2);
+  miscIcon(g, 'train', cx + 42, cy - 8, 1.7);
+  rr(g, cx - 6, cy + 40, 104, 28, 14, TEAL, INK, 1.6); text(g, `${lv} → ${lv + 1}단`, cx + 46, cy + 54.5, { size: 17, font: FONT_B, fill: C.cream });
+}
 // 패가 아닌 선택지(보물·무기·조련 …)를 패와 같은 크기의 종이 한 장으로
 function tile(g, d, x, y, w, h, t) {
   const col = COL[d.col] || INDIGO;
@@ -36,7 +45,7 @@ function tile(g, d, x, y, w, h, t) {
   g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, 7); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 46); g.fillStyle = INK; g.fillRect(x, y + 46, w, 2); g.globalAlpha *= 0.14; ell(g, x + w / 2, y + 112, 80, 58, col); g.restore();
   text(g, d.title, x + w / 2, y + 24, { size: 26, font: FONT_B, fill: C.cream });
   const cx = x + w / 2, cy = y + 112;
-  if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') { portrait(g, 'sword', cx, cy + 44, 1.35, t, true); ell(g, cx + 50, cy - 30, 17, 17, PAPER, INK, 2); text(g, '↑', cx + 50, cy - 29, { size: 26, font: FONT_B, fill: TEAL }); } else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }
+  if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 2.3); else if (d.misc === 'trainOne') trainArt(g, d.unit, d.lv, cx, cy, t); else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }
   text(g, d.name, cx, y + 196, { size: 23, font: FONT_B, maxW: w - 20 });
   textBlock(g, d.desc, cx, y + 228, w - 26, 22, { size: 15.5, fill: SUB, weight: 400 });
 }
@@ -102,7 +111,7 @@ export class ShopOverlay extends Overlay {
       rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
       g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
       if (card) cardFace(g, it, x + 10, y + 42, 96, 124);
-      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, 'cleanse', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
+      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, 'cleanse', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 1.85); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
       text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
       textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 126, 20, { size: 15, align: 'left', fill: '#4a4034', weight: 400 });
       g.restore();

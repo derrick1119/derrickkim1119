@@ -26,6 +26,8 @@ export const DEFAULT_MODS = {
   pouch: 9, lootEvery: 5, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
 };
 export const HAND = 5, REFILL = 3.2, MAX_CAP = 9, ROUT = 0.12;
+// 싸움을 이길 때마다 군기 수레를 조금 고친다 (목숨이 하나라 다친 채로 이어지는 몫을 줄인다. 모두 고치는 것은 주막)
+export const REPAIR = 0.15;
 // 사기는 가만히 있어도 차오르는 자원이 아니다: 물결이 시작될 때 한 몫, 요괴 무리를 하나 물리칠 때마다 한 닢.
 // 싸우는 동안에는 아주 천천히, 행군하며 숨을 고를 때는 조금 더 빨리 돌아온다. 아낀 사기는 다음 싸움으로 넘어간다
 export const MORALE_RATE = 0.03, MARCH_RATE = 0.16, WAVE_MORALE = 2, SQUAD_MORALE = 1, BOSS_MORALE = 3;
@@ -262,7 +264,7 @@ export class Battle {
     if (this.units.length > 180) this.units = this.units.filter(u => !u.dead || this.time - u.deadT < 2);
     // 물결을 다 물리치면 다음 행군으로 (군기 수레는 그때마다 조금 수리된다 — 제대로 고치려면 주막에 들러야 한다)
     if (this.waveOn && this.count(1) + this.pending === 0) {
-      this.waveOn = false; this.repair(0.06); this.setTerrain('open'); this.chase = null; this.regroup();
+      this.waveOn = false; { const h0 = this.bannerHp(); this.repair(REPAIR); const got = this.bannerHp() - h0; if (got > 0.004) this.ev('cartRepair', { x: BANNER_POS.x, y: BANNER_POS.y, a: got }); } this.setTerrain('open'); this.chase = null; this.regroup();
       this.ev('waveClear', { time: this.waveT, lost: this.waveLost });
     }
   }
@@ -774,6 +776,7 @@ export class Battle {
     if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
+    if (t.def.banner && d > 0) this.ev('cartHit', { x: t.x, y: t.y, a: d / t.maxHp, rout: kind === 'rout' });   // 수레가 다친 까닭을 화면에 알린다 (부대 전멸 / 요괴의 공격)
     // 맞은 순간의 움찔: 그림만 맞은 방향으로 아주 살짝 밀렸다가 제자리로 돌아온다 (실제 자리와 진형은 그대로).
     // 잇달아 맞아도 밀린 채로 있지 않도록 가벼운 타격은 0.3초에 한 번만, 큰 타격도 0.12초 안에는 다시 움찔하지 않는다
     if (d > 0 && kind !== 'burn' && !t.def.structure && this.time - t.hitT > (d > t.maxHp * 0.12 ? 0.12 : 0.3)) {

@@ -40,7 +40,10 @@ export function textBlock(g, str, x, y, maxW, lh, o = {}) {
   const lines = [];
   // 괄호 안의 낱말은 한 덩이로 묶어 줄바꿈에서 갈라지지 않게 한다
   const chunks = para => { const out = []; let depth = 0; for (const w of para.split(' ')) { if (depth > 0 && out.length) out[out.length - 1] += ' ' + w; else out.push(w); for (const c of w) { if (c === '(') depth++; else if (c === ')') depth = Math.max(0, depth - 1); } } return out; };
-  for (const para of String(str).split('\n')) { let cur = ''; for (const word of chunks(para)) { const t = cur ? cur + ' ' + word : word; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = word; } else cur = t; } lines.push(cur); }
+  // 한 덩이가 한 줄보다 길면: 괄호 묶음은 낱말로 풀고, 그래도 긴 낱말은 가운뎃점(·) 뒤나 글자 사이에서 끊는다
+  const fit = w => { if (g.measureText(w).width <= maxW) return [w]; const ws = w.split(' '); if (ws.length > 1) return ws.flatMap(fit);
+    const out = []; let cur = ''; for (const piece of w.split(/(?<=·)/)) { if (g.measureText(cur + piece).width <= maxW) { cur += piece; continue; } if (cur) out.push(cur); cur = ''; for (const ch of piece) { if (g.measureText(cur + ch).width > maxW && cur) { out.push(cur); cur = ch; } else cur += ch; } } if (cur) out.push(cur); return out; };
+  for (const para of String(str).split('\n')) { let cur = ''; for (const word of chunks(para).flatMap(fit)) { const t = cur ? cur + ' ' + word : word; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = word; } else cur = t; } lines.push(cur); }
   let yy = y; for (const l of lines) { text(g, l, x, yy, o); yy += lh; }
   return lines.length;
 }

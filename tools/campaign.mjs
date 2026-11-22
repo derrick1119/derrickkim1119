@@ -1,6 +1,6 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
-import { Battle, HAND } from '../src/sim/battle.js';
+import { Battle, HAND, REPAIR } from '../src/sim/battle.js';
 import { G, meta, UNLOCKS, BEASTS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
@@ -89,7 +89,7 @@ for (let k = 0; k < runs; k++) {
       { const q = lossCh[e.ch][e.kind]; q[0]++; q[1] += downs; }
       nB++; bump(`${e.ch + 1}고개 ${e.kind === 'boss' ? '두목' : e.kind === 'elite' ? '강적' : '싸움' + (r.road.i + 1)}`, downs);
       if (!cleared) break;
-      dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - 0.06) - (hp0 > 0.94 ? hp0 - 0.94 : 0)); dmgN[e.ch]++;
+      dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - REPAIR) - (hp0 > 1 - REPAIR ? hp0 - (1 - REPAIR) : 0)); dmgN[e.ch]++;
       totalT += cleared.time;
       const grade = 1 + (cleared.lost <= e.starDeaths ? 1 : 0) + (cleared.time <= e.starTime ? 1 : 0); r.gold += goldFor(grade, e.kind); r.merit += grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0;
       if (e.kind !== 'battle') grantLoot(e.kind === 'boss' ? 3 : 2); stockN += tacticCards().length; stockB++;

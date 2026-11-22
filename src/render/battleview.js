@@ -6,7 +6,7 @@ import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
-import { makeGround, makeFar, makeFrame, makeBackdrop, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
+import { makeGround, makeFar, makeFrame, makeBackdrop, scenePines, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
 import { Fx, glow } from './fx.js';
 import { icon } from '../ui/ui.js';
 
@@ -172,9 +172,18 @@ export class BattleView {
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.top ? 9999 : p.y, spr: p.spr, x, sy0: p.y }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
+    // 들판의 큰 소나무: 밑동 높이로 인형들과 앞뒤를 맞추고, 뒤에 인형이나 표시(붉은 원 …)가 가려지면 옅어진다
+    const pa = this.pineA || (this.pineA = {}), off = sc % GW;
+    scenePines(this.theme).forEach((p, i) => { for (const k of [0, 1]) {
+      const x = p.wx - off + k * GW; if (x < -p.hw * 1.6 || x > W + p.hw * 1.6) continue;
+      const hid = q => q.y < p.y + 4 && q.y > p.y - p.h && Math.abs(q.x - x) < p.hw + (q.r || 0);
+      const behind = !!opt.deploy || b.units.some(u => !u.dead && !(u.hidden > 0) && hid(u)) || b.zones.some(hid);
+      const key = i + ':' + k, a0 = pa[key] === undefined ? 1 : pa[key]; pa[key] = a0 + ((behind ? 0.32 : 1) - a0) * 0.18;
+      list.push({ y: p.y, x, pine: p.spr, a: pa[key] });
+    } });
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
@@ -297,7 +306,7 @@ export class BattleView {
     for (const e of b.events) {
       switch (e.type) {
         case 'hit':
-          if (e.kind === 'rout') { fx.txt(e.x + 40, e.y - 110, '군기가 흔들린다!', RED, 22, 1.1); fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }
+          if (e.kind === 'rout') { fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }   // 글은 cartHit 에서 띄운다
           if (e.dodge) { fx.puff(e.x, e.y - 16, 2, '#dfe6ee', 7); fx.txt(e.x, e.y - 50, '흘림', '#5a4a8a', 16, 0.5); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
           if (e.kind === 'burn') { fx.embers(e.x, e.y - 14, 1, '#ff9a2e'); break; }
@@ -321,6 +330,9 @@ export class BattleView {
         case 'scavenge': sfx('card'); out.push(e); break;
         case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(Math.max(e.x + 175, 250), e.y - 70, 'break', 120, MEOK, 1.1); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
+        // 군기 수레: 부대가 무너져 깎인 몫과 싸움 뒤에 고친 몫을 수레 위에 띄운다 (요괴에게 맞은 몫은 피해 숫자로 보인다)
+        case 'cartHit': if (e.rout) fx.txt(e.x + 40, e.y - 104, `부대 전멸 — 수레 −${Math.max(1, Math.round(e.a * 100))}%`, RED, 22, 1.3); out.push(e); break;
+        case 'cartRepair': fx.txt(e.x + 10, e.y - 96, `수레 수리 +${Math.round(e.a * 100)}%`, TEAL, 22, 1.4); out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
           const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];

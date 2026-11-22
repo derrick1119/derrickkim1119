@@ -231,6 +231,14 @@ export const CARD_ART = {
 
 // ───────── 그 밖의 표시 ─────────
 export const MISC_ART = {
+  train(g) { // 조련: 짚을 감은 나무 기둥(목인)에 비스듬히 기댄 목검, 위로 오르는 금빛 화살표 (새 병사를 들이는 그림과 헷갈리지 않게 사람은 그리지 않는다)
+    ell(g, -3, 18, 15, 3.4, 'rgba(60,40,20,0.22)');
+    rr(g, -8, -16, 9, 34, 2.4, WOOD, INK, 1.4); rr(g, -6.6, -14.6, 2.4, 31, 1, 'rgba(255,240,210,0.35)');
+    rr(g, -19, -10.5, 31, 4.2, 1.6, WOODD, INK, 1.2);
+    for (const y of [-3, 7]) { rr(g, -10, y, 13, 6, 2, STRAW, INK, 1.1); for (const x of [-7, -3.5, 0]) line(g, [x, y + 1.2, x + 0.6, y + 4.8], 'rgba(110,80,30,0.6)', 0.7); }
+    g.save(); g.translate(7, 6); g.rotate(0.42); rr(g, -1.8, -22, 3.6, 22, 1.6, '#e2c48c', INK, 1.1); rr(g, -4.6, 0, 9.2, 2.6, 1, WOODD, INK, 0.9); rr(g, -1.6, 2.6, 3.2, 7, 1.2, '#5e3a22', INK, 0.9); g.restore();
+    ell(g, 12, -13, 9, 9, '#f6e7b8', INK, 1.4); poly(g, [12, -19.6, 17.4, -12.4, 14.2, -12.4, 14.2, -6.8, 9.8, -6.8, 9.8, -12.4, 6.6, -12.4], GOLD, INK, 1);
+  },
   burn(g) { // 패 태우기
     g.save(); g.rotate(-0.16); rr(g, -11, -15, 22, 31, 2.4, PAPER, INK, 1.4); rr(g, -11, -15, 22, 7, 2, INDIGO, INK, 1); rr(g, -6, -3, 12, 11, 1.6, '#d9cdb0', INK, 0.9);
     path(g, p => { p.moveTo(-11, 9); p.lineTo(-7, 5.6); p.lineTo(-3, 10); p.lineTo(2, 4.6); p.lineTo(6, 9.6); p.lineTo(11, 6); p.lineTo(11, 16); p.lineTo(-11, 16); p.closePath(); }, BLACK); g.restore();
