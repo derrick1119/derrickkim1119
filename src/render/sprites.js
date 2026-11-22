@@ -169,7 +169,7 @@ export const LOOKS = {
   tiger: { body: tiger, blinkBody: g => tiger(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.08 },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
-  banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 134, still: true, scale: 1.0, w: 170, ox: 84, ch: 160, oy: 142 },   // 통북 수레 (깃대가 높아 종이를 크게 쓴다)
+  banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 100, still: true, scale: 1.4, w: 200, ox: 90, ch: 170, oy: 130, bw: 3.4, noShadow: true, gshadow: [16, 25, 76, 7] },   // 통북 수레 (깃대가 높아 종이를 크게 쓴다)
   // 요괴
   // 도깨비 살빛은 사람 살빛이 아닌 벽돌빛·이끼 낀 황토·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼, 갈색 살에 곱슬머리는 사람을 희화화한 것처럼 보인다)
   // 패랭이·벙거지·상투·삼베 등거리를 걸친다
@@ -234,7 +234,7 @@ for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
   const d = LOOKS[type]; if (!d) throw new Error('unknown look ' + type);
-  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: d.ch || 132, oy: d.oy || 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
+  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: d.ch || 132, oy: d.oy || 114, border: d.border, bw: d.bw, shadow: d.noShadow ? false : undefined }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
   const wrap = fn => d.wide ? g => { g.scale(d.wide, 1); fn(g); } : fn;
   let front, head = null, blink = null, frontBlink = null;
   if (d.doll) {
@@ -246,7 +246,7 @@ export function getLook(type) {
     front = paperSprite(g => dokkaebi(g, d.dok, 'body'), o); head = paperSprite(g => dokkaebi(g, d.dok, 'head'), ho); blink = paperSprite(g => dokkaebi(g, Object.assign({}, d.dok, { blink: true }), 'head'), ho);
   } else { front = paperSprite(wrap(d.body), o); if (d.blinkBody) frontBlink = paperSprite(wrap(d.blinkBody), o); }
   const weapon = d.weapon && d.weapon !== 'none' ? paperSprite(WEAPONS[d.weapon], { w: 60, h: 90, ox: 30, oy: 62, border: d.border }) : null;
-  L = { front, back: front, head, blink, frontBlink, neck: (d.neck || 33) + lift, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
+  L = { gshadow: d.gshadow || null, front, back: front, head, blink, frontBlink, neck: (d.neck || 33) + lift, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
   cache.set(type, L); return L;
 }
 // 지금 눈을 깜빡일 때인가 (인형마다 박자가 조금씩 다르다)

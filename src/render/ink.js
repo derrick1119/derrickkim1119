@@ -85,12 +85,15 @@ function splat(g, R0, seed, col, spikes = 1) {
 }
 
 // 물 먹은 종이에 번진 먹: 옅은 얼룩이 겹치고 가장자리에 마른 테가 남는다
+// 먹 번짐: 들쭉날쭉한 번짐 몇 겹. 물이 마르며 가장자리에 먹이 모여 테가 진다 (흐릿한 얼룩이 아니라 경계가 보인다)
 function wash(g, R0, seed, col) {
   const R = rng(seed);
-  for (let j = 0; j < 8; j++) {
-    const a = R() * TAU, d = R0 * R() * 0.42, r = R0 * (0.45 + R() * 0.5), x = Math.cos(a) * d, y = Math.sin(a) * d * 0.85, gr = g.createRadialGradient(x, y, r * 0.08, x, y, r);
-    gr.addColorStop(0, rgba(col, 0.26)); gr.addColorStop(0.62, rgba(col, 0.17)); gr.addColorStop(0.86, rgba(col, 0.2)); gr.addColorStop(1, rgba(col, 0));
-    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  for (let j = 0; j < 5; j++) {
+    const a = R() * TAU, d = R0 * R() * 0.36, r = R0 * (0.42 + R() * 0.42), cx = Math.cos(a) * d, cy = Math.sin(a) * d * 0.85, N = 22, ph = R() * 9;
+    const shape = () => { g.beginPath(); for (let i = 0; i <= N; i++) { const an = i / N * TAU, rr = r * (0.86 + 0.14 * Math.sin(an * 3 + ph) + 0.06 * Math.sin(an * 7 + ph * 2)); const x = cx + Math.cos(an) * rr, y = cy + Math.sin(an) * rr; if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.closePath(); };
+    shape(); g.fillStyle = rgba(col, 0.13); g.fill();
+    g.save(); shape(); g.clip(); const gr = g.createRadialGradient(cx, cy, r * 0.5, cx, cy, r); gr.addColorStop(0, rgba(col, 0)); gr.addColorStop(1, rgba(col, 0.16)); g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2); g.restore();
+    shape(); g.strokeStyle = rgba(col, 0.28); g.lineWidth = Math.max(1.2, R0 * 0.018); g.stroke();
   }
 }
 
