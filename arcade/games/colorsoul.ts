@@ -4388,6 +4388,7 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
   ctx.fillRect(0, Y(1.31), w, h - Y(1.31));
   ctx.fillStyle = LINE;
   ctx.fillRect(0, Y(1.31), w, 2);
+  const __h0 = performance.now(), __F = (globalThis as any).__F || {};
   const words = starWords(s), res = s.phase === 'result', st = d.star;
   const prog = st.k === 'form' ? ` ${Math.min(st.n, s.multi[-1] ?? 0)}/${st.n}` : '';
   const got3 = res ? s.starOk[2] : st.k === 'multi' ? s.star3 : st.k === 'form' ? (s.multi[-1] ?? 0) >= st.n : false;
@@ -4415,6 +4416,7 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
     if (off) (ctx.fillStyle = '#b8a890'), ctx.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
     cx += cw + gap;
   });
+  __F.h_chips = +(performance.now() - __h0).toFixed(1);
   // 지금 모습: 작은 그림 · 이름 · 단계 · 점수 배수 · 남은 시간
   {
     const by = Y(1.405), c = CHEX[me.mask === RAIN ? 8 : me.mask];
@@ -4422,6 +4424,7 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
     ctx.translate(X(0.075), by + R(0.022));
     stamp(ctx, formSprite(me.f, 0, R(0.018) * sc * 1.05), R(0.018));
     ctx.restore();
+    __F.h_icon = +(performance.now() - __h0).toFixed(1);
     ctx.textAlign = 'left';
     font(0.038, 900);
     const nm = me.f === 'white' ? '하얀 정령 (맨몸)' : FD[me.f].name;
@@ -4439,6 +4442,7 @@ function hudBands(ctx: C2, s: SoulState, w: number, h: number, sc: number, boss:
       void q;
     }
   }
+  __F.h_form = +(performance.now() - __h0).toFixed(1);
   ctx.textAlign = 'center';
   let tip = `${d.name}: ${d.news}`;
   if (s.phase === 'pick') tip = '광장의 큰 물건 둘 중 하나를 톡!';

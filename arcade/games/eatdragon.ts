@@ -25,9 +25,9 @@ import { juice } from '../juice.ts';
 const A = 1.5, TAU = Math.PI * 2;
 /** 하늘 길: 화면 좌표(가로 폭 = 1, 세로 0~1.5). 용과 떼는 이 띠 안에서 난다 */
 const FY0 = 0.17, FY1 = 1.22;
-const HOME_X = 0.27, HOME_Y = 0.75;
+const HOME_X = 0.27, HOME_Y = 0.8;
 /** 용은 화면 세로 40~60%에 머문다 (y 범위) · 그림은 몸보다 1.3배 크게 */
-const ME_Y0 = 0.58, ME_Y1 = 0.92, DK = 1.3;
+const ME_Y0 = 0.64, ME_Y1 = 0.96, DK = 1.3;
 /** 한 화면의 적 상한 · 적 총알 상한 · 내 것(가시·거품·바람) 상한 */
 const CAP = 24, SHOT_CAP = 100, MINE_CAP = 60;
 /** 먹은 뒤 꼭꼭 씹는 틱(이동안 톡은 안 먹힌다) · 먹으러 날아가는 최소 틱 */
@@ -1031,7 +1031,7 @@ function spawnFlock(s: DrState, fl: Fl, pre: boolean) {
   const kd = KD[fl.k], id = ++s.nid;
   let tx = 0.68, ty = 0.7, bd = -1;
   for (let k = 0; k < 8; k++) {
-    const x = 0.56 + s.rng() * 0.28, y = FY0 + 0.14 + s.rng() * (FY1 - FY0 - 0.28);
+    const x = 0.56 + s.rng() * 0.28, y = FY0 + 0.2 + s.rng() * (FY1 - FY0 - 0.32);
     let near = dist(x, y, s.me.x, s.me.y);
     for (const f of s.flocks) near = Math.min(near, dist(x, y, f.x, f.y));
     if (near > bd) (bd = near), (tx = x), (ty = y);
@@ -4247,7 +4247,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     ctx.translate(cx2, cy2);
     ctx.scale(popK, popK);
     ell(ctx, 0, 0, k, k);
-    ctx.fillStyle = pt ? '#ffffff' : 'rgba(255,255,255,.5)';
+    ctx.fillStyle = pt ? mix(PD[pt.p].col, '#ffffff', 0.72) : 'rgba(255,255,255,.5)';
     ctx.fill();
     if (pt) {
       ctx.strokeStyle = SLOT_COL[i];
@@ -4381,7 +4381,7 @@ function drawHud(ctx: C2, s: DrState, w: number, h: number, boss: Mon | undefine
     }
   }
   // ── 가운데 이름표 카드 (새 부위 · 별 셋째 · 대장 순간, 0.9초) ──
-  if (s.big && t - s.big.t < CARD_T && s.phase !== 'end') {
+  if (s.big && t - s.big.t < CARD_T && s.phase === 'play') {
     const b = s.big, age = t - b.t, pop = age < 5 ? 0.7 + 0.45 * (age / 5) : age < 9 ? 1.15 - 0.15 * ((age - 5) / 4) : 1, a = Math.min(1, (CARD_T - age) / 8);
     const cw = R(0.78), ch = R(0.19), cy = Y(0.34);
     ctx.save();
