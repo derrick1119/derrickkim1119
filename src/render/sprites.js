@@ -5,6 +5,22 @@ import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, horse,
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
 
+// 요괴가 끌고 가던 나무 우리: 안에 흰 옷 입은 마을 사람이 웅크려 있다 (부수면 의병으로 합류한다)
+function cage(g) {
+  const WD = '#8a5a30', WL = '#b07a44';
+  ell(g, 0, 2, 34, 6, 'rgba(60,40,20,0.25)');
+  // 안의 사람: 흰 저고리, 상투, 걱정스러운 얼굴
+  part(g, p => { p.moveTo(-12, -2); p.quadraticCurveTo(-14, -26, 0, -30); p.quadraticCurveTo(14, -26, 12, -2); p.closePath(); }, '#f3ecdc', E(6, -12, 8, 12), { lw: 1.3 });
+  line(g, [-6, -24, 0, -16, 6, -24], 'rgba(60,50,40,0.5)', 1);
+  ell(g, 0, -38, 9.6, 10.4, SKIN, INK, 1.3); part(g, p => { p.moveTo(-10, -40); p.quadraticCurveTo(-9, -50, 0, -50); p.quadraticCurveTo(9, -50, 10, -40); p.quadraticCurveTo(4, -45, -10, -40); p.closePath(); }, '#2b2a30', null, { lw: 1 }); ell(g, 0, -52, 3.4, 3.4, '#2b2a30', INK, 0.9);
+  ell(g, -3.4, -38, 1.2, 1.5, INK); ell(g, 3.4, -38, 1.2, 1.5, INK); line(g, [-5.4, -42.6, -2, -41.4], INK, 1); line(g, [5.4, -42.6, 2, -41.4], INK, 1); line(g, [-2.4, -33, 2.4, -33.6], INK, 1);
+  // 우리: 바닥 나무, 기둥 여섯, 지붕 들보, 묶은 새끼줄
+  part(g, p => p.rect(-30, -6, 60, 8), WD, R(-30, -1, 60, 3), { lw: 1.4 });
+  for (const x of [-27, -16, -5.5, 5.5, 16, 27]) { rr(g, x - 2.2, -60, 4.4, 56, 1.4, x === -27 || x === 27 ? WD : WL, INK, 1.2); }
+  part(g, p => { p.moveTo(-34, -60); p.lineTo(34, -60); p.lineTo(30, -68); p.lineTo(-30, -68); p.closePath(); }, WD, R(-34, -62, 68, 2), { hi: R(-30, -67, 60, 2), lw: 1.4 });
+  for (const x of [-16, 16]) for (const y of [-46, -20]) { line(g, [x - 4, y - 3, x + 4, y + 3], '#d9b77a', 1.6); line(g, [x - 4, y + 3, x + 4, y - 3], '#c9a46a', 1.2); }
+}
+
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
 // 자루: 먹선 + 나뭇결 빛
@@ -17,6 +33,14 @@ const guard = (g, y, w = 7.6, col = OCHRE) => part(g, E(0, y, w / 2, 1.6), col, 
 // 칼날: 등 쪽은 어둡게, 날 쪽은 흰 빛
 const blade = (g, fn, back, edge, col = '#dfe5e8') => part(g, fn, col, back, { shc: STEELD, hi: edge, hic: '#ffffff', lw: 1.1 });
 const WEAPONS = {
+  // 보물 짐꾼의 보따리: 어깨에 멘 막대 끝에 매단 불룩한 비단 보따리, 틈으로 엽전이 비친다
+  sack(g) {
+    g.translate(0, 10);
+    line(g, [0, 4, 2, -40], INK, 3.6); line(g, [0, 4, 2, -40], '#8a5a30', 2);
+    part(g, p => { p.moveTo(-10, -40); p.quadraticCurveTo(-17, -56, -4, -62); p.quadraticCurveTo(2, -66, 8, -62); p.quadraticCurveTo(20, -55, 13, -40); p.quadraticCurveTo(2, -34, -10, -40); p.closePath(); }, '#b8322a', E(6, -48, 7, 9), { hi: E(-6, -54, 3, 5), hk: 0.3, lw: 1.4 });
+    for (const [x, y] of [[-3, -50], [5, -56], [10, -47]]) { g.save(); g.translate(x, y); g.rotate(0.4); g.scale(1, 0.6); ell(g, 0, 0, 3.4, 3.4, '#e9c04f', INK, 0.8); rr(g, -0.9, -0.9, 1.8, 1.8, 0.2, '#7a5a20'); g.restore(); }
+    part(g, p => { p.moveTo(-1, -63); p.lineTo(-6, -70); p.lineTo(1, -67); p.lineTo(7, -71); p.lineTo(4, -63); p.closePath(); }, '#d9b24a', null, { lw: 1 });
+  },
   hwando(g, o = {}) {
     blade(g, p => { p.moveTo(-1.6, -4.4); p.quadraticCurveTo(-0.9, -17, 4.8, -31.4); p.quadraticCurveTo(3.8, -16, 1.9, -4.4); p.closePath(); }, p => { p.moveTo(-2, -4); p.quadraticCurveTo(-1.2, -17, 4.8, -32); p.quadraticCurveTo(0.6, -18, 0, -4); p.closePath(); }, p => { p.moveTo(1.5, -5); p.quadraticCurveTo(3.2, -16, 4.6, -30); p.quadraticCurveTo(2.6, -16, 1, -5); p.closePath(); });
     curve(g, p => { p.moveTo(0, -6); p.quadraticCurveTo(0.6, -16, 3, -24); }, '#8a959c', 0.6);
@@ -174,6 +198,7 @@ export const LOOKS = {
   // 도깨비 살빛은 사람 살빛이 아닌 벽돌빛·이끼 낀 황토·잿빛·쪽빛 회색으로 (초록·보라는 서양 오크처럼, 갈색 살에 곱슬머리는 사람을 희화화한 것처럼 보인다)
   // 패랭이·벙거지·상투·삼베 등거리를 걸친다
   goblin: DK({ skin: '#c8643f', hat: 'paeraeng' }, { scale: 0.78 }),
+  porter: DK({ skin: '#b8703f', hat: 'paeraeng' }, { scale: 0.86, weapon: 'sack', hold: hold(-0.25, 'none', 15, -22) }),
   orc: DK({ skin: '#7d8597', cloth: '#b98a55', warts: true, knot: true }, { scale: 1.04 }),
   garcher: DK({ skin: '#a89a58', cloth: '#7a4f3a', item: DITEM.sling, hat: 'beong' }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
   rshield: DK({ skin: '#909497', cloth: '#d9c39a', item: DITEM.lid, warts: true, vest: '#cdbb92', hair: '#4a3a34' }, { scale: 1.0 }),
@@ -213,6 +238,7 @@ export const LOOKS = {
   jumo: { doll: { robe: '#4f6a8a', top: '#f3ecdd', git: '#8a2a26', goreum: '#8a2a26', hem: '#3a5270', hat: 'jjok', skin: '#f3d6b2', jaw: 'round', brow: 'thin', eyes: 'soft', lip: '#b8443a', mouth: 'smile', item: bottleItem }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   foxlady: { doll: { robe: '#b8342a', top: '#e8c86a', git: '#7a1f1c', goreum: '#7a1f1c', hem: '#8a2a26', hat: 'jjok', skin: '#f6dcc0', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#b8443a', mouth: 'smirk', under: foxTails }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   bell: { body: bell, weapon: 'none', hold: hold(0, 'bite'), h: 76, scale: 1.25, still: true },
+  cage: { body: cage, weapon: 'none', hold: hold(0, 'none'), h: 70, scale: 1.2, still: true },
   pearl: { body: pearl, weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 1.5, still: true, float: true },
   mirror: { body: mirror, weapon: 'none', hold: hold(0, 'bite'), h: 58, scale: 1.4, still: true },
 };

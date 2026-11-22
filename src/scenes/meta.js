@@ -10,7 +10,7 @@ import { meta, save, UNLOCKS, has, buyUnlock, HARD, HARD_MAX, BEASTS, deedCount,
 import { miniStage } from '../ui/theater.js';
 import { dimBackdrop } from './title.js';
 import { portrait, LOOKS } from '../render/sprites.js';
-import { sfx } from '../audio.js';
+import { sfx, bgm } from '../audio.js';
 
 // 영물 초상의 크기·자리 보정(칸을 고르게 채우도록)과, 아직 못 만난 영물의 먹 실루엣
 const BK = { magpie: 1.42, sapsal: 1.5, samjoko: 1.22, tiger: 0.98, haetae: 0.9 }, BY = { magpie: 90, samjoko: 92, sapsal: 68, tiger: 70, haetae: 74 }, BX = { magpie: 5, tiger: -4, haetae: -2, sapsal: -3 };
@@ -25,12 +25,12 @@ function shade(id) {
   return c;
 }
 export class MetaScene {
-  constructor() { this.t = 0; this.book = false; this.beasts = false; this.sel = 0; noteDeed(); }
+  constructor(a) { this.t = 0; this.book = !!(a && a.book); this.beasts = false; this.sel = 0; noteDeed(); }
   // 영물의 인연: 원정에서 쌓은 공으로 영물이 합류한다. 아직 못 만난 영물도 무엇을 하면 되는지 보인다
   drawBeasts(g) {
     brushTitle(g, 250, 48, 360, 66, '영물의 인연', TEAL, 38);
     text(g, `인연을 맺은 영물 ${BEASTS.filter(b => has(b.id)).length} / ${BEASTS.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '원정을 거듭하며 공을 쌓으면 영물이 군대에 합류합니다. 한 번 맺은 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 720 });
+    text(g, '공을 쌓으면 영물이 합류합니다. 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 720 });
     BEASTS.forEach((b, n) => {
       const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id], cnt = Math.min(b.need, deedCount(b));
       rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
@@ -50,7 +50,7 @@ export class MetaScene {
     const got = meta.tales || [];
     brushTitle(g, 250, 48, 360, 66, '이야기책', '#2f6f5c', 38);
     text(g, `들은 이야기 ${got.length} / ${TALES.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '고개마다 주막에서 그 고개의 옛이야기를 들려줍니다 — 두목을 이기는 귀띔이 들어 있습니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
+    text(g, '주막에서 고개의 옛이야기를 들려줍니다 — 두목을 이길 귀띔도', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
     panel(g, 30, 108, 420, 574); panel(g, 470, 108, 780, 464);
     TALES.forEach((t, n) => {
       const y = 122 + n * 45, has = got.includes(t.id), on = this.sel === n;
@@ -70,6 +70,7 @@ export class MetaScene {
     if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
   }
   frame(g, dt) {
+    bgm('rest');
     this.t += dt; dimBackdrop(g, 0.82);
     if (this.book) { this.drawBook(g); return; }
     if (this.beasts) { this.drawBeasts(g); return; }
@@ -102,7 +103,7 @@ export class MetaScene {
         if (cleared) { ell(g, cx + 24, cy + 46, 5.8, 5.8, RED, INK, 1); } else if (!open) { rr(g, cx + 18, cy + 43, 12, 9, 2, '#8a8474', INK, 1); g.beginPath(); g.arc(cx + 24, cy + 43, 4, Math.PI, 0); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke(); }
         g.restore();
       }
-      text(g, `붉은 점 = 평정한 길 · 칸을 눌러 떠날 길을 고릅니다 (열린 길 ${meta.hardMax} / ${HARD_MAX})`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
+      text(g, `붉은 점 = 평정한 길 · 눌러서 고르기 (열린 길 ${meta.hardMax}/${HARD_MAX})`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
     } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '열두 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }
     if (button(g, 'back', 960, y + 12, 290, 86, '돌아가기', { style: 'paper', size: 32 })) nav.go('title');
   }

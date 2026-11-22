@@ -3,7 +3,7 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack, st } from '../render/draw.js';
 import { ui, tapped, isDown, button, panel, brushTitle, seal, stamp, icon, C } from './ui.js';
 import { cardFace, DeckView } from './cards.js';
-import { G, save, STOP, forkDesc, openReward, rollRewards, describeReward, applyReward, buyItem, upgradeCard, removeCard, canUp, act, CART_MAX } from '../state.js';
+import { G, save, STOP, forkDesc, openReward, rollRewards, describeReward, applyReward, buyItem, upgradeCard, removeCard, canUp, act } from '../state.js';
 import { chapterOf } from '../data/stages.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { RELICS } from '../data/relics.js';
@@ -267,10 +267,10 @@ export class ForkOverlay extends Overlay {
 export function restChoices() {
   const r = G.run;
   return [
-    { label: '수레를 손본다', desc: (r.cartUp || 0) < CART_MAX ? '군기 수레 보강 — 원정 내내 수레 체력 +15% (셋까지)' : '수레가 이미 단단 — 대신 엽전 +40', pick: () => ['주막 마당에서 바퀴를 갈고 북 테를 다시 죄었습니다.', act.cart(1)] },
-    r.deck.some(c => isUnit(c) && canUp(c)) ? { label: '조련한다', desc: '병력·영웅 패 한 장을 골라 +1단 (체력·공격력 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
-    { label: '보급을 받는다', desc: '전술 패 석 장을 얻는다 (돌팔매·화살비·약손·북·척후 가운데)', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다. 떠돌이 장꾼들이 두고 간 것도 섞여 있습니다.', act.supply(3)] },
-    r.deck.some(c => !isUnit(c) && canUp(c)) ? { label: '전술을 익힌다', desc: '전술 패 한 종류를 골라 익힌다 — 가진 것과 앞으로 얻는 것이 모두 강화판(+)', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
-    { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 무작위 병력 패 둘을 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
+    { label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
+    r.deck.some(c => isUnit(c) && canUp(c)) ? { label: '조련한다', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
+    { label: '보급을 받는다', desc: '기본 전술 패 석 장', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다.', act.supply(3)] },
+    r.deck.some(c => !isUnit(c) && canUp(c)) ? { label: '전술을 익힌다', desc: '전술 패 한 종류를 모두 강화판(+)으로', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
+    { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 패 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
   ].filter(Boolean);
 }

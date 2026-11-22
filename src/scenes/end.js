@@ -1,4 +1,5 @@
 // 원정 끝 (평정 / 실패) — 가로
+import { bgm } from '../audio.js';
 import { W, H } from '../config.js';
 import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
 import { button, panel, brushTitle, C } from '../ui/ui.js';
@@ -20,6 +21,7 @@ export class EndScene {
     // 끝 이야기: 이긴 밤에는 그 영웅만의 끝, 진 밤에는 장승 앞에서 깨어나는 장면을 인형극으로 먼저 보여 준다
     const hero = this.r ? this.r.hero : 'commander'; this.play = new Play({ beats: this.win ? endingPlay(hero) : defeatPlay(hero), title: this.win ? `${UNITS[hero].name} 이야기 · 끝` : '홀린 밤', onDone: () => { this.play = null; this.t = 0; } }); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
   frame(g, dt) {
+    bgm('story');
     if (this.play) { this.play.frame(g, dt); return; }
     this.t += dt; const t = this.t, r = this.r, win = this.win;
     g.drawImage(backdrop(), 0, 0, W, H);

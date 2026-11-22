@@ -82,7 +82,7 @@ export function panel(g, x, y, w, h, style = 'paper') {
 // [위, 아래, 옆면(두께), 글자, 장식선]
 const BTN = {
   indigo: ['#40619a', '#27426f', '#16233f', C.cream, '#e2b85a'], red: ['#cc4a3b', '#9a2a22', '#5e1512', C.cream, '#f3c9a0'], paper: ['#fdf8ea', '#eadfc3', '#b5a888', INK, 'rgba(38,42,54,0.36)'],
-  teal: ['#4f8270', '#325a4c', '#1c362d', C.cream, '#e2b85a'], navy: ['#33456f', '#1c2745', '#0c1222', C.cream, '#e2b85a'], grey: ['#c4bfb0', '#a39d8d', '#7d7768', '#5a5346', 'rgba(90,83,70,0.45)'],
+  teal: ['#4f8270', '#325a4c', '#1c362d', C.cream, '#e2b85a'], wood: ['#5e3c25', '#3b2416', '#1e120a', C.cream, '#d6a640'], navy: ['#33456f', '#1c2745', '#0c1222', C.cream, '#e2b85a'], grey: ['#c4bfb0', '#a39d8d', '#7d7768', '#5a5346', 'rgba(90,83,70,0.45)'],
 };
 export function button(g, id, x, y, w, h, label, o = {}) {
   const name = o.style || 'indigo', sty = BTN[name], dis = !!o.disabled, light = name === 'paper' || name === 'grey';

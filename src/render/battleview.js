@@ -194,9 +194,9 @@ export class BattleView {
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형·효과·피해 숫자에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
-      if (u.dead || !u.def.prop) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
+      if (u.dead || !(u.def.prop || u.def.porter) || u.hidden > 0) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
       if (!rest) poly(g, [u.x - 11, yy - 13, u.x + 11, yy - 13, u.x, yy], '#f0d264', INK, 2);
-      const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라' }[u.type] || u.def.name, s = u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
+      const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라', cage: '우리를 부숴라', porter: '짐꾼을 잡아라' }[u.type] || u.def.name, s = u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
       tag(u.x, yy - 32, s, rest ? '#8a8474' : a.count > 0 && a.count < 5 ? RED : '#7a4a2c');
     }
     // (홀린 부대에 할 일은 두목 체력 아래 알림 칸에 쓴다. 부대 위에는 소용돌이 표시만)
@@ -306,7 +306,6 @@ export class BattleView {
     for (const e of b.events) {
       switch (e.type) {
         case 'hit':
-          if (e.kind === 'rout') { fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }   // 글은 cartHit 에서 띄운다
           if (e.dodge) { fx.puff(e.x, e.y - 16, 2, '#dfe6ee', 7); fx.txt(e.x, e.y - 50, '흘림', '#5a4a8a', 16, 0.5); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
           if (e.kind === 'burn') { fx.embers(e.x, e.y - 14, 1, '#ff9a2e'); break; }
@@ -322,17 +321,18 @@ export class BattleView {
           if (e.big && e.amt >= 60) fx.num(e.x, e.y - 42, e.amt, e.team === 0 ? RED : INK);
           break;
         case 'melee': if (e.big || Math.random() < 0.3) fx.star(e.x, e.y - 4, e.big ? 16 : 9); break;
-        case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
+        case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); fx.shake = Math.max(fx.shake, 5); sfx('warn'); out.push(e); break;
         // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
         case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: Math.min(Math.max(e.y - 56, 150), 492) - 78, vy: -8, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 22, life: 1.1 }); } sfx('card'); out.push(e); break;
         case 'lootFull': out.push(e); break;
         case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
         case 'scavenge': sfx('card'); out.push(e); break;
-        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(Math.max(e.x + 175, 250), e.y - 70, 'break', 120, MEOK, 1.1); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
-        // 군기 수레: 부대가 무너져 깎인 몫과 싸움 뒤에 고친 몫을 수레 위에 띄운다 (요괴에게 맞은 몫은 피해 숫자로 보인다)
-        case 'cartHit': if (e.rout) fx.txt(e.x + 40, e.y - 104, `부대 전멸 — 수레 −${Math.max(1, Math.round(e.a * 100))}%`, RED, 22, 1.3); out.push(e); break;
-        case 'cartRepair': fx.txt(e.x + 10, e.y - 96, `수레 수리 +${Math.round(e.a * 100)}%`, TEAL, 22, 1.4); out.push(e); break;
+        case 'porterDown': fx.txt(e.x, e.y - 60, '보따리를 빼앗았다!', '#b8862a', 24, 1.3); out.push(e); break;
+        case 'rescue': fx.txt(e.x, e.y - 80, '마을 사람을 구했다!', TEAL, 24, 1.4); out.push(e); break;
+        case 'escaped': case 'rescueLost': out.push(e); break;
+        case 'ambush': fx.txt(e.x + 330, Math.max(250, e.y), '뒤에서 요괴가 들이닥친다!', RED, 26, 1.6); fx.shake = Math.max(fx.shake, 6); sfx('warn'); break;
+        case 'armyDown': fx.shake = 16; fx.flash = 0.8; fx.flashCol = '#fff'; out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
           const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];

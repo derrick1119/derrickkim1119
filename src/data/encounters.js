@@ -3,6 +3,13 @@
 import { UNITS } from './units.js';
 import { CHAPTERS, N_CH } from './stages.js';
 
+// 길 위의 변수에만 나오는 것들: 달아나는 보물 짐꾼, 요괴가 끌고 가던 우리에 갇힌 마을 사람
+Object.assign(UNITS, {
+  porter: { name: '보물 짐꾼', role: '짐꾼', side: 1, cost: 0, n: 1, hp: 150, atk: 0, as: 9, range: 0, spd: 58, r: 12, flee: true, porter: true, tip: '보따리를 메고 달아나는 도깨비. 놓치기 전에 잡으면 엽전' },
+  cage: { name: '갇힌 마을 사람', role: '소품', side: 1, cost: 0, n: 1, hp: 160, atk: 0, as: 9, range: 0, spd: 0, r: 22, structure: true, prop: true, rescue: true, tip: '우리를 부수면 마을 사람이 의병으로 합류' },
+});
+// 일반 싸움의 절반쯤에 붙는 변수와 그 알림
+export const TWIST = { pincer: '협공 — 잠시 뒤 뒤쪽에서도 요괴가 온다', porter: '보물 짐꾼 — 달아나기 전에 잡으면 엽전', cage: '갇힌 마을 사람 — 우리를 부수면 의병이 합류' };
 export const ROWS = 5; // 고개 하나의 갈림길 줄 수 (그 위가 두목)
 const THREAT = { goblin: 2, orc: 3, garcher: 2.5, rshield: 3.2, rassassin: 3, treant: 4.2, bomber: 3, wolf: 3.6, shaman: 3.4, skel: 3.2, skelarcher: 3, catapult: 4.2, necro: 5, yagwang: 3.2, dueok: 4.8, bulga: 5.6, jangsan: 4.8, geuseun: 5.2 };
 const ROLE = { goblin: 'front', orc: 'front', rshield: 'front', treant: 'front', skel: 'front', rassassin: 'mid', bomber: 'mid', wolf: 'flank', shaman: 'back', garcher: 'back', skelarcher: 'back', necro: 'back', catapult: 'siege', yagwang: 'mid', dueok: 'front', bulga: 'front', jangsan: 'flank', geuseun: 'front' };
@@ -100,13 +107,21 @@ export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   flank.forEach((t, i) => enemy.push([t, i ? 5 : 0, 1, { flank: i ? 'R' : 'L', wait: i ? 5 : 0 }]));
   const key = FEATURE.find(t => picks.includes(t)) || 'goblin';
   const affixId = kind === 'elite' ? Object.keys(AFFIX)[(R() * Object.keys(AFFIX).length) | 0] : null;
+  // 길 위의 변수 (첫 싸움에는 붙지 않는다)
+  let twist = null;
+  if (kind === 'battle' && !first && R() < 0.5) {
+    twist = ['pincer', 'porter', 'cage'][(R() * 3) | 0];
+    if (twist === 'pincer') { const melee = enemy.filter(e => !(e[3] && e[3].flank) && e[2] <= 1 && !UNITS[e[0]].range && !UNITS[e[0]].structure); const k = Math.min(melee.length - 1, R() < 0.4 ? 2 : 1); if (k < 1) twist = null; else for (let q = 0; q < k; q++) { const e = melee[melee.length - 1 - q]; e[3] = Object.assign({}, e[3] || {}, { behind: true, wait: 7 + q * 4 }); } }
+    else if (twist === 'porter') enemy.push(['porter', 0, 1, { wait: 4 }]);
+    else enemy.push(['cage', 2 + ((R() * 2) | 0), 2]);
+  }
   const units = enemy.reduce((a, e) => a + ((e[3] && e[3].n) || UNITS[e[0]].n), 0), starTime = Math.round(46 + units * 0.9 + late * 6 + (kind === 'elite' ? 12 : 0));
   chase.at = starTime + 22;
   return {
     terrain: first ? 'open' : C.terr[(R() * C.terr.length) | 0], sky: first ? 'day' : sky(C, R), chase,
     ch, row, kind, boss: false, lvl, map: MAPS[(R() * MAPS.length) | 0], enemy, key,
     name: (kind === 'elite' ? '강적 · ' : '') + NAMES[key][0], enemyName: NAMES[key][1], tip: UNITS[key].tip,
-    affix: affixId, foe: affixId ? Object.assign({}, AFFIX[affixId].foe) : {},
-    time: 110 + late * 10 + (kind === 'elite' ? 10 : 0), starDeaths: 4 + late * 2 + Math.floor(row / 2), starTime,
+    affix: affixId, foe: affixId ? Object.assign({}, AFFIX[affixId].foe) : {}, twist,
+    time: 110 + late * 10 + (kind === 'elite' ? 10 : 0), starDeaths: 4 + late * 2 + Math.floor(row / 2), starTime: starTime + (twist === 'pincer' ? 8 : twist === 'cage' ? 10 : 0),
   };
 }

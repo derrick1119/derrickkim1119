@@ -89,7 +89,7 @@ export class DeckView {
     g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672);
     brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
-    text(g, mode === 'up' ? '익힐 전술 패(그 종류가 모두 +)나 조련할 병력 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장 — 전술 패는 한 번 쓰면 사라집니다`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
+    text(g, mode === 'up' ? '강화할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
     // 같은 전술 패는 한 칸에 모은다 (병력·영웅 패는 한 장씩)
     const count = new Map(), list = [];
     for (const c of deck.slice().sort((a, b) => ORDER[CARDS[a.id].kind] - ORDER[CARDS[b.id].kind] || cardCost(a) - cardCost(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || a.uid - b.uid)) { const key = isUnit(c) ? 'u' + c.uid : c.id + (c.up ? '+' : ''); if (count.has(key)) { count.set(key, count.get(key) + 1); if (c.uid === this.sel) this.sel = list.find(q => q.key === key).c.uid; } else { count.set(key, 1); list.push({ key, c }); } }
@@ -116,7 +116,7 @@ export class DeckView {
     }
     const act = mode === 'up' ? (isUnit(c) ? '조련한다' : '익힌다') : '태운다';
     if (!ok) text(g, mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 470, { size: 18, fill: RED, maxW: 330 });
-    else { textBlock(g, mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '지금 가진 것과 앞으로 얻는 이 패가 모두 강화판(+)이 됩니다.') : '이 패가 덱에서 사라집니다. 끼운 무기는 보관함으로 돌아갑니다.', px + 182, 452, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
+    else { textBlock(g, mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '이 패가 모두 강화판(+)이 됩니다') : '덱에서 사라집니다. 무기는 보관함으로', px + 182, 452, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
     if (button(g, 'dkno', px + 62, 628, 240, 54, '그만두기', { style: 'paper', size: 24 })) { if (this.onClose) this.onClose(); }
   }
   weapons(g, r, c, px) {

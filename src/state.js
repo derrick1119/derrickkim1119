@@ -18,7 +18,7 @@ const pick = arr => arr[(rnd() * arr.length) | 0];
 export function load() {
   try {
     const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-    // 원정을 이어 하면: 깃발은 없어졌고(부서지면 끝), 영웅은 고른 한 명뿐
+    // 원정을 이어 하면: 깃발·수레 체력은 없어졌고(전군이 무너지면 끝), 영웅은 고른 한 명뿐
     if (d) { Object.assign(meta, d.meta || {}); G.run = d.run && !d.run.done && !d.run.fallen && !(d.run.flags === 0) ? d.run : null; if (G.run) { delete G.run.flags; G.run.deck = G.run.deck.filter(c => CARDS[c.id].kind !== 'lead' || c.id === 'h_' + G.run.hero); } }
     else for (const k of ['gogae.save.v3', 'gogae.save.v2']) { const old = JSON.parse(localStorage.getItem(k) || 'null'); if (old && old.meta) { Object.assign(meta, old.meta); break; } } // 예전 저장: 공적·이야기책만 잇는다 (패 규칙이 바뀌어 하던 원정은 버린다)
   } catch (e) { /* 저장소 없음 */ }
@@ -61,7 +61,7 @@ export const BEASTS = [
   { id: 'sapsal', deed: 'boss', need: 5, how: '두목을 다섯 번 물리친다', lore: '귀신을 쫓아낸 군대를 삽살개가 따른다' },
   { id: 'samjoko', deed: 'night', need: 8, how: '밤 싸움을 여덟 번 이긴다', lore: '어둠을 견딘 군대에 해의 새가 내려앉는다' },
   { id: 'tiger', deed: 'elite', need: 6, how: '강적을 여섯 번 물리친다', lore: '센 놈을 꺾은 군대를 산군이 알아본다' },
-  { id: 'haetae', deed: 'safe', need: 1, how: '군기 수레를 거의 다치지 않고(9할 넘게 지킨 채) 두목을 물리친다', lore: '지킬 줄 아는 군대 앞에 해태가 선다' },
+  { id: 'haetae', deed: 'safe', need: 1, how: '부대를 하나도 잃지 않고 두목을 물리친다', lore: '지킬 줄 아는 군대 앞에 해태가 선다' },
 ];
 export const deedCount = b => b.deed === 'tales' ? (meta.tales || []).length : (meta.deeds && meta.deeds[b.deed]) || 0;
 // 공을 하나 적고(kind 없이 부르면 확인만), 그 공으로 새로 인연을 맺은 영물들을 돌려준다
@@ -79,23 +79,23 @@ export const HARD = [
   { name: '독한 두목', desc: '두목 체력 +20%' },
   { name: '주린 길', desc: '엽전 수입 -20%' },
   { name: '날랜 발', desc: '요괴 이동 속도 +12%' },
-  { name: '낡은 수레', desc: '군기 수레 체력 -20%' },
+  { name: '큰 무리', desc: '요괴 무리 +10%' },
   { name: '매운 손', desc: '요괴 공격력 +12%' },
   { name: '성난 본대', desc: '본대가 15초 일찍 따라붙는다' },
-  { name: '여린 군기', desc: '군기 수레 체력이 더 줄어든다 (-35%)' },
+  { name: '끝없는 무리', desc: '요괴 무리가 더 커진다 (+20%)' },
 ];
 export const HARD_MAX = HARD.length - 1;
 // 고개마다의 세기 (밸런스는 tools/campaign.mjs 로 맞춘다): 요괴 체력·공격력 배율, 두목의 체력 배율
 // 요괴 무리의 병사 수와 두목의 세기도 고개를 따라 자란다 (우리 군대가 작게 시작해 커지는 만큼): 무리 크기 배율 / 두목 체력·공격 배율
-export const ENEMY_N = [0.6, 0.62, 0.62, 0.66, 0.7, 0.72, 0.75, 0.8, 0.82, 0.87, 0.92, 0.96], BOSS_K = [0.5, 0.54, 0.44, 0.52, 0.6, 0.58, 0.64, 0.74, 0.68, 0.8, 0.84, 0.86];
+export const ENEMY_N = [0.6, 0.62, 0.62, 0.66, 0.7, 0.72, 0.75, 0.8, 0.82, 0.87, 0.92, 0.96], BOSS_K = [0.44, 0.54, 0.44, 0.52, 0.6, 0.58, 0.64, 0.74, 0.68, 0.8, 0.84, 0.86];
 export const CH_HP = [1, 1, 1, 1.05, 1.1, 1.14, 1.18, 1.26, 1.33, 1.4, 1.47, 1.55], CH_ATK = [1, 1, 1, 1.03, 1.06, 1.09, 1.12, 1.16, 1.2, 1.23, 1.27, 1.3], BOSS_HP = [1, 1, 1.12, 1.25, 1.15, 1.15, 1.25, 1.45, 1.3, 1.25, 1.6, 1.55];
 const chN = ch => Math.max(0, Math.min(N_CH - 1, ch | 0));
-export const hardOf = lv => ({ hp: lv >= 1 ? 1.12 : 1, elite: lv >= 2 ? 1.2 : 1, pouch: lv >= 3 ? -2 : 0, boss: lv >= 4 ? 1.2 : 1, gold: lv >= 5 ? 0.8 : 1, spd: lv >= 6 ? 1.12 : 1, cart: lv >= 10 ? 0.65 : lv >= 7 ? 0.8 : 1, atk: lv >= 8 ? 1.12 : 1, chase: lv >= 9 ? -15 : 0 });
+export const hardOf = lv => ({ hp: lv >= 1 ? 1.12 : 1, elite: lv >= 2 ? 1.2 : 1, pouch: lv >= 3 ? -2 : 0, boss: lv >= 4 ? 1.2 : 1, gold: lv >= 5 ? 0.8 : 1, spd: lv >= 6 ? 1.12 : 1, crowd: lv >= 10 ? 1.2 : lv >= 7 ? 1.1 : 1, atk: lv >= 8 ? 1.12 : 1, chase: lv >= 9 ? -15 : 0 });
 
 // ───────── 원정 시작 ─────────
 // 부대 한도는 처음엔 작게(셋) 잡고 고개를 넘을 때마다 하나씩 는다
 export function newRun(hero) {
-  const r = G.run = { hero, ch: 0, cartUp: 0, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: Math.max(2, 3 + (has('p_cap') ? 1 : 0) + (hero === 'commander' ? 1 : hero === 'blade' || hero === 'archmage' ? -1 : 0)), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
+  const r = G.run = { hero, ch: 0, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: Math.max(2, 3 + (has('p_cap') ? 1 : 0) + (hero === 'commander' ? 1 : hero === 'blade' || hero === 'archmage' ? -1 : 0)), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
   for (const c of starterDeck(hero)) r.deck.push(Object.assign({ uid: r.nextId++ }, c));
   if (has('p_relic')) { const id = pick(relicPool()); if (id) r.relics.push(id); }
   r.road = genRoad(0); meta.runs++;
@@ -109,7 +109,7 @@ const TRAIT = {
   commander: m => { m.rally = 1; }, blade: m => { m.heroLoot = 1; m.heroAtk *= 1.4; m.heroHp *= 1.4; }, hunter: m => { m.lootEvery = 3; }, bishop: m => { m.keepSupport = 3; },
   archmage: m => { m.cardPow *= 1.3; m.pouch += 3; m.startCard = 1; m.tacDisc = 1; }, sangsoe: m => { m.scavAny = 1; }, chief: m => { m.killGold = 6; m.shopCard = 0.5; },
 };
-export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS), h = hardOf(r.hard || 0); m.unit = {}; for (const id of r.relics) RELICS[id].mod(m); if (TRAIT[r.hero]) TRAIT[r.hero](m); m.pouch = Math.max(4, m.pouch + h.pouch); m.cartHp = h.cart * (1 + 0.15 * (r.cartUp || 0)); return m; }   // 군기 수레 보강마다 +15%
+export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS), h = hardOf(r.hard || 0); m.unit = {}; for (const id of r.relics) RELICS[id].mod(m); if (TRAIT[r.hero]) TRAIT[r.hero](m); m.pouch = Math.max(4, m.pouch + h.pouch); return m; }   // 군기 수레 보강마다 +15%
 // ───────── 패의 살림: 전술 패는 쓰면 사라지고, 길 위에서 새로 얻는다 ─────────
 export const tacticCards = () => G.run.deck.filter(c => !isUnit(c) && CARDS[c.id].kind !== 'curse');
 export const pouchCap = () => mods().pouch;
@@ -181,7 +181,7 @@ export function startDeploy() {
 export function battleSetup(seed) { const r = G.run; return { mods: mods(), seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: r.cap, start: startDeploy(), morale: r.nextMorale || 0, loot: lootTable(), mastery: r.mastery || {}, lead: r.hero }; }
 export function waveSetup(enc) {
   const r = G.run, h = hardOf(r.hard || 0), foe = Object.assign({}, enc.foe || {});
-  const c = chN(enc.ch); foe.nMul = ENEMY_N[c]; foe.bossK = BOSS_K[c];
+  const c = chN(enc.ch); foe.nMul = ENEMY_N[c] * (h.crowd || 1); foe.bossK = BOSS_K[c];
   foe.hp = (foe.hp || 1) * h.hp * CH_HP[c] * (enc.boss ? h.boss * BOSS_HP[c] : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk * CH_ATK[c];
   return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && h.chase ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase) }) : enc.chase };
 }
@@ -218,17 +218,17 @@ export function equip(uid, wid) {
 // ───────── 전리품: 셋 중 하나 ─────────
 export function relicPool() { const r = G.run, own = r ? ownedTypes() : []; return Object.keys(RELICS).filter(id => !RELICS[id].curse && !(r && r.relics.includes(id)) && (!RELICS[id].req || own.includes(RELICS[id].req))); }
 export function describeReward(o) {
-  if (o.kind === 'card') { const d = CARDS[o.id], u = isUnit(o); return { title: u ? (d.kind === 'lead' ? '영웅 합류' : '의병 모집') : '전술 패', n: o.n || 1, name: cardName(o) + (o.n > 1 ? ` ×${o.n}` : ''), desc: u ? `${d.name} 패를 덱에 넣습니다. ${UNITS[d.unit].tip}` : d.desc(Object.assign({}, d.v, o.up ? d.up : {})), col: u ? 'blue' : 'purple', card: o }; }
+  if (o.kind === 'card') { const d = CARDS[o.id], u = isUnit(o); return { title: u ? (d.kind === 'lead' ? '영웅 합류' : '의병 모집') : '전술 패', n: o.n || 1, name: cardName(o) + (o.n > 1 ? ` ×${o.n}` : ''), desc: u ? UNITS[d.unit].tip : d.desc(Object.assign({}, d.v, o.up ? d.up : {})), col: u ? 'blue' : 'purple', card: o }; }
   // 조련은 새 패를 얻는 것이 아니라 덱에 있는 패를 한 단계 올린다: 패 그림 대신 조련 그림과 그 패 인물의 얼굴로 보여 준다
-  if (o.kind === 'train') { const c = cardOf(o.uid) || { id: o.id, lv: 1 }, d = CARDS[c.id], l = c.lv || 1; return { title: '조련', name: `${d.name} ${l}단 → ${l + 1}단`, desc: `덱에 있는 ${d.name} 패가 한 단계 강해집니다\n(새 패를 얻는 것이 아닙니다)\n체력·${UNITS[d.unit].heal ? '치유량' : '공격력'} +20%`, col: 'green', misc: 'trainOne', unit: d.unit, lv: l }; }
-  if (o.kind === 'upgrade') { const d = CARDS[o.id]; return { title: '전술 익히기', name: `${d.name} → ${d.name}+`, desc: `가진 것과 앞으로 얻는 [${d.name}] 이 모두 강화판이 됩니다.\n` + d.desc(Object.assign({}, d.v, d.up)), col: 'green', card: { id: o.id, up: true } }; }
+  if (o.kind === 'train') { const c = cardOf(o.uid) || { id: o.id, lv: 1 }, d = CARDS[c.id], l = c.lv || 1; return { title: '조련', name: `${d.name} ${l}단 → ${l + 1}단`, desc: `덱의 ${d.name} 패가 강해집니다\n체력·${UNITS[d.unit].heal ? '치유량' : '공격력'} +20%`, col: 'green', misc: 'trainOne', unit: d.unit, lv: l }; }
+  if (o.kind === 'upgrade') { const d = CARDS[o.id]; return { title: '전술 익히기', name: `${d.name} → ${d.name}+`, desc: `[${d.name}] 모두 강화판(+)\n` + d.desc(Object.assign({}, d.v, d.up)), col: 'green', card: { id: o.id, up: true } }; }
   if (o.kind === 'supply') return { title: '보급', name: '기본 패 꾸러미', desc: [...new Set(o.ids)].map(id => CARDS[id].name + (o.ids.filter(q => q === id).length > 1 ? ' ×' + o.ids.filter(q => q === id).length : '')).join(' · ') + '\n흔하지만 쓸모 있는 패 석 장', col: 'green', misc: 'supply', ids: o.ids };
   if (o.kind === 'relic') { const x = RELICS[o.id]; return { title: '보물', name: x.name, desc: x.desc, col: 'gold', relic: o.id }; }
   if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${(u => u.length > 3 ? u.slice(0, 3).join('·') + ' 외 ' + (u.length - 3) : u.join('·'))(usersOf(o.id))}`, col: 'blue', weapon: o.id }; }
-  if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 을 씻어냅니다. (${RELICS[o.id].desc})`, col: 'gold', relic: o.id };
-  if (o.kind === 'burn') return { title: '패 태우기', name: '패 한 장 없애기', desc: '덱에서 패 한 장을 골라 없앱니다. 덱이 얇을수록 좋은 패가 자주 손에 들어옵니다.', col: 'red', misc: 'burn' };
-  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 패 조련', desc: '덱의 병력·영웅 패 한 장을 골라 +1단 (체력·공격력 +20%)', col: 'green', misc: 'train' };
-  return { title: '군량 수레', name: '부대 한도 +1', desc: `전장에 한꺼번에 세울 수 있는 부대가 ${G.run.cap} → ${G.run.cap + 1}개로 늘어납니다.`, col: 'gold', misc: 'cap' };
+  if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 씻기 (${RELICS[o.id].desc})`, col: 'gold', relic: o.id };
+  if (o.kind === 'burn') return { title: '패 태우기', name: '패 한 장 없애기', desc: '패 한 장을 덱에서 없앱니다. 덱이 얇으면 좋은 패가 자주 옵니다', col: 'red', misc: 'burn' };
+  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 패 조련', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', col: 'green', misc: 'train' };
+  return { title: '군량 수레', name: '부대 한도 +1', desc: `부대 한도 ${G.run.cap} → ${G.run.cap + 1}`, col: 'gold', misc: 'cap' };
 }
 function makeReward(kind, keys) {
   const r = G.run, types = unitPool(), owned = ownedTypes();
@@ -287,20 +287,17 @@ export function genShop() {
 export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it.price) return false; r.gold -= it.price; it.sold = true; applyReward(it); return true; }
 
 // ───────── 사건에서 쓰는 도우미 ─────────
-export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb'];
+export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang'];
 const EVENT_MIN = { well: 1, tomb: 1 };
 export function pickEvent() { const r = G.run, pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && (EVENT_MIN[e] || 0) <= r.ch), ev = pick(pool.length ? pool : EVENT_IDS); r.evSeen.push(ev); return ev; }
 const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
-export const CART_MAX = 3;
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
-  // 군기 수레 보강: 원정 내내 수레 체력 +15% (셋까지). 가득하면 엽전으로. 깎일 때 보강이 없으면 엽전을 잃는다
-  cart(n) { const r = G.run; r.cartUp = r.cartUp || 0; if (n > 0) { if (r.cartUp >= CART_MAX) { r.gold += 40; return '군기 수레가 이미 단단해 엽전 +40'; } r.cartUp++; return `군기 수레 보강 (체력 +${r.cartUp * 15}%)`; } if (r.cartUp > 0) { r.cartUp--; return '군기 수레가 상했다 (보강 하나를 잃음)'; } return act.gold(-50); },
   relic(id) { const r = G.run; if (!id || r.relics.includes(id)) id = pick(relicPool()); if (!id) return act.gold(60); r.relics.push(id); return `보물 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
   curse() { const r = G.run, pool = CURSES.filter(id => !r.relics.includes(id)); if (!pool.length) return act.gold(-20); const id = pick(pool); r.relics.push(id); return `부정 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
   cleanse() { const r = G.run, id = r.relics.find(x => RELICS[x].curse); if (!id) return null; r.relics = r.relics.filter(x => x !== id); return `부정 [${RELICS[id].name}] 이 씻겨 나갔습니다`; },
   train(filter) { const c = unitCards().filter(c => CARDS[c.id].kind === 'unit' && (c.lv || 1) < MAX_LV && (!filter || filter(UNITS[CARDS[c.id].unit]))); if (!c.length) return act.hero(); return lvUp(pick(c)); },
-  recruit() { const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}] 을 얻었습니다`; },
+  recruit() { const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
   hero() { const c = G.run.deck.filter(c => CARDS[c.id].kind === 'lead' && (c.lv || 1) < MAX_LV); if (!c.length) return act.gold(40); return lvUp(c[0]); },
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },
   morale(n) { G.run.nextMorale = n; return `다음 싸움을 사기 +${n} 로 시작`; },

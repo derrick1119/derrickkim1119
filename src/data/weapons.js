@@ -6,19 +6,19 @@ export const WEAPONS = {
   // 단병기
   hwando: { name: '환도', cls: 'short', base: true, spr: 'hwando', a: 0.3, mode: 'slash', desc: '기본 칼. 무난하다' },
   twin: { name: '쌍검', cls: 'short', spr: 'twin', a: 0.3, mode: 'slash', hand: 'B', desc: '공격 속도 +35%, 공격력 -15%', mod: d => { d.as /= 1.35; d.atk *= 0.85; } },
-  axe: { name: '도끼', cls: 'short', spr: 'axe', a: 0.35, mode: 'slash', desc: '공격력 +15%, 방패의 피해 감소를 무시', mod: d => { d.atk *= 1.15; d.pierce = true; } },
+  axe: { name: '도끼', cls: 'short', spr: 'axe', a: 0.35, mode: 'slash', desc: '공격력 +15%, 방패 무시', mod: d => { d.atk *= 1.15; d.pierce = true; } },
   flail: { name: '편곤', cls: 'short', spr: 'flail', a: 0.35, mode: 'slash', desc: '공격마다 20% 확률로 0.8초 기절', mod: d => { d.stunHit = { p: 0.2, t: 0.8 }; } },
   yedo: { name: '예도 한 쌍', cls: 'short', base: true, spr: 'twin', a: 0.3, mode: 'slash', hand: 'B', desc: '검객의 쌍검' },
   // 장병기
-  spear: { name: '장창', cls: 'pole', base: true, spr: 'spear', a: 0.1, mode: 'thrust', desc: '긴 리치. 돌진형 적에게 2배, 정면 돌격을 받아친다', mod: d => { d.reach = (d.reach || 0) + 14; d.antiCav = true; d.brace = true; } },
+  spear: { name: '장창', cls: 'pole', base: true, spr: 'spear', a: 0.1, mode: 'thrust', desc: '긴 리치. 돌진형 적 2배, 정면 돌격 받아치기', mod: d => { d.reach = (d.reach || 0) + 14; d.antiCav = true; d.brace = true; } },
   lance: { name: '기창', cls: 'pole', base: true, spr: 'lance', a: 0.18, mode: 'thrust', desc: '말 위에서 쓰는 긴 창' },
-  dangpa: { name: '당파', cls: 'pole', spr: 'dangpa', a: 0.1, mode: 'thrust', desc: '세 갈래 창. 닿는 거리 +10, 받는 근접 피해 -20%, 돌격을 받아친다', mod: d => { d.reach = (d.reach || 0) + 10; d.brace = true; d.armor = 0.2; } },
-  hyeopdo: { name: '협도', cls: 'pole', spr: 'hyeopdo', a: 0.2, mode: 'slash', desc: '닿는 거리 +10, 한 번에 2명 타격', mod: d => { d.reach = (d.reach || 0) + 10; d.cleave = Math.max(d.cleave || 0, 2); } },
-  woldo: { name: '언월도', cls: 'pole', spr: 'woldo', a: 0.22, mode: 'slash', desc: '공격력 +30%, 2명 타격, 닿는 거리 +8, 공격 속도 -18%', mod: d => { d.atk *= 1.3; d.as *= 1.18; d.reach = (d.reach || 0) + 8; d.cleave = Math.max(d.cleave || 0, 2); } },
+  dangpa: { name: '당파', cls: 'pole', spr: 'dangpa', a: 0.1, mode: 'thrust', desc: '리치 +10, 받는 근접 피해 -20%, 돌격 받아치기', mod: d => { d.reach = (d.reach || 0) + 10; d.brace = true; d.armor = 0.2; } },
+  hyeopdo: { name: '협도', cls: 'pole', spr: 'hyeopdo', a: 0.2, mode: 'slash', desc: '리치 +10, 한 번에 2명 타격', mod: d => { d.reach = (d.reach || 0) + 10; d.cleave = Math.max(d.cleave || 0, 2); } },
+  woldo: { name: '언월도', cls: 'pole', spr: 'woldo', a: 0.22, mode: 'slash', desc: '공격력 +30%, 2명 타격, 리치 +8, 공격 속도 -18%', mod: d => { d.atk *= 1.3; d.as *= 1.18; d.reach = (d.reach || 0) + 8; d.cleave = Math.max(d.cleave || 0, 2); } },
   // 둔기
   mace: { name: '철퇴', cls: 'blunt', base: true, spr: 'mace', a: 0.4, mode: 'slash', desc: '한 번에 3명 타격', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); } },
   bigaxe: { name: '큰 도끼', cls: 'blunt', spr: 'bigaxe', a: 0.4, mode: 'slash', desc: '공격력 +35%, 2명 타격, 방패 무시', mod: d => { d.atk *= 1.35; d.cleave = Math.max(d.cleave || 0, 2); d.pierce = true; } },
-  thresher: { name: '쇠도리깨', cls: 'blunt', spr: 'thresher', a: 0.4, mode: 'slash', desc: '3명 타격, 25% 확률로 0.8초 기절, 공격 속도 -15%', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); d.stunHit = { p: 0.25, t: 0.8 }; d.as *= 1.15; } },
+  thresher: { name: '쇠도리깨', cls: 'blunt', spr: 'thresher', a: 0.4, mode: 'slash', desc: '3명 타격, 25%로 0.8초 기절, 공격 속도 -15%', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); d.stunHit = { p: 0.25, t: 0.8 }; d.as *= 1.15; } },
   ssangdokki: { name: '쌍도끼', cls: 'blunt', base: true, spr: 'axe', a: 0.35, mode: 'slash', hand: 'B', desc: '두령의 쌍도끼. 한 번에 2명 타격', mod: d => { d.cleave = Math.max(d.cleave || 0, 2); } },
   // 활
   bow: { name: '각궁', cls: 'bow', base: true, spr: 'bow', a: 0, mode: 'shoot', hand: 'L', desc: '기본 활' },
@@ -30,8 +30,8 @@ export const WEAPONS = {
   // 부적
   firetal: { name: '불 부적', cls: 'talisman', base: true, spr: 'firetal', a: 0.2, mode: 'cast', desc: '터지며 범위 피해' },
   featherfan: { name: '깃털 부채', cls: 'talisman', base: true, spr: 'featherfan', a: 0.35, mode: 'cast', desc: '신선의 부채. 터지며 범위 피해' },
-  icetal: { name: '얼음 부적', cls: 'talisman', spr: 'icetal', a: 0.2, mode: 'cast', desc: '범위 피해 -20%, 맞은 적은 2.5초간 속도 -35%', mod: d => { d.atk *= 0.8; d.slowHit = { amt: 0.35, t: 2.5 }; d.proj = 'iceball'; } },
-  bolttal: { name: '벼락 부적', cls: 'talisman', spr: 'bolttal', a: 0.2, mode: 'cast', desc: '범위 대신 한 명에게 피해 +130%, 0.4초 기절', mod: d => { d.atk *= 2.3; d.aoe = 0; d.proj = 'spark'; d.stunHit = { p: 1, t: 0.4 }; d.prefer = null; } },
+  icetal: { name: '얼음 부적', cls: 'talisman', spr: 'icetal', a: 0.2, mode: 'cast', desc: '피해 -20%, 맞은 적 2.5초간 속도 -35%', mod: d => { d.atk *= 0.8; d.slowHit = { amt: 0.35, t: 2.5 }; d.proj = 'iceball'; } },
+  bolttal: { name: '벼락 부적', cls: 'talisman', spr: 'bolttal', a: 0.2, mode: 'cast', desc: '한 명만 노려 피해 +130%, 0.4초 기절', mod: d => { d.atk *= 2.3; d.aoe = 0; d.proj = 'spark'; d.stunHit = { p: 1, t: 0.4 }; d.prefer = null; } },
   // 무구
   fans: { name: '부채', cls: 'ritual', base: true, spr: 'fans', a: 0.5, mode: 'cast', hand: 'B', desc: '가장 다친 아군을 치유' },
   staff: { name: '석장', cls: 'ritual', base: true, spr: 'staff', a: 0, mode: 'cast', cast: 0.22, desc: '고승의 지팡이. 두 명을 치유' },

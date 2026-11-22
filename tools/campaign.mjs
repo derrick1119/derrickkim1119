@@ -1,6 +1,6 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
-import { Battle, HAND, REPAIR } from '../src/sim/battle.js';
+import { Battle, HAND } from '../src/sim/battle.js';
 import { G, meta, UNLOCKS, BEASTS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
@@ -71,17 +71,17 @@ for (let k = 0; k < runs; k++) {
   const HS = (process.env.HERO ? [process.env.HERO] : HEROES).filter(h => process.env.HERO || heroOpen(h)), r = newRun(HS[k % HS.length]);
   const b = new Battle(battleSetup((Math.random() * 1e9) | 0));
   const tick = n => { for (let j = 0; j < n; j++) { b.step(1 / 30); if (j % (mode === 'casual' ? 45 : 10) === 0) command(b); } b.events.length = 0; settleBattle(b); };
-  r.alive = true;   // 군기 수레가 한 번 부서지면 원정이 끝난다
+  r.alive = true;   // 한 싸움에서 전군이 무너지면 원정이 끝난다
   for (let guard = 0; r.alive && !r.done && guard < 400; guard++) {
     b.beginMarch(); for (let j = 0; j < 8; j++) { b.march(90, 0.3); tick(9); }
     let s = curStop(); if (s.type === 'fork') { const a = s.a.type, w = a === 'elite' ? 0.45 : 0.5; chooseFork(Math.random() < w ? 'a' : 'b'); s = curStop(); }
     if (s.type === 'battle' || s.type === 'elite' || s.type === 'boss') {
-      const e = encounterHere(); sync(b); const hp0 = b.bannerHp(); b.prepWave(waveSetup(e)); tick(105); b.startWave(e.enemy, waveSetup(e));
+      const e = encounterHere(); sync(b); const lost0 = b.lost; b.prepWave(waveSetup(e)); tick(105); b.startWave(e.enemy, waveSetup(e));
       let steps = 0, cleared = false, downs = 0;
       while (!cleared && r.alive && steps++ < 30 * 260) {
         b.step(1 / 30); if (steps % (mode === 'casual' ? 45 : 10) === 0) command(b);
         settleBattle(b);
-        for (const ev of b.events) { if (ev.type === 'waveClear') cleared = ev; else if (ev.type === 'bannerDown') { r.alive = false; downs++; } }
+        for (const ev of b.events) { if (ev.type === 'waveClear') cleared = ev; else if (ev.type === 'armyDown') { r.alive = false; downs++; } else if (ev.type === 'porterDown') act.gold(30 + Math.min(10, r.ch) * 8); else if (ev.type === 'rescue') act.recruit(); }
         b.events.length = 0;
       }
       if (!cleared && r.alive) { r.alive = false; downs++; } // 끝나지 않는 싸움은 패배로 친다
@@ -89,14 +89,14 @@ for (let k = 0; k < runs; k++) {
       { const q = lossCh[e.ch][e.kind]; q[0]++; q[1] += downs; }
       nB++; bump(`${e.ch + 1}고개 ${e.kind === 'boss' ? '두목' : e.kind === 'elite' ? '강적' : '싸움' + (r.road.i + 1)}`, downs);
       if (!cleared) break;
-      dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - REPAIR) - (hp0 > 1 - REPAIR ? hp0 - (1 - REPAIR) : 0)); dmgN[e.ch]++;
+      dmg[e.ch] += b.lost - lost0; dmgN[e.ch]++;
       totalT += cleared.time;
       const grade = 1 + (cleared.lost <= e.starDeaths ? 1 : 0) + (cleared.time <= e.starTime ? 1 : 0); r.gold += goldFor(grade, e.kind); r.merit += grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0;
       if (e.kind !== 'battle') grantLoot(e.kind === 'boss' ? 3 : 2); stockN += tacticCards().length; stockB++;
       takeReward(e.kind);
     } else if (s.type === 'event') { const cs = eventView({ id: pickEvent() }).choices.filter(c => !c.cost || r.gold >= c.cost), c = pick(cs), out = c.pick(); if (!Array.isArray(out)) throw new Error('사건 결과 형식'); }
     else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
-    else if (s.type === 'rest') { b.repair(1); const x = Math.random(); if ((r.cartUp || 0) < 3 && x < 0.45) act.cart(1); else if (tacticCards().length < 6) act.supply(3); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
+    else if (s.type === 'rest') { const x = Math.random(); if (x < 0.3) act.morale(4); else if (tacticCards().length < 6) act.supply(3); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
     sync(b);
     if (advance()) break;
@@ -106,7 +106,7 @@ for (let k = 0; k < runs; k++) {
 }
 console.log(`mode=${mode} runs=${runs}  평정률 ${(clears / runs * 100).toFixed(0)}%  원정당 싸움 ${(nB / runs).toFixed(1)}회  이긴 싸움 평균 ${(totalT / Math.max(1, nB)).toFixed(0)}초  끝날 때 덱 ${(deckN / runs).toFixed(1)}장 (병력 ${(unitN / runs).toFixed(1)}장, 평균 Lv ${(lvN / runs).toFixed(1)})`);
 console.log('원정이 끝난 비율/싸움:', Object.keys(st).filter(k => !/고개/.test(k)).sort().map(k => `${k} ${(st[k][1] / st[k][0]).toFixed(2)}(${st[k][0]})`).join('  '));
-console.log('싸움당 군기 수레 피해:', dmg.map((d, i) => `${i + 1}고개 ${(d / Math.max(1, dmgN[i]) * 100).toFixed(0)}%`).join('  '));
+console.log('싸움당 잃은 병사:', dmg.map((d, i) => `${i + 1}고개 ${(d / Math.max(1, dmgN[i])).toFixed(1)}`).join('  '));
 console.log('본대가 따라붙은 횟수/싸움', (chaseN / nB).toFixed(2), ' 싸움 뒤 남은 전술 패 평균', (stockN / Math.max(1, stockB)).toFixed(1));
 console.log('도달:', reach.map((n, i) => `${i < N_CH ? i + 1 : '평정'}×${n}`).join(' '));
 console.log('고개별 패배 [싸움/강적/두목]:', lossCh.map((c, i) => `${i + 1}[${['battle', 'elite', 'boss'].map(k => c[k][0] ? (c[k][1] / c[k][0]).toFixed(2) : '-').join('/')}]`).join(' '));

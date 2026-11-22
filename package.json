@@ -2,7 +2,7 @@
   "name": "dokkaebi-gogae",
   "version": "0.1.0",
   "private": true,
-  "description": "도깨비 고개 — 한국 설화 종이 인형극풍 부대 지휘 전술 게임 (HTML5 Canvas)",
+  "description": "열두 고개 (Twelve Passes) — 한국 설화 종이 인형극풍 부대 지휘 전술 게임 (HTML5 Canvas)",
   "type": "module",
   "scripts": {
     "start": "node tools/serve.mjs 8080",

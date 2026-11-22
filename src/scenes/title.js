@@ -1,11 +1,12 @@
-// 첫 화면: 한지에 그린 고갯길 풍경과 제목 (가로)
+// 첫 화면과 여러 장면이 함께 쓰는 한지 배경
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, line, path, st, makeCanvas, rng } from '../render/draw.js';
-import { button, iconBtn, icon, panel, seal, C } from '../ui/ui.js';
+import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, line, path, st, makeCanvas, rng, clamp } from '../render/draw.js';
+import { button, iconBtn, icon, panel, seal, C, ui } from '../ui/ui.js';
+import { drawTitleScene, INTRO_END } from '../render/titleart.js';
 import { nav } from '../nav.js';
 import { G, meta, save } from '../state.js';
 import { chapterOf } from '../data/stages.js';
-import { audio, setMuted, sfx } from '../audio.js';
+import { audio, setMuted, sfx, bgm } from '../audio.js';
 import { portrait } from '../render/sprites.js';
 import { THEMES, pine, bush, boulder, grassTuft } from '../render/terrain.js';
 import { part, dk, lt, R as RC, curve } from '../render/figures.js';
@@ -60,43 +61,41 @@ export function backdrop() {
 }
 export function dimBackdrop(g, a = 0.72) { g.drawImage(backdrop(), 0, 0, W, H); g.fillStyle = `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }
 
+// 첫 화면 '열두 고개': 인형극 무대의 막이 걷히고, 현판이 내려오고, 고갯길의 등불이 하나씩 켜진다 (render/titleart.js)
 export class TitleScene {
-  constructor() { this.t = 0; this.confirm = false; this.petals = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 3, v: 24 + Math.random() * 30, ph: Math.random() * 9 })); }
+  constructor() { this.t = 0; this.confirm = false; }
   frame(g, dt) {
-    this.t += dt; const t = this.t;
-    g.drawImage(backdrop(), 0, 0, W, H);
-    // 고개를 지키는 의병과 넘어오는 요괴들
-    portrait(g, 'xbow', 640, 566, 1.7, t); portrait(g, 'shield', 706, 620, 1.8, t); portrait(g, 'sword', 800, 590, 1.7, t); portrait(g, 'commander', 760, 660, 1.9, t, true);
-    portrait(g, 'bomber', 1010, 470 + Math.sin(t * 2.4) * 8, 1.5, t); portrait(g, 'goblin', 960, 600, 1.6, t, true); portrait(g, 'rassassin', 1010, 680, 1.4, t); portrait(g, 'warchief', 1120, 640 + Math.sin(t * 1.6) * 4, 1.2, t);
-    for (const p of this.petals) { p.x -= (p.v + Math.sin(t * 1.3 + p.ph) * 12) * dt; p.y += (p.v * 0.5 + Math.cos(t * 1.7 + p.ph) * 10) * dt; if (p.x < -12 || p.y > H + 12) { p.x = W + 12 + Math.random() * 80; p.y = Math.random() * H * 0.8; } g.save(); g.globalAlpha = 0.85; g.translate(p.x, p.y); g.rotate(t * 1.6 + p.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + p.ph))); ell(g, 0, 0, p.s * 1.25, p.s * 0.7, p.ph > 4.5 ? '#f3c4c9' : '#fbf1ee', 'rgba(38,42,54,0.4)', 0.7); g.restore(); }
-    // 제목
-    const ty = 150 + Math.sin(t * 1.3) * 3;
-    text(g, '도깨비', 250, ty, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
-    text(g, '고개', 400, ty + 128, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
-    g.save(); g.translate(520, ty - 34); g.rotate(0.06); seal(g, 0, 0, 78, 'boss'); g.restore();   // 제목 옆의 낙관: 도깨비 얼굴
-    text(g, '열두 고개, 열두 옛이야기 — 긴 밤을 걷으러 가는 길', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
-    const r = G.run;
+    bgm('title');
+    this.t += dt; const t = this.t, intro = t < INTRO_END;
+    // 첫 등장 연출 중에 누르면 바로 끝 장면으로
+    if (intro && ui.inp && ui.inp.released && !this.confirm) this.t = INTRO_END;
+    drawTitleScene(g, this.t);
+    const r = G.run, k = clamp((this.t - 3.0) / 0.5, 0, 1);
+    if (k <= 0) return;
+    g.save(); g.globalAlpha = k;
     if (this.confirm) {
-      g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(12,10,20,0.6)'; g.fillRect(0, 0, W, H);
       panel(g, 360, 210, 560, 300);
       text(g, '새 원정을 시작할까요?', 640, 284, { size: 38, font: FONT_B });
-      text(g, '진행 중인 원정 기록은 사라집니다.', 640, 338, { size: 22, fill: SUB, weight: 400 });
+      text(g, '진행 중인 원정은 사라집니다.', 640, 338, { size: 22, fill: SUB, weight: 400 });
       if (button(g, 'no', 390, 400, 240, 78, '그만두기', { style: 'paper', size: 30 })) this.confirm = false;
       if (button(g, 'yes', 650, 400, 240, 78, '새로 시작', { style: 'red', size: 30 })) { G.run = null; save(); nav.go('hero'); }
-      return;
+      g.restore(); return;
     }
     if (r) {
-      if (button(g, 'cont', 120, 458, 400, 92, `이어하기 · ${chapterOf(r.ch).short}`, { size: 38 })) nav.go('run');
-      if (button(g, 'new', 120, 572, 192, 60, '새 원정', { style: 'paper', size: 26 })) this.confirm = true;
-      if (button(g, 'meta', 328, 572, 192, 60, '공적 장부', { style: 'paper', size: 26 })) nav.go('meta');
+      if (button(g, 'cont', 460, 624, 360, 70, `이어하기 · ${chapterOf(r.ch).short}`, { style: 'red', size: 30 })) nav.go('run');
+      if (button(g, 'new', 250, 630, 180, 58, '새 원정', { style: 'wood', size: 24 })) this.confirm = true;
+      if (button(g, 'meta', 850, 630, 180, 58, '공적 장부', { style: 'wood', size: 24 })) nav.go('meta');
     } else {
       const pulse = 1 + Math.sin(t * 4) * 0.012;
-      g.save(); g.translate(320, 506); g.scale(pulse, pulse); g.translate(-320, -506);
-      if (button(g, 'start', 120, 454, 400, 104, '출  정', { size: 56 })) nav.go('hero');
+      g.save(); g.translate(640, 659); g.scale(pulse, pulse); g.translate(-640, -659);
+      if (button(g, 'start', 480, 624, 320, 70, '출  정', { style: 'red', size: 44 })) nav.go('hero');
       g.restore();
-      if (button(g, 'meta', 190, 576, 260, 58, `공적 장부${meta.merit ? ' · ' + meta.merit : ''}`, { style: 'paper', size: 25 })) nav.go('meta');
+      if (button(g, 'meta', 260, 630, 180, 58, '공적 장부', { style: 'wood', size: 24 })) nav.go('meta');
+      if (button(g, 'book', 840, 630, 180, 58, '이야기책', { style: 'wood', size: 24 })) nav.go('meta', { book: true });
     }
-    if (iconBtn(g, 'snd', 1204, 648, 60, 56, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
-    if (meta.best > 0) { panel(g, 16, 16, 230, 40, 'tag'); text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 131, 37, { size: 17, maxW: 210 }); }
+    if (iconBtn(g, 'snd', 1204, 20, 56, 52, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
+    if (meta.best > 0) text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 1262, 704, { size: 15, fill: '#cbb894', align: 'right', maxW: 240 });
+    g.restore();
   }
 }
