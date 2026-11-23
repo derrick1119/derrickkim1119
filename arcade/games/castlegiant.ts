@@ -143,7 +143,7 @@ export const STAGES: StageDef[] = [
   { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['drops', 7], newZ: 'swamp' },
   { key: 'yeti', ch: 1, name: '얼음 고개', news: '얼음 호수에 쿵 — 쩍! 끝엔 얼음 털보', zones: ['ice', 'mine', 'forest', 'ice', 'den', 'village', 'lair'], storm: 0.001, star: ['boss', 15], boss: 'yeti', newZ: 'ice' },
   { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['hand', 8], newZ: 'volcano' },
-  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 26], newZ: 'cloud' },
+  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['drops', 7], newZ: 'cloud' },
   { key: 'gold', ch: 2, name: '보물 언덕', news: '소굴이 셋! 황금 지붕을 올려 봐요', zones: ['den', 'field', 'den', 'mine', 'cloud', 'den', 'volcano', 'village'], storm: 0.00135, star: ['squash', 3], newP: 'roof' },
   { key: 'drake', ch: 2, name: '천둥 용 봉우리', news: '마지막 대장 천둥 용 — 성으로 쿵! 쿵! 쿵!', zones: ['cloud', 'volcano', 'den', 'village', 'mine', 'cloud', 'lair'], storm: 0.0011, star: ['boss', 15], boss: 'drake' },
 ];
@@ -1433,9 +1433,10 @@ function bestScoop(s: GiantState): { x: number; y: number } | null {
     if (last && hyp(c.x - last.x, c.y - last.y) < 0.07) continue;
     if (Math.abs(c.x - s.cx) < 0.15 * ds && c.y > top - 0.06 && c.y < s.cy + 0.04) continue;
     let v = 0, items = 0;
+    const saveMon = STAGES[s.stage].star[0] === 'squash' && s.star3At < 0;
     for (const o of scoopables(s, c.x, c.y)) {
       if (items >= SCOOP_MAX) break;
-      if (o.k === 'mon' && o.mk) v += MD[o.mk].boss ? 4 : o.hp <= 16 ? MD[o.mk].gold * 3 : 2;
+      if (o.k === 'mon' && o.mk) v += saveMon ? -50 : MD[o.mk].boss ? 4 : o.hp <= 16 ? MD[o.mk].gold * 3 : 2;
       else if (o.k === 'folk') v += 6;
       else if (o.k === 'loot') (v += resW(s, RES_OF[o.sub])), items++;
       else {
@@ -3246,6 +3247,8 @@ const PH = 0.072, TREE_H = 0.13, CROP_W = 0.055, ITEM_S = 0.022;
 const DMAX = 1.22;
 type RF = (v: number) => number;
 const PQ = (R: RF, sc2: number) => R(PH) * DMAX * sc2, IQ = (R: RF, sc2: number) => R(ITEM_S) * 1.3 * sc2, TQ = (R: RF, sc2: number) => R(TREE_H) * DMAX * 1.02 * sc2;
+const BQ = (R: RF, sc2: number) => R(0.06) * DMAX * sc2;
+const GHQ = (R: RF, sc2: number) => R(0.13) * sc2, HQ = (R: RF, sc2: number) => R(0.072) * DMAX * sc2;
 const GQ = (R: RF, sc2: number) => R(GH) * DMAX * sc2, CQ = (R: RF, sc2: number) => R(CW) * DMAX * sc2;
 const depth = dscale;
 const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -3255,6 +3258,9 @@ const recent = new WeakMap<object, { x: number; y: number; t: number; size: numb
 /** 화면에 쓰는 글꼴(px · 굵기) — 미리 불러 둔다 (juice 떠오르는 글자 크기 포함) */
 const FONTS: [number, number][] = [[12, 700], [12, 800], [12, 900], [13, 800], [13, 900], [14, 800], [14, 900], [15, 800], [16, 800], [16, 900], [17, 800], [18, 800], [18, 900], [20, 800], [20, 900], [21, 900], [22, 800], [23, 900], [24, 900]];
 const PART_MAX = 80;
+let FONTC: C2 | null = null, GLC: C2 | null = null;
+const POP_GLYPHS = '+-0123456789!~우르릉와휙층식구성이다명풀려났뿌땡찌부으앗붕쾅뜨거아하트새땅에쿵';
+const PILL2 = [0, 0, 0];
 const CLF: Fr = { w: 3.6, h: 2.2, ox: 1.8, oy: 1.1 };
 const DRAWL: [number, number, Obj | Per | null][] = [];
 /** 나무 모양: 장마다 · 구름 과수원은 열매 나무 */
@@ -3265,6 +3271,29 @@ function wantStage(st: number, w: number, sc: number) {
   if (WK.has(tag)) return;
   WK.add(tag);
   const d = STAGES[st], ch = d.ch, R = (r: number) => r * w, sc2 = Math.min(2, sc);
+  // 처음 쓰는 글꼴 크기는 첫 순간에 끊긴다 — 그림 프레임 밖에서 하나씩 미리
+  for (const [px, wg] of FONTS)
+    want(`f${px}${wg}`, () => {
+      const g = (FONTC ??= document.createElement('canvas').getContext('2d')!);
+      g.font = `${wg} ${px}px system-ui, sans-serif`;
+      g.measureText('가나다 쿵! 0123');
+    });
+  // 튀어 오르는 글자(찌부! · 와르르 +3 …)도 처음 한 번은 글자 모양을 만드느라 끊긴다 — 크기마다 미리 한 번 찍어 둔다
+  for (const px of [14, 15, 16, 17, 18, 20, 22, 24, 26])
+    want(`pg${px}:${sc}`, () => {
+      const g = (GLC ??= Object.assign(document.createElement('canvas'), { width: 1040, height: 380 }).getContext('2d')!);
+      g.setTransform(sc, 0, 0, sc, 0, 0);
+      g.clearRect(0, 0, 1040, 380);
+      g.font = `800 ${px}px system-ui, sans-serif`;
+      g.lineWidth = 3;
+      g.textBaseline = 'middle';
+      [...POP_GLYPHS].forEach((ch2, i) => {
+        const x = (i % 12) * px * 1.05 + px * 0.5, y = (Math.floor(i / 12) + 0.6) * px * 1.15;
+        g.strokeText(ch2, x, y);
+        g.fillText(ch2, x, y);
+      });
+      g.getImageData(0, 0, 1, 1);
+    });
   want(`sky${ch}${w}`, () => skyBg(ch, w, sc2));
   want(`hf${ch}${w}`, () => hillBg(ch, w, sc2, false));
   want(`hn${ch}${w}`, () => hillBg(ch, w, sc2, true));
@@ -3274,16 +3303,19 @@ function wantStage(st: number, w: number, sc: number) {
     want(`zt${k}${ch}${w}`, () => zoneTex(k, ch, w, sc2));
     want(`lm${k}${ch}${w}`, () => markSpr(k, ch, R(1) * sc2));
   }
-  const looks: Look[] = ['folk', 'jack', 'farm', 'fisher', 'knight', 'miner', 'shroomer', 'smith', 'picker'];
-  for (const lk of looks) for (let f = 0; f < 7; f++) for (let sk = 0; sk < 3; sk++) for (const fl of [1, -1]) want(`p${lk}${f}${sk}${fl}${w}`, () => personSpr(lk, f, sk, R(PH) * DMAX * sc2, fl));
   for (const it of Object.keys(RES_OF) as Item[]) want(`i${it}${w}`, () => itemSpr(it, R(ITEM_S) * 1.3 * sc2));
   const ts = ch === 1 ? 1 : ch === 2 ? 2 : 0;
   for (let v = 0; v < 3; v++) for (const stl of [ts, 3, 9]) want(`t${stl}${v}${w}`, () => treeSpr(stl, v, R(TREE_H) * DMAX * 1.02 * sc2));
   for (const k of ['wheat', 'shroom', 'rock', 'hot'] as OK[]) for (let q2 = 0; q2 < 4; q2++) for (let v = 0; v < 3; v++) want(`c${k}${q2}${v}${w}`, () => cropSpr(k, q2, v, R(CROP_W) * DMAX * 1.3 * sc2));
   for (const mk of Object.keys(MD) as MK[]) for (let m = 0; m < 4; m++) want(`m${mk}${m}${w}`, () => monSpr(mk, m, R(MD[mk].r) * DMAX * sc2));
   for (let g = 0; g < 7; g++) want(`gb${g}${giftBand(st + 1)}${w}`, () => bodySpr(g, giftBand(st + 1), R(GH) * DMAX * sc2));
-  for (const k of PART_DEX) want(`cf${k}${w}`, () => floorSpr(k, R(CW) * DMAX * sc2));
+  for (const k of PART_DEX) want(`cf${k}${w}`, () => (floorSpr(k, R(CW) * DMAX * sc2), ghostSpr(k, GHQ(R, sc2))));
+  want(`hand${w}`, () => (bigHandSpr(false, HQ(R, sc2)), bigHandSpr(true, HQ(R, sc2))));
+  for (const it of Object.keys(RES_OF) as Item[]) want(`ih${it}${w}`, () => itemSpr(it, IQ(R, sc2) * 1.3));
+  for (const k of ['chest', 'cage'] as const) want(`bx${k}${w}`, () => (boxSpr(k, 0, BQ(R, sc2)), boxSpr(k, 1, BQ(R, sc2))));
   want(`cb${w}`, () => (baseSpr(R(CW) * DMAX * sc2), roofSpr(false, R(CW) * DMAX * sc2), roofSpr(true, R(CW) * DMAX * sc2)));
+  const looks: Look[] = ['folk', 'jack', 'farm', 'fisher', 'knight', 'miner', 'shroomer', 'smith', 'picker'];
+  for (const lk of looks) for (let f = 0; f < 7; f++) for (let sk = 0; sk < 3; sk++) for (const fl of [1, -1]) want(`p${lk}${f}${sk}${fl}${w}`, () => personSpr(lk, f, sk, R(PH) * DMAX * sc2, fl));
 }
 function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   const fx = juice(s), t = s.t, sc = devScale(ctx), sc2 = Math.min(2, sc), seenT = fx.memo.t ?? -1;
@@ -3294,11 +3326,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, W0, sc);
   idlePump();
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
-  {
-    // 처음 쓰는 글꼴 크기는 첫 순간에 끊긴다 — 판 초반에 한 프레임에 하나씩 미리
-    const fi = fx.memo.wf ?? 0;
-    if (fi < FONTS.length && t % 2 === 0) (ctx.font = `${FONTS[fi][1]} ${FONTS[fi][0]}px system-ui, sans-serif`), ctx.measureText('가나다 쿵! 0123'), (fx.memo.wf = fi + 1);
-  }
   const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(75,48,32,.9)', lw = 3) => {
     ctx.lineJoin = 'round';
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -3814,7 +3841,7 @@ function drawObj(ctx: C2, s: GiantState, o: Obj, sc2: number, X: XF, Y: XF, R: X
     case 'cage': {
       if (o.dead) break;
       const u = R(o.k === 'chest' ? 0.04 : 0.06) * dp;
-      put(ctx, boxSpr(o.k, o.k === 'chest' && o.amt < o.max ? 1 : 0, R(0.06) * DMAX * sc2), BF, ox, oy - R(o.z), u);
+      put(ctx, boxSpr(o.k, o.k === 'chest' && o.amt < o.max ? 1 : 0, BQ(R, sc2)), BF, ox, oy - R(o.z), u);
       if (o.k === 'cage' && (t + o.v) % 120 < 40) {
         ctx.textAlign = 'center';
         ctx.font = `800 ${Math.max(12, Math.round(R(0.032)))}px system-ui, sans-serif`;
@@ -3890,33 +3917,47 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
   }
 }
 /** 성 그리기: (x, y) = 성 바닥 가운데(화면 px), 기울기 · 세로 눌림 */
-/** 성 한 장: 층이 바뀔 때만 조각 스티커를 모아 한 장으로 구워 둔다 (프레임마다는 한 번 찍기) */
-const COMP = new Map<string, { c: HTMLCanvasElement; fr: Fr }>();
-function castleComp(built: PK[], gold: boolean, cq: number) {
-  const q = sprQ(cq), key = built.join('.') + (gold ? 'G' : '') + ':' + q;
-  let m = COMP.get(key);
-  if (!m) {
-    if (COMP.size > 8) COMP.clear();
-    const n = built.length, fh = fhU(n), kk = fh / FH0, top = BASE_H + n * fh + 0.66, fr: Fr = { w: 1.6, h: top + 0.06, ox: 0.8, oy: top };
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(fr.w * q);
-    c.height = Math.ceil(fr.h * q);
-    const g = c.getContext('2d')!;
-    g.translate(fr.ox * q, fr.oy * q);
-    g.drawImage(baseSpr(cq), -CBF.ox * q, -CBF.oy * q, CBF.w * q, CBF.h * q);
-    built.forEach((k, i) => g.drawImage(floorSpr(k, cq), -CFF.ox * q, -(BASE_H + i * fh) * q - CFF.oy * q * kk, CFF.w * q, CFF.h * q * kk));
-    g.drawImage(roofSpr(gold, cq), -CRF.ox * q, -(BASE_H + n * fh) * q - CRF.oy * q, CRF.w * q, CRF.h * q);
-    COMP.set(key, (m = { c, fr }));
+/** 성 층 더미 한 장: 층은 늘 FH0 간격으로 쌓아 두고(새 층은 위에 한 장만 덧찍기 — 다시 굽지 않음),
+ *  찍을 때 세로로 눌러(fh/FH0) 원래 모습과 같게. 문 층 · 지붕은 따로 찍는다 */
+interface Lay { c: HTMLCanvasElement; g: C2; q: number; cap: number; built: PK[] }
+const LAYS = new Map<number, Lay>();
+const layY0 = (L: Lay) => L.c.height - (CFF.h - CFF.oy) * L.q;
+function floorLayer(built: PK[], cq: number) {
+  const q = sprQ(cq);
+  let L = LAYS.get(q);
+  const n = built.length, fresh = !L || L.built.length > n || L.built.some((k, i) => built[i] !== k);
+  if (!L || fresh || n > L.cap) {
+    const cap = Math.max(8, 2 ** Math.ceil(Math.log2(Math.max(1, n))));
+    const old = !fresh && L ? L : null;
+    if (!L || cap !== L.cap) {
+      const c = document.createElement('canvas');
+      c.width = Math.ceil(CFF.w * q);
+      c.height = Math.ceil(((cap - 1) * FH0 + CFF.h) * q);
+      const g = c.getContext('2d')!;
+      if (old) g.drawImage(old.c, 0, c.height - old.c.height);
+      L = { c, g, q, cap, built: old ? old.built : [] };
+      if (LAYS.size > 3) LAYS.clear();
+      LAYS.set(q, L);
+    } else L.g.clearRect(0, 0, L.c.width, L.c.height), (L.built = []);
   }
-  return m;
+  for (let i = L.built.length; i < n; i++) {
+    L.g.drawImage(floorSpr(built[i], cq), 0, layY0(L) - (i * FH0 + CFF.oy) * q, CFF.w * q, CFF.h * q);
+    L.built.push(built[i]);
+  }
+  return L;
 }
 function drawCastle(ctx: C2, s: GiantState, x: number, y: number, rot: number, sy: number, cq: number, cu: number) {
-  const t = s.t, n = floors(s), fh = fhU(n), m = castleComp(s.built, s.parts.roof > 0, cq);
+  const t = s.t, n = floors(s), fh = fhU(n), kk = fh / FH0, L = floorLayer(s.built, cq);
   ctx.save();
   ctx.translate(x, y);
   if (rot) ctx.rotate(rot);
   if (sy !== 1) ctx.scale(2 - sy, sy);
-  stamp(ctx, m.c, m.fr, cu);
+  stamp(ctx, baseSpr(cq), CBF, cu);
+  if (n) {
+    const top = layY0(L) - ((n - 1) * FH0 + CFF.oy) * L.q, sh = L.c.height - top, k = cu / L.q;
+    ctx.drawImage(L.c, 0, top, L.c.width, sh, -CFF.ox * cu, -BASE_H * cu + (top - layY0(L)) * k * kk, L.c.width * k, sh * k * kk);
+  }
+  put(ctx, roofSpr(s.parts.roof > 0, cq), CRF, 0, -(BASE_H + n * fh) * cu, cu);
   // 풍차 날개 · 물레방아 · 대장간 연기 · 꼭대기 깃발
   s.built.forEach((k, i) => {
     const fy = -(BASE_H + (i + 0.5) * fh) * cu;
@@ -4104,7 +4145,7 @@ function drawWish(ctx: C2, s: GiantState, w: number, sc2: number, bx: number, to
   ctx.fill();
   ctx.stroke();
   const my = ly - bh;
-  put(ctx, ghostSpr(s.wish, R(0.13) * sc2), ghostFr, lx + R(0.075), my + R(0.022), R(0.13));
+  put(ctx, ghostSpr(s.wish, GHQ(R, sc2)), ghostFr, lx + R(0.075), my + R(0.022), R(0.13));
   put(ctx, itemSpr(RES_ITEM[r], IQ(R, sc2)), IF, lx + R(0.17), my, R(ITEM_S) * 1.5);
   ctx.textAlign = 'left';
   ctx.font = `900 ${Math.max(12, Math.round(R(0.042)))}px system-ui, sans-serif`;
@@ -4167,7 +4208,7 @@ function drawHandArm(ctx: C2, s: GiantState, sc2: number, X: XF, Y: XF, R: XF) {
   }
   const hu = R(0.072) * gs, iu = R(ITEM_S) * gs * 1.5;
   if (fist && h.items.length) for (let i = 0; i < Math.min(5, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2) * 1.3), IF, hx + (i - 2) * hu * 0.38, hy - hu * 0.7 - (i % 2) * hu * 0.25, iu);
-  put(ctx, bigHandSpr(fist, R(0.072) * DMAX * sc2), HF, hx, hy, hu);
+  put(ctx, bigHandSpr(fist, HQ(R, sc2)), HF, hx, hy, hu);
   if (!fist && h.t >= HAND_POUR - 6)
     for (let i = 0; i < Math.min(6, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2) * 1.3), IF, hx + (i - 2.5) * hu * 0.32, hy + hu * (0.5 + ((h.t - HAND_POUR + 6) / 6) * 1.4 + (i % 2) * 0.3), iu);
 }
@@ -4401,7 +4442,8 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
   const res = s.phase === 'result', [pv, pn] = starProg(s);
   const dropsOver = (d.star[0] === 'drops' && s.drops > d.star[1]) || (d.star[0] === 'boss' && s.boss0 >= 0 && s.star3At < 0 && (s.bossKO >= 0 ? s.bossKO : s.t) - s.boss0 > d.star[1] * 60);
   const state = [res ? 1 : 0, s.lost > 0 || s.hits > 0 ? -1 : res ? 1 : 0, s.star3At >= 0 || (res && s.starOk[2]) ? 1 : res || dropsOver ? -1 : 0];
-  const words = STAR_WORDS(s), labels = words.map((q, i) => q + (i === 2 && state[2] === 0 && pv > 0 ? ` ${pv}/${pn}` : ''));
+  const timer = d.star[0] === 'boss' && state[2] === 0 && s.boss0 >= 0 && s.bossKO < 0 && !res;
+  const words = STAR_WORDS(s), labels = words.map((q, i) => q + (i === 2 && state[2] === 0 && pv > 0 && d.star[0] !== 'boss' ? ` ${pv}/${pn}` : ''));
   const b = bossOf(s), idle = s.cdown && s.gst === G_DOWN && s.pourQ === 0 && s.people.every((p) => p.st === P_IN || p.st === P_IDLE);
   let tip = `${d.name}: ${d.news}`;
   if (s.phase === 'pick') tip = '세상 속 큰 물건 둘 중 하나를 톡!';
@@ -4417,15 +4459,17 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
   else if (s.goalX < s.cam + 1.05) tip = '오른쪽 끝 깃발 언덕을 톡 — 새 땅에 쿵!';
   const perks = PERKS.map((p, i) => (s.perk[i] ? p[s.perk[i] - 1].name : '')).filter(Boolean);
   const status = `성 ${floors(s)}층 · 식구 ${pop(s)}명 · 거인 Lv${s.lv}${perks.length ? ' · ' + perks.join(' · ') : ''}`;
-  ctx.drawImage(bar('bot', w, h - Y(BOT), sc, `${labels.join('|')}|${state.join('')}|${tip}|${status}`, (c) => {
-    const fontC = (sz: number, wgt = 800) => (c.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
-    const textC = (str: string, x: number, y: number, fill: string) => ((c.fillStyle = fill), c.fillText(str, x, y));
-    const oy = -Y(BOT);
-    c.fillStyle = CREAM;
-    c.fillRect(0, 0, w, h);
+  // 세 줄을 따로 굽는다 — 식구 수 · 별 진행이 바뀌어도 그 줄만 다시
+  const strip = (id: string, y0: number, y1: number, key: string, paint: (c: C2, oy: number) => void) => {
+    const p0 = Math.round(Y(y0)), p1 = y1 >= 1.5 ? Math.ceil(h) : Math.round(Y(y1));
+    ctx.drawImage(bar(id, w, p1 - p0, sc, key, (c) => ((c.fillStyle = CREAM), c.fillRect(0, 0, w, p1 - p0), paint(c, -p0))), 0, p0, w, p1 - p0);
+  };
+  const fontC = (c: C2, sz: number, wgt = 800) => (c.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
+  const textC = (c: C2, str: string, x: number, y: number, fill: string) => ((c.fillStyle = fill), c.fillText(str, x, y));
+  strip('bot0', BOT, 1.373, `${labels.join('|')}|${state.join('')}`, (c, oy) => {
     c.fillStyle = '#e3c48c';
     c.fillRect(0, 0, w, 2);
-    fontC(0.033, 800);
+    fontC(c, 0.033, 800);
     const gap = R(0.012), pad = Math.min(R(0.065), (w - R(0.03) - gap * 2 - labels.reduce((a, q) => a + c.measureText(q).width, 0)) / 3);
     const ws = labels.map((q) => c.measureText(q).width + pad), total = ws.reduce((a, q) => a + q, 0) + gap * 2;
     let cx = (w - total) / 2;
@@ -4441,16 +4485,30 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
       c.fillStyle = on ? '#ffb800' : off ? '#d6c6a8' : '#e9d9b8';
       c.fill();
       c.textAlign = 'left';
-      textC(q, cx + pad * 0.76, cy + 0.5, off ? '#b8a688' : INK);
+      textC(c, q, cx + pad * 0.76, cy + 0.5, off ? '#b8a688' : INK);
       if (off) (c.fillStyle = '#b8a688'), c.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
+      if (i === 2) PILL2.splice(0, 3, cx, cw, pad);
       cx += cw + gap;
     });
+  });
+  if (timer) {
+    // 대장 초읽기: 띠를 다시 굽지 않고 알약 아래에 줄어드는 막대만
+    const [px, pw, pd] = PILL2, f = clamp(1 - (s.t - s.boss0) / (d.star[1] * 60), 0, 1), by = Y(1.345) + R(0.017);
+    ctx.fillStyle = 'rgba(201,168,120,.35)';
+    ctx.fillRect(px + pd * 0.72, by, pw - pd, R(0.005));
+    ctx.fillStyle = f < 0.3 ? '#e8590c' : '#e0a020';
+    ctx.fillRect(px + pd * 0.72, by, (pw - pd) * f, R(0.005));
+  }
+  strip('bot1', 1.373, 1.423, tip, (c, oy) => {
     c.textAlign = 'center';
-    fontC(0.034, 800);
-    textC(tip, w / 2, Y(1.398) + oy, INK);
-    fontC(0.032, 700);
-    textC(status, w / 2, Y(1.448) + oy, MUTED);
-  }), 0, Y(BOT), w, h - Y(BOT));
+    fontC(c, 0.034, 800);
+    textC(c, tip, w / 2, Y(1.398) + oy, INK);
+  });
+  strip('bot2', 1.423, 1.5, status, (c, oy) => {
+    c.textAlign = 'center';
+    fontC(c, 0.032, 700);
+    textC(c, status, w / 2, Y(1.448) + oy, MUTED);
+  });
   // ── 판 시작 띠 (NEW 한 줄) ──
   if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
     const age = t - s.banner.t, T = 200;
@@ -4534,10 +4592,10 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
     if (s.big.pic === 'star') {
       starPath(ctx, pic, 0, chh * 0.32);
       ink(ctx, '#ffc93c', 2, '#a06a12');
-    } else if (s.big.pic.startsWith('p:')) put(ctx, ghostSpr(s.big.pic.slice(2) as PK, R(0.12) * sc2), ghostFr, pic, chh * 0.12, R(0.12));
+    } else if (s.big.pic.startsWith('p:')) put(ctx, ghostSpr(s.big.pic.slice(2) as PK, GHQ(R, sc2)), ghostFr, pic, chh * 0.12, R(0.12));
     else {
       const mk = s.big.pic.slice(2) as MK;
-      put(ctx, monSpr(mk, 0, R(0.035) * DMAX * sc2), MF, pic, chh * 0.36, R(0.035));
+      put(ctx, monSpr(mk, 0, R(MD[mk].r) * DMAX * sc2), MF, pic, chh * 0.36, R(0.035));
     }
     const tx = pic + chh * 0.55;
     ctx.textAlign = 'left';
@@ -4666,7 +4724,7 @@ function drawResult(ctx: C2, s: GiantState, w: number, sc2: number) {
   PART_DEX.forEach((k, i) => {
     const px = R(0.12 + i * 0.087), py = cy0 + R(0.775), has = s.dexP.includes(k), isNew = s.newDex.includes('p:' + k);
     if (isNew) (ell(ctx, px, py - R(0.008), R(0.038), R(0.032)), (ctx.fillStyle = '#ffe9a0'), ctx.fill());
-    if (has) put(ctx, ghostSpr(k, R(0.075) * sc2), ghostFr, px, py + R(0.008), R(0.075));
+    if (has) put(ctx, ghostSpr(k, GHQ(R, sc2)), ghostFr, px, py + R(0.008), R(0.075));
     else (ell(ctx, px, py - R(0.008), R(0.025), R(0.02)), (ctx.fillStyle = '#efe6d2'), ctx.fill(), (ctx.textAlign = 'center'), font(0.03, 900), text('?', px, py - R(0.006), '#c8b898'));
   });
   JOB_DEX.forEach((k, i) => {
