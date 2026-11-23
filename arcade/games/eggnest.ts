@@ -1821,6 +1821,13 @@ const easeBack = (f: number) => {
 /** 한 연쇄의 음 높이: 도레미솔라 → 한 옥타브씩 */
 const STEP = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3];
 const pitchOf = (k: number) => Math.min(3.4, 0.85 * 2 ** Math.floor((k - 1) / 5) * STEP[(k - 1) % 5]);
+/** 아기마다 고유 울음 (처음 만날 때) */
+const CRY: [Parameters<ReturnType<typeof juice>['sound']>[0], number][][] = [
+  [['pop', 2.4], ['tick', 2.0]], [['boing', 1.9], ['pop', 1.2]], [['swell', 1.5], ['ding', 0.7]], [['zap', 0.7], ['boing', 0.8]],
+  [['zap', 0.55], ['swell', 0.9]], [['splash', 0.7], ['swell', 0.6]], [['boing', 1.1], ['pop', 1.6]], [['thud', 1.6], ['pop', 1.0]],
+  [['tick', 0.9], ['boing', 1.4]], [['thud', 0.6], ['swell', 0.5]], [['boing', 2.3], ['pop', 2.0]], [['boing', 0.7], ['pop', 0.7]],
+  [['zap', 1.7], ['ding', 1.4]], [['chime', 1.0], ['zap', 1.0]], [['chime', 0.8], ['swell', 0.7]], [['coin', 1.0], ['chime', 1.3]],
+];
 const KCOL = ['#ffffff', '#fff3a0', '#ffd84a', '#ffab3a', '#ff7a5a', '#ff5aa8'];
 const kcol = (k: number) => KCOL[Math.min(KCOL.length - 1, Math.floor(k / 4))];
 const hintMemo = new WeakMap<object, { key: string; i: number }>();
@@ -2075,6 +2082,23 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
     ctx.stroke();
     drawHand(ctx, hx + R(0.035), hy + R(0.06) + press * R(0.012), R(0.11));
   }
+  // ── 처음 보는 아기 스포트라이트 (0.4초) ──
+  {
+    const f = (t - (fx.memo.spotT ?? -999)) / 24;
+    if (f >= 0 && f < 1) {
+      const str = f < 0.2 ? f / 0.2 : 1 - (f - 0.2) / 0.8, bx = SX(fx.memo.spotX ?? 0), by = SY(fx.memo.spotZ ?? 0) - R(0.06);
+      ctx.fillStyle = radg(ctx, bx, by, R(0.09), R(0.8), [0, 'rgba(40,20,5,0)'], [0.18, `rgba(40,20,5,${0.42 * str})`], [1, `rgba(40,20,5,${0.5 * str})`]);
+      ctx.fillRect(0, 0, w, h);
+      ctx.beginPath();
+      ctx.moveTo(bx - R(0.04), 0);
+      ctx.lineTo(bx + R(0.04), 0);
+      ctx.lineTo(bx + R(0.1), by + R(0.05));
+      ctx.lineTo(bx - R(0.1), by + R(0.05));
+      ctx.closePath();
+      ctx.fillStyle = `rgba(255,248,205,${0.28 * str})`;
+      ctx.fill();
+    }
+  }
 
   // 둥지가 새로 찰 때 톡톡톡 내려앉는 소리
   if (s.phase === 'play' && lt < 40 && fx.memo.landLt !== lt) {
@@ -2116,24 +2140,24 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
         puff(ex, cy, '#ffffff', 4 + Math.min(6, k), 3 + Math.min(3, k * 0.2), 2.4);
         fx.kick(2 + Math.min(6, k * 0.35));
         if (big) fx.ring(ex, cy, kcol(k), R(0.06 + Math.min(0.08, k * 0.004)), 3);
-        say(ex, cy - u * 1.6, `+${ptsOf(k)}`, kcol(k), 15 + Math.min(17, k * 0.9));
-        fx.memo.chainT = t;
-        fx.memo.chainK = k;
         fx.memo.hatchT = t;
         fx.memo.hatchX = ev0.x;
         fx.memo.hatchZ = ev0.z;
         fx.memo.bumpT = t;
-        fx.memo.momT = fx.memo.momP === M_WOW && t - (fx.memo.momT ?? -999) < 50 ? fx.memo.momT : t;
-        if (fx.memo.momP !== M_WOW || t - (fx.memo.momT ?? 0) > 50) fx.memo.momP = M_HAPPY;
+        if (fx.memo.momP !== M_WOW || t - (fx.memo.momT ?? 0) > 50) (fx.memo.momT = t), (fx.memo.momP = M_HAPPY);
         break;
       }
       case 'new': {
+        // 처음 보는 아기: 0.4초 스포트라이트 + 고유 울음 (연쇄는 안 멈춘다)
         const rare = SP[ev0.m].rare;
-        snd('chime', rare ? 0.9 : 1.25, 1);
+        for (const [n0, p0] of CRY[ev0.m]) fx.sound(n0, p0, 0.9);
+        fx.memo.spotT = t;
+        fx.memo.spotX = ev0.x;
+        fx.memo.spotZ = ev0.z;
         if (rare) (snd('swell', 1, 1), fx.blink('#fff6c8', 0.5), fx.kick(12), puff(ex, ez - u * 2, '#ffd84a', 20, 6, 3.4));
         fx.ring(ex, ez - u * 1.4, rare ? '#ffd84a' : '#ff9ecb', R(rare ? 0.3 : 0.14), rare ? 6 : 4);
         if (!rare) (puff(ex, ez - u * 1.8, '#ff9ecb', 6, 3.5, 2.6), puff(ex, ez - u * 1.8, '#fff3a0', 6, 3.5, 2.6), fx.blink('#fff8e0', 0.12));
-        if (rare) say(X(0.5), Y(0.56), 'NEW!', '#ffd84a', 36);
+        if (rare) say(X(0.5), Y(0.5), 'NEW!', '#ffd84a', 44);
         fx.memo.momT = t;
         fx.memo.momP = M_WOW;
         break;
@@ -2163,18 +2187,30 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
         else if (fam === 'gold') (snd('coin', 1, 0.9), snd('chime', 1.3, 0.8), puff(ex, ez - u, '#ffd23a', 16, 5, 3));
         break;
       }
-      case 'full':
-        // 둥지 가득 부화: 꽃가루 폭죽 + 모두 환호
-        snd('clear', 1, 1);
-        snd('chime', 1.2, 0.9);
-        fx.blink('#fff6c8', 0.45);
-        fx.kick(12);
-        for (let k = 0; k < 6; k++) fx.burst(X(0.12 + k * 0.15), Y(0.62 + (k % 2) * 0.12), ['#ffd84a', '#ff9ecb', '#8fd3ff', '#9de884', '#ffab3a', '#c39bff'][k], 9, 6.5, 3.4);
-        fx.ring(X(0.5), Y(NY), '#ffd84a', R(0.6), 8);
-        if (ev0.n) say(X(0.5), Y(0.5), `+${ev0.n * 70}`, '#ffd84a', 30);
-        fx.memo.cheerT = t;
-        fx.memo.momT = t;
-        fx.memo.momP = M_WOW;
+      case 'chainEnd': {
+        // 연쇄가 꺼짐: 합계 하나만 크게
+        const k = ev0.n;
+        fx.memo.endT = t;
+        fx.memo.endK = k;
+        fx.memo.endPts = ev0.m;
+        if (k >= 3) snd('coin', 0.8 + Math.min(0.6, k / 60), 0.9), snd('chime', 0.9 + Math.min(0.5, k / 80), 0.8);
+        if (k >= 25) {
+          fx.blink('#fff6c8', 0.35);
+          fx.kick(10);
+          for (let j = 0; j < 6; j++) fx.burst(X(0.12 + j * 0.15), Y(0.62 + (j % 2) * 0.12), ['#ffd84a', '#ff9ecb', '#8fd3ff', '#9de884', '#ffab3a', '#c39bff'][j], 8, 6.5, 3.4);
+          fx.memo.cheerT = t;
+          fx.memo.momT = t;
+          fx.memo.momP = M_WOW;
+        }
+        break;
+      }
+      case 'drop':
+        snd('whoosh', 1.9, 0.25);
+        if (fx.memo.momP !== M_WOW || t - (fx.memo.momT ?? 0) > 50) (fx.memo.momT = t), (fx.memo.momP = M_HAPPY);
+        break;
+      case 'land':
+        snd('tick', 1.0 + hsh(ev0.n) * 0.5, 0.45);
+        puff(ex, ez, '#e6c48a', 3, 1.8, 2.2);
         break;
       case 'out':
         snd('swell', 0.7, 0.4);
@@ -2182,19 +2218,13 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
       case 'result':
         snd('clear', 1, 0.9);
         break;
-      case 'fail':
-        snd('fail', 1, 1);
-        fx.kick(6);
-        fx.memo.momT = t;
-        fx.memo.momP = M_DIZZY;
-        break;
       case 'final':
         snd(ev0.n ? 'clear' : 'fail', 0.85, 1);
         break;
       case 'mom':
         snd('boing', 1.6, 0.7);
         snd('pop', 1.8, 0.5);
-        puff(X(MX - 0.05), Y(MY - 0.2), '#ffb08a', 6, 3, 2.4);
+        puff(X(MX + 0.02), Y(MY - 0.1), '#ffb08a', 6, 3, 2.4);
         fx.memo.momT = t;
         fx.memo.momP = M_HAPPY;
         break;
@@ -2218,12 +2248,24 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
   drawHud(ctx, s, w, h);
 }
 
-interface BState { x: number; z: number; lift: number; pose: number; sc: number; sy: number; flip: boolean; rot: number; late: boolean; isNew: boolean }
+interface BState { x: number; z: number; lift: number; pose: number; sc: number; sy: number; flip: boolean; rot: number; late: boolean; isNew: boolean; alpha: number }
 /** 아기 한 마리의 지금 모습 (그리기 전용 — 시뮬레이션은 안 바꾼다) */
-function babyAt(s: NestState, b: Baby): BState {
+function babyAt(s: NestState, b: Baby, idx: number, firstOfSp: boolean): BState {
   const lt = s.lt, d = SP[b.sp], dt = lt - b.t0, fx = juice(s);
-  const o: BState = { x: b.x, z: b.z, lift: 0, pose: P_SIT, sc: 1, sy: 1, flip: b.dx < 0, rot: 0, late: false, isNew: false };
-  o.isNew = s.nestNew.includes(b.sp) && dt < 70 && s.babies.findIndex((q) => q.sp === b.sp) === s.babies.indexOf(b);
+  const o: BState = { x: b.x, z: b.z, lift: 0, pose: P_SIT, sc: 1, sy: 1, flip: b.dx < 0, rot: 0, late: false, isNew: false, alpha: 1 };
+  o.isNew = firstOfSp && s.nestNew.includes(b.sp) && dt < 70;
+  if (lt >= b.fr) {
+    // 다 놀았으면 둥지 밖으로 콩 — 뒤쪽 테두리 너머로
+    const f = clamp((lt - b.fr) / 24, 0, 1);
+    o.x = b.x * (1 - f * 0.2);
+    o.z = b.z + (-1.3 - b.z) * f;
+    o.lift = Math.sin(f * Math.PI) * 2.2 + f * 1.2;
+    o.sc = 1 - f * 0.35;
+    o.alpha = 1 - f * f;
+    o.pose = P_CHEER;
+    o.late = f > 0.15;
+    return o;
+  }
   if (dt < POP_T + 6) {
     // 뿅: 껍데기에서 튀어 올랐다 쏙 앉는다
     const f = clamp(dt / (POP_T + 6), 0, 1);
@@ -2292,7 +2334,7 @@ function babyAt(s: NestState, b: Baby): BState {
     return o;
   }
   o.flip = b.x > 0.15 ? true : b.x < -0.15 ? false : b.dx < 0;
-  const cheer = s.t - (fx.memo.cheerT ?? -999), poke = s.t - (fx.memo.pokeT ?? -999) < 24 && fx.memo.pokeI === s.babies.indexOf(b);
+  const cheer = s.t - (fx.memo.cheerT ?? -999), poke = s.t - (fx.memo.pokeT ?? -999) < 24 && fx.memo.pokeI === idx;
   const ph = b.e * 37 + b.sp * 11, near = s.t - (fx.memo.hatchT ?? -999) < 14 && hyp((fx.memo.hatchX ?? 9) - b.x, (fx.memo.hatchZ ?? 9) - b.z) < 0.45;
   if (cheer < 70 || poke || s.phase === 'result' || s.phase === 'end') {
     o.pose = P_CHEER;
@@ -2443,7 +2485,7 @@ function effect(ctx: C2, s: NestState, b: Baby, w: number, X: (x: number) => num
     case 'roll': {
       const f = lt - b.ta;
       if (f >= 0 && f % 4 === 0 && lt < b.te - 14) {
-        const st = babyAt(s, b), fx = juice(s);
+        const st = babyAt(s, b, 0, false), fx = juice(s);
         if (fx.particles.length < PART_MAX) fx.burst(SX(st.x), SY(st.z), '#e6c48a', 2, 1.6, 2.4);
       }
       return;
