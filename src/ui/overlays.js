@@ -1,30 +1,29 @@
-// 행군 도중 전장 위에 뜨는 화면들: 전리품, 장터, 사건·주막, 갈림길 (장면을 바꾸지 않고 그 자리에서 고른다)
+// 행군 도중 전장 위에 뜨는 화면들: 겹침 화면의 뼈대, 전리품, 이야기 한 장면, 주막의 선택지.
+// 장터·주막·갈림길·보물 터는 places.js, 길 위의 사건은 roadevent.js 가 그 장소를 통째로 그린다
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack, st } from '../render/draw.js';
-import { ui, tapped, isDown, button, panel, brushTitle, seal, stamp, icon, C } from './ui.js';
+import { TAU, INK, PAPER, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack, st } from '../render/draw.js';
+import { ui, tapped, button, panel, brushTitle, stamp, icon, C } from './ui.js';
 import { cardFace, DeckView } from './cards.js';
-import { G, save, STOP, forkDesc, openReward, rollRewards, describeReward, applyReward, buyItem, upgradeCard, removeCard, canUp, act } from '../state.js';
-import { chapterOf } from '../data/stages.js';
-import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
+import { G, save, openReward, rollRewards, describeReward, applyReward, canUp, act } from '../state.js';
+import { CARDS, isUnit } from '../data/cards.js';
 import { RELICS } from '../data/relics.js';
 import { WEAPONS } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
 import { portrait, weaponIcon, getLook } from '../render/sprites.js';
 import { cardIcon, relicIcon, miscIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
-import { miniStage } from './theater.js';
 import { juice, SPOT, goldRays } from './juice.js';
 import { stopSprite } from '../render/terrain.js';
-import { drawSprite, poly } from '../render/draw.js';
+import { drawSprite } from '../render/draw.js';
 
-const COL = { blue: INDIGO, green: TEAL, purple: '#5a4a8a', gold: '#b8742a', red: '#7a1f1c' };
+export const COL = { blue: INDIGO, green: TEAL, purple: '#5a4a8a', gold: '#b8742a', red: '#7a1f1c' };
 // 몇 장 묶음인지 알리는 딱지
 const packTag = (g, x, y, n, s = 1) => { if (!(n > 1)) return; rr(g, x - 25 * s, y - 14 * s, 50 * s, 28 * s, 7 * s, RED, INK, 1.8); text(g, '×' + n, x, y + 1, { size: 20 * s, font: FONT_B, fill: C.cream }); };
 // 보급 꾸러미: 든 패의 그림을 부채처럼 펼친다
-const supplyArt = (g, ids, x, y, s) => ids.forEach((id, k) => { const sx = k % 2 ? 1 : -1, sy = k > 1 ? 1 : -1; cardIcon(g, id, x + sx * 23 * s, y + sy * 26 * s, 0.7 * s, sx * 0.07); });
+export const supplyArt = (g, ids, x, y, s) => ids.forEach((id, k) => { const sx = k % 2 ? 1 : -1, sy = k > 1 ? 1 : -1; cardIcon(g, id, x + sx * 23 * s, y + sy * 26 * s, 0.7 * s, sx * 0.07); });
 const dim = (g, a = 0.55) => { g.fillStyle = `rgba(31,42,68,${a})`; g.fillRect(0, 0, W, H); };
 // 겹침 화면의 뼈대: 그 위에 덱 살피기 같은 화면(sub)이 한 겹 더 뜰 수 있다
-class Overlay {
+export class Overlay {
   constructor() { this.t = 0; this.sub = null; }
   frame(g, dt) { this.t += dt; const L = ui.layer; ui.layer = L + 1; try { this.draw(g, dt); if (this.sub) this.sub.frame(g, dt); } finally { ui.layer = L; } }
   deck(o) { this.sub = new DeckView(Object.assign({ onClose: () => { this.sub = null; } }, o)); }
@@ -57,9 +56,9 @@ export class RewardOverlay extends Overlay {
   draw(g, dt) {
     // 보물 상자는 먼저 덜컹거리다 뚜껑이 열리고, 그 빛 속에서 고를 것들이 올라온다
     const lead = this.kind === 'treasure' ? 1.15 : 0, r = G.run, p = this.p, t = Math.max(0, this.t - lead - (lead ? 0.24 : 0)), done = this.taken !== -1;
-    dim(g, 0.78);
+    if (this.scene) this.scene(g, dt); else dim(g, 0.78);   // 보물 칸은 제 풍경(장면)을 깔고, 전리품은 전장 위를 어둡게 덮는다
     brushTitle(g, 640, 34, 420, 62, { battle: '전리품', elite: '강적의 전리품', boss: '두목의 전리품', treasure: '보물 상자' }[this.kind] || '전리품', this.kind === 'treasure' ? '#b8862a' : INDIGO, 36);
-    if (lead && this.t < lead + 0.3) {
+    if (lead && this.t < lead + 0.3 && !this.ownChest) {
       const q = this.t / lead, pop = clamp((this.t - lead * 0.72) / 0.3, 0, 1), fade = 1 - clamp((this.t - lead) / 0.28, 0, 1);
       g.save(); g.globalAlpha = fade; g.translate(640, 372);
       if (pop > 0) { const gl = g.createRadialGradient(0, -34, 2, 0, -34, Math.max(14, 170 * pop)); gl.addColorStop(0, 'rgba(255,236,170,0.75)'); gl.addColorStop(0.55, 'rgba(240,210,100,0.28)'); gl.addColorStop(1, 'rgba(240,210,100,0)'); g.fillStyle = gl; g.fillRect(-190, -224, 380, 380); goldRays(g, 0, -34, this.t, pop, 190); }
@@ -70,7 +69,7 @@ export class RewardOverlay extends Overlay {
     text(g, done ? '챙겼습니다' : lead && t <= 0 ? '무엇이 들었을까…' : '하나를 고르세요', 640, 82, { size: 20, fill: C.cream });
     panel(g, 1070, 76, 180, 40, 'tag'); icon.coin(g, 1094, 96, 12); text(g, `엽전 ${r.gold}`, 1170, 97, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
-      const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
+      const d = describeReward(o), w = 224, h = 316, k = easeOutBack(clamp((t - n * 0.1) / (this.rise ? 0.5 : 0.32), 0, 1)), x = this.rise ? 528 + (n * 264 - 264) * Math.min(1, k) : 264 + n * 264, y = this.rise ? 118 + (1 - k) * 420 : 118 + (1 - k) * 50, mine = this.taken === n;   // rise: 열린 상자에서 떠올라 제자리로 퍼진다
       g.save(); g.globalAlpha = t - n * 0.1 > 0 ? 1 : 0;   // 비치지 않게, 불투명한 채로 미끄러져 들어온다
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
@@ -97,51 +96,8 @@ export class RewardOverlay extends Overlay {
   }
 }
 
-// ───────── 장터 ─────────
-export class ShopOverlay extends Overlay {
-  constructor(o) { super(); this.items = o.items; this.onDone = o.onDone; this.msg = ''; this.msgT = 0; }
-  draw(g, dt) {
-    const r = G.run, t = this.t; if (this.msgT > 0) this.msgT -= dt;
-    dim(g, 0.8);
-    brushTitle(g, 640, 34, 300, 62, '장터', '#b8742a', 38);
-    panel(g, 1070, 76, 180, 40, 'tag'); icon.coin(g, 1094, 96, 12); text(g, `엽전 ${r.gold}`, 1170, 97, { size: 20, maxW: 130 });
-    this.items.forEach((it, n) => {
-      const d = describeReward(it), card = it.kind === 'card', col = card ? KIND[CARDS[it.id].kind].col : COL[d.col] || INDIGO, w = 286, h = 232, x = 50 + (n % 4) * 298, y = 86 + Math.floor(n / 4) * 244, afford = r.gold >= it.price;
-      g.save(); if (it.sold) g.globalAlpha = 0.45;
-      rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
-      g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
-      if (card) cardFace(g, it, x + 10, y + 42, 96, 124);
-      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, 'cleanse', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 1.85); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
-      text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
-      textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 126, 20, { size: 15, align: 'left', fill: '#4a4034', weight: 400 });
-      g.restore();
-      if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, 'get', RED, -0.14);
-      else if (button(g, 'buy' + n, x + 10, y + h - 54, w - 20, 44, `엽전 ${it.price}`, { style: afford ? 'indigo' : 'grey', size: 22 })) this.buy(it, x + 58, y + 104, d);
-    });
-    if (button(g, 'shdeck', 50, 590, 280, 62, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 24 })) this.deck({});
-    if (!this.left && button(g, 'leave', 480, 584, 320, 72, '장터를 떠난다', { size: 30 })) { this.left = true; this.onDone(); }
-    if (this.msgT > 0) { g.globalAlpha = Math.min(1, this.msgT * 3); rr(g, 830, 596, 400, 46, 9, PAPER, INK, 2.2); rr(g, 833.4, 599.4, 393.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.msg, 1030, 620, { size: 17, maxW: 380 }); g.globalAlpha = 1; }
-  }
-  say(s) { this.msg = s; this.msgT = 2.6; }
-  buy(it, bx = 640, by = 300, d = null) {
-    const r = G.run; if (r.gold < it.price) { sfx('deny'); return; }
-    if (it.kind === 'burn') this.deck({ mode: 'burn', onPick: uid => { const c = removeCard(uid); this.sub = null; if (!c) return; buyItem(it); this.say(`[${cardName(c)}] 을(를) 태웠습니다`); sfx('coin'); } });
-    else if (it.kind === 'trainPick') this.deck({ mode: 'up', title: '조련장', filter: isUnit, onPick: uid => { const c = upgradeCard(uid); this.sub = null; if (!c) return; buyItem(it); this.say(`[${cardName(c)}] 조련 완료`); sfx('coin'); } });
-    else if (buyItem(it)) {
-      sfx('coin');
-      // 값을 치르고(엽전이 날아가고) 산 물건이 제자리로 날아온다
-      for (let q = 0; q < 4; q++) juice.fly({ draw: (gg, px, py, s) => icon.coin(gg, px, py, 12 * s, true), x0: 1150, y0: 46, x1: bx, y1: by + 70, s0: 0.9, s1: 0.7, arc: 30, delay: q * 0.05, dur: 0.4 });
-      if (d && d.relic && it.kind === 'relic') juice.reveal({ icon: (gg, px, py, s) => relicIcon(gg, d.relic, px, py, s), name: d.name, desc: d.desc, to: SPOT.relic, title: '보물을 샀다' });
-      else if (it.kind === 'card') juice.fly({ draw: (gg, px, py, s) => cardFace(gg, it, px - 48 * s, py - 62 * s, 96 * s, 124 * s), x0: bx, y0: by, x1: SPOT.deck[0], y1: SPOT.deck[1], s0: 1.2, s1: 0.3, arc: 40, delay: 0.2 });
-      else juice.burst(bx, by, '#f0d264', 12);
-      if (it.kind === 'weapon') this.deck({ weapon: it.id });
-    }
-  }
-}
-
-// ───────── 사건·주막: 글과 선택지 ─────────
-// choices: [{ label, desc, cost, pick() → [이야기, 결과…] } | { label, desc, deck:'up', filter, story }]
-function resultIcon(s) {
+// ───────── 결과 한 줄 (사건·주막·장터가 함께 쓴다) ─────────
+export function resultIcon(s) {
   const m = /(보물|부정|무기|패 강화:|병력 패|패) \[([^\]]+?)\+?\]/.exec(s); if (!m) return null;
   const name = m[2], find = tbl => Object.keys(tbl).find(k => tbl[k].name === name);
   if (m[1] === '보물' || m[1] === '부정') { const id = find(RELICS); return id ? (g, x, y) => relicIcon(g, id, x, y, 0.74) : null; }
@@ -152,68 +108,7 @@ function resultIcon(s) {
 // 결과 한 줄이 손해인지 가리는 낱말
 // 얻은 물건(무기·보물·패)은 설명에 '-30%' 같은 글이 섞여 있어도 얻은 것이다
 // 고개의 풍경 → 작은 무대의 걸개그림
-const STAGE_BG = { pass: 'pass', autumn: 'pass', snow: 'pass', ember: 'pass', grove: 'grove', mist: 'grove', storm: 'eve', dusk: 'dark', under: 'dark' };
-const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
-export class ChoiceOverlay extends Overlay {
-  constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, after: o.after, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
-  draw(g, dt) {
-    const r = G.run, t = this.t;
-    dim(g, 0.9);
-    panel(g, 60, 70, 1160, 580);
-    brushTitle(g, 330, 76, 360, 62, this.title, this.col, 34);
-    // 작은 인형극 무대: 영웅이 길에서 누군가를 만난다. 고른 뒤에는 결과에 따라 인형이 기뻐 뛰거나 부르르 떤다
-    const rt = this.result ? (this.rt = (this.rt || 0) + dt) : 0, bad = this.result && this.result.slice(1).some(q => BAD.test(q) && !GOOD.test(q)), tl = this.tale && this.tale.tale;
-    const li = tl ? Math.floor(t / 3.4) % tl.lines.length : 0;
-    const actors = tl && !this.result
-      ? [[this.art, 0.17, li === 0 ? 'talk' : 'idle', 1], [tl.cast[0], 0.56, li === 0 ? 'hop' : 'idle', 1], [tl.cast[1], 0.82, li === 1 ? 'talk' : 'idle', -1]]
-      : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.result && this.after ? this.after : this.art, this.result && this.after ? 0.66 + Math.min(0.14, Math.max(0, rt - 0.6) * 0.2) : 0.7, this.result ? (this.after ? 'hop' : rt < 0.4 ? 'shake' : 'wave') : 'talk', this.result && this.after ? 1 : -1]];
-    // 주막에는 아래에 옛이야기 칸이 있고, 길 위의 사건은 무대와 글을 칸 가운데로 내려 빈자리를 줄인다
-    const sy = tl ? 138 : 146, sh = tl ? 232 : 286;
-    miniStage(g, 98, sy, 464, sh, { t, bg: tl ? 'village' : STAGE_BG[chapterOf(r.ch).theme] || 'pass', actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
-    textBlock(g, this.result ? this.result[0] : this.body, 330, tl ? (this.result ? 440 : 420) : sy + sh + 50, 480, 28, { size: 19.5, weight: 400 });
-    // 주막에서 듣는 옛이야기 한 토막: 무대의 인형들이 두 마디로 들려준다
-    if (tl && !this.result) {
-      rr(g, 84, 492, 492, 140, 7, '#fbf3df', 'rgba(38,42,54,0.5)', 1.3); rr(g, 84, 492, 6, 140, 3, this.col);
-      text(g, `옛이야기 〈${tl.title}〉`, 104, 514, { size: 20, font: FONT_B, align: 'left', maxW: 300 }); if (this.tale.fresh) { rr(g, 430, 501, 134, 25, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 514, { size: 13.5, fill: C.cream }); }
-      g.globalAlpha = clamp((t % 3.4) / 0.3, 0, 1); textBlock(g, tl.lines[li], 330, 566, 452, 27, { size: 19.5, font: FONT_B }); g.globalAlpha = 1;
-      rr(g, 104, 627, 452, 3, 1.5, 'rgba(38,42,54,0.12)'); rr(g, 104, 627, 452 * ((t % 3.4) / 3.4), 3, 1.5, this.col);   // 다음 마디로 넘어가기까지
-      for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 617, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');
-    }
-    panel(g, 1040, 84, 164, 38, 'tag'); icon.coin(g, 1062, 103, 11); text(g, `엽전 ${r.gold}`, 1132, 104, { size: 18, maxW: 110 });
-    if (!this.result) {
-      const n = this.choices.length, ch = Math.min(104, 440 / n), y0 = 140;
-      this.choices.forEach((c, k) => {
-        const y = y0 + k * (ch + 8), lack = c.cost && r.gold < c.cost;
-        if (!lack && tapped('ch' + k, 620, y, 580, ch)) { sfx('card'); if (c.deck) this.deck({ mode: c.deck, filter: c.filter, title: c.label, onPick: uid => { const before = cardName(r.deck.find(q => q.uid === uid)), card = upgradeCard(uid); this.sub = null; if (!card) return; this.result = [c.story, `${isUnit(card) ? '조련' : '패 강화'}: [${before}] → [${cardName(card)}]`]; save(); } }); else { this.result = c.pick(); save(); } }
-        const dn = !lack && isDown('ch' + k, 620, y, 580, ch), o = dn ? 3 : 0;
-        g.save(); if (lack) g.globalAlpha = 0.5;
-        rr(g, 620, y + 5, 580, ch, 12, '#d9cdb0', INK, 2.4); rr(g, 620, y + o, 580, ch, 12, c.hero ? '#fbf1cf' : PAPER, INK, 2.4);
-        // 영웅이 있을 때만 열리는 갈래
-        if (c.hero) { rr(g, 623.4, y + 3.4 + o, 573.2, ch - 6.8, 9, null, '#c9962e', 1.5); g.save(); g.beginPath(); g.rect(1120, y + 4 + o, 74, ch - 8); g.clip(); portrait(g, c.hero, 1158, y + ch + 14 + o, 1.25 * 1.43 / getLook(c.hero).scale); g.restore(); }
-        text(g, c.label, 644, y + ch * 0.34 + o, { size: Math.min(27, ch * 0.3), font: FONT_B, align: 'left', maxW: c.hero ? 470 : 530 });
-        text(g, lack ? `${c.desc}  (엽전 부족)` : c.desc, 646, y + ch * 0.7 + o, { size: Math.min(17, ch * 0.19), align: 'left', fill: lack ? RED : SUB, weight: 400, maxW: 530 });
-        g.restore();
-      });
-    } else {
-      if (!this.said) { this.said = true; sfx(bad ? 'deny' : 'star');
-        // 엽전을 얻었으면 무대에서 엽전 칸으로 엽전이 날아간다
-        if (this.result.slice(1).some(q => /엽전 \+\d/.test(q))) for (let q = 0; q < 6; q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s), x0: 330 + (q - 2.5) * 18, y0: 290, x1: 1062, y1: 103, s0: 1.2, s1: 0.85, delay: 0.45 + q * 0.07, arc: 60, dur: 0.55, onArrive: q === 5 ? () => sfx('coin') : null }); }
-      // 결과: 오른쪽 칸 가운데에 큼직하게 하나씩 찍힌다. 좋은 일이면 끝에 붉은 도장이 찍힌다
-      const rows = this.result.slice(1), n = rows.length;
-      rows.forEach((s, i) => {
-        const k = clamp((rt - 0.4 - i * 0.2) / 0.26, 0, 1); if (k <= 0) return; const no = BAD.test(s) && !GOOD.test(s), y = 306 + (i - (n - 1) / 2) * 84, ic = resultIcon(s), e = easeOutBack(k);
-        g.save(); g.globalAlpha = Math.min(1, k * 1.6); g.translate(910, y); g.scale(0.86 + 0.14 * e, 0.6 + 0.4 * e); g.translate(-910, -y);
-        rr(g, 624, y - 30, 572, 70, 10, 'rgba(38,42,54,0.16)'); rr(g, 620, y - 35, 580, 70, 10, no ? '#efd9cf' : '#dfe8d4', INK, 2); rr(g, 620, y - 35, 8, 70, 4, no ? RED : TEAL);
-        if (ic) { ic(g, 662, y); text(g, s, 936, y + 1, { size: 21, fill: no ? RED : TEAL, maxW: 490 }); } else text(g, s, 914, y + 1, { size: 21, fill: no ? RED : TEAL, maxW: 540 });
-        g.restore(); if (k < 1) for (let q = 0; q < 6; q++) { const a = q / 6 * TAU + i, d = 30 + 60 * k; ell(g, 910 + Math.cos(a) * d * 2.6, y + Math.sin(a) * d * 0.5, 3.2 * (1 - k), 3.2 * (1 - k), no ? '#c8402f' : '#d9a441'); }
-      });
-      if (n && !bad) { const k = clamp((rt - 0.55 - n * 0.2) / 0.22, 0, 1); if (k > 0) { g.save(); g.globalAlpha = k; stamp(g, 1158, 306 - (n - 1) * 42 - 74, 30 * (1.5 - 0.5 * k), 'get', RED, 0.16); g.restore(); } }
-      if (this.result.length < 2) text(g, '별일 없이 지나갑니다', 910, 300, { size: 22, fill: SUB });
-      if (!this.left && rt > 0.5 + this.result.length * 0.18 && button(g, 'go', 740, n ? 306 + (n - 1) * 42 + 76 : 356, 340, 76, '길을 떠난다', { size: 34 })) { this.left = true; this.onDone(); }
-    }
-  }
-}
-
+export const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
 // ───────── 이야기 한 장면: 두목의 사연, 영웅의 인연 (한 줄씩 눌러 넘긴다) ─────────
 // lines: [[말하는 이(병종 id) 또는 null(해설), 글], …]
 export class StoryOverlay extends Overlay {
@@ -241,36 +136,14 @@ export class StoryOverlay extends Overlay {
   }
 }
 
-// ───────── 갈림길: 길가 푯말 둘 중 하나 ─────────
-export class ForkOverlay extends Overlay {
-  constructor(o) { super(); this.a = o.a; this.b = o.b; this.onPick = o.onPick; }
-  draw(g) {
-    const t = this.t;
-    dim(g, 0.72);
-    brushTitle(g, 640, 120, 360, 62, '갈림길', '#8a5a2c', 36);
-    text(g, '어느 길로 갈까요?', 640, 180, { size: 22, fill: C.cream, stroke: INK, lw: 4 });
-    [['a', this.a, 220], ['b', this.b, 680]].forEach(([key, st, x], n) => {
-      const v = STOP[st.type], w = 380, h = 250, k = easeOutBack(clamp((t - n * 0.12) / 0.3, 0, 1)), y = 214 + (1 - k) * 40;
-      if (!this.left && t > 0.35 && tapped('fork' + key, x, y, w, h)) { this.left = true; sfx('card'); this.onPick(key); }
-      const dn = isDown('fork' + key, x, y, w, h) ? 3 : 0;
-      g.save(); g.globalAlpha = clamp((t - n * 0.12) / 0.2, 0, 1);
-      rr(g, x, y + 6, w, h, 14, '#d9cdb0', INK, 3); rr(g, x, y + dn, w, h, 14, PAPER, INK, 3); rr(g, x + 9, y + 9 + dn, w - 18, h - 18, 8, null, v.col + '88', 1.6);
-      seal(g, x + w / 2, y + 78 + dn, 84, v.ch, v.col); text(g, v.name, x + w / 2, y + 152 + dn, { size: 34, font: FONT_B });
-      textBlock(g, forkDesc(st.type), x + w / 2, y + 194 + dn, w - 50, 24, { size: 17, fill: SUB, weight: 400 });
-      text(g, n ? '오른쪽 길 ▶' : '◀ 왼쪽 길', x + w / 2, y + h - 23 + dn, { size: 18, font: FONT_B, fill: v.col });
-      g.restore();
-    });
-  }
-}
-
 // ───────── 주막의 선택지 ─────────
 export function restChoices() {
   const r = G.run;
   return [
-    { label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
-    r.deck.some(c => isUnit(c) && canUp(c)) ? { label: '조련한다', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
-    { label: '보급을 받는다', desc: '기본 전술 패 석 장', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다.', act.supply(3)] },
-    r.deck.some(c => !isUnit(c) && canUp(c)) ? { label: '전술을 익힌다', desc: '전술 패 한 종류를 모두 강화판(+)으로', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
-    { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 패 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
+    { id: 'rest', label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
+    r.deck.some(c => isUnit(c) && canUp(c)) ? { id: 'train', label: '조련한다', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
+    { id: 'supply', label: '보급을 받는다', desc: '기본 전술 패 석 장', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다.', act.supply(3)] },
+    r.deck.some(c => !isUnit(c) && canUp(c)) ? { id: 'study', label: '전술을 익힌다', desc: '전술 패 한 종류를 모두 강화판(+)으로', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
+    { id: 'feast', label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 패 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
   ].filter(Boolean);
 }

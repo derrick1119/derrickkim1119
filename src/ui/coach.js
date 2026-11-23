@@ -5,7 +5,8 @@ import { INK, PAPER, FONT_B, SUB, text, textBlock, rr, rrPath, clamp, line, poly
 import { ui, tapped, C } from './ui.js';
 import { meta, save } from '../state.js';
 import { CARDS, isUnit } from '../data/cards.js';
-import { RewardOverlay, ShopOverlay, ForkOverlay, ChoiceOverlay } from './overlays.js';
+import { RewardOverlay } from './overlays.js';
+import { MarketOverlay, TavernOverlay, ForkScene } from './places.js';
 
 const slot = k => ({ x: 248 + k * 136, y: 574, w: 128, h: 138 });
 const handIdx = (s, f) => s.b.hand.findIndex(c => c && f(c));
@@ -24,9 +25,9 @@ export const TIPS = [
   { id: 'hero', after: 'order', when: s => fight(s) && s.b.waveT > 13 && s.b.units.some(u => !u.dead && u.team === 0 && u.def.hero), at: s => { const u = s.b.units.find(q => !q.dead && q.team === 0 && q.def.hero); return { x: u.x - 56, y: u.y - 152, w: 112, h: 156 }; }, s: '머리 위 금빛 띠가 영웅의 기력입니다.\n가득 차면 고유기를 스스로 씁니다.' },
   { id: 'all', after: 'hero', when: s => fight(s) && s.b.waveT > 18, at: () => ({ x: 934, y: 574, w: 336, h: 66 }), s: '모든 부대를 한꺼번에\n물리거나 돌격시킵니다.' },
   { id: 'reward', when: s => ov(s, RewardOverlay), at: () => ({ x: 254, y: 92, w: 772, h: 370 }), s: '셋 중 하나를 고르세요.\n이렇게 군대가 조금씩 커집니다.' },
-  { id: 'fork', when: s => ov(s, ForkOverlay), at: null, s: '갈림길입니다.\n험한 길일수록 얻는 것도 큽니다.' },
-  { id: 'shop', when: s => ov(s, ShopOverlay), at: null, s: '장터입니다.\n엽전으로 패·보물·무기를 삽니다.' },
-  { id: 'rest', when: s => ov(s, ChoiceOverlay) && s.over.tale, at: null, s: '주막입니다. 하나를 골라 정비하세요.\n주모의 옛이야기에 두목을 이길 귀띔이 있습니다.' },
+  { id: 'fork', when: s => ov(s, ForkScene), at: null, s: '갈림길입니다.\n험한 길일수록 얻는 것도 큽니다.' },
+  { id: 'shop', when: s => ov(s, MarketOverlay), at: null, s: '장터입니다.\n엽전으로 패·보물·무기를 삽니다.' },
+  { id: 'rest', when: s => ov(s, TavernOverlay), at: null, s: '주막입니다. 하나를 골라 정비하세요.\n주모의 옛이야기에 두목을 이길 귀띔이 있습니다.' },
   { id: 'boss', when: s => s.phase === 'prep' && s.enc && s.enc.boss, at: null, s: '두목은 저마다 수가 있습니다.\n위에 뜨는 쪽지를 읽고 맞서세요.' },
 ];
 

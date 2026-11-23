@@ -235,6 +235,8 @@ export const LOOKS = {
   scribe: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.25, h: 66, still: true },
   yeomra: { doll: { robe: '#7a1f1c', top: '#8a2a26', git: '#d9b24a', collar: '#f3ecdd', cuff: '#d9b24a', sash: OCHRE, hem: '#d9b24a', studs: true, skin: '#e9d2b0', hat: 'myeonryu', beard: 'full', jaw: 'square', brow: 'bushy', eyes: 'glare', mouth: 'frown', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 2.25, boss: true, h: 70 },
   // 주막의 주모(손님을 맞는 웃는 얼굴), 여우 고개의 고운 여인(꾀는 듯한 옅은 웃음, 치마 밑으로 꼬리가 보인다)
+  // 장터의 장사꾼: 패랭이를 쓰고 무명 저고리에 쪽빛 띠를 맨 너털웃음의 아저씨
+  merchant: { doll: { robe: '#8a6a44', top: '#efe6cf', git: '#5a4030', sash: '#2f4d7e', hem: '#6a4e30', hat: 'paeraeng', beard: 'goatee', skin: '#efcfa6', jaw: 'round', brow: 'arch', eyes: 'soft', mouth: 'smile' }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   jumo: { doll: { robe: '#4f6a8a', top: '#f3ecdd', git: '#8a2a26', goreum: '#8a2a26', hem: '#3a5270', hat: 'jjok', skin: '#f3d6b2', jaw: 'round', brow: 'thin', eyes: 'soft', lip: '#b8443a', mouth: 'smile', item: bottleItem }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   foxlady: { doll: { robe: '#b8342a', top: '#e8c86a', git: '#7a1f1c', goreum: '#7a1f1c', hem: '#8a2a26', hat: 'jjok', skin: '#f6dcc0', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#b8443a', mouth: 'smirk', under: foxTails }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   bell: { body: bell, weapon: 'none', hold: hold(0, 'bite'), h: 76, scale: 1.25, still: true },

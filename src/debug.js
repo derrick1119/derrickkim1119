@@ -19,6 +19,7 @@ export function debugBoot(q) {
   if (q.get('cards')) for (const id of q.get('cards').split(',')) addCard(id.replace(/[!+ ]/g, ''), { up: /[!+ ]$/.test(id) });
   if (q.get('wpn')) q.get('wpn').split(',').forEach(kv => { const [t, w] = kv.split(':'); const c = r.deck.find(x => x.id === 'u_' + t && !x.wpn); if (c) c.wpn = w; });
   if (q.get('type')) r.road.stops[i] = { type: q.get('type') };
+  if (q.get('ev')) r.pending = { kind: 'event', id: q.get('ev') };
   if (q.get('state')) r.road.state = q.get('state');
   if (q.get('merit')) meta.merit = Number(q.get('merit'));
   save();

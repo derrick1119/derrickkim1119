@@ -20,7 +20,9 @@ import { portrait, getLook } from '../render/sprites.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped } from '../ui/ui.js';
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
 import { Coach } from '../ui/coach.js';
-import { RewardOverlay, ShopOverlay, ChoiceOverlay, ForkOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
+import { RewardOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
+import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene } from '../ui/places.js';
+import { EventScene } from '../ui/roadevent.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted, bgm } from '../audio.js';
 import { nav } from '../nav.js';
@@ -64,7 +66,7 @@ export class RunScene {
   arrive() {
     const r = this.r, b = this.b, rd = r.road, st = curStop(); rd.state = 'at'; this.sync(); this.bossSaid = false; this.storyDone = false;
     const done = () => this.leave();
-    if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkOverlay({ a: st.a, b: st.b, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
+    if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkScene({ a: st.a, b: st.b, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
@@ -72,16 +74,16 @@ export class RunScene {
       if (e.boss) sfx('boss');
       this.routN = 0; this.emptyWarned = false;
     }
-    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; if (id.startsWith('beast:')) this.beastScene(id.slice(6), false, done); else { const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); } }
-    else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new ShopOverlay({ items, onDone: done }); }
-    else if (st.type === 'rest') { this.phase = 'stop'; const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new ChoiceOverlay({ title: '주막', art: 'jumo', col: '#2f6f5c', text: '고갯마루 주막에서 쉬어 갑니다.\n주모가 옛이야기를 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
+    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; if (id.startsWith('beast:')) this.beastScene(id.slice(6), false, done); else { const v = eventView({ id }); this.over = new EventScene({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); } }
+    else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new MarketOverlay({ items, onDone: done }); }
+    else if (st.type === 'rest') { this.phase = 'stop'; const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new TavernOverlay({ tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
   // 전리품. 다른 영웅이 합류했으면 두 영웅이 몇 마디 나눈 뒤에 떠난다
   reward(kind) {
     const r = this.r, leads = () => r.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit), before = leads();
-    this.phase = 'stop'; this.over = new RewardOverlay({ kind, onDone: () => { const who = leads().find(h => !before.includes(h)); if (who && before.length) this.over = new StoryOverlay({ lines: bondLines(who, before[0]), onDone: () => this.leave() }); else this.leave(); } });
+    this.phase = 'stop'; this.over = new (kind === 'treasure' ? TreasureScene : RewardOverlay)({ kind, onDone: () => { const who = leads().find(h => !before.includes(h)); if (who && before.length) this.over = new StoryOverlay({ lines: bondLines(who, before[0]), onDone: () => this.leave() }); else this.leave(); } });
   }
   // 싸움이 끝나면: 두목이었다면 사연을 듣고 나서 전리품을 고른다
   afterWave() {
@@ -138,7 +140,7 @@ export class RunScene {
   // first: 처음 인연을 맺는 인형극부터 / 아니면 길에서 다시 만나는 사건만. 끝나면 패가 덱으로 날아가고 done()
   beastScene(id, first, done) {
     const r = this.r, nm = UNITS[id].name;
-    const ev = () => { const v = beastEventView(id, first); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, col: v.col, onDone: () => { this.over = null; this.sync(); const c = r.deck[r.deck.length - 1]; if (c && c.id === 'u_' + id) { juice.reveal({ title: first ? '영물의 인연' : '영물이 다시 함께한다', name: `${nm}${(c.lv || 1) > 1 ? ' · ' + c.lv + '단' : ''}`, desc: UNITS[id].tip, icon: (gg, px, py, sc) => { const k = sc / 2.3 * 1.15; cardFace(gg, c, px - 56 * k, py - 79 * k, 112 * k, 158 * k); }, to: SPOT.deck }); juice.burst(640, 300, '#8fe0bf', 14); } sfx('star'); save(); done(); } }); };
+    const ev = () => { const v = beastEventView(id, first); this.over = new EventScene({ title: v.title, art: v.art, text: v.text, choices: v.choices, col: v.col, bg: 'grove', onDone: () => { this.over = null; this.sync(); const c = r.deck[r.deck.length - 1]; if (c && c.id === 'u_' + id) { juice.reveal({ title: first ? '영물의 인연' : '영물이 다시 함께한다', name: `${nm}${(c.lv || 1) > 1 ? ' · ' + c.lv + '단' : ''}`, desc: UNITS[id].tip, icon: (gg, px, py, sc) => { const k = sc / 2.3 * 1.15; cardFace(gg, c, px - 56 * k, py - 79 * k, 112 * k, 158 * k); }, to: SPOT.deck }); juice.burst(640, 300, '#8fe0bf', 14); } sfx('star'); save(); done(); } }); };
     this.phase = 'stop'; this.talk = null;
     if (first) this.over = new Play({ beats: beastPlay(id, r.hero), title: `영물의 인연 — ${nm}`, onDone: ev }); else ev();
   }
@@ -155,7 +157,7 @@ export class RunScene {
     if (p === 'over') return 'story';
     if (p === 'fight' || p === 'prep') return this.enc && this.enc.boss ? 'boss' : 'battle';
     if (o instanceof Play) return 'story';
-    if (o && (o instanceof ShopOverlay || o instanceof ChoiceOverlay || o instanceof StoryOverlay)) return 'rest';
+    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
     return 'march';
   }
   // 길 위의 변수: 보물 짐꾼을 잡으면 엽전, 우리를 부수면 병력 패
