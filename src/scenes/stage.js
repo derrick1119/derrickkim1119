@@ -18,12 +18,12 @@
 
     S.build = function () { T.scenes.harbor.build(); T.plot.build(); if (def.build) def.build(S); if (S.view && S.view.build) S.view.build(); };
     S.enter = function (args) {
-      S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
+      S.actors = []; S.boats = []; S.cross = null; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
       S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
       S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false; S.ageHold = null;
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
-      Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
+      Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); if (S.cross) crossSky(g, S.cross); }, flags: def.flags || {} });
       S.cam = Wd().cam;
       T.state.chapter = def.chapter; T.state.cp = null;
       P.grainAmt = 0.15; P.vignette = 0.2; P.vignetteColor = '#4a3558';
@@ -37,20 +37,75 @@
     X.cam = function (x, y, z, k) { const c = S.camT; c.x = x; c.y = y; c.z = z == null ? 1 : z; if (k) S.camK = k; S.follow = null; };
     /* a shooting star across the sky of the screen: someone has crossed, and the living see it */
     X.star = function (o = {}) { const W = T.view.W; return T.fx && T.fx.star ? T.fx.star.add(Object.assign({ from: [W * 0.32, 70], to: [-W * 0.22, 380], dur: 1.8 }, o)) : Promise.resolve(); };
-    /* someone has kept every promise: their boat rises up the falls of light, and a star falls to the living world.
-       o.also: more who stand on the landing to see them off (place actors: { id, style, s, at, dx, pose }) */
+    /* ---------- a crossing ----------
+       Someone has kept every promise, and goes the way Leo's mother went. Their boat, pulling away from the pier,
+       sails on out over the cloud sea and gathers light; it lifts off the cloud, the boat and everyone in it go into
+       the light, and one light rises; then it is a star, falling across the sky to the living world under the
+       clouds. It all happens here, at the quay: whoever stays on the pier stays in the picture, waves, and looks up.
+       riders: who is in the boat, used only if no boat is leaving yet (a white one is put at the pier's end for them).
+       o: { boat (the one to go; else the one sailing out), hull, before, after (seconds), say(boat) }.
+       leoAge, color and also were for the old landing at the falls of light, and are not needed any more. */
+    function leaving() {
+      const live = S.boats.filter((b) => !b.hidden && b.riders.some((a) => a.boat === b && !a.hidden));
+      return live.find((b) => b.go && b.go.x < b.x) || live.sort((p, q) => p.x - q.x)[0] || null;
+    }
     X.crossing = async function (riders, o = {}) {
-      if (!T.place) return;
-      const V = T.place('falls', { boat: { riders, hull: o.hull || '#e9e2d6' }, leoAge: o.leoAge });
-      if (o.also && V.actors) V.actors.push(...o.also);
-      await X.view(V, { color: o.color || '#1b2440', out: 1.2, in: 1.4 });
-      const l = V.actor && V.actor('leo');
-      if (l) l.pose = (q, t) => { q.armF = { a: 2.3 + Math.sin(T.time * 4) * 0.2, b: 0.3 }; };
-      if (o.say) await o.say(V);
-      await X.wait(o.before || 1);
-      await V.sail({ waitStar: true });
-      await X.wait(o.after || 1.8);
-      await X.view(null, { color: o.color || '#1b2440', out: 1.2, in: 1.4 });
+      const k = S.clock, A = T.audio, W_ = Wd(), WC = W_.C;
+      let b = o.boat || leaving();
+      if (!b) {
+        const crew = (riders || []).map((r, i) => X.actor('crossing' + i, Object.assign({ flip: true }, r)));
+        b = X.boat({ x: -74, hull: o.hull || '#e9e2d6', lamp: false, riders: crew, alpha: 0 });
+        k.tween(b, 'alpha', 1, 0.8);
+        b.go = { x: -1500, v: 34, res: () => {} };
+      }
+      if (o.before) await X.wait(o.before);
+      const v0 = b.go ? b.go.v || 60 : 30;
+      if (b.go) { const r = b.go.res; b.go = null; r(); }   /* from here the crossing sails it */
+      b.x = Math.max(b.x, -1000);
+      const xL = T.clamp(b.x - 120, -720, -420);   /* where it leaves the cloud: well out, but where the quay can still see it */
+      const C = (S.cross = { live: true, b, v: v0, xL, sailing: b.x > xL + 0.5, glow: 0, lift: 0, fade: 0, dusk: 0, look: 0, orb: null, motes: [], wisps: [], spawn: 0, r: T.rng(31 + Math.round(-b.x)) });
+      /* the frame: the boat a fifth of the way in from the left, the sky above it, and everyone on the quay at the right */
+      const stay = S.actors.filter((a) => !a.hidden && !a.boat && a.alpha > 0.05 && a.x > -60 && a.x < WC.QUAY + 200);
+      const Wv = T.view.W, sxL = -0.2 * Wv, sxR = Wv / 2 - 90, xR = Math.max(WC.QUAY - 60, ...stay.map((a) => a.x));
+      const z = T.clamp((sxR - sxL) / (xR - xL), 0.78, 1), camK0 = S.camK;
+      X.cam(Math.max(xL - sxL / z, xR - sxR / z), WC.PIER_Y - 250 / z, z, 0.7);   /* if both will not fit, the quay wins */
+      const wave = (q, a, t) => { q.armF = { a: 2.2 + Math.sin(t * 4 + a.x * 0.1) * 0.2, b: 0.3 }; };
+      const waved = stay.filter((a) => !a.dog && !a.pose);
+      waved.forEach((a) => { a.pose = wave; });
+      /* out over the sea, the light gathering in it as it goes; the evening deepens round it */
+      A.sfx('whoosh');
+      k.tween(C, 'dusk', 1, 4.4, T.ease.io);
+      k.tween(C, 'glow', 1, 2.8, T.ease.io);
+      const t0 = k.t;
+      while (C.sailing || k.t - t0 < 2.3) await k.wait(0.05);
+      if (o.say) await o.say(b);
+      /* it lets go of the cloud, and the boat and everyone in it go into the light */
+      A.sfx('join'); A.note({ m: 76, vel: 0.2, voice: 'glass', dur: 3 });
+      C.wisps = cloudWisps(C);
+      k.tween(C, 'lift', 1, 2.6, T.ease.io);
+      await k.wait(0.5);
+      await k.tween(C, 'fade', 1, 1.4, T.ease.io);
+      /* one light, rising, as she did */
+      const p = glowAt(b), ct = S.camT;   /* it drifts a little in toward the middle of the sky as it goes up */
+      const topY = ct.y + (T.view.H * 0.12 - 450) / ct.z, dx = T.clamp((ct.x - (Wv * 0.13) / ct.z - p[0]) * 0.8, 40, 120);
+      C.orb = { x0: p[0], y0: p[1], tx: p[0] + dx, ty: topY, x: p[0], y: p[1], k: 0, a: 1 };
+      b.hidden = true; b.riders.forEach((a) => { if (a.boat === b) a.hidden = true; });
+      A.sfx('star', 0.3);
+      k.tween(C, 'look', 1, 1.4, T.ease.io);
+      await k.tween(C.orb, 'k', 1, 1.7, T.ease.in);
+      /* and from the top of its rise, a star across the sky, down past the edge of the cloud */
+      const from = W_.toScreen(C.orb.x, C.orb.y);
+      T.announce('별 하나가 하늘을 가로질러, 구름 아래 산 사람들의 하늘로 떨어진다.');
+      const star = T.fx && T.fx.star ? T.fx.star.add({ from, to: [-Wv / 2 - 40, 604], dur: 2.4, tail: 430, w: 4.2, bend: 0.1, note: 0.7 }) : Promise.resolve();
+      k.tween(C.orb, 'a', 0, 0.3);
+      X.notes(3, { voice: 'felt', vel: 0.32 });
+      await star;
+      C.orb = null; C.live = false;   /* what is left is afterglow: a cut to elsewhere takes it away */
+      k.tween(C, 'look', 0, 2.4, T.ease.io);
+      k.tween(C, 'dusk', 0, 4.2, T.ease.io).then(() => { if (S.cross === C) S.cross = null; });
+      await X.wait(o.after == null ? 1 : o.after);
+      waved.forEach((a) => { if (a.pose === wave) a.pose = null; });
+      S.camK = camK0;
     };
     X.camSnap = function () { if (S.follow) aim(); S.cam.x = S.camT.x; S.cam.y = S.camT.y; S.cam.z = S.camT.z; };
     X.follow = function (a, dx, k) { S.follow = { a, dx: dx || 0 }; S.camT.z = 1; if (k) S.camK = k; };
@@ -79,13 +134,14 @@
       };
       return c;
     };
-    /* and on the landing at the falls, seeing someone off (for X.crossing's o.also) */
+    /* 구름이 seeing someone off, as an actor for a place (X.crossing once put her on the landing at the falls with
+       its o.also; a crossing now goes from the quay, where she already is) */
     X.seeOff = () => [{ id: 'cloud', style: F.styles.cloud, s: 100, at: 'landing', dx: -66, headTilt: -0.26, face: { mouth: 'smile' }, pose: (q, t) => { q.armF = { a: 2.2 + Math.sin(t * 4 + 2) * 0.22, b: 0.3 }; } }];
     X.walk = function (a, x, v) { return new Promise((res) => { if (Math.abs(a.x - x) < 1) { res(); return; } if (a.go) a.go.res(); a.go = { x, v: v || 72, res }; }); };
     X.wait = (sec) => S.clock.wait(sec);
     X.tween = (o, key, to, dur, ease) => S.clock.tween(o, key, to, dur, ease);
 
-    function boatY(b) { return Wd().surf(b.x) - 34; }
+    function boatY(b) { return Wd().surf(b.x) - 34 - (b.lift || 0); }   /* b.lift: off the cloud, crossing */
     function riderPos(a) {
       const b = a.boat, by = boatY(b), hh = a.dog ? 0 : F.hipHeight(a.style, a.s);
       const stand = T.ease.io(a.stand || 0), hp = T.ease.io(a.hop || 0);
@@ -101,7 +157,8 @@
         if (a.boat) { const p = riderPos(a); x = p.x; gy = p.y; }
         g.save(); if (a.alpha < 1) g.globalAlpha = a.alpha;
         const slope = a.boat ? 0 : Math.atan2(W_.groundAt(x + 14) - W_.groundAt(x - 14), 28);
-        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: a.rot != null ? a.rot : slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, run: a.run || 0, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: a.headTilt || 0 });
+        const look = S.cross && !a.boat ? S.cross.look * 0.42 : 0;   /* he watches the light go up too */
+        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: a.rot != null ? a.rot : slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, run: a.run || 0, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: (a.headTilt || 0) - look });
         g.restore();
         return null;
       }
@@ -118,6 +175,11 @@
         o.lean = a.lean - 0.14 * k; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 };
       } else if (a.moving || (a.boat && a.hop > 0.02 && a.hop < 0.98)) { o.walk = a.boat ? a.hop * 6 : a.ph; o.lean = a.lean + 0.06; }
       if (a.pose) a.pose(o, a, t);
+      if (S.cross) {   /* a crossing: those going are glad, and those staying look up after the light */
+        const c = S.cross;
+        if (a.boat === c.b && c.glow > 0.5) o.face = Object.assign({}, o.face, { eye: 'happy', mouth: 'smile' });
+        else if (!a.boat && c.look > 0.01) o.headTilt = (o.headTilt || 0) - 0.3 * c.look;
+      }
       if (a.armOver) o.skip = Object.assign({}, o.skip, { armF: true });
       g.save(); if (a.alpha < 1) g.globalAlpha = a.alpha;
       const j = F.person(g, o);
@@ -160,8 +222,11 @@
     function drawBoats(g) {
       const t = T.time, W_ = Wd();
       for (const b of S.boats) {
-        if (b.hidden) continue;
-        const y = boatY(b), tilt = Math.atan2(W_.surf(b.x + 40) - W_.surf(b.x - 40), 80) * 0.7 + Math.sin(t * 0.9 + b.x * 0.01) * 0.03;
+        const al = (b.alpha == null ? 1 : b.alpha) * (1 - (b.fadeK || 0));
+        if (b.hidden || al < 0.004) continue;
+        const off = T.clamp((b.lift || 0) / 40);   /* off the cloud, the swell no longer rocks it */
+        const y = boatY(b), tilt = (Math.atan2(W_.surf(b.x + 40) - W_.surf(b.x - 40), 80) * 0.7) * (1 - off) + Math.sin(t * 0.9 + b.x * 0.01) * 0.03;
+        g.save(); g.globalAlpha *= al;
         g.save(); g.translate(b.x, y); g.rotate(tilt);
         if (b.big) K.bigBoat(g, 'back');
         else { P.line(g, 26, -8, 26, -92, 3.5, '#6f4a34'); if (b.lamp) { P.glow(g, 26, -98, 70, '#ffe6a0', 0.85); P.fill(g, P.rr(19, -108, 14, 18, 4), '#ffe9ae'); } }
@@ -171,7 +236,106 @@
         if (b.big) K.bigBoat(g, 'front');
         else { P.fill(g, P.soft([[-66, -22], [66, -22], [84, -30], [70, 4], [44, 16], [-44, 16], [-70, 4]]), b.hull); P.fill(g, P.rr(-64, -24, 132, 7, 3), T.shade(b.hull, 0.18)); }
         g.restore();
+        g.restore();
       }
+    }
+    /* where the light of a crossing boat sits: about the middle of the people in it */
+    function glowAt(b) { const y = boatY(b); return b.big ? [b.x + 6, y - 112] : [b.x + 6, y - 52]; }
+    /* bits of the cloud it was resting in, let go as it lifts */
+    function cloudWisps(C) {
+      const b = C.b, r = C.r, w = b.big ? 170 : 74, y = boatY(b) + (b.big ? 14 : 12), out = [];
+      for (let i = 0; i < 16; i++) out.push({ x: b.x + (r() * 2 - 1) * w, y: y + r() * 10, vx: (r() - 0.5) * 12, vy: 8 + r() * 14, rx: 12 + r() * 14, life: 0, max: 1.8 + r() * 1.2 });
+      return out;
+    }
+    function crossUpdate(dt) {
+      const C = S.cross, b = C.b, r = C.r;
+      if (C.sailing) {   /* a breeze takes it out, and it slows as it comes to the place it will leave from */
+        const d = b.x - C.xL;
+        if (d <= 0.5) C.sailing = false;
+        else {
+          const want = T.clamp(Math.sqrt(2 * 60 * d) + 20, 20, 96);
+          C.v += T.clamp(want - C.v, -60 * dt, 60 * dt);
+          b.x -= Math.min(d, C.v * dt);
+        }
+      } else if (!b.hidden) { C.v += (12 + 12 * (1 - C.lift) - C.v) * Math.min(1, dt * 1.5); b.x -= C.v * dt; }   /* gliding on as it lifts */
+      b.lift = 78 * C.lift + Math.sin(T.time * 1.6) * 3 * C.lift;
+      b.fadeK = C.fade;
+      /* light gathering: motes come in off the cloud to it; then sparks go up off it */
+      if (!b.hidden) {
+        C.spawn += dt * (6 + 18 * C.glow) * (C.fade < 0.95 ? 1 : 0);
+        const c = glowAt(b), w = b.big ? 150 : 70;
+        while (C.spawn >= 1) {
+          C.spawn -= 1;
+          if (C.lift < 0.3 && r() < 0.55) { const sx = b.x + (r() < 0.5 ? -1 : 1) * (w + 60 + r() * 220); C.motes.push({ kind: 'in', x0: sx, y0: Wd().surf(sx) + 6, x: sx, y: 0, t: 0, dur: 1.2 + r() * 0.8, r: 1.6 + r() * 1.6 }); }
+          else C.motes.push({ kind: 'up', x: c[0] + (r() * 2 - 1) * w, y: c[1] + 20 + r() * (b.big ? 70 : 34), vx: (r() - 0.5) * 12, vy: -(34 + r() * 46), t: 0, dur: 1.3 + r() * 1.1, r: 1.6 + r() * 1.8 });
+        }
+        for (const m of C.motes) if (m.kind === 'in') {   /* each one homes in on the boat as it goes */
+          const u = T.clamp(m.t / m.dur), e = T.ease.io(u);
+          m.x = T.lerp(m.x0, c[0], e); m.y = T.lerp(m.y0, c[1], e) - Math.sin(u * Math.PI) * 70;
+        }
+      }
+      for (let i = C.motes.length - 1; i >= 0; i--) {
+        const m = C.motes[i]; m.t += dt;
+        if (m.kind === 'up') { m.x += m.vx * dt; m.y += m.vy * dt; }
+        if (m.t >= m.dur || (m.kind === 'in' && b.hidden)) C.motes.splice(i, 1);
+      }
+      for (const q of C.wisps) { q.life += dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy *= 1 - dt * 0.6; q.rx += dt * 6; }
+      if (C.orb) { const q = C.orb; q.x = T.lerp(q.x0, q.tx, T.smooth(q.k)); q.y = T.lerp(q.y0, q.ty, q.k); }
+    }
+    /* the sky deepens while they go, so that their light, and the star, are the brightest things in it (as at
+       the end of chapter 1); by night it is dark already */
+    function crossSky(g, C) {
+      const W = T.view.W, t = T.time, d = T.ease.io(C.dusk) * (1 - (S.ps.night || 0));
+      if (d < 0.004) return;
+      const sk = g.createLinearGradient(0, 0, 0, 900);
+      sk.addColorStop(0, '#1c2150'); sk.addColorStop(0.45, '#4a3f78'); sk.addColorStop(0.75, '#9c6f8e'); sk.addColorStop(1, '#d8a49a');
+      g.save(); g.globalAlpha = 0.78 * d; g.fillStyle = sk; g.fillRect(-W / 2, 0, W, 900); g.restore();
+      const r = T.rng(909);
+      for (let i = 0; i < 64; i++) {
+        const x = -W / 2 + r() * W, y = r() * 440, tw = 0.55 + 0.45 * Math.sin(t * (1 + r() * 2) + i);
+        const a = d * tw * T.clamp((C.dusk - 0.25 - (i % 7) * 0.06) * 3) * (1 - y / 600);
+        if (a > 0.01) { g.globalAlpha = a; P.fill(g, P.circle(x, y, 1.1 + (i % 5 === 0 ? 1 : 0)), '#fff6e0'); }
+      }
+      g.globalAlpha = 1;
+    }
+    /* over the world: the land dimmed with the sky, and the light of the boat, its sparks, and the one light it becomes */
+    function crossLight(g, C) {
+      const W = T.view.W, t = T.time, b = C.b, d = T.ease.io(C.dusk) * (1 - (S.ps.night || 0));
+      if (d > 0.004) { g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = T.rgba('#5c5a92', 0.42 * d); g.fillRect(-W / 2, 0, W, 900); g.restore(); }
+      Wd().layer(g, 1);
+      const big = b.big ? 1.6 : 1, gl = C.glow, fd = C.fade;
+      if (!b.hidden) {
+        const c = glowAt(b), sea = Wd().surf(b.x) + 4, pool = gl * (1 - fd * 0.7);
+        /* the cloud under it lit from above, the light going as the boat goes up */
+        g.save(); g.translate(b.x, sea); g.scale(1, 0.26); P.glow(g, 0, 0, 280 * big, '#ffe6b8', 0.34 * pool); g.restore();
+        P.glow(g, c[0], c[1], (130 + 70 * gl) * big * (1 - fd * 0.35), '#fff0c8', 0.22 + 0.36 * gl + 0.25 * fd);
+        P.glow(g, c[0], c[1], (44 + 30 * fd) * big, '#ffffff', 0.25 * gl + 0.65 * fd);
+        if (fd > 0.01) { g.save(); g.translate(c[0], c[1] + 12 * big); g.scale(1.7, 0.85); P.glow(g, 0, 0, 96 * big, '#fff6dc', 0.6 * T.smooth(fd)); g.restore(); }   /* washed in light as it goes */
+      }
+      /* the cloud it let go of */
+      for (const q of C.wisps) {   /* soft puffs, thinning as they sink back */
+        const u = q.life / q.max; if (u >= 1) continue;
+        const a = 0.6 * Math.sin(Math.min(1, u * 3) * Math.PI / 2) * (1 - u);
+        g.save(); g.translate(q.x, q.y); g.scale(1.5, 0.75);
+        P.glow(g, 0, 0, q.rx * 1.6, '#fff6f0', a, 'source-over'); P.glow(g, q.rx * 0.5, -q.rx * 0.2, q.rx, '#ffffff', a * 0.7, 'source-over');
+        g.restore();
+      }
+      for (const m of C.motes) {
+        const u = m.t / m.dur, a = Math.sin(Math.min(1, u) * Math.PI) * (m.kind === 'in' ? 0.9 : 0.8);
+        P.glow(g, m.x, m.y, m.r * 6, '#ffe9b0', 0.35 * a);
+        g.globalAlpha = a; P.fill(g, P.circle(m.x, m.y, m.r), '#fff8e6'); g.globalAlpha = 1;
+      }
+      if (C.orb && C.orb.a > 0.01) {   /* one light: a soft halo, a white heart, a glint */
+        const q = C.orb, a = q.a, pulse = 0.9 + 0.1 * Math.sin(t * 6);
+        P.glow(g, q.x, q.y, 120 * pulse, '#fff0c0', 0.7 * a);
+        P.glow(g, q.x, q.y, 30, '#ffffff', 0.95 * a);
+        g.globalAlpha = a; P.fill(g, P.circle(q.x, q.y, 6), '#fffdf4');
+        const sp = 16 + 5 * Math.sin(t * 9);
+        g.strokeStyle = '#fffdf4'; g.lineWidth = 1.4; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(q.x - sp, q.y); g.lineTo(q.x + sp, q.y); g.moveTo(q.x, q.y - sp * 0.7); g.lineTo(q.x, q.y + sp * 0.7); g.stroke();
+        g.globalAlpha = 1;
+      }
+      g.restore();
     }
     /* an unlit lamp out in the cloud sea: the boat waits in the mist before it. Resolves when the player has lit it */
     /* o: { rounds, beat }: once lit, the bell has a question for the lamps on the pier before anyone comes in */
@@ -340,6 +504,7 @@
       const k = S.clock;
       S.dip.color = o.color || '#fff6e6';
       await k.tween(S.dip, 'a', 1, o.out || 1, T.ease.io);
+      if (S.cross && !S.cross.live) S.cross = null;
       await fn();
       await k.wait(o.hold || 0.25);
       await k.tween(S.dip, 'a', 0, o.in || 1.2, T.ease.io);
@@ -480,6 +645,7 @@
         if (Math.abs(d) > 0.5) b.x += Math.sign(d) * Math.min(Math.abs(d), b.go.v * dt);
         if (Math.abs(b.go.x - b.x) < 0.6) { b.x = b.go.x; const r = b.go.res; b.go = null; r(); }
       }
+      if (S.cross) crossUpdate(dt);
       aim();
       const c = S.cam, t = S.camT, k = 1 - Math.exp(-dt * S.camK);
       c.x += (t.x - c.x) * k; c.y += (t.y - c.y) * k; c.z += (t.z - c.z) * k;
@@ -495,6 +661,7 @@
         T.plot.sky(g, ps);
         Wd().layer(g, 1); T.plot.glow(g, ps); g.restore();
       }
+      if (S.cross) crossLight(g, S.cross);
       if (def.after) def.after(g, S);
     }
     S.draw = function (g) {

@@ -412,10 +412,15 @@
   };
   F.hipHeight = function (style, s) { const K = style.kid ? KID : ADULT; return ((K.thigh + K.shin + 1.6) * (s || 240)) / 100; };
 
-  /* Bean. Origin on the ground under the middle of the body; 100 units = adult height. */
+  /* Bean. Origin on the ground under the middle of the body; 100 units = adult height.
+     He is drawn at F.dogScale of the size asked for, so that every scene shows him at a dog's height beside
+     the people without each one changing its numbers. His legs still keep pace with the ground: a walk phase
+     reckoned for the old size (distance / stride) is taken that many times faster, as a smaller dog takes more
+     steps over the same ground. The collar and head handed back are where they are drawn. */
+  const DOG_K = (F.dogScale = 0.82);
   F.dog = function (g, o) {
-    const u = (o.s || 240) / 100, sx = o.flip ? -1 : 1;
-    const ph = o.walk == null ? null : o.walk;
+    const u = ((o.s || 240) / 100) * DOG_K, sx = o.flip ? -1 : 1;
+    const ph = o.walk == null ? null : o.walk / DOG_K;
     const run = ph == null ? 0 : o.run || 0;   /* 0 a trot … 1 a bounding run: front pair and back pair together, off the ground at full stretch */
     const wag = o.wag || 0, sit = o.sit || 0;
     const sc = o.tintAll || (o.shadow ? '#101c33' : null);

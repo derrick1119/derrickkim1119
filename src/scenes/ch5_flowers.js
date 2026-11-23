@@ -219,7 +219,7 @@
       /* the ridge beam lies along the grass; everyone takes the rope on the far side of the house */
       const pullers = [leo].concat(folk);
       await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.x = PL.HX + 190 + i * 58; }); S.roofK = 0; X.cam(PL.HX + 180, py + 10, 0.95); }, { out: 0.6, in: 0.8 });
-      await X.play(T.puzzle.heave({ pulls: 4, crew: pullers, top: () => [PL.HX, W.y3(PL.HX) - 40 - 210 * (S.roofK || 0)], raise: (k) => { S.roofK = k; } }));
+      await X.play(T.puzzle.heave({ pulls: 4, sway: 1, tempo: 0.58, quick: 0.94, tricks: 0.6, tease: true, gust: 0.35, beam: 300, crew: pullers, at: PL.HX, cam: X.cam, top: (k) => [PL.HX, W.y3(PL.HX) - 40 - 210 * k], raise: () => { S.roofK = null; } }));   /* the puzzle draws the beam, tipping */
       S.roofK = null; X.cam(px, py, 1);
       ps.stage = 4; A.sfx('knock', 0.6); X.notes(5);
       T.announce('지붕이 올라간다. 집이 다 지어졌다.');

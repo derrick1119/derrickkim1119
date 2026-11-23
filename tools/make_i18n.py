@@ -626,6 +626,17 @@ T = [
     ("당신 소원", "Your wish"),
     ("방 하나 비워 뒀어.\n당신이 정하라고.", "I left one room empty.\nFor you to decide."),
     ("그럼 거긴 우리 둘째 방.", "Then it's our second girl's room."),
+    # ---- crossings and rope
+    ("둘 반", "Two and a half"),
+    ("양쪽으로 나뉘어 줄을 잡아요", "Split up and take the ropes on both sides"),
+    ("「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 끌려가는 쪽 줄을 ← → 로 당겨 바로 세워요", "Pull on \"Three!\", all together · If it leans, the side being dragged hauls it back (← →)"),
+    ("「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 처지는 쪽 줄을 ← → 로 당겨 수평을 맞춰요", "Pull on \"Three!\", all together · If it tilts, the low side hauls it level (← →)"),
+    ("「둘 반」은 셋이 아니에요! 조금 처졌어요", "\"Two and a half\" isn't three! It sagged a little."),
+    ("비뚤어진 채로 당기면 기울기만 해요. 먼저 바로 세워요", "Pull it crooked and it only leans further. Straighten it first."),
+    ("기운 채로 당기면 더 기울어요. 먼저 수평부터 맞춰요", "Pull it tilted and it only tilts further. Level it first."),
+    ("너무 기울어서 도로 내려앉았어요. 끌려가는 쪽 줄을 당겨요", "It leaned too far and sank back. Haul on the side being dragged."),
+    ("한쪽이 처져서 도로 내려앉았어요. 처지는 쪽 줄을 당겨요", "One end dropped and it sank back. Haul on the low side."),
+    ("천천히 해요. 구령을 늦추고, 다들 꽉 붙잡았어요", "Easy now. The count slows, and everyone holds on tighter."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

@@ -228,7 +228,6 @@
  "하나": "One",
  "둘": "Two",
  "셋!": "Three!",
- "「셋!」에 맞춰 눌러서, 다 같이 당겨 세우세요": "Tap on \"Three!\" so everyone pulls it up together.",
  "꼬리가 세차게 흔들려요. 바로 옆이에요": "His tail is going like mad. It's right next to him.",
  "꼬리가 살랑거려요. 멀지 않아요": "His tail is wagging. Not far now.",
  "빈이 고개를 갸웃해요. 여긴 아니에요": "Bean tilts his head. Not here.",
@@ -573,7 +572,17 @@
  "…릴리 모자랑 똑같다고만 생각했는데.": "...I only thought it looked like Lily's hat.",
  "당신 소원": "Your wish",
  "방 하나 비워 뒀어.\n당신이 정하라고.": "I left one room empty.\nFor you to decide.",
- "그럼 거긴 우리 둘째 방.": "Then it's our second girl's room."
+ "그럼 거긴 우리 둘째 방.": "Then it's our second girl's room.",
+ "둘 반": "Two and a half",
+ "양쪽으로 나뉘어 줄을 잡아요": "Split up and take the ropes on both sides",
+ "「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 끌려가는 쪽 줄을 ← → 로 당겨 바로 세워요": "Pull on \"Three!\", all together · If it leans, the side being dragged hauls it back (← →)",
+ "「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 처지는 쪽 줄을 ← → 로 당겨 수평을 맞춰요": "Pull on \"Three!\", all together · If it tilts, the low side hauls it level (← →)",
+ "「둘 반」은 셋이 아니에요! 조금 처졌어요": "\"Two and a half\" isn't three! It sagged a little.",
+ "비뚤어진 채로 당기면 기울기만 해요. 먼저 바로 세워요": "Pull it crooked and it only leans further. Straighten it first.",
+ "기운 채로 당기면 더 기울어요. 먼저 수평부터 맞춰요": "Pull it tilted and it only tilts further. Level it first.",
+ "너무 기울어서 도로 내려앉았어요. 끌려가는 쪽 줄을 당겨요": "It leaned too far and sank back. Haul on the side being dragged.",
+ "한쪽이 처져서 도로 내려앉았어요. 처지는 쪽 줄을 당겨요": "One end dropped and it sank back. Haul on the low side.",
+ "천천히 해요. 구령을 늦추고, 다들 꽉 붙잡았어요": "Easy now. The count slows, and everyone holds on tighter."
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};
