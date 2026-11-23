@@ -19,7 +19,7 @@ const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, '
 const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string | null; B: string | null; games?: string[]; winner: string | null; note?: string; machinePick?: string; machinePick2?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 // 아이디어 메뉴 (오너 선택 2026-11-08): 라운드 사이에 만들기 전 한 줄 기획을 먼저 보여 준다
-const menu: { round: number; why: string; picked: number[] | null; items: { no: number; emoji: string; name: string; from: string; wow: string; first: string; depth: string }[] } | null = (() => {
+const menu: { round: number; why: string; picked: number[] | null; items: { no: number; emoji: string; name: string; from: string; wow: string; first: string; depth: string; similar?: string }[] } | null = (() => {
   try { return JSON.parse(readFileSync(join(root, 'menu.json'), 'utf8')); } catch { return null; }
 })();
 const menuOpen = !!menu && !menu.picked && !!cur.winner;
@@ -113,12 +113,13 @@ const html = `<!DOCTYPE html>
 
 <section aria-labelledby="ab-h">
 ${menuOpen ? `<h2 id="ab-h">${menu!.round}라운드 아이디어 메뉴 — 만들 것을 골라 주세요</h2>
-  <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? '<b>둘 다 탈락</b>' : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 이번엔 만들기 전에 기획부터 보여 드립니다. <b>채팅에 번호 1~2개를 적어 주세요</b>(예: “3, 6”). 고른 것만 만들어 다음 라운드로 올립니다. 다 별로면 이유를 한 줄 적어 주세요.</p>
+  <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? (cur.games ? '<b>모두 폐기</b>' : '<b>둘 다 탈락</b>') : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 이번엔 만들기 전에 기획부터 보여 드립니다. <b>채팅에 번호 1~3개를 적어 주세요</b>(예: “3, 5”). 이미 본 것 같은 게 있으면 알려 주세요. 고른 것만 만들어 다음 라운드로 올립니다. 다 별로면 이유를 한 줄 적어 주세요.</p>
   <div class="ab">${menu!.items.map((m) => `<article class="side bench">
     <header><span class="tag">${m.no}</span><div><p class="eyebrow">${esc(m.from)}</p><h3>${m.emoji} ${esc(m.name)}</h3></div></header>
     <p class="twist"><b>와우</b> ${esc(m.wow)}</p>
     <p class="muted"><b>첫 3초</b> ${esc(m.first)}</p>
     <p class="muted"><b>안 질리는 이유</b> ${esc(m.depth)}</p>
+    ${m.similar ? `<p class="muted"><b>닮은 놀이</b> ${esc(m.similar)}</p>` : ''}
   </article>`).join('')}</div>` : cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
   <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? (cur.games ? '<b>모두 폐기</b>' : '<b>둘 다 탈락</b>') : `<b>${esc(cur.winner.split(',').map(nameOf).join(' · '))}</b> ${cur.games ? '선택' : '승'}`}. 공장이 다음 라운드 게임을 만들고 있습니다. 준비되면 알려 드립니다.</p>` : cur.games ? `<h2 id="ab-h">${cur.round}라운드 — ${cur.games.length}개 다 해 보고 마음에 드는 걸 골라 주세요</h2>
   <p class="lead">이번 라운드의 아이디어를 <b>전부 만들어</b> 한꺼번에 올렸습니다(A|B 대신, 오너 요청 2026-11-08). 하나씩 해 보고 <b>채팅에 마음에 드는 번호를 적어 주세요</b>(여러 개 가능, 예: “2, 5”). 고른 건 남겨서 더 키우고, 안 고른 건 폐기합니다. 다 별로면 이유를 한 줄 적어 주세요.</p>
