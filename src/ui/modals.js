@@ -7,7 +7,6 @@ import { copyText, shareText } from '../platform/device.js';
 import { iconURL, causeIconURL } from '../render/iconcache.js';
 import { h, clear, icon, img, grantTag } from './dom.js';
 import { hooks } from './hooks.js';
-import { UI_THEMES, applyUiTheme, currentUiTheme } from './uiTheme.js';
 
 export const APP_VERSION = '1.0.0';
 
@@ -524,32 +523,10 @@ export function showSettings(ui) {
     ),
   );
 
-  // UI 시안(임시): 기본 · A · B · C · D 를 바로 바꿔 본다
-  const themeButtons = UI_THEMES.map((id) =>
-    h(
-      'button',
-      {
-        class: 'seg',
-        type: 'button',
-        'aria-pressed': String(currentUiTheme() === id),
-        onClick: (e) => {
-          applyUiTheme(id);
-          for (const b of themeButtons) b.setAttribute('aria-pressed', String(b === e.currentTarget));
-          ui.measure();
-          ui.audio.sfx('click');
-        },
-      },
-      t(`settings.uiThemes.${id}`),
-    ),
-  );
-  const themeRow = h('div', { class: 'segment ui-themes', role: 'group', 'aria-label': t('settings.uiTheme') }, themeButtons);
-
   const body = h(
     'div',
     { class: 'settings' },
     head(t('settings.title'), close),
-    h('h3', null, icon('star', 18), t('settings.uiTheme')),
-    themeRow,
     !ui.storageOk && h('p', { class: 'warn-box', text: t('settings.storageWarn') }),
     h(
       'div',

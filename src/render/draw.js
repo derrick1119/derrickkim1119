@@ -240,7 +240,7 @@ export function label(ctx, text, x, y, { size = 16, fill = C.lemon, stroke = C.i
 }
 
 export const FONT_DISPLAY = '"Bagel Fat One", "Jua", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
-export const FONT_BODY = '"Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif';
+export const FONT_BODY = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif';
 
 // ───────── 낮의 3D 카툰 도구 ─────────
 

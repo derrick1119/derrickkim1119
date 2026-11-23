@@ -13,13 +13,6 @@
   font-style: normal;
   font-display: swap;
 }
-@font-face {
-  font-family: "Gowun Dodum";
-  src: url("../assets/fonts/GowunDodum.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   /* 배치: 세로로 긴 한 화면. 위는 계기판, 가운데는 하늘(캔버스), 아래는 조작부. */
@@ -84,7 +77,7 @@
   --sky-tile: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
     linear-gradient(170deg, #3f7de0, #67b4f6 55%, #c8ecff); /* 그림 아이콘을 올리는 판 */
   --font-display: "Bagel Fat One", "Jua", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --font-body: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --line: 3px;
   --shadow: 0 4px 0 var(--ol), 0 9px 14px rgba(20, 24, 70, 0.24);
   --shadow-sm: 0 3px 0 var(--ol), 0 6px 10px rgba(20, 24, 70, 0.2);

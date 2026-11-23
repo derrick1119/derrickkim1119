@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """폰트 서브셋 만들기.
 
-원본 TTF(구글 폰트의 Bagel Fat One, Gowun Dodum — 둘 다 SIL OFL 1.1)에서
+원본 TTF(Bagel Fat One, Pretendard — 둘 다 SIL OFL 1.1)에서
 게임에 필요한 글자만 남겨 woff2 로 굽는다.
 
   pip install fonttools brotli
-  python3 tools/subset-fonts.py <BagelFatOne-Regular.ttf> <GowunDodum-Regular.ttf>
+  python3 tools/subset-fonts.py <BagelFatOne-Regular.ttf> <Pretendard-Medium.ttf> <Pretendard-Bold.ttf> <Pretendard-ExtraBold.ttf>
+  (Pretendard TTF 는 npm 패키지 pretendard 의 dist/public/static/alternative/ 에 있다)
 
 남기는 글자: ASCII, 자주 쓰는 문장 부호, KS X 1001 완성형 한글 2,350자,
 그리고 src/i18n 의 문구에 실제로 쓰인 모든 글자.
@@ -32,6 +33,10 @@ def wanted_chars() -> set[str]:
                 pass
     for path in (ROOT / "src" / "i18n").glob("*.js"):
         chars |= set(path.read_text(encoding="utf-8"))
+    # 기능 모듈이 registerStrings 로 더하는 문구
+    for path in list((ROOT / "src" / "features").rglob("strings.js")) + [ROOT / "src" / "ui" / "minigames" / "strings.js"]:
+        if path.exists():
+            chars |= set(path.read_text(encoding="utf-8"))
     chars |= set((ROOT / "index.html").read_text(encoding="utf-8"))
     return {c for c in chars if c >= " "}
 
@@ -60,11 +65,12 @@ def build(src: str, name: str, chars: set[str]) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 5:
         sys.exit(__doc__)
     chars = wanted_chars()
     build(sys.argv[1], "BagelFatOne", chars)
-    build(sys.argv[2], "GowunDodum", chars)
+    for src, weight in zip(sys.argv[2:], ("Medium", "Bold", "ExtraBold")):
+        build(src, f"Pretendard-{weight}", chars)
 
 
 if __name__ == "__main__":

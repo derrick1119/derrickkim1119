@@ -1,5 +1,5 @@
-// UI 시안 비교용 화면 찍기. 같은 상황(첫 화면·플레이·패널·보고서·설정)을 시안마다 똑같이 찍는다.
-//   node tools/ui-shots.mjs <시안 id: base|a|b|c|d> <출력 폴더> [--port 5410] [--2d] [--en]
+// UI 점검용 화면 찍기. 같은 상황(첫 화면·플레이·패널·변명·보고서·교훈 카드·설정)을 늘 똑같이 찍는다.
+//   node tools/ui-shots.mjs <파일 이름 앞말> <출력 폴더> [--port 5410] [--2d] [--en]
 // 3D 로 찍으려면 Playwright Chromium 의 소프트웨어 WebGL 을 쓴다(느리다).
 import { createRequire } from 'node:module';
 import { mkdir } from 'node:fs/promises';
@@ -30,7 +30,7 @@ const wait = (ms) => page.waitForTimeout(ms);
 const SLOW = force2d ? 1 : 3;
 
 try {
-  await page.goto(`http://127.0.0.1:${port}/index.html?debug&ui=${id}${force2d ? '&2d' : ''}`);
+  await page.goto(`http://127.0.0.1:${port}/index.html?debug${force2d ? '&2d' : ''}`);
   await page.waitForSelector('.title .start');
   await wait(1200 * SLOW);
   await shot('1-title');

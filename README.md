@@ -64,7 +64,7 @@ npm run build
 ```
 
 - `dist/` — 그대로 정적 호스팅(GitHub Pages, Netlify, Cloudflare Pages 등)에 올리면 됩니다. HTTPS 로 열면 서비스 워커가 등록되어 홈 화면에 설치할 수 있고 오프라인에서도 열립니다.
-- `dist/shh-ufo.html` — 글꼴·스크립트·스타일을 모두 품은 파일 하나짜리 판입니다(약 0.9 MB). 웹 포털 업로드나 미리보기에 씁니다. 이 판은 설치·오프라인 기능이 없습니다.
+- `dist/shh-ufo.html` — 글꼴·스크립트·스타일을 모두 품은 파일 하나짜리 판입니다(약 3 MB). 웹 포털 업로드나 미리보기에 씁니다. 이 판은 설치·오프라인 기능이 없습니다.
 
 앱 마켓(구글 플레이·앱 스토어)에 올리려면 `dist/` 를 Capacitor 나 TWA(Trusted Web Activity) 같은 웹뷰 포장 도구로 감싸면 됩니다. 이 저장소에는 그 포장 설정이 들어 있지 않습니다.
 
@@ -95,7 +95,8 @@ npm run smoke -- --2d        # WebGL 이 없는 기기용 2D 대체 경로 점�
 ## 구조
 
 ```
-index.html, styles/main.css   화면 뼈대와 스타일
+index.html, styles/main.css   화면 뼈대와 기본 스타일
+styles/skin.css               기본 UI 스킨 「선명한 팝」(색·글꼴·블록 모양). styles/ext/ 는 기능 화면 스타일
 src/main.js                   시작, 프레임 루프, 저장 주기
 src/core/                     게임 규칙(DOM 없음, node 에서 그대로 실행·시험)
   game.js                     상태를 바꾸는 모든 동작, 콤보·아슬아슬·변명·사건, 능력치 보정(game.mod)
@@ -136,11 +137,11 @@ tests/                        단위 시험
 
 ```bash
 pip install fonttools brotli
-python3 tools/subset-fonts.py BagelFatOne-Regular.ttf GowunDodum-Regular.ttf
+python3 tools/subset-fonts.py BagelFatOne-Regular.ttf Pretendard-Medium.ttf Pretendard-Bold.ttf Pretendard-ExtraBold.ttf
 ```
 
 ## 라이선스 참고
 
-- 글꼴: [Bagel Fat One](https://github.com/JAMO-TYPEFACE/BagelFat), [Gowun Dodum](https://github.com/yangheeryu/Gowun-Dodum) — 둘 다 SIL Open Font License 1.1. 전문은 `assets/fonts/*-OFL.txt`.
+- 글꼴: [Bagel Fat One](https://github.com/JAMO-TYPEFACE/BagelFat)(로고·큰 숫자·큰 제목), [Pretendard](https://github.com/orioncactus/pretendard)(그 밖의 모든 글자) — 둘 다 SIL Open Font License 1.1. 전문은 `assets/fonts/*-OFL.txt`.
 - [three.js](https://github.com/mrdoob/three.js) — MIT License. 빌드할 때 묶음에 함께 들어갑니다.
 - 그 밖의 코드·그림·소리는 이 저장소에서 만든 것입니다.

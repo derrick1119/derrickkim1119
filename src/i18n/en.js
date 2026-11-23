@@ -668,8 +668,6 @@ export default {
     music: 'Music',
     haptics: 'Vibration',
     language: 'Language',
-    uiTheme: 'UI concept',
-    uiThemes: { base: 'Now', a: 'A Pop', b: 'B Glass', c: 'C Candy', d: 'D Note' },
     howto: 'How to Play',
     howtoLines: [
       'Tap floating specimens to grow your ship.',

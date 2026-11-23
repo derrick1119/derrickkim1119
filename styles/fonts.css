@@ -1,4 +1,4 @@
-/* 읽기 쉬운 UI 글꼴(Pretendard, SIL OFL 1.1). 게임에 쓰는 글자만 남긴 서브셋. UI 시안에서 쓴다. */
+/* UI 글꼴 Pretendard(SIL OFL 1.1). 게임에 쓰는 글자만 남긴 서브셋. 기본 스킨(skin.css)이 모든 글자에 쓴다. */
 @font-face {
   font-family: "Pretendard";
   src: url("../assets/fonts/Pretendard-Medium.woff2") format("woff2");

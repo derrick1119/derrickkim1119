@@ -9,7 +9,6 @@ import { Storage, localDay } from './platform/storage.js';
 import { Haptics, registerServiceWorker, prefersReducedMotion } from './platform/device.js';
 import { UI } from './ui/ui.js';
 import { showDaily, showOffline } from './ui/modals.js';
-import { applyUiTheme, initialUiTheme } from './ui/uiTheme.js';
 
 const SAVE_EVERY_SECONDS = 5;
 const OFFLINE_MIN_SECONDS = 60;
@@ -20,7 +19,6 @@ async function start(hotData) {
   let { state } = storage.load();
   if (hotData && typeof hotData === 'object' && typeof hotData.v === 'number') state = sanitize(hotData);
   setLang(state.lang || detectLang());
-  applyUiTheme(initialUiTheme(), { remember: false });
 
   const game = new Game(state);
   if (game.phase === 'ending') game.finishEnding(); // 엔딩을 보던 중에 꺼졌으면 다음 대원부터 이어 간다
