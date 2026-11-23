@@ -205,7 +205,7 @@
 
     /* ---------- cards, cuts, sound ---------- */
     X.title = function () { const c = S.cards.title, k = S.clock; T.announce(def.title.join(', ')); return k.wait(0.5).then(() => k.tween(c, 'a', 1, 1.2)).then(() => k.wait(2.4)).then(() => k.tween(c, 'a', 0, 1.2)); };
-    X.age = function (text) { const c = S.cards.age, k = S.clock; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1).then(() => k.wait(2.8)).then(() => k.tween(c, 'a', 0, 1.2)); };
+    X.age = function (text) { const c = S.cards.age, k = S.clock; if (/, \d+$/.test(text)) text += '세'; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1).then(() => k.wait(2.8)).then(() => k.tween(c, 'a', 0, 1.2)); };
     /* the years going by: the count of years since he came runs up from `from` to `to` over a sweep of seasons.
        o: { age: hers at the end, during(seconds): change the hill while it runs } */
     X.years = async function (from, to, o = {}) {
@@ -241,7 +241,7 @@
       g.save(); g.globalAlpha = a; const bk = g.createRadialGradient(0, 430, 40, 0, 430, 340); bk.addColorStop(0, dark ? 'rgba(20,28,48,0.75)' : 'rgba(255,248,234,0.9)'); bk.addColorStop(1, 'rgba(255,248,234,0)'); g.fillStyle = bk; g.fillRect(-360, 200, 720, 460); g.restore();
       P.text(g, '마중 나루에 온 지', 0, 292, { font: 'serif', size: 27, track: 8, color: ink, alpha: 0.85 * a, glow: halo });
       P.text(g, Math.round(y.n) + '년', 0, 440, { size: 196, color: ink, alpha: a, seed: 4, glow: halo });
-      P.text(g, '아나, ' + Math.round(T.lerp(y.age0, y.age, u)), 0, 566, { font: 'serif', size: 42, track: 3, color: ink, alpha: 0.9 * a, glow: halo });
+      P.text(g, '아나, ' + Math.round(T.lerp(y.age0, y.age, u)) + '세', 0, 566, { font: 'serif', size: 42, track: 3, color: ink, alpha: 0.9 * a, glow: halo });
     }
     /* ---------- what a dream is made of ----------
        To go into someone's dream takes three things they know: a scent, a sound, and a light to find the way.

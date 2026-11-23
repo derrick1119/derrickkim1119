@@ -474,7 +474,9 @@
  "빨간 토마토": "Red tomatoes",
  "로사네 건너갈 때 종에 대답하기": "Answer the bell when Rosa's family crosses",
  "레오는 아내 아나 몰래, 남기고 갈 레시피를 적고 있다": "In secret from his wife Ana, Leo is writing down the recipes he will leave her",
- "노란 눈금이 초록 칸에 들면 눌러서 판자를 꺼내세요": "When the yellow bar is in the green, tap to take the plank out"
+ "노란 눈금이 초록 칸에 들면 눌러서 판자를 꺼내세요": "When the yellow bar is in the green, tap to take the plank out",
+ "보고 싶어…\n레오.": "I miss you...\nLeo.",
+ "지키지 못한": "Unkept"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74, "첫 농사: 까치가 다 쪼아 먹음": 0.9, "두 번째: 빈이 고랑을 다 파헤침": 0.9, "드디어: 울타리 치고, 빨간 거 스무 알": 0.9, "릴리 왼팔 옆에서, 끝까지": 0.9, "셋이 같이. 손 흔드는 것도 셋이": 0.9, "다 같이 기다렸다. 피피네 셋이 건너감": 0.9, "올해: 싱거웠다. 불은 약하게, 소금은 끝에": 0.9, "로사네 건너갈 때 종에 대답하기": 0.94};
@@ -485,8 +487,8 @@
     if (EN[s] != null) return EN[s];
     const y = /^(\d+)년$/.exec(s);
     if (y) return y[1] === '1' ? '1 year' : y[1] + ' years';
-    const m = /^아나, (\d+)$/.exec(s);
-    if (m) return 'Ana, ' + m[1];
+    const m = /^(.+), (\d+)세?$/.exec(s);   /* a name and an age: "아나, 36세" → "Ana, 36" */
+    if (m && EN[m[1]] != null) return EN[m[1]] + ', ' + m[2];
     if (s === 'TAKE YOUR TIME') return '천천히 와';
     if (s === 'WELCOME HARBOR') return '마중 나루';
     return s;

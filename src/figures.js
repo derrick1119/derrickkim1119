@@ -410,7 +410,10 @@
     g.beginPath(); g.moveTo(cx - 1.2, cy - 5.4); g.lineTo(cx + 1.6, cy + 5); g.stroke();
     g.fillStyle = '#e3b64f'; g.beginPath(); g.arc(cx + 1.9, cy + 5.6, 1.3, 0, TAU); g.fill();
     g.restore();
-    return { collar: [o.x + sx * u * (cx - 0.6), o.y + u * (cy - 4.6 + bob)], head: [o.x + sx * u * hx, o.y + u * (hy + bob)] };
+    /* where the lead clips on (the ring under the collar), and the head, carried through the same turn as the drawing */
+    const cr = Math.cos(o.rot || 0), sr = Math.sin(o.rot || 0);
+    const out = (lx, ly) => { const px = sx * u * lx, py = u * (ly + bob); return [o.x + px * cr - py * sr, o.y + px * sr + py * cr]; };
+    return { collar: out(cx + 1.9, cy + 5.6), head: out(hx, hy) };
   };
 
   /* a leash hangs like a little catenary between a hand and a collar */

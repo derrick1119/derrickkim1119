@@ -8,7 +8,7 @@
   const INK = '#33405c';
 
   const S = (T.scenes.ending = {
-    rows: PROMISES.map(() => ({ k: 0, a: 1 })), head: { a: 0 }, title: { a: 0 }, sea: { a: 0 }, next: { a: 0 }, again: { a: 0 },
+    rows: PROMISES.map(() => ({ k: 0, a: 1 })), head: { a: 0 }, unkept: { k: 0, shift: 0 }, title: { a: 0 }, sea: { a: 0 }, next: { a: 0 }, again: { a: 0 },
     boat: { x: -520 }, clouds: null, canReplay: false,
   });
 
@@ -28,7 +28,7 @@
   S.enter = function () {
     if (!S.clouds) makeClouds();
     S.rows.forEach((q) => { q.k = 0; q.a = 1; });
-    S.head.a = 0; S.title.a = 0; S.sea.a = 0; S.next.a = 0; S.again.a = 0; S.boat.x = -560; S.canReplay = false;
+    S.head.a = 0; S.unkept.k = 0; S.unkept.shift = 0; S.title.a = 0; S.sea.a = 0; S.next.a = 0; S.again.a = 0; S.boat.x = -560; S.canReplay = false;
     P.grainAmt = 0.12; P.vignette = 0;
     T.audio.ambience(0.25, 0.2);
     run();
@@ -47,7 +47,13 @@
       await k.tween(S.rows[i], 'k', 1, i === PROMISES.length - 1 ? 1.9 : 1.05, T.ease.lin);
       await k.wait(0.3);
     }
-    await k.wait(2.4);
+    await k.wait(2.2);
+    /* before they go, two more words in front of the heading: these are the ones he could not keep */
+    await k.tween(S.unkept, 'shift', 1, 0.8, T.ease.io);
+    A.sfx('crayon');
+    T.announce('지키지 못한 약속.');
+    await k.tween(S.unkept, 'k', 1, 1.6, T.ease.lin);
+    await k.wait(2.2);
     for (let i = 0; i < PROMISES.length - 1; i++) k.tween(S.rows[i], 'a', 0, 1.8, T.ease.io);
     k.tween(S.head, 'a', 0, 1.8, T.ease.io);
     await k.wait(4);
@@ -217,7 +223,11 @@
     if (S.sea.a > 0.003) drawSea(g);
     P.vignette = 0.22 * S.sea.a; P.vignetteColor = '#6a4a6a';
 
-    if (S.head.a > 0.01) P.text(g, '약속', 0, 196, { font: 'serif', size: 24, track: 22, color: INK, alpha: 0.6 * S.head.a });
+    if (S.head.a > 0.01) {
+      const sh = T.ease.io(S.unkept.shift);
+      P.text(g, '약속', sh * 58, 196 + sh * 3, { font: 'serif', size: 24 + sh * 6, track: 22 - sh * 18, color: INK, alpha: (0.6 + sh * 0.15) * S.head.a });
+      if (S.unkept.k > 0) P.text(g, '지키지 못한', -66, 200, { size: 44, color: '#b54a36', k: S.unkept.k, alpha: 0.9 * S.head.a, seed: 31 });
+    }
     PROMISES.forEach((p, i) => {
       const q = S.rows[i];
       if (q.k <= 0 || q.a <= 0.003) return;

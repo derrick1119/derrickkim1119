@@ -28,33 +28,61 @@
   T.talk = function (S) {
     const K = { cur: null };
     K.clear = function () { K.cur = null; };
+    /* how long to dwell after each character: longer after a comma, a full stop, a line break, and longest
+       after "…" — so a line is said with the pauses a person would leave in it */
+    function beats(text, slow) {
+      const per = slow ? 0.13 : 0.075, out = [];
+      let t = 0;
+      for (const ch of text) {
+        if (ch === '\n') { t += slow ? 0.5 : 0.28; continue; }
+        t += per;
+        if (ch === '…') t += slow ? 0.55 : 0.32;
+        else if (ch === '.' || ch === '?' || ch === '!') t += slow ? 0.45 : 0.24;
+        else if (ch === ',') t += slow ? 0.28 : 0.14;
+        out.push(t);
+      }
+      return out;
+    }
     K.say = function (who, text, o = {}) {
       const k = S.clock;
-      const n = P.count(text);
-      const tk = (K.cur = { who, text, k: 0, done: false, a: 1, pass: !!o.pass });   /* pass: said in passing; a tap goes through to the scene */
+      const shown = T.tr ? T.tr(text) : text, times = beats(shown.replace(/ /g, ' '), o.slow), n = times.length;
+      const tk = (K.cur = { who, text, k: 0, u: 0, done: false, a: 0, pass: !!o.pass, slow: !!o.slow });   /* pass: said in passing; a tap goes through to the scene */
       T.announce(T.tr(WHO[who][0]) + ': ' + T.tr(text).replace(/\n/g, ' '));
-      const dur = Math.max(0.6, n * (o.slow ? 0.11 : 0.062));
-      k.tween(tk, 'k', 1, dur, T.ease.lin).then(() => { tk.done = true; });
+      const dur = Math.max(0.6, n ? times[n - 1] : 0.6);
+      k.tween(tk, 'a', 1, o.slow ? 0.6 : 0.25);
+      /* the characters come at the speed the line is said, pauses and all */
+      const step = { u: 0 };
+      tk.step = step;
+      k.tween(step, 'u', dur, dur, T.ease.lin).then(() => { tk.done = true; tk.k = 1; });
+      tk.reveal = () => { if (tk.done) return 1; let c = 0; while (c < n && times[c] <= step.u) c++; return n ? c / n : 1; };
       /* a remark in passing leaves by itself: o.auto seconds after it has been said */
       if (o.auto) k.wait(dur + o.auto).then(() => { if (K.cur === tk && tk.next) { tk.done = true; tk.next(); } });
       return new Promise((res) => {
         tk.next = () => {
-          if (!tk.done) { tk.k = 1; tk.done = true; k.tweens = k.tweens.filter((w) => w.obj !== tk); return; }
+          if (!tk.done) { tk.k = 1; tk.done = true; k.tweens = k.tweens.filter((w) => w.obj !== step); return; }
           tk.next = null; res();
         };
-      }).then(() => k.tween(tk, 'a', 0, 0.35)).then(() => { if (K.cur === tk) K.cur = null; });
+      }).then(() => k.tween(tk, 'a', 0, o.slow ? 0.6 : 0.35))
+        .then(() => { if (K.cur === tk) K.cur = null; return k.wait(o.slow ? 0.55 : 0.18); });   /* a breath before the next line */
     };
     K.tap = function () { const tk = K.cur; if (tk && tk.next && !tk.pass) { tk.next(); return true; } return false; };
     K.draw = function (g) {
       const tk = K.cur;
       if (!tk) return;
       const V = T.view;
-      const gr = g.createLinearGradient(0, 668, 0, 900);   /* dark enough to read over a pale sea of cloud, and no taller than the words need */
+      const gr = g.createLinearGradient(0, 640, 0, 900);   /* dark enough to read over a pale sea of cloud, and no taller than the words need */
       gr.addColorStop(0, 'rgba(14,20,32,0)'); gr.addColorStop(0.42, T.rgba('#0e1420', 0.6 * tk.a)); gr.addColorStop(1, T.rgba('#0e1420', 0.82 * tk.a));
-      g.fillStyle = gr; g.fillRect(-V.W / 2, 668, V.W, 232);
+      g.fillStyle = gr; g.fillRect(-V.W / 2, 640, V.W, 260);
       const col = WHO[tk.who][1];
-      const lines = tk.text.split('\n').length;
-      P.text(g, tk.text, 0, lines > 1 ? 782 : 810, { font: 'serif', size: 38, color: col, k: tk.k, alpha: tk.a, lh: 1.5, glow: 'rgba(8,12,22,0.9)' });
+      const lines = tk.text.split('\n').length, y = lines > 1 ? 782 : 810;
+      const k = tk.done ? 1 : tk.reveal ? tk.reveal() : tk.k;
+      /* who is speaking, above the line */
+      const name = WHO[tk.who][0], ny = y - (lines > 1 ? 96 : 52);
+      P.text(g, name, 0, ny, { font: 'serif', size: 24, track: 4, color: col, alpha: 0.8 * tk.a, glow: 'rgba(8,12,22,0.9)' });
+      P.line(g, -26, ny + 12, 26, ny + 12, 1.4, T.rgba(col, 0.5 * tk.a));
+      /* a sad line settles in slowly, from a little above */
+      const drop = tk.slow ? (1 - tk.a) * -10 : 0;
+      P.text(g, tk.text, 0, y + drop, { font: 'serif', size: 38, color: col, k, alpha: tk.a, lh: 1.5, glow: 'rgba(8,12,22,0.9)' });
       if (tk.done && tk.a > 0.9) T.continueDot(g, 0, 872, col);
     };
     return K;

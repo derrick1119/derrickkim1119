@@ -465,6 +465,8 @@ T = [
     ("로사네 건너갈 때 종에 대답하기", "Answer the bell when Rosa's family crosses", 0.94),
     ("레오는 아내 아나 몰래, 남기고 갈 레시피를 적고 있다", "In secret from his wife Ana, Leo is writing down the recipes he will leave her"),
     ("노란 눈금이 초록 칸에 들면 눌러서 판자를 꺼내세요", "When the yellow bar is in the green, tap to take the plank out"),
+    ("보고 싶어…\n레오.", "I miss you...\nLeo."),
+    ("지키지 못한", "Unkept"),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.
@@ -483,8 +485,8 @@ HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py
     if (EN[s] != null) return EN[s];
     const y = /^(\\d+)년$/.exec(s);
     if (y) return y[1] === '1' ? '1 year' : y[1] + ' years';
-    const m = /^아나, (\\d+)$/.exec(s);
-    if (m) return 'Ana, ' + m[1];
+    const m = /^(.+), (\\d+)세?$/.exec(s);   /* a name and an age: "아나, 36세" → "Ana, 36" */
+    if (m && EN[m[1]] != null) return EN[m[1]] + ', ' + m[2];
     if (s === 'TAKE YOUR TIME') return '천천히 와';
     if (s === 'WELCOME HARBOR') return '마중 나루';
     return s;
@@ -526,7 +528,7 @@ def main():
         used.add(ko)
         if len(row) > 2:
             scale[ko] = row[2]
-    missing = [k for k in keys if k not in used and not re.fullmatch(r"아나, \d+", k)]
+    missing = [k for k in keys if k not in used and not re.fullmatch(r"(아나|릴리), \d+세?", k) and k != "세"]
     (ROOT / "src" / "i18n.js").write_text(HEAD % (json.dumps(out, ensure_ascii=False, indent=1), json.dumps(scale, ensure_ascii=False)), encoding="utf-8")
     print(f"{len(out)} strings in English; {len(missing)} left in Korean")
     for k in missing:

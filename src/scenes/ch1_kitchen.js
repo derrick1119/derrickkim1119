@@ -43,6 +43,7 @@
     T.state.chapter = 1; T.state.cp = null;
     S.mode = 'idle'; S.cap.a = 0; S.hint.a = 0; S.card.a = 0; S.card.w = 0; S.card.ready = false; S.card.tap = null;
     S.look.k = 0; S.hug.k = 0; S.tear.k = 0;
+    S.talk = T.talk(S);
     P.grainAmt = 0.13; P.vignette = 0.6; P.vignetteColor = '#0b101a';
     if (!S.rain.length) { const r = T.rng(14); for (let i = 0; i < 46; i++) S.rain.push({ x: r() * 212, y: r() * 252, v: 250 + r() * 160, l: 12 + r() * 16 }); }
     A.pad(null);
@@ -78,11 +79,14 @@
     A.motif({ voice: 'felt', vel: 0.26, beat: 1.05 });
     await k.tween(S.hug, 'k', 1, 1.5, T.ease.io);
     k.tween(S.tear, 'k', 1, 1.2);
-    await k.wait(3.4);
+    await k.wait(1.4);
+    await S.talk.say('ana', '보고 싶어…\n레오.', { slow: true, auto: 3.2 });
+    await k.wait(1.6);
     T.director.go('harbor', { style: 'fade', color: '#fff6e6', out: 2.4, in: 2.2, hold: 0.4 });
   };
 
   S.pointer = function (type, x, y) {
+    if (type === 'down' && S.talk && S.talk.tap()) return;
     if (S.mode === 'wait') {
       const near = Math.hypot(x - BOOK[0], y - BOOK[1]) < 110;
       T.cursor(near ? 'pointer' : 'default');
@@ -94,6 +98,7 @@
   };
   S.key = function (key) {
     if (key !== ' ' && key !== 'Enter') return false;
+    if (S.talk && S.talk.tap()) return true;
     if (S.mode === 'wait') S.open(); else if (S.mode === 'card' && S.card.tap) S.card.tap();
   };
 
@@ -220,9 +225,10 @@
     if (S.hint.a > 0.01) P.text(g, '공책을 펼쳐 보세요', 0, 850, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * S.hint.a });
     if (S.cap.a > 0.01) {
       P.text(g, '장례를 마친 밤', -W / 2 + 98, 848, { font: 'serif', size: 25, color: '#f1e8d6', alpha: S.cap.a, align: 'left' });
-      P.text(g, '아나, 36', -W / 2 + 96, 792, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: S.cap.a, align: 'left' });
+      P.text(g, '아나, 36세', -W / 2 + 96, 792, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: S.cap.a, align: 'left' });
       g.fillStyle = T.rgba('#f1e8d6', 0.5 * S.cap.a); g.fillRect(-W / 2 + 98, 812, 150 * T.ease.out(S.cap.a), 1.4);
     }
     drawCard(g);
+    if (S.talk) S.talk.draw(g);
   };
 })();

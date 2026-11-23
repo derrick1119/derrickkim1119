@@ -92,6 +92,7 @@
       if (G.marks[mi]) { G.marks[mi].done = 1; G.marks[mi].a = 1; }
       if (++G.i < seq.length) return;
       G.phase = 'pause'; G.r++; G.miss = 0;
+      if (o.onRound) o.onRound(G.r, G.rounds.length);
       if (G.r >= G.rounds.length) { T.audio.sfx('join'); G.finish(1.1); } else G.clock.wait(0.6).then(ask);
     };
     G.next = () => (G.phase === 'answer' && !G.done ? String(want(G.rounds[G.r], G.i) + 1) : null);

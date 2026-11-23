@@ -80,7 +80,7 @@
       1: [
         { x: 650, k: 'spr', s: 'shed' }, { x: 900, k: 'slip' }, { x: 1212, k: 'spr', s: 'post' }, { x: 1322, k: 'box' },
         { x: 1458, k: 'spr', s: 'build1' }, { x: 1458, k: 'builder' }, { x: 1648, k: 'spr', s: 'small' },
-        { x: 572, k: 'lamp' }, { x: 1076, k: 'lamp' }, { x: 1348, k: 'lamp' }, { x: 1562, k: 'lamp' }, { x: 1736, k: 'lamp' },
+        { x: 572, k: 'lamp' }, { x: 1076, k: 'lamp' }, { x: 1348, k: 'lamp' }, { x: 1520, k: 'lamp' }, { x: 1736, k: 'lamp' },   /* 1520: clear of build1's ladder */
         { x: 1384, k: 'tree', c: '#3f8076', s: 1 }, { x: 1576, k: 'tree', c: '#e0a94a', s: 0.9 },
         { x: J1 - 26, k: 'gate', n: 1 },
       ],
@@ -88,9 +88,8 @@
         { x: 520, k: 'spr', s: 't1' }, { x: 1010, k: 'spr', s: 't2' }, { x: 1330, k: 'spr', s: 't3' },
         { x: 700, k: 'tree', c: '#3f8076', s: 0.8 }, { x: 1180, k: 'tree', c: '#e0a94a', s: 0.9 }, { x: 1500, k: 'tree', c: '#4f8f7a', s: 1 },
         { x: 2070, k: 'spr', s: 'rosa' }, { x: 2070, k: 'rosa' }, { x: 2340, k: 'spr', s: 'frame' }, { x: 2340, k: 'sitter' },
-        { x: 1962, k: 'lamp' }, { x: 2206, k: 'lamp' }, { x: 2456, k: 'lamp' },
+        { x: 1962, k: 'lamp' }, { x: 2190, k: 'lamp' },   /* none by the frame's ladder */
         { x: 1920, k: 'tree', c: '#e0a94a', s: 1 }, { x: 2228, k: 'tree', c: '#3f8076', s: 0.9 }, { x: 2700, k: 'tree', c: '#4f8f7a', s: 1.1 },
-        { x: 620, k: 'lamp' }, { x: 1110, k: 'lamp' }, { x: 1420, k: 'lamp' },
         { x: J2 - 26, k: 'gate', n: 2 },
       ],
       3: [
@@ -199,6 +198,7 @@
     s.a2 = y1(J1) - interp(K2, J1);
     s.d2 = s.a2; s.a3 = y2(J2) - interp(K3, J2); s.d3 = s.a3;   /* the three hills are one road */
     s.join1 = false; s.join2 = false; s.snap.k = 0; s.gate[1].k = 0; s.gate[2].k = 0; s.r2 = 0; s.r3 = 0;
+    s.fog = 1;   /* the harbour stays hidden in fog until the bell has been answered (seaLit clears it for later starts) */
     s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false, mist: 1 }, { x: SEA_LAMP, k: 0, ok: false, mist: 1 }]; s.game = null; s.tolls = 0; s.bell.k = 0;
     s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, rise: 0, style: F.styles.leoBed, flip: false, lamp: false };
     s.mom = { x: 300, y: PIER_Y, flip: true, wave: 0 };
@@ -224,7 +224,7 @@
     A.ambience(0.3, 0.3, atSea ? 0.55 : 0.2);
     A.bed(0, 0.12, atSea ? 'sea' : 'walk');
     const joinAll = () => { S.join1 = true; S.join2 = true; S.gate[1].k = 1; S.gate[2].k = 1; S.r2 = 9999; S.r3 = 9999; };
-    const seaLit = () => S.lamps.forEach((q) => { q.ok = true; q.k = 1; q.mist = 0; });
+    const seaLit = () => { S.fog = 0; S.lamps.forEach((q) => { q.ok = true; q.k = 1; q.mist = 0; }); };
     if (cp === 'sea') {
       S.ph = 'sail';
       k.wait(1.2).then(() => k.tween(S.title, 'a', 1, 1.6)).then(() => k.wait(3.2)).then(() => k.tween(S.title, 'a', 0, 1.8));
@@ -284,9 +284,9 @@
     if (s.x !== SEA_LAMP) { open(); return; }
     /* off the pier the harbour bell has something to ask first, and the lamps answer it */
     T.announce('항구의 종이 묻고, 부두의 등불 넷이 대답한다. 종이 울린 차례대로 등불을 누른다.');
-    S.game = T.puzzle.bell({ rounds: [[0, 1, 2], [0, 1, 2, 3]] });
+    S.game = T.puzzle.bell({ rounds: [[0, 1, 2], [0, 1, 2, 3]], onRound: (r, n) => S.clock.tween(S, 'fog', 1 - (r / n) * 0.55, 1.8, T.ease.io) });
     T.audio.bed(null);
-    S.game.begin(S.clock).then(() => { S.game = null; S.idle = 0; T.audio.bed(0, 0.12, 'sea'); open(); });
+    S.game.begin(S.clock).then(() => { S.game = null; S.idle = 0; T.audio.bed(0, 0.12, 'sea'); open(); T.announce('안개가 걷히고 부두와 마을이 드러난다.'); S.clock.tween(S, 'fog', 0, 3.6, T.ease.io); });
   }
   function sail(dt) {
     const b = S.boat, k = S.clock, A = T.audio;
@@ -1047,6 +1047,22 @@
       K.lantern(g, s.x, y, t, { s: 1.5, lit: s.k, seed: s.x });
     }
   }
+  /* the harbour in fog, until the bell has been answered: only the lamp off the pier shows through */
+  function drawFog(g) {
+    const W = T.view.W, t = T.time, f = S.fog;
+    const a = toScreen(-330, 0)[0], b = toScreen(-130, 0)[0];
+    if (a > W / 2) return;
+    g.save();
+    const gr = g.createLinearGradient(a, 0, b, 0);
+    gr.addColorStop(0, 'rgba(250,244,240,0)'); gr.addColorStop(1, T.rgba('#f8f1ee', 0.96 * f));
+    g.fillStyle = gr; const x0 = Math.max(a, -W / 2); g.fillRect(x0, 0, W / 2 - x0, 900);
+    for (let i = 0; i < 16; i++) {
+      const x = b - 60 + i * 120 + Math.sin(t * 0.22 + i * 1.3) * 46, y = 120 + ((i * 131) % 640) + Math.sin(t * 0.3 + i) * 20;
+      if (x > W / 2 + 240) break;
+      P.glow(g, x, y, 240, '#fffaf6', 0.45 * f, 'source-over');
+    }
+    g.restore();
+  }
   /* until its lamp is lit, whoever is coming waits out in the mist */
   function drawSeaMist(g, xa, xb) {
     const t = T.time;
@@ -1168,6 +1184,8 @@
     r = layer(g, 1.3);
     if (r[3] > 760) bankFill(g, S.banks.front, -((t * 15) % 180), Math.sin(t * 0.45 + 3) * 6, '#fffdf7', '#cfa4c4', 930, r[0], r[1]);
     g.restore();
+
+    if (S.fog > 0.004 && !S.hook) drawFog(g);   /* chapter 1 only; the later chapters borrow this town without its fog */
 
     /* the evening lays gold over everything */
     g.save(); g.globalCompositeOperation = 'soft-light';

@@ -22,6 +22,7 @@
     book: { x: 64, y: 540, r: 54, scene: 'stew' },
     drawing: { x: 30, y: 330, r: 72, scene: 'swing' },
     leash: { x: -42, y: 612, r: 48, scene: 'walk' },
+    card: { x: -462, y: 506, r: 50 },   /* the little card in the flowers she brought; the fifth promise */
   };
   const ORDER = ['drawing', 'book', 'leash', 'photo'];
   const LEO = { x: 112, y: 612, s: 400 };
@@ -165,6 +166,12 @@
       /* curtain rod */
       P.line(g, WIN.x - 110, WIN.y - 34, WIN.x + WIN.w + 40, WIN.y - 34, 5, '#8e8779');
       const DT = T.detail;
+      /* the flowers Ana brought, and the little card tucked in among them */
+      if (DT) DT.flowers(g, WIN.x + 54, WIN.y + WIN.h + 6, 1.15, 72);
+      g.save(); g.translate(-462, 506); g.rotate(0.12);
+      P.line(g, 0, 10, -8, 56, 2, '#8a7a5a');
+      P.fill(g, P.rr(-16, -12, 32, 24, 2), '#fbf6ea'); P.fill(g, P.circle(0, 0, 4.4), '#e58aa0');
+      g.restore();
       if (DT && DT.on()) {
         /* a faint leaf pattern on the paper, panels on the lower wall, seams in the floor */
         const r = T.rng(71);
@@ -180,7 +187,6 @@
         for (let xx = x0; xx < x0 + w; xx += 120) { g.strokeStyle = 'rgba(60,70,80,0.1)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(xx, 714); g.lineTo(xx + (xx - 0) * 0.5, 944); g.stroke(); }
         g.restore();
         /* on the sill: the flowers Ana brings, and the books he did not finish */
-        DT.flowers(g, WIN.x + 54, WIN.y + WIN.h + 6, 1.15, 72);
         DT.books(g, WIN.x + WIN.w - 40, WIN.y + WIN.h + 6, 3, 73);
         DT.clock(g, 470, 170, 30, 7, 10);
       }
@@ -408,7 +414,7 @@
   function allDone() { return T.state.count >= 4; }
   function openSpots() {
     if (S.mode !== 'hub') return [];
-    if (allDone()) return T.state.together ? [] : ['photo'];
+    if (allDone()) return T.state.together ? [] : ['card'];
     return ORDER.filter((id) => !T.state.done[id]);
   }
 
@@ -427,7 +433,7 @@
     });
   };
 
-  /* the back of the photograph: the fifth promise, in her hand */
+  /* the card tucked in among the flowers on the sill: the fifth promise, in her hand */
   S.runCard = async function () {
     const c = S.card, k = S.clock;
     S.mode = 'card';
@@ -438,7 +444,7 @@
     T.audio.sfx('page');
     await k.tween(c, 'flip', 1, 1.1, T.ease.io);
     await k.wait(0.35);
-    T.announce('사진 뒷면에 아나의 글씨. 우리, 같이 늙자.');
+    T.announce('꽃병에 꽂힌 카드 뒷면에 아나의 글씨. 우리, 같이 늙자.');
     k.tween(c, 'write', 1, 2.6, T.ease.lin);
     await k.wait(1.2);
     T.audio.motif({ voice: 'box', vel: 0.34, beat: 0.62 });
@@ -906,7 +912,7 @@
     g.fillRect(-V.W / 2, 0, V.W, V.H);
     const k = T.ease.out3(T.clamp(c.a));
     const [dx, dy] = T.par(0.2);
-    const cx = T.lerp(428 + dx, 0, k), cy = T.lerp(552 + dy, 440, k), sc = T.lerp(0.2, 1, k);
+    const cx = T.lerp(SPOT.card.x + dx, 0, k), cy = T.lerp(SPOT.card.y + dy, 440, k), sc = T.lerp(0.12, 1, k);
     const flip = Math.cos(c.flip * Math.PI);
     g.translate(cx, cy + Math.sin(T.time * 0.8) * 4 * k);
     g.rotate(T.lerp(-0.06, -0.025, k));
@@ -916,8 +922,13 @@
     P.fill(g, P.rr(-190, -250, 380, 500, 6), '#f4ecda');
     g.shadowColor = 'transparent';
     if (flip > 0) {
-      g.save(); g.translate(0, -18); photoFace(g, 3.5); g.restore();
-      P.tint(g, P.rr(-154, -235, 308, 434, 2), -154, -235, 154, 199, [[0, 'rgba(255,255,255,0.22)'], [0.5, 'rgba(255,255,255,0)'], [1, 'rgba(60,40,20,0.2)']]);
+      /* the front of the card: a pressed flower, as the florist's cards have */
+      P.wash(g, P.rr(-190, -250, 380, 500, 6), '#f7efe0', [-190, -250, 380, 500], { seed: 92, n: 20, tone: 0.03, len: 200, wid: 40 });
+      g.strokeStyle = '#6a8f5a'; g.lineWidth = 5; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(0, 190); g.quadraticCurveTo(-20, 60, 0, -40); g.stroke();
+      P.fill(g, P.ellipse(-34, 90, 34, 14, -0.5), '#7fa86a'); P.fill(g, P.ellipse(30, 40, 32, 13, 0.5), '#7fa86a');
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; P.fill(g, P.ellipse(Math.cos(a) * 44, -80 + Math.sin(a) * 44, 30, 14, a), '#f6b6c2'); }
+      P.fill(g, P.circle(0, -80, 24), '#f1c04a');
     } else {
       /* the back: foxed paper, her handwriting */
       P.wash(g, P.rr(-190, -250, 380, 500, 6), '#efe5cf', [-190, -250, 380, 500], { seed: 91, n: 26, tone: 0.035, len: 200, wid: 40 });
@@ -1037,7 +1048,7 @@
       const open = openSpots();
       open.forEach((id, i) => {
         const sp = SPOT[id];
-        const ox = id === 'drawing' ? bx : dx, oy = id === 'drawing' ? by : dy;
+        const ox = id === 'drawing' || id === 'card' ? bx : dx, oy = id === 'drawing' || id === 'card' ? by : dy;
         const a = S.sel ? (S.sel === id ? 1 : 0.15) : 1;
         P.beacon(g, sp.x + ox, sp.y + oy, sp.r, T.time + i * 0.9, a * (1 - S.card.a), allDone() ? '#ffd9c2' : '#ffe2a8');
         if (S.kbShow && open[S.kb % open.length] === id && !S.sel) {
