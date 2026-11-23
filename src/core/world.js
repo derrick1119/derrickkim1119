@@ -968,8 +968,7 @@ export class World extends Emitter {
     const down = this.pointerDown(x, y);
     if (!down) return null;
     const up = this.pointerUp(x, y);
-    if (down.type === 'drag') return up;
-    return down.type === 'hold' ? down : down;
+    return down.type === 'drag' ? up : down;
   }
 
   _updateHold(dt) {

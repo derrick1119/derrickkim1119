@@ -135,8 +135,6 @@ registerBind({
     });
     // 시선 예고: 처음 몇 번은 끌어서 피하라고 알려 준다
     world.on('notice', () => {
-      const n = tut().dragHints || 0;
-      if (typeof n !== 'number') return;
       if (!tut().dragged && game.state.gen <= 3 && Math.random() < 0.7) ui.say(t('play.dragHint'), 2.2);
     });
     // 기체를 한 번이라도 끌었으면 더는 알려 주지 않는다
