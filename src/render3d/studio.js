@@ -66,8 +66,10 @@ function shoot(object, px, { fill = 0.86, lift = 0.18 } = {}) {
 /**
  * 아이콘 한 장을 2D 캔버스로 찍는다. 찍을 수 없는 종류면 null.
  * @param {'specimen'|'watcher'|'form'} kind
+ * @param {{mood?: string, look?: number, wave?: boolean, shock?: boolean, walk?: number, t?: number}} [o]
+ *   form: mood = 피포 표정, look = 1 이면 보는 사람(카메라)을 본다. watcher: 자세.
  */
-export function renderIcon3d(kind, id, px) {
+export function renderIcon3d(kind, id, px, o = {}) {
   const size = Math.min(MAX_PX, Math.max(32, Math.round(px)));
   let object = null;
   let opts = {};
@@ -79,13 +81,14 @@ export function renderIcon3d(kind, id, px) {
   } else if (kind === 'watcher') {
     const w = createWatcher(id);
     w.root.position.set(0, 0, 0);
-    w.update({ t: 0.25, dir: 1, walk: 0, look: 0.35, shock: false, wave: false, target: new THREE.Vector3(0.6, 3, 2) });
+    w.update({ t: o.t ?? 0.25, dir: 1, walk: o.walk ?? 0, look: o.look ?? 0.35, shock: !!o.shock, wave: !!o.wave, target: new THREE.Vector3(0.6, 3, 2) });
     object = w.root;
     opts = { fill: 0.92, lift: 0.1 };
   } else if (kind === 'form') {
     const u = createUfo(Number(id));
-    u.update({ t: 0.6, mood: 'idle', lit: 1, beam: 0 });
     u.root.rotation.x = UFO_TILT;
+    u.root.updateMatrixWorld(true);
+    u.update({ t: o.t ?? 0.6, mood: o.mood || 'idle', lit: o.lit ?? 1, beam: 0, look: o.look ? new THREE.Vector3(0, 0.4, 10) : undefined });
     object = u.root;
     opts = { fill: 0.95, lift: 0.05 };
   }

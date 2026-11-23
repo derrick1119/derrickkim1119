@@ -3,6 +3,7 @@ import { drawUfo, UFO_HALF_WIDTH } from '../../render/ufo.js';
 import { drawWatcher } from '../../render/people.js';
 import { TAU, FONT_DISPLAY, withAlpha, rrect, clamp } from '../../render/draw.js';
 import { seededRng } from './score.js';
+import { spriteCanvas } from '../../render/iconcache.js';
 
 export const OL = '#11143a';
 
@@ -12,22 +13,82 @@ export const OL = '#11143a';
  */
 export function ufo(ctx, x, y, hw, o = {}) {
   const form = clamp(o.form ?? 0, 0, UFO_HALF_WIDTH.length - 1);
-  const s = hw / UFO_HALF_WIDTH[form];
+  // 본편과 같은 3D 기체(피포 포함)를 찍어 둔 그림으로 그린다. 3D 를 못 쓰는 기기는 2D 그림.
+  const mood = UFO_MOODS.has(o.mood) ? o.mood : 'idle';
+  const px = hw > 34 ? 224 : 160;
+  const sprite = spriteCanvas('form', form, px, { mood, look: 1 });
   ctx.save();
   if (o.alpha != null) ctx.globalAlpha *= o.alpha;
   ctx.translate(x, y);
   if (o.tilt) ctx.rotate(o.tilt);
-  ctx.scale(s, s);
-  drawUfo(ctx, { form, t: o.t ?? 0, mood: o.mood || 'idle', lit: o.lit ?? 1, beam: o.beam ?? 0 });
+  if (sprite) {
+    // 그림에서 실제로 칠해진 영역(접시 너비)에 맞춰, 접시 반폭이 hw 가 되게 그린다
+    const bb = inkBox(sprite);
+    const k = (hw * 2) / Math.max(1, bb.w);
+    const dim = o.lit != null ? 0.55 + 0.45 * clamp(o.lit, 0, 1) : 1;
+    if (dim < 0.99) ctx.filter = `brightness(${dim.toFixed(2)})`;
+    // 접시 가운데(칠해진 영역 아래쪽 40% 지점)를 (x, y) 에 둔다
+    const cx = bb.x + bb.w / 2;
+    const cy = bb.y + bb.h * 0.62;
+    ctx.drawImage(sprite, -cx * k, -cy * k, sprite.width * k, sprite.height * k);
+    ctx.filter = 'none';
+  } else {
+    const s = hw / UFO_HALF_WIDTH[form];
+    ctx.scale(s, s);
+    drawUfo(ctx, { form, t: o.t ?? 0, mood: o.mood || 'idle', lit: o.lit ?? 1, beam: o.beam ?? 0 });
+  }
   ctx.restore();
 }
+const UFO_MOODS = new Set(['idle', 'happy', 'alert', 'hide', 'shock']);
 
-/** 지구인 한 명. (x, y) = 발밑, s = 배율. */
+/** 그림에서 실제로 칠해진(불투명한) 영역. 그림마다 한 번만 잰다. */
+const boxes = new WeakMap();
+function inkBox(cv) {
+  let b = boxes.get(cv);
+  if (b) return b;
+  const { width: w, height: h } = cv;
+  let x0 = w;
+  let y0 = h;
+  let x1 = -1;
+  let y1 = -1;
+  try {
+    const d = cv.getContext('2d').getImageData(0, 0, w, h).data;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (d[(y * w + x) * 4 + 3] > 40) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+  } catch {
+    /* 읽을 수 없으면 전체 */
+  }
+  b = x1 < 0 ? { x: 0, y: 0, w, h } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  boxes.set(cv, b);
+  return b;
+}
+
+/** 지구인 한 명. (x, y) = 발밑, s = 배율(2D 그림 기준, 키 약 74). */
 export function person(ctx, type, x, y, s, pose = {}) {
+  const variant = pose.wave ? { wave: true, look: 0 } : (pose.look || 0) > 0.5 ? { look: 1 } : { look: 0 };
+  const sprite = spriteCanvas('watcher', type, 192, variant);
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(s, s);
-  drawWatcher(ctx, type, pose);
+  if (sprite) {
+    // 칠해진 영역의 키가 2D 그림의 키(약 70)와 같게, 발밑을 (x, y) 에 맞춘다
+    const bb = inkBox(sprite);
+    const k = (70 * s) / Math.max(1, bb.h);
+    const bob = pose.walk ? Math.abs(Math.sin((pose.t || 0) * 9)) * 3 * s : 0;
+    if ((pose.dir ?? 1) < 0) ctx.scale(-1, 1);
+    const cx = bb.x + bb.w / 2;
+    ctx.drawImage(sprite, -cx * k, -(bb.y + bb.h) * k - bob, sprite.width * k, sprite.height * k);
+  } else {
+    ctx.scale(s, s);
+    drawWatcher(ctx, type, pose);
+  }
   ctx.restore();
 }
 

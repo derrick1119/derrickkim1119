@@ -78,6 +78,26 @@ function paintIcon(ctx, kind, id, size) {
   ctx.restore();
 }
 
+const sprites = new Map();
+/**
+ * 3D 모델을 찍은 그림을 캔버스 그대로 돌려준다(미니게임처럼 캔버스에 직접 그릴 때). 3D 를 못 쓰면 null.
+ * @param {'specimen'|'watcher'|'form'} kind
+ * @param {object} [opts] 표정·자세(studio.js renderIcon3d 참고)
+ */
+export function spriteCanvas(kind, id, px, opts = null) {
+  if (!render3d) return null;
+  const key = `${kind}:${id}:${px}:${opts ? JSON.stringify(opts) : ''}`;
+  if (sprites.has(key)) return sprites.get(key);
+  let cv = null;
+  try {
+    cv = render3d(kind, id, px, opts || undefined);
+  } catch (err) {
+    console.warn('3D 그림을 찍지 못했습니다.', err);
+  }
+  sprites.set(key, cv);
+  return cv;
+}
+
 /**
  * 아이콘 이미지 주소.
  * @param {'specimen'|'watcher'|'emblem'|'form'} kind
