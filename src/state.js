@@ -76,19 +76,21 @@ const BASE_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wiz
 export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has));
 // ───────── 영물의 인연: 원정을 거듭하며 공을 쌓으면 영물이 군대에 합류한다 ─────────
 // deed = 세는 공(tales 는 들은 옛이야기 수, 나머지는 meta.deeds 에 쌓인다), need = 채워야 하는 수
+// 영물은 저마다 한 사건과 이어져 있다: 그 사건에서 정해진 길(돕는 쪽)을 고르면 영물이 은혜를 갚으러 찾아와 영물 패가 된다.
+// 사건에서 그 길을 고르지 않으면 영물은 나오지 않는다 (사건 자리에서 아무 때나 나오지 않는다)
 export const BEASTS = [
-  { id: 'magpie', deed: 'tales', need: 3, how: '주막에서 옛이야기 세 편을 듣는다', lore: '반가운 이야기가 모이는 곳에 까치가 든다' },
-  { id: 'sapsal', deed: 'boss', need: 5, how: '두목을 다섯 번 물리친다', lore: '귀신을 쫓아낸 군대를 삽살개가 따른다' },
-  { id: 'samjoko', deed: 'night', need: 8, how: '밤 싸움을 여덟 번 이긴다', lore: '어둠을 견딘 군대에 해의 새가 내려앉는다' },
-  { id: 'tiger', deed: 'elite', need: 6, how: '강적을 여섯 번 물리친다', lore: '센 놈을 꺾은 군대를 산군이 알아본다' },
-  { id: 'haetae', deed: 'safe', need: 1, how: '부대를 하나도 잃지 않고 두목을 물리친다', lore: '지킬 줄 아는 군대 앞에 해태가 선다' },
+  { id: 'magpie', ev: 'ojak', how: "사건 '까막까치 다리'에서 밤새 다리 놓기를 거든다", lore: '머리가 벗겨지도록 다리를 놓던 까치가 은혜를 잊지 않는다' },
+  { id: 'sapsal', ev: 'well', how: "사건 '우물가의 귀신'에서 굿을 해 넋을 달랜다", lore: '넋이 길을 찾아 떠난 자리에 귀신 쫓는 삽살개가 남는다' },
+  { id: 'samjoko', ev: 'haedal', how: "사건 '해님 달님'에서 나무에 올라 하늘에 빈다 (튼튼한 동아줄이 내려와야 한다)", lore: '해가 된 오누이가 해의 새를 내려보낸다' },
+  { id: 'tiger', ev: 'tiger', how: "사건 '은혜 갚은 호랑이'에서 목에 걸린 뼈를 빼 준다 (물리지 않아야 한다)", lore: '목숨을 건진 산군이 은혜를 갚으러 온다' },
+  { id: 'haetae', ev: 'axe', how: "사건 '금도끼 은도끼'에서 \"제 것은 쇠도끼요\" 하고 정직하게 답한다", lore: '옳고 그름을 가리는 해태가 정직한 군대를 따른다' },
 ];
-export const deedCount = b => b.deed === 'tales' ? (meta.tales || []).length : (meta.deeds && meta.deeds[b.deed]) || 0;
+export const deedCount = b => (b && b.deed === 'tales') ? (meta.tales || []).length : (b && meta.deeds && meta.deeds[b.deed]) || 0;
 // 공을 하나 적고(kind 없이 부르면 확인만), 그 공으로 새로 인연을 맺은 영물들을 돌려준다
 export function noteDeed(kind, n = 1) {
   if (kind) { if (!meta.deeds) meta.deeds = {}; meta.deeds[kind] = (meta.deeds[kind] || 0) + n; }
-  const fresh = BEASTS.filter(b => !has(b.id) && deedCount(b) >= b.need); for (const b of fresh) meta.unlocked[b.id] = true;
-  if (kind || fresh.length) save(); return fresh;
+  // 공은 기록만 한다 (영물은 이제 사건에서 정해진 길을 골라야 찾아온다)
+  if (kind) save(); return [];
 }
 // 험로: 열두 고개를 평정할 때마다 한 단계씩 열리는 더 험한 길. 단계마다 규칙이 하나씩 붙고, 아래 단계의 규칙도 모두 따라온다
 export const HARD = [
@@ -435,8 +437,7 @@ const EVENT_MAX = { uturi: 8, brothers: 8, bari: 8, cave: 8 };
 export const EVENT_HERO = { oldhelm: 'commander', fathersword: 'blade', voice: 'hunter', soulpath: 'bishop', broom: 'archmage', nodance: 'sangsoe', sanchae: 'chief' };
 // 드문 사건: 고를 때 절반은 건너뛴다
 const EVENT_RARE = { dokgamtu: 1, debt: 1, foxbead: 1 };
-// 인연을 맺은 영물이 이번 원정의 덱에 없으면, 사건 자리에서 가끔 그 영물을 다시 만난다 ('beast:까치' 처럼)
-export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const ok = e => (!EVENT_NEED[e] || (r.flags || []).includes(EVENT_NEED[e])) && (!EVENT_HERO[e] || EVENT_HERO[e] === r.hero), pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && ok(e) && (EVENT_MIN[e] || 0) <= r.ch && (EVENT_MAX[e] === undefined || r.ch <= EVENT_MAX[e])),
+export function pickEvent() { const r = G.run; const ok = e => (!EVENT_NEED[e] || (r.flags || []).includes(EVENT_NEED[e])) && (!EVENT_HERO[e] || EVENT_HERO[e] === r.hero), pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && ok(e) && (EVENT_MIN[e] || 0) <= r.ch && (EVENT_MAX[e] === undefined || r.ch <= EVENT_MAX[e])),
     // 이어지는 사건이 기다리고 있으면 먼저 꺼내고, 그다음엔 이끄는 영웅의 사건을 자주 꺼낸다. 드문 사건은 절반만 후보에 든다
     chain = pool.filter(e => EVENT_NEED[e]), own = pool.filter(e => EVENT_HERO[e]), plain = pool.filter(e => !EVENT_RARE[e] || rnd() < 0.5),
     ev = chain.length && rnd() < 0.7 ? pick(chain) : own.length && rnd() < 0.1 ? pick(own) : pick(plain.length ? plain : pool.length ? pool : EVENT_IDS.filter(e => ok(e) && !EVENT_NEED[e])); r.evSeen.push(ev); return ev; }
@@ -449,6 +450,8 @@ export const act = {
   train(filter) { const c = unitCards().filter(c => CARDS[c.id].kind === 'unit' && (c.lv || 1) < MAX_LV && (!filter || filter(UNITS[CARDS[c.id].unit]))); if (!c.length) return act.hero(); return lvUp(pick(c)); },
   // 영물 패: 영물의 인연 사건으로만 얻는다 (up = 한 단 높여서)
   beast(id, up) { addCard('u_' + id, { lv: up ? 2 : 1 }); return `영물 패 [${UNITS[id].name}]${up ? ' +1단' : ''}`; },
+  // 사건에서 영물을 부르는 길을 골랐다: 다음 행군 길에 그 영물이 찾아온다 (이미 덱에 있으면 대신 엽전)
+  call(id) { const r = G.run; if (r.deck.some(c => c.id === 'u_' + id) || (r.beastQ || []).includes(id)) return act.gold(40); r.beastQ = (r.beastQ || []).concat(id); save(); return `영물 [${UNITS[id].name}] — 곧 은혜를 갚으러 찾아온다`; },
   recruit() { if ((G.run.vows || []).includes('onearm')) return act.gold(40); const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
   hero() { const c = G.run.deck.filter(c => CARDS[c.id].kind === 'lead' && (c.lv || 1) < MAX_LV); if (!c.length) return act.gold(40); return lvUp(c[0]); },
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },

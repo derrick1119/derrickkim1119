@@ -275,7 +275,7 @@ export class RunScene {
     const busy = !!(this.over || this.sub || this.menu || coaching);   // 다른 화면이 떠 있으면 알림은 멈춰 기다린다
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { if (!busy) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; } }
     else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
-    else if (r.beastQ && r.beastQ.length && !busy && this.phase === 'march' && !(this.curtain && this.curtain.t < 3)) { const id = r.beastQ.shift(); save(); this.beastScene(id, true, () => { this.phase = 'march'; }); }
+    else if (r.beastQ && r.beastQ.length && !busy && this.phase === 'march' && !(this.curtain && this.curtain.t < 3)) { const id = r.beastQ.shift(), first = !meta.unlocked[id]; meta.unlocked[id] = true; save(); this.beastScene(id, first, () => { this.phase = 'march'; }); }   // 사건에서 부른 영물: 처음이면 인연 이야기부터
     const live = !this.menu && !this.over && !this.sub && !coaching && this.phase !== 'over' && this.phase !== 'stop' && this.phase !== 'fork';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;

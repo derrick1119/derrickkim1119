@@ -18,7 +18,7 @@ export const EVENTS = {
   ] },
   axe: { title: '금도끼 은도끼', art: 'archmage', text: '연못에 도끼를 빠뜨리자 산신령이 나타납니다.\n"이 금도끼가 네 것이냐?"', choices: () => [
     hero('archmage', { label: '신선: "아직 여기 있나"', desc: '보물 하나, 엽전 +50', pick: () => ['"형님이 술 쏟은 날부터 지켰지요." 도끼 셋을 다 줍니다.', act.relic(), act.gold(50)] }),
-    { label: '"제 것은 쇠도끼요"', desc: '보물 하나 · 언젠가 또 시험', pick: () => { flag('axe'); return ['"정직하구나." 산신령이 보물을 내려 줍니다.', act.relic()]; } },
+    { label: '"제 것은 쇠도끼요"', desc: '영물 해태가 따라온다 · 언젠가 또 시험', pick: () => { flag('axe'); return ['"정직하구나." 연못가의 돌짐승이 눈을 뜹니다.', act.call('haetae')]; } },
     { label: '"예, 제 금도끼요"', desc: '50%: 엽전 +130 · 50%: 부정', pick: () => chance(0.5) ? ['산신령이 한숨을 쉬며 금도끼를 던져 줍니다.', act.gold(130)] : ['"고얀 놈!" 호통과 함께 물벼락이 떨어집니다.', act.curse()] },
   ] },
   shrine: { title: '서낭당', art: 'priest', text: '고갯마루 서낭당에 돌무더기가 쌓여 있습니다.\n"정성을 올리면 산신께서 굽어보시지요."', choices: () => [
@@ -46,7 +46,7 @@ export const EVENTS = {
   ] },
   well: { title: '우물가의 귀신', art: 'skel', text: '달빛 아래 우물가에서 소복 입은 귀신이 흐느낍니다.\n"집에 가는 길을 잃었소."', choices: () => [
     hero('bishop', { label: '고승: 염불로 달랜다', desc: '보물 [수호 부적]', pick: () => ['목탁 소리에 흐느낌이 잦아들고 부적 한 장이 남습니다.', act.relic('amulet')] }),
-    { label: '굿을 해 준다', cost: 45, desc: '엽전 45 → 보물 [수호 부적]', pick: () => { act.gold(-45); return ['귀신이 환하게 웃으며 부적을 남기고 떠납니다.', act.relic('amulet')]; } },
+    { label: '굿을 해 준다', cost: 45, desc: '엽전 45 → 영물 삽살개가 따라온다', pick: () => { act.gold(-45); return ['귀신이 환하게 웃으며 떠나자, 어디선가 삽살개가 컹컹 짖습니다.', act.call('sapsal')]; } },
     { label: '사연만 들어 준다', desc: '엽전 +60, 대신 [잡념] 한 장', pick: () => ['귀신이 패물 묻은 곳을 일러 줍니다. 흐느낌이 귀에 맴돕니다.', act.gold(60), act.doubt()] },
     { label: '돌아보지 않는다', desc: '아무 일도 없다', pick: () => ['흐느낌이 바람 소리에 묻힙니다.'] },
   ] },
@@ -99,13 +99,13 @@ export const EVENTS = {
     { label: '날개옷을 감춘다', desc: '50%: 보물 하나 · 50%: 부정', pick: () => chance(0.5) ? ['선녀가 하늘 보물을 주고 날개옷을 찾아 갑니다.', act.relic()] : ['두레박 타고 내려온 언니들에게 혼쭐이 났습니다.', act.curse()] },
   ] },
   ojak: { title: '까막까치 다리', art: 'magpie', text: '칠석날 밤, 까치들이 견우와 직녀의 다리를 놓습니다.\n일손이 모자라 머리가 다 벗겨졌답니다.', choices: () => [
-    { label: '밤새 거든다', desc: '보물 하나, 대신 [잡념] 한 장', pick: () => ['새벽녘 둘이 만났습니다. 다들 하품이 멎지 않습니다.', act.relic(), act.doubt()] },
+    { label: '밤새 거든다', desc: '영물 까치가 따라온다, 대신 [잡념] 한 장', pick: () => ['새벽녘 둘이 만났습니다. 까치 한 마리가 수레 곁을 맴돕니다.', act.call('magpie'), act.doubt()] },
     { label: '모이를 뿌려 준다', cost: 25, desc: '엽전 25 → 패 [척후] 두 장', pick: () => { act.gold(-25); return ['배부른 까치들이 앞길을 미리 살펴 줍니다.', act.card('scout')]; } },
     { label: '구경만 한다', desc: '사기 +3으로 시작', pick: () => ['둘이 만나는 걸 보니 다들 마음이 따뜻해집니다.', act.morale(3)] },
   ] },
   tiger: { title: '은혜 갚은 호랑이', art: 'tiger', text: '호랑이가 입을 벌린 채 끙끙 앓고 있습니다.\n목에 큰 뼈가 걸린 모양입니다.', choices: () => [
     hero('hunter', { label: '명궁: 활을 내려놓는다', desc: '보물 하나, 영웅 +1단', pick: () => ['뼈를 빼 주자 범이 북쪽을 봅니다. "흰 범은 저리 갔다."', act.relic(), act.hero()] }),
-    { label: '목에 손을 넣는다', desc: '70%: 보물 하나 · 30%: [잡념]', pick: () => chance(0.7) ? ['다음 날 아침, 호랑이가 무언가를 물어다 놓았습니다.', act.relic()] : ['덥석! 겨우 손을 뺐지만 떨림이 멎지 않습니다.', act.doubt()] },
+    { label: '목에 손을 넣는다', desc: '70%: 영물 산군이 은혜를 갚으러 온다 · 30%: [잡념]', pick: () => chance(0.7) ? ['뼈를 빼 주자 호랑이가 한참을 바라보다 산으로 들어갑니다.', act.call('tiger')] : ['덥석! 겨우 손을 뺐지만 떨림이 멎지 않습니다.', act.doubt()] },
     { label: '가죽을 노린다', desc: '35%: [호랑이 가죽] · 65%: 부정', pick: () => chance(0.35) ? ['앓던 범이라 쉽게 잡았습니다. 뒷맛이 씁니다.', act.relic('crest')] : ['범이 뼈를 컥 뱉고 덤빕니다! 산신이 노하셨습니다.', act.curse()] },
   ] },
   kongjwi: { title: '콩쥐의 독', art: 'jumo', text: '처녀가 밑 빠진 독에 물을 붓다 울고 있습니다.\n독을 채워야 잔치에 간답니다.', choices: () => [
@@ -122,7 +122,7 @@ export const EVENTS = {
   haedal: { title: '해님 달님', art: 'tiger', text: '"떡 하나 주면 안 잡아먹지."\n고개마다 호랑이가 같은 말을 합니다.', choices: () => [
     hero('hunter', { label: '명궁: "이번엔 네가 쫓겨라"', desc: '보물 [호랑이 가죽]', pick: () => ['화살 한 대에 호랑이가 꼬리를 말고 달아납니다.', act.relic('crest')] }),
     { label: '떡을 던져 준다', desc: '엽전 -25, 사기 +3으로 시작', pick: () => ['호랑이가 떡에 정신 팔린 사이 고개를 넘었습니다.', act.gold(-25), act.morale(3)] },
-    { label: '나무에 올라 빈다', desc: '50%: 보물 · 50%: 부정', pick: () => chance(0.5) ? ['하늘에서 튼튼한 동아줄이 내려옵니다.', act.relic()] : ['썩은 동아줄이었습니다. 엉덩방아를 찧습니다.', act.curse()] },
+    { label: '나무에 올라 빈다', desc: '50%: 영물 삼족오가 내려온다 · 50%: 부정', pick: () => chance(0.5) ? ['튼튼한 동아줄이 내려오고, 해가 된 오누이가 해의 새를 보냅니다.', act.call('samjoko')] : ['썩은 동아줄이었습니다. 엉덩방아를 찧습니다.', act.curse()] },
   ] },
   bangui: { title: '방귀쟁이 며느리', art: 'jumo', text: '며느리가 참았던 방귀를 뀌자\n배나무의 배가 우수수 떨어집니다.', choices: () => [
     { label: '같이 가자고 청한다', desc: '패 [척후+] 두 장', pick: () => ['"요괴 앞에서 한 방이면 됩니다." 며느리가 웃습니다.', act.card('scout', true)] },

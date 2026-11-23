@@ -134,7 +134,7 @@ function goalList() {
   const out = [], ended = meta.ended || 0, nx = UNLOCK_PACE.find(p => p.at > ended);
   if (nx) { const k = nx.at - ended; out.push([`원정을 ${['', '한', '두', '세', '네', '다섯', '여섯'][k] || k} 번 더 마치기`, '새 패와 보물이 열린다']); }
   const f = FEATS.find(q => !(meta.feats || {})[q.id] && q.id !== 'first'); if (f) out.push([`전공첩 · ${f.name}`, `${f.how} (공적 +${f.merit})`]);
-  const b = BEASTS.filter(q => !has(q.id)).sort((a, c) => deedCount(c) / c.need - deedCount(a) / a.need)[0]; if (b) out.push([`영물의 인연 · ${Math.min(b.need, deedCount(b))}/${b.need}`, b.how]);
+  const b = BEASTS.filter(q => !has(q.id))[0]; if (b) out.push([`영물의 인연 · ${UNITS[b.id] ? UNITS[b.id].name : ''}`, b.how]);
   const hx = Object.entries(meta.heroXp || {}).filter(([, x]) => masteryLv(x) < 5).sort((a, c) => c[1] - a[1])[0];
   if (hx) { const lv = masteryLv(hx[1]); out.push([`${UNITS[hx[0]].name} 숙련 ${lv + 1}까지 ${MASTERY_XP[lv] - hx[1]}`, MASTERY_GIFT[lv + 1]]); }
   return out;

@@ -73,9 +73,9 @@ export class EndScene {
       if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 800, 268, 422, 36, 8, '#2f6f5c', INK, 2); rr(g, 803, 271, 416, 30, 5, null, 'rgba(240,217,154,0.8)', 1.2); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1011, 286.5, { size: 18, font: FONT_B, fill: '#f6efdc', maxW: 396 }); g.restore(); }
     }
     // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
-    const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];
+    const nb = BEASTS.filter(b => !has(b.id))[0];
     if (this.fresh.length) { text(g, `새로 맺은 인연 · ${this.fresh.map(b => UNITS[b.id].name).join(' · ')}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, '다음 원정부터 전리품과 장터에 나옵니다', 880, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 340 }); }
-    else if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, `${nb.how}  (${Math.min(nb.need, deedCount(nb))} / ${nb.need})`, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
+    else if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, nb.how, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
     // 평정한 밤에는 끝없는 고개로 그대로 이어 갈 수 있다 (오늘의 원정은 빼고)
     const endless = win && r && r.done && !r.daily && !r.endless, bw = endless ? 214 : 310;
     if (endless && t > 0.8 && button(g, 'endless', 548, 586, 214, 90, '끝없는 고개로', { style: 'red', size: 25 })) { if (goEndless()) nav.go('run'); return; }

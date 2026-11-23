@@ -47,9 +47,9 @@ export class MetaScene {
   drawBeasts(g) {
     brushTitle(g, 250, 48, 360, 66, '영물의 인연', TEAL, 38);
     goldText(g, `인연을 맺은 영물 ${BEASTS.filter(b => has(b.id)).length} / ${BEASTS.length}`, 520, 44, { size: 32, align: 'left', glow: false });
-    text(g, '공을 쌓으면 영물이 합류합니다. 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 720 });
+    text(g, '영물은 저마다 한 사건과 이어져 있습니다. 그 사건에서 돕는 길을 고르면 은혜를 갚으러 찾아옵니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 720 });
     BEASTS.forEach((b, n) => {
-      const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id], cnt = Math.min(b.need, deedCount(b));
+      const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id];
       slip(g, x, y, w, h, open);
       // 초상: 칸을 채우는 고른 크기로. 아직 못 만난 영물은 먹 실루엣으로 보인다
       rr(g, x + 9, y + 8, 104, 69, 5, open ? '#f3ead2' : '#e6dcc2', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 102, 67); g.clip();
@@ -58,7 +58,7 @@ export class MetaScene {
       text(g, u.name, x + 130, y + 29, { size: 26, font: FONT_B, align: 'left' }); text(g, `${u.role} · ${u.desc}`, x + 132, y + 60, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 330 });
       text(g, b.how, x + 480, y + 28, { size: 19, font: FONT_B, align: 'left', fill: open ? TEAL : INK, maxW: 470 }); text(g, b.lore, x + 482, y + 58, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 470 });
       if (open) stamp(g, x + w - 76, y + 42, 28, 'bond', TEAL, -0.12);
-      else { bar(g, x + w - 250, y + 34, 150, 16, cnt / b.need, TEAL); text(g, `${cnt} / ${b.need}`, x + w - 54, y + 43, { size: 21, font: FONT_B }); }
+      else text(g, '아직 만나지 못함', x + w - 110, y + 43, { size: 17, font: FONT_B, fill: SUB });
     });
     if (button(g, 'beastback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.beasts = false;
   }
