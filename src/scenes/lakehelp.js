@@ -846,7 +846,10 @@
         if (line !== V.said) { V.said = line; T.announce(line); }
         if (V.idle > 9 || (waiting && q.waited > 7 && V.idle > 4)) { const h = V.hintAt(); if (h) P.beacon(g, h[0], h[1], 46, t, 1, '#fff0c8'); }
       } else if (V.finished) {
-        const a = T.clamp(L.home * 2);
+        /* the arrival line stands alone: once someone speaks it gives the bottom of the screen to them */
+        const cur = T.director && T.director.cur, talking = !!(cur && cur.X && cur.X.TALK && cur.X.TALK.cur);
+        V.arriveA = T.lerp(V.arriveA == null ? 1 : V.arriveA, talking ? 0 : 1, 0.12);
+        const a = T.clamp(L.home * 2) * V.arriveA;
         T.band(g, a);
         P.text(g, ARRIVE, 0, 866, { font: 'serif', size: 28, color: '#f3ead8', alpha: 0.95 * a, glow: 'rgba(8,12,22,0.9)' });
       }
