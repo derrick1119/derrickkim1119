@@ -23,7 +23,7 @@ export class HeroScene {
     this.t += dt; dimBackdrop(g); ui.top = this.vowOpen ? 1 : 0;   // 서약 판이 떠 있으면 아래 단추는 눌리지 않는다
     brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
     // 씨앗: 두루마리에 적힌 글자를 넣으면 그 원정과 같은 길을 걷는다
-    text(g, this.seed != null ? '누르면 씨앗을 뺀다' : '같은 길 다시 걷기', 1171, 70, { size: 12.5, fill: '#cbb894' });
+    text(g, this.seed != null ? '누르면 씨앗을 뺀다' : '같은 길 다시 걷기', 1086, 38, { size: 14, fill: '#cbb894', align: 'right' });
     if (button(g, 'seed', 1096, 16, 150, 44, this.seed != null ? `씨앗 ${seedCode(this.seed)} ✕` : '씨앗 넣기', { style: this.seed != null ? 'red' : 'wood', size: this.seed != null ? 14 : 18 })) {
       if (this.seed != null) this.seed = null; else { const s = typeof prompt === 'function' ? prompt('두루마리에 적힌 씨앗 글자를 넣으세요 (예: 222-2E3T)') : null, n = parseSeed(s); if (n != null) { this.seed = n; sfx('star'); } else if (s) sfx('deny'); } }
     // 영웅 일곱

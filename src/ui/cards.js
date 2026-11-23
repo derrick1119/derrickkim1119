@@ -1,6 +1,6 @@
 // 패 그림(병력·영웅·전술), 덱 살피기(무기 끼우기 포함), 보물 살피기 — 가로 화면
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, line, poly, st, clamp } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, rrPath, line, poly, st, clamp } from '../render/draw.js';
 import { ui, tapped, button, panel, brushTitle, seal, icon, C } from './ui.js';
 import { CARDS, KIND, cardVals, cardCost, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS, CLS_NAME, canEquip, setOf, setProgress } from '../data/weapons.js';
@@ -45,11 +45,16 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   }
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + 24, y + hh + 24, 25, d.sym || k.sym, col); }   // 패의 종류 표식은 그림 칸의 오른쪽 위 모서리에
-  if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) }; text(g, cardName(c), nx, ny + 1.4, { ...no, fill: 'rgba(8,10,24,0.32)' }); text(g, cardName(c), nx, ny, { ...no, fill: C.cream }); }
-  else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, c.lv + '단', x + w - 14.5, y + h - 9.6, { size: 10.5, fill: '#f0d99a' }); }
+  if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) };
+    // 작은 패에서 이름이 길어 글씨가 7할 아래로 줄어들면: 단수는 그림 칸 왼쪽 위의 딱지로 내리고 이름만 머리띠에 쓴다
+    let nm = cardName(c), lvTag = null; if (!big && unit && (c.lv || 1) > 1) { g.font = `700 ${no.size}px ${FONT_B}`; if (g.measureText(nm).width > no.maxW / 0.78) { lvTag = c.lv + '단'; nm = nm.replace(/ \d+단$/, ''); } }
+    text(g, nm, nx, ny + 1.4, { ...no, fill: 'rgba(8,10,24,0.32)' }); text(g, nm, nx, ny, { ...no, fill: C.cream });
+    if (lvTag) { rr(g, x + 5, y + hh + 6, 30, 17, 4, NAVY, '#c9962e', 1); text(g, lvTag, x + 20, y + hh + 15, { size: 12, fill: '#f0d99a' }); } }
+  else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 29, y + h - 19, 26, 16, 3, NAVY); text(g, c.lv + '단', x + w - 16, y + h - 10.6, { size: 12, fill: '#f0d99a' }); }
   if (big) {
     rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 5, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
-    textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 16 : 24), unit ? 20 : 22, { size: unit ? 15 : 16.5, fill: '#4a4034', weight: 400 });
+    // 설명은 패 안에 다 들게: 넘치면 글씨를 줄이고 그래도 넘치면 '…' (아래에 띠를 덧댈 패는 o.padB 만큼 비운다)
+    const ty0 = y + hh + (unit ? 174 : 178), tlh = unit ? 20 : 22; textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, ty0, w - (unit ? 16 : 24), tlh, { size: unit ? 15 : 16.5, fill: '#4a4034', weight: 400, maxH: (y + h - 14 - (o.padB || 0) - tlh * 0.3) - ty0 + tlh });
   } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
   rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
   // 빌드 축 표식: 큰 패의 그림 칸 오른쪽 위에 축의 빛깔 딱지
@@ -116,7 +121,7 @@ export class DeckView {
     const c = deck.find(q => q.uid === this.sel), ok = this.can(c), px = 866;
     rr(g, px, 96, 364, 520, 6, '#f3ead2', INK, 1.8);
     const after = mode === 'temper' && ok ? Object.assign({}, c, { tp: 1 }) : mode === 'up' && ok ? (isUnit(c) ? Object.assign({}, c, { lv: (c.lv || 1) + 1 }) : { id: c.id, up: true }) : null;
-    cardFace(g, after || c, px + 80, 108, 204, 300, { P: this.P });
+    cardFace(g, after || c, px + 80, 108, 204, 300, { P: this.P, padB: after ? 22 : 0 });
     if (after) { rr(g, px + 100, 392, 164, 26, 6, INDIGO, INK, 1.4); text(g, mode === 'temper' ? '벼린 뒤' : isUnit(c) ? '조련 후' : '익힌 뒤', px + 182, 406, { size: 15, fill: C.cream }); }
     if (mode === 'view') {
       if (isUnit(c)) this.weapons(g, r, c, px);
@@ -149,7 +154,7 @@ export class RelicView {
   constructor(o = {}) { this.onClose = o.onClose; }
   frame(g, dt) { const L = ui.layer; ui.layer = L + 1; try { this.draw(g); } finally { ui.layer = L; } }
   draw(g) {
-    const r = G.run, n = r.relics.length, cols = n > 9 ? 3 : 2, cw = 1160 / cols, rows = Math.ceil(n / cols), lh = Math.min(62, 500 / Math.max(1, rows));
+    const r = G.run, n = r.relics.length, cols = n > 14 ? 3 : 2, cw = 1160 / cols, rows = Math.ceil(n / cols), lh = Math.min(62, 500 / Math.max(1, rows));
     g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672); brushTitle(g, 640, 30, 300, 60, '지닌 보물', '#b8742a', 32);
     if (!n) text(g, '아직 지닌 보물이 없습니다', 640, 330, { size: 24, fill: SUB });
@@ -157,7 +162,11 @@ export class RelicView {
       const x = RELICS[id], px = 60 + (k % cols) * cw, y = 126 + Math.floor(k / cols) * lh;
       rr(g, px, y - lh / 2 + 3, cw - 12, lh - 6, 6, x.curse ? '#efe6f4' : '#f6edd6', INK + '55', 1.2); relicIcon(g, id, px + 32, y, Math.min(0.92, lh / 60));
       text(g, x.name, px + 66, y - (lh > 44 ? 10 : 0), { size: Math.min(19, lh * 0.36), font: FONT_B, align: 'left', fill: x.curse ? '#6a4a9a' : INK, maxW: lh > 44 ? cw - 90 : 120 });
-      text(g, x.desc, px + (lh > 44 ? 66 : 196), y + (lh > 44 ? 13 : 0), { size: Math.min(15, lh * 0.3), align: 'left', fill: SUB, weight: 400, maxW: cw - (lh > 44 ? 90 : 220) });
+      // 설명이 길면 글씨를 조금 줄여 두 줄로 (칸이 낮으면 한 줄에서 '…')
+      const dw = cw - (lh > 44 ? 90 : 220), dz = Math.min(15, lh * 0.3); g.font = `400 ${dz}px ${FONT}`;
+      if (lh > 44 && g.measureText(x.desc).width > dw * 1.12) textBlock(g, x.desc, px + 66, y + 6, dw, 14, { size: 13, align: 'left', fill: SUB, weight: 400, maxH: 28 });
+      else if (lh > 44) text(g, x.desc, px + 66, y + 13, { size: dz, align: 'left', fill: SUB, weight: 400, maxW: dw });
+      else textBlock(g, x.desc, px + 196, y, dw, dz, { size: dz, align: 'left', fill: SUB, weight: 400, maxH: dz * 1.1 });
     });
     if (button(g, 'rvclose', 520, 634, 240, 52, '닫기', { size: 26 })) { if (this.onClose) this.onClose(); }
   }

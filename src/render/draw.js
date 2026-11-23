@@ -35,7 +35,12 @@ export function text(g, str, x, y, o = {}) {
   if (o.stroke) { g.lineJoin = 'round'; g.miterLimit = 2; g.strokeStyle = o.stroke; g.lineWidth = o.lw || Math.max(3, size * 0.2); g.strokeText(str, x, y); }
   g.fillStyle = o.fill || INK; g.fillText(str, x, y);
 }
+// o.maxH: 그 높이에 들도록 글씨를 조금씩 줄이고(7할까지), 그래도 넘치면 마지막 줄을 '…' 로 맺는다
 export function textBlock(g, str, x, y, maxW, lh, o = {}) {
+  if (o.maxH && !o._fit) { let k = 1; for (; k > 0.7; k -= 0.06) { const n = textLines(g, str, maxW, Object.assign({}, o, { size: (o.size || 20) * k })).length; if (n * lh * k <= o.maxH + 0.5) break; }
+    k = Math.max(0.7, k); const lines = textLines(g, str, maxW, Object.assign({}, o, { size: (o.size || 20) * k })), cap = Math.max(1, Math.floor((o.maxH + 0.5) / (lh * k))), o2 = Object.assign({}, o, { size: (o.size || 20) * k, _fit: true });
+    if (lines.length > cap) { lines.length = cap; let l = lines[cap - 1]; g.font = `${o.weight || ((o.font || FONT) === FONT ? 700 : 400)} ${o2.size}px ${o.font || FONT}`; while (l.length > 1 && g.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[cap - 1] = l.replace(/[\s·,]+$/, '') + '…'; }
+    let yy = y; for (const l of lines) { text(g, l, x, yy, o2); yy += lh * k; } return lines.length; }
   const font = o.font || FONT; g.font = `${o.weight || (font === FONT ? 700 : 400)} ${o.size || 20}px ${font}`;
   const lines = [];
   // 괄호 안의 낱말은 한 덩이로 묶어 줄바꿈에서 갈라지지 않게 한다
@@ -47,6 +52,9 @@ export function textBlock(g, str, x, y, maxW, lh, o = {}) {
   let yy = y; for (const l of lines) { text(g, l, x, yy, o); yy += lh; }
   return lines.length;
 }
+
+// 줄바꿈만 해서 줄들을 돌려준다 (그리지 않는다)
+export function textLines(g, str, maxW, o = {}) { const out = []; const save = g.fillText, save2 = g.strokeText; g.fillText = (l) => out.push(l); g.strokeText = () => {}; try { textBlock(g, str, 0, 0, maxW, 1, Object.assign({}, o, { _fit: true, maxH: 0 })); } finally { g.fillText = save; g.strokeText = save2; } return out; }
 
 export function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; }
 

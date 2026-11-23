@@ -22,7 +22,7 @@ const KIND_ORDER = { unit: 0, attack: 1, tactic: 2, support: 3, hero: 4, lead: 5
 const CARD_IDS = Object.keys(CARDS).filter(id => CARDS[id].kind !== 'curse').sort((a, b) => KIND_ORDER[CARDS[a].kind] - KIND_ORDER[CARDS[b].kind]);
 // 그리드: 열 수, 칸 간격, 칸 크기
 const TABS = [
-  { id: 'foe', name: '요괴', list: FOES, cols: 12, px: 62, py: 140, w: 58, h: 130 },
+  { id: 'foe', name: '요괴', list: FOES, cols: 12, px: 62, py: 128, w: 58, h: 118 },
   { id: 'relic', name: '보물', list: RELIC_IDS, cols: 10, px: 75, py: 86, w: 68, h: 80 },
   { id: 'card', name: '패', list: CARD_IDS, cols: 11, px: 68, py: 90, w: 60, h: 78 },
   { id: 'feat', name: '전공첩', list: FEATS.map(f => f.id), cols: 9, px: 82, py: 140, w: 77, h: 130 },
@@ -44,7 +44,7 @@ export class CodexScene {
     // 왼쪽: 그리드
     panel(g, 26, 100, 780, 590);
     // 칸이 넘치면 쪽을 넘긴다 (패가 많다)
-    const per = T.cols * (Math.floor((554 - T.h) / T.py) + 1), pages = Math.ceil(T.list.length / per), pg = Math.min(pages - 1, Math.floor(this.sel / per));   // 고른 칸이 든 쪽
+    const rowsTo = lim => Math.floor((lim - 118 - T.h) / T.py) + 1, per = T.cols * (T.list.length > T.cols * rowsTo(674) ? rowsTo(640) : rowsTo(674)), pages = Math.ceil(T.list.length / per), pg = Math.min(pages - 1, Math.floor(this.sel / per));   // 고른 칸이 든 쪽
     if (pages > 1) { for (const [dir, x] of [[-1, 340], [1, 470]]) { const off = dir < 0 ? pg <= 0 : pg >= pages - 1; if (button(g, 'cpg' + dir, x, 650, 46, 34, dir < 0 ? '◀' : '▶', { style: 'paper', size: 16, disabled: off }) && !off) { this.sel = (pg + dir) * per; sfx('card'); } } text(g, `${pg + 1} / ${pages}`, 431, 667, { size: 17, font: FONT_B, fill: '#5a4a3a' }); }
     T.list.slice(pg * per, pg * per + per).forEach((id, k) => {
       const n = pg * per + k, x = 44 + (k % T.cols) * T.px, y = 118 + Math.floor(k / T.cols) * T.py, on = this.sel === n, ok = seen(T.id, id);
@@ -57,7 +57,7 @@ export class CodexScene {
         else if (T.id === 'foe') { const u = UNITS[id]; if (u.boss && ok) { g.fillStyle = 'rgba(138,42,38,0.18)'; g.fillRect(x, y, T.w, T.h); } if (!ok) dark(g); portrait(g, id, x + T.w / 2, y + T.h - 26, FK(id), 0); g.filter = 'none'; }
         else { const R = RELICS[id]; if (R.curse && ok) { g.fillStyle = 'rgba(90,40,90,0.16)'; g.fillRect(x, y, T.w, T.h); } if (!ok) dark(g); relicIcon(g, id, x + T.w / 2, y + T.h / 2 - (ok ? 6 : 0), 0.95); g.filter = 'none'; }
         g.restore();
-        if (T.id === 'feat') textBlock(g, FEAT_BY_ID[id].name, x + T.w / 2, y + T.h - 32, T.w - 4, 16, { size: 13.5, font: FONT_B, fill: ok ? '#8a2a26' : '#5a4a3a' });
+        if (T.id === 'feat') textBlock(g, FEAT_BY_ID[id].name, x + T.w / 2, y + T.h - 32, T.w - 14, 16, { size: 13.5, font: FONT_B, fill: ok ? '#8a2a26' : '#5a4a3a' });
         else if (T.id === 'foe') text(g, ok ? UNITS[id].name : '· · ·', x + T.w / 2, y + T.h - 12, { size: 13, font: FONT_B, fill: ok ? INK : '#8a8274', maxW: T.w - 6 });
         else if (ok) text(g, RELICS[id].name, x + T.w / 2, y + T.h - 11, { size: 12.5, font: FONT_B, fill: INK, maxW: T.w - 4 });
       }

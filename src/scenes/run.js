@@ -242,8 +242,9 @@ export class RunScene {
     this.forkT = (this.forkT || 0) + dt; const k0 = clamp(this.forkT / 0.4, 0, 1);
     // 위쪽 안내: 갈 길을 고르라는 작은 이름판
     g.save(); g.globalAlpha = k0 * (f.pick ? clamp(1 - f.pickT / 0.4, 0, 1) : 1);
-    rr(g, 334, 146, 332, 44, 10, 'rgba(18,10,14,0.82)', '#000', 1.2); rr(g, 337, 149, 326, 38, 8, null, foil(g, 334, 666), 1.2);
-    text(g, '갈림길 · 길 끝을 눌러 고르세요', 500, 168, { size: 18, font: FONT_B, fill: '#f3e6c4', maxW: 300 }); g.restore();
+    // 병사들 머리 위가 아니라 들판 위쪽 가운데(진형 딱지들 오른쪽)에 건다
+    rr(g, 474, 78, 332, 44, 10, 'rgba(18,10,14,0.82)', '#000', 1.2); rr(g, 477, 81, 326, 38, 8, null, foil(g, 474, 806), 1.2);
+    text(g, '갈림길 · 길 끝을 눌러 고르세요', 640, 100, { size: 18, font: FONT_B, fill: '#f3e6c4', maxW: 300 }); g.restore();
     let hov = null;
     f.art.ends.forEach((e, n) => {
       const sx = ox + e.lx, base = e.ly + 8, topY = base - (e.hidden ? 96 : 122 * LM_K) - 6, nm = e.hidden ? '숨은 길' : (STOP[e.type] ? STOP[e.type].name : e.type), on = f.hover === e.k, dim = f.pick && f.pick !== e.k;
