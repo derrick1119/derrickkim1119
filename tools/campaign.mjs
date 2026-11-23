@@ -15,6 +15,7 @@ const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
 // 해금 속도: 봇은 모든 패·보물이 열린 뒤의 원정을 돈다. ALT=1 이면 두 번째 병법, HARD=n 이면 험로 n단계
 meta.ended = 99; if (process.env.ALT) { meta.heroXp = {}; meta.alt = {}; for (const h of HEROES) { meta.heroXp[h] = 10; meta.alt[h] = true; } }
+if (process.env.MASTER) { meta.heroXp = meta.heroXp || {}; for (const h of HEROES) meta.heroXp[h] = 30; }   // 영웅 숙련을 모두 채운 채 (숙련 패까지 나온다)
 if (process.env.HARD) { meta.hardMax = meta.hard = Number(process.env.HARD); }
 const pick = a => a[(Math.random() * a.length) | 0];
 const used_ = {};
@@ -52,6 +53,12 @@ function spotFor(b, c, foes, mine, sharp) {
   if (kind === 'archers') { const u = mine.find(q => q.def.soft) || mine[0]; return { x: u.x, y: u.y + 60 }; }
   if (kind === 'decoy') { const q = cluster(foes, 110); return q && q.s >= 3 ? { x: q.u.x - 70, y: q.u.y } : null; }
   if (kind === 'doubt') return b.morale >= 6 ? mine[0] : null;
+  // 데이터로 적은 패(fx): 하는 일을 보고 자리를 고른다 — 적을 치는 패는 적이 몰린 곳, 아군을 돕는 패는 아군이 몰린 곳, 대상 없는 패는 싸움이 붙었을 때
+  if (d.fx) { const ops = d.fx.map(f => f.op), hit = ops.some(o => ['aoe', 'tele', 'rain', 'zone', 'mark', 'weaken', 'pull', 'heroJump'].includes(o)) && !d.fx.some(f => f.at === 'hero' && ['aoe', 'weaken'].includes(f.op));
+    if (!d.target) return mine.filter(u => u.target).length >= 3 || (ops.includes('morale') && b.morale < 6) || (ops.includes('bench') && b.bench.length) ? mine[0] : null;
+    if (hit) { const q = cluster(foes, r, o => o.def.boss ? 3 : o.def.large ? 1.5 : 1); return q && q.s >= (d.cost >= 4 ? 3 : 2) ? q.u : null; }
+    if (ops.includes('summon')) { const u = pick(foes); return { x: Math.max(VIEW.x0 + 80, u.x - 80), y: u.y }; }
+    const q = cluster(mine, r, o => o.target ? 1 : 0); return q && q.s >= 3 ? q.u : null; }
   return null;
 }
 function command(b) {

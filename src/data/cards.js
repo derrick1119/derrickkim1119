@@ -1,5 +1,6 @@
 import { UNITS, PLAYER_TYPES, HEROES } from './units.js';
 import { branchOf } from './branches.js';
+import { HERO_CARDS } from './cards_hero.js';
 
 // 패: 싸움 중 손패에서 사기를 내고 쓴다 (전술 패 + 병력 패 + 영웅 패)
 // kind: attack(공격) / support(지원) / tactic(책략) / hero(영웅 전용) / curse(부정)
@@ -50,6 +51,7 @@ export const CARDS = {
   // ── 부정 ──
   doubt: { name: '잡념', kind: 'curse', cost: 1, target: false, v: {}, up: {}, desc: () => '쓸모없는 패. 사기 1로 버릴 수 있다' },
 };
+Object.assign(CARDS, HERO_CARDS);   // 영웅 전용 패 여섯 장씩 더 (data/cards_hero.js)
 // ── 병력 패·영웅 패: 내면 그 자리에 부대가 선다. 부대가 전멸하면 그 싸움이 끝난 뒤에야 돌아온다 ──
 // 병력 패의 낙관: 병종의 갈래를 그린 그림 기호 (render/symbols.js) — 칼·방패·창·활·연꽃(치유)·말·불(도술)·화포·발자국(영물)
 const UNIT_SYM = { sword: 'sword', shield: 'shield', spear: 'spear', xbow: 'bow', priest: 'support', knight: 'horse', wizard: 'flame', berserk: 'sword', cannon: 'cannon', magpie: 'bond', sapsal: 'bond', haetae: 'bond', samjoko: 'bond', tiger: 'bond' };

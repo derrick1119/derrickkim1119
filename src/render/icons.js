@@ -1,6 +1,7 @@
 // 전술 패와 보물의 아이콘 — 인형과 같은 종이 오림 그림체 (가운데가 원점, 대략 ±22 안에 그린다)
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SKIN, FONT_B, st, fs, ell, rr, poly, line, path, text, paperSprite, drawSprite } from './draw.js';
 import { symbol } from './symbols.js';
+import { heroArt } from './icons_hero.js';
 
 const WHITE = '#fbf7ec', BLACK = '#2b2a30', STEEL = '#e4e8ea', IRON = '#4a4a55', GREY = '#8a8a96', WOOD = '#a9753f', WOODD = '#7a4a2c', GOLD = '#e6b93e', BRASS = '#c9962e', FLAME = '#ff9a2e', GLOW = '#ffe9a0', STONE = '#a59f8f', STRAW = '#d9b24a', LEAF = '#5f9a6a', LEAFD = '#3f6b5c', PURPLE = '#6a4a9a', ICE = '#8fd3e8', WATER = '#bfe3ee';
 const PI = Math.PI;
@@ -281,6 +282,8 @@ export const MISC_ART = {
   },
 };
 
+// 영웅 전용 패 (render/icons_hero.js): 위의 조각을 넘겨 같은 그림체로
+Object.assign(CARD_ART, heroArt({ WHITE, BLACK, STEEL, IRON, GREY, WOOD, WOODD, GOLD, BRASS, FLAME, GLOW, STONE, STRAW, LEAF, LEAFD, PURPLE, ICE, WATER, cord, flame, arrow, coin, rays, spark, cloud, paperTal, rattan, tassel, taegeuk, book }));
 // ───────── 보물 ─────────
 // 진법서: 실로 맨 병서 표지에 그 진형의 부대 자리(붉은 점)와 적이 오는 쪽(화살표)을 그렸다
 const formBook = pts => g => { book(g, 0, 1, 32, 38, '#2f4d7e'); rr(g, -11, -13, 22, 28, 1.5, '#f3e6c4', INK, 0.9); for (const [x, y] of pts) ell(g, x, y, 2.4, 2.4, '#b8322a', INK, 0.6); line(g, [7, 10, 10, 10], INK, 0.9); poly(g, [10.6, 8, 13, 10, 10.6, 12], INK); };
