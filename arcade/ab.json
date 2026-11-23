@@ -611,6 +611,21 @@
       "machinePick": "eatdragon",
       "machinePick2": "colorsoul",
       "decidedAt": "2026-11-23"
+    },
+    {
+      "round": 43,
+      "openedAt": "2026-11-23",
+      "A": null,
+      "B": null,
+      "games": [
+        "hauntfamily",
+        "cheesemouse",
+        "castlegiant"
+      ],
+      "winner": null,
+      "note": "42 전체 폐기 뒤 오너가 고른 방식 '아이디어 먼저 보고 고르기'(0137 메뉴 여섯) → 오너가 3·4·5·6을 고름. 6(몸 갈아타기 다시)은 스튜디오 2기로 열었다가 오너가 같은 날 폐기(\"폐기해 왜 살렸어 이 아이디어\"). 3·4·5를 메뉴 문구를 약속으로 삼아 만듦: 이사 온 가족 쫓아내기(단면 집, 물건 톡 → 겁주기 연쇄) · 치즈 도둑 생쥐(고양이 눈길 피해 숨고 꾀고 훔치기) · 성을 등에 진 거인(땅에 성을 쿵, 사람들이 쏟아져 나와 일함, 거인 손으로 퍼 올리기, 폭풍에 쫓겨 다음 땅). 브리프 v24. 오너가 고른다",
+      "machinePick": "cheesemouse",
+      "machinePick2": "hauntfamily"
     }
   ],
   "graduated": [

@@ -5,10 +5,16 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`bodyhop.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { hauntfamily, hauntfamilyRandom, hauntfamilySmart, hauntfamilyHabit, hauntfamilyHabit2 } from './games/hauntfamily.ts';
+import { cheesemouse, cheesemouseRandom, cheesemouseSmart, cheesemouseHabit, cheesemouseHabit2 } from './games/cheesemouse.ts';
+import { castlegiant, castlegiantRandom, castlegiantSmart, castlegiantHabit, castlegiantHabit2 } from './games/castlegiant.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 42라운드 판정(2026-11-23): 전체 폐기(해 봐도 재미가 없음) — 43라운드는 아이디어 메뉴 먼저(오너가 고른 것만 만든다)
+  // 43라운드(2026-11-23): 오너가 아이디어 메뉴에서 고른 셋(3·4·5)
+  { game: hauntfamily, dumb: hauntfamilyRandom, smart: hauntfamilySmart, habits: [hauntfamilyHabit, hauntfamilyHabit2] },
+  { game: cheesemouse, dumb: cheesemouseRandom, smart: cheesemouseSmart, habits: [cheesemouseHabit, cheesemouseHabit2] },
+  { game: castlegiant, dumb: castlegiantRandom, smart: castlegiantSmart, habits: [castlegiantHabit, castlegiantHabit2] },
 ];

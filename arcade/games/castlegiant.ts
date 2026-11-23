@@ -2766,7 +2766,7 @@ const BG = new Map<string, HTMLCanvasElement>();
 function bgCanvas(key: string, wpx: number, hpx: number, paint: (g: C2) => void, sc: number) {
   let c = BG.get(key);
   if (!c) {
-    if (BG.size > 24) BG.clear();
+    if (BG.size > 40) BG.clear();
     c = document.createElement('canvas');
     c.width = Math.max(1, Math.ceil(wpx * sc));
     c.height = Math.max(1, Math.ceil(hpx * sc));
@@ -3271,6 +3271,28 @@ function wantStage(st: number, w: number, sc: number) {
   if (WK.has(tag)) return;
   WK.add(tag);
   const d = STAGES[st], ch = d.ch, R = (r: number) => r * w, sc2 = Math.min(2, sc);
+  want(`sky${ch}${w}`, () => skyBg(ch, w, sc2));
+  want(`hf${ch}${w}`, () => hillBg(ch, w, sc2, false));
+  want(`hn${ch}${w}`, () => hillBg(ch, w, sc2, true));
+  want(`so${ch}${w}`, () => soilBg(ch, w, sc2));
+  want(`stm${ch}${w}`, () => stormSpr(ch, R(1) * sc2));
+  for (const k of new Set<ZK>([...d.zones, 'goal'])) {
+    want(`zt${k}${ch}${w}`, () => zoneTex(k, ch, w, sc2));
+    want(`lm${k}${ch}${w}`, () => markSpr(k, ch, R(1) * sc2));
+  }
+  for (const it of Object.keys(RES_OF) as Item[]) want(`i${it}${w}`, () => itemSpr(it, R(ITEM_S) * 1.3 * sc2));
+  const ts = ch === 1 ? 1 : ch === 2 ? 2 : 0;
+  for (let v = 0; v < 3; v++) for (const stl of [ts, 3, 9]) want(`t${stl}${v}${w}`, () => treeSpr(stl, v, R(TREE_H) * DMAX * 1.02 * sc2));
+  for (const k of ['wheat', 'shroom', 'rock', 'hot'] as OK[]) for (let q2 = 0; q2 < 4; q2++) for (let v = 0; v < 3; v++) want(`c${k}${q2}${v}${w}`, () => cropSpr(k, q2, v, R(CROP_W) * DMAX * 1.3 * sc2));
+  for (const mk of Object.keys(MD) as MK[]) for (let m = 0; m < 4; m++) want(`m${mk}${m}${w}`, () => monSpr(mk, m, R(MD[mk].r) * DMAX * sc2));
+  const looks: Look[] = ['folk', 'jack', 'farm', 'fisher', 'knight', 'miner', 'shroomer', 'smith', 'picker'];
+  for (const lk of looks) for (let f = 0; f < 7; f++) for (let sk = 0; sk < 3; sk++) for (const fl of [1, -1]) want(`p${lk}${f}${sk}${fl}${w}`, () => personSpr(lk, f, sk, R(PH) * DMAX * sc2, fl));
+  for (let g = 0; g < 7; g++) want(`gb${g}${giftBand(st + 1)}${w}`, () => bodySpr(g, giftBand(st + 1), R(GH) * DMAX * sc2));
+  for (const k of PART_DEX) want(`cf${k}${w}`, () => (floorSpr(k, R(CW) * DMAX * sc2), ghostSpr(k, GHQ(R, sc2))));
+  want(`hand${w}`, () => (bigHandSpr(false, HQ(R, sc2)), bigHandSpr(true, HQ(R, sc2))));
+  for (const it of Object.keys(RES_OF) as Item[]) want(`ih${it}${w}`, () => itemSpr(it, IQ(R, sc2) * 1.3));
+  for (const k of ['chest', 'cage'] as const) want(`bx${k}${w}`, () => (boxSpr(k, 0, BQ(R, sc2)), boxSpr(k, 1, BQ(R, sc2))));
+  want(`cb${w}`, () => (baseSpr(R(CW) * DMAX * sc2), roofSpr(false, R(CW) * DMAX * sc2), roofSpr(true, R(CW) * DMAX * sc2)));
   // 처음 쓰는 글꼴 크기는 첫 순간에 끊긴다 — 그림 프레임 밖에서 하나씩 미리
   for (const [px, wg] of FONTS)
     want(`f${px}${wg}`, () => {
@@ -3294,28 +3316,6 @@ function wantStage(st: number, w: number, sc: number) {
       });
       g.getImageData(0, 0, 1, 1);
     });
-  want(`sky${ch}${w}`, () => skyBg(ch, w, sc2));
-  want(`hf${ch}${w}`, () => hillBg(ch, w, sc2, false));
-  want(`hn${ch}${w}`, () => hillBg(ch, w, sc2, true));
-  want(`so${ch}${w}`, () => soilBg(ch, w, sc2));
-  want(`stm${ch}${w}`, () => stormSpr(ch, R(1) * sc2));
-  for (const k of new Set<ZK>([...d.zones, 'goal'])) {
-    want(`zt${k}${ch}${w}`, () => zoneTex(k, ch, w, sc2));
-    want(`lm${k}${ch}${w}`, () => markSpr(k, ch, R(1) * sc2));
-  }
-  for (const it of Object.keys(RES_OF) as Item[]) want(`i${it}${w}`, () => itemSpr(it, R(ITEM_S) * 1.3 * sc2));
-  const ts = ch === 1 ? 1 : ch === 2 ? 2 : 0;
-  for (let v = 0; v < 3; v++) for (const stl of [ts, 3, 9]) want(`t${stl}${v}${w}`, () => treeSpr(stl, v, R(TREE_H) * DMAX * 1.02 * sc2));
-  for (const k of ['wheat', 'shroom', 'rock', 'hot'] as OK[]) for (let q2 = 0; q2 < 4; q2++) for (let v = 0; v < 3; v++) want(`c${k}${q2}${v}${w}`, () => cropSpr(k, q2, v, R(CROP_W) * DMAX * 1.3 * sc2));
-  for (const mk of Object.keys(MD) as MK[]) for (let m = 0; m < 4; m++) want(`m${mk}${m}${w}`, () => monSpr(mk, m, R(MD[mk].r) * DMAX * sc2));
-  for (let g = 0; g < 7; g++) want(`gb${g}${giftBand(st + 1)}${w}`, () => bodySpr(g, giftBand(st + 1), R(GH) * DMAX * sc2));
-  for (const k of PART_DEX) want(`cf${k}${w}`, () => (floorSpr(k, R(CW) * DMAX * sc2), ghostSpr(k, GHQ(R, sc2))));
-  want(`hand${w}`, () => (bigHandSpr(false, HQ(R, sc2)), bigHandSpr(true, HQ(R, sc2))));
-  for (const it of Object.keys(RES_OF) as Item[]) want(`ih${it}${w}`, () => itemSpr(it, IQ(R, sc2) * 1.3));
-  for (const k of ['chest', 'cage'] as const) want(`bx${k}${w}`, () => (boxSpr(k, 0, BQ(R, sc2)), boxSpr(k, 1, BQ(R, sc2))));
-  want(`cb${w}`, () => (baseSpr(R(CW) * DMAX * sc2), roofSpr(false, R(CW) * DMAX * sc2), roofSpr(true, R(CW) * DMAX * sc2)));
-  const looks: Look[] = ['folk', 'jack', 'farm', 'fisher', 'knight', 'miner', 'shroomer', 'smith', 'picker'];
-  for (const lk of looks) for (let f = 0; f < 7; f++) for (let sk = 0; sk < 3; sk++) for (const fl of [1, -1]) want(`p${lk}${f}${sk}${fl}${w}`, () => personSpr(lk, f, sk, R(PH) * DMAX * sc2, fl));
 }
 function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   const fx = juice(s), t = s.t, sc = devScale(ctx), sc2 = Math.min(2, sc), seenT = fx.memo.t ?? -1;
@@ -3323,7 +3323,8 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   const X = (x: number) => (x - s.cam) * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const W0 = Math.round(w);
   wantStage(s.stage, W0, sc);
-  if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, W0, sc);
+  // 다음 판 그림도 이번 판 동안 미리 (결과 화면은 짧다)
+  if (s.stage + 1 < STAGES.length && (s.phase !== 'play' || WQ.length === 0)) wantStage(s.stage + 1, W0, sc);
   idlePump();
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(75,48,32,.9)', lw = 3) => {
@@ -3927,7 +3928,7 @@ function floorLayer(built: PK[], cq: number) {
   let L = LAYS.get(q);
   const n = built.length, fresh = !L || L.built.length > n || L.built.some((k, i) => built[i] !== k);
   if (!L || fresh || n > L.cap) {
-    const cap = Math.max(8, 2 ** Math.ceil(Math.log2(Math.max(1, n))));
+    const cap = Math.max(8, Math.ceil(n / 8) * 8);
     const old = !fresh && L ? L : null;
     if (!L || cap !== L.cap) {
       const c = document.createElement('canvas');
