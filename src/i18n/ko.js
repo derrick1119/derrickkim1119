@@ -671,7 +671,7 @@ export default {
     haptics: '진동',
     language: '언어',
     uiTheme: 'UI 시안',
-    uiThemes: { base: '지금', a: 'A', b: 'B', c: 'C', d: 'D' },
+    uiThemes: { base: '지금', a: 'A 팝', b: 'B 글라스', c: 'C 캔디', d: 'D 수첩' },
     howto: '게임 방법',
     howtoLines: [
       '떠다니는 표본을 터치하면 기체가 자랍니다.',
