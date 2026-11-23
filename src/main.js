@@ -137,7 +137,8 @@ async function start(hotData) {
       world.update(dt);
     }
     scene.update(dt);
-    scene.render();
+    // 임무 미니게임은 화면을 다 덮는다: 뒤의 3D 장면은 그리지 않고 손맛에 힘을 몰아 준다
+    if (!ui.minigame) scene.render();
     ui.update(dt);
     if (ui.started) {
       saveT += dt;

@@ -71,9 +71,19 @@ async function enter(page) {
     await page.waitForTimeout(80);
   }
   await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover', null, { timeout: 5000 * SLOW });
+  await dismissArrival(page);
+}
+
+/** 새 대원 소개 카드가 하늘을 가리고 있으면 닫는다. */
+async function dismissArrival(page) {
+  await page.waitForTimeout(250);
+  if (await page.$('.prog-arrive')) {
+    await page.evaluate(() => document.querySelector('.prog-arrive')?.remove());
+  }
 }
 
 async function tapSpecimen(page) {
+  await dismissArrival(page);
   await page.waitForFunction(() => window.__ufo.world.specimens.some((s) => s.state === 'live' && s.age > 0.3), null, { timeout: 5000 * SLOW });
   const pos = await page.evaluate(() => {
     const { world } = window.__ufo;
@@ -82,6 +92,39 @@ async function tapSpecimen(page) {
   });
   const box = await page.locator('#scene').boundingBox();
   await page.mouse.click(box.x + pos.x, box.y + pos.y);
+}
+
+/** 들킨 뒤: 변명 화면이 뜨면 '그냥 보고서 쓰기' 로 넘어가 보고서를 기다린다. */
+async function toReport(page, timeout) {
+  await page.waitForSelector('.modal-excuse, .modal-report', { timeout });
+  if (await page.$('.modal-excuse')) {
+    await page.waitForTimeout(300);
+    await click(page, '.modal-excuse .ex-skip');
+  }
+  await page.waitForSelector('.modal-report', { timeout });
+}
+
+/** 보고서 다음의 교훈 카드: 다 뒤집히면 첫 장을 고른다(카드가 없으면 그냥 지나간다). */
+async function pickLesson(page) {
+  try {
+    await page.waitForSelector('.modal-lessons .lcard', { timeout: 3000 * SLOW });
+  } catch {
+    return false;
+  }
+  await page.waitForFunction(() => document.querySelector('.modal-lessons .lcard')?.getAttribute('aria-disabled') === 'false', null, { timeout: 6000 * SLOW });
+  await click(page, '.modal-lessons .lcard');
+  await page.waitForSelector('.modal-lessons', { state: 'detached', timeout: 6000 * SLOW });
+  return true;
+}
+
+/** 임무 미니게임이 뜨면 건너뛴다(보통 점수). */
+async function skipMinigame(page) {
+  try {
+    await page.waitForSelector('.mg-skip', { timeout: 2500 * SLOW });
+    await click(page, '.mg-skip');
+  } catch {
+    /* 미니게임이 없거나 이미 끝났다 */
+  }
 }
 
 /** 모달 카드가 화면 안에 들어오고 가로로 넘치지 않는지. */
@@ -132,6 +175,7 @@ try {
   await click(page, '.action.mission');
   await settle(page);
   await click(page, '.sheet.open .btn.go');
+  await skipMinigame(page);
   await page.waitForSelector('.mission.success', { timeout: 6000 * SLOW });
   check('임무 성공 화면', (await state(page)).stats.missionsOk === 1);
   check('임무 화면이 넘치지 않는다', await modalFits(page));
@@ -152,6 +196,7 @@ try {
   check('장비 강화', (await state(page)).gadgets.beam === 1);
   await page.locator('.tab').nth(3).click({ force: true });
   await page.waitForSelector('.sheet.open .cell');
+  await settle(page);
   check('도감 필터가 보인다', await page.evaluate(() => document.querySelector('.filters').getBoundingClientRect().height > 30));
   await click(page, '.sheet.open .cell');
   await page.waitForSelector('.modal-cause');
@@ -161,6 +206,13 @@ try {
   await page.waitForSelector('.sheet.open .ach');
   check('기록 패널', (await page.locator('.sheet.open .ach').count()) > 20);
   await page.locator('.tab').nth(4).click({ force: true });
+  // 관측실(여섯째 탭): 진열장이 보인다
+  if (await page.$('.tab[data-tab="room"]')) {
+    await page.locator('.tab[data-tab="room"]').click({ force: true });
+    await page.waitForSelector('.sheet.open .shelves', { timeout: 5000 * SLOW });
+    check('관측실 진열장', (await page.locator('.sheet.open .shelves').count()) === 1);
+    await page.locator('.tab[data-tab="room"]').click({ force: true });
+  }
 
   // 시선 중에 빔 → 발각 → 보고서 → 다음 대원
   await page.evaluate(() => {
@@ -168,10 +220,11 @@ try {
     game.run.cloakT = 0;
     world.humans[0].state = 'look';
     world.humans[0].t = 30;
+    world.humans[0].gx = world.ufoX; // 시선이 기체를 덮게
     game.rng = () => 0;
   });
   await tapSpecimen(page);
-  await page.waitForSelector('.modal-report', { timeout: 6000 * SLOW });
+  await toReport(page, 8000 * SLOW);
   let s = await state(page);
   check('시선 중에 빔을 쏘면 들킨다', s.phase === 'discovered' && s.seen.gaze_farmer === 1);
   check('보고서에 사건 이름이 나온다', (await page.textContent('.modal-report h2')).includes('농부'));
@@ -186,7 +239,9 @@ try {
   await page.waitForTimeout(500); // 보고서가 다 펼쳐진 뒤에 누른다
   check('새로 고침 뒤에도 보고서가 남아 있다', true);
   await click(page, '.modal-report .btn.primary');
+  check('보고서 뒤 교훈 카드를 고른다', await pickLesson(page));
   await page.waitForFunction(() => window.__ufo.game.state.gen === 2 && window.__ufo.game.phase === 'play', null, { timeout: 5000 * SLOW });
+  await dismissArrival(page);
   s = await state(page);
   check('다음 대원이 더 큰 기체로 시작한다', s.gen === 2 && s.run.size > 30);
 
@@ -197,7 +252,7 @@ try {
   await page.waitForFunction(() => !window.__ufo.ui.modals.active);
 
   // 설정: 저장 코드, 언어
-  await click(page, '.hud .icon-btn');
+  await click(page, '.hud .settings-btn');
   await page.waitForSelector('.modal-settings');
   await page.locator('.modal-settings .btn.ghost').nth(0).click({ force: true });
   const code = await page.inputValue('#save-export');
@@ -257,7 +312,8 @@ try {
     game.run.fuel = 100;
     ui.launchMission('crop');
   });
-  await page.waitForSelector('.modal-report', { timeout: 8000 * SLOW });
+  await skipMinigame(page);
+  await toReport(page, 8000 * SLOW);
   check('작은 화면에서 영어 보고서가 넘치지 않는다', await modalFits(page));
   await page.close();
 
@@ -266,6 +322,10 @@ try {
   check('시험이 끝까지 돌았다', false, err.message.split('\n')[0]);
   if (problems.length) console.log(problems.join('\n'));
   if (page && !page.isClosed()) {
+    // 실패한 순간의 화면을 남긴다
+    const shot = `${process.env.TMPDIR || '/tmp'}/shh-ufo-smoke-fail.png`;
+    await page.screenshot({ path: shot }).catch(() => {});
+    console.log(`실패 화면: ${shot}`);
     const dump = await page
       .evaluate(() => {
         const { game, ui, world } = window.__ufo;

@@ -640,6 +640,16 @@ export class Scene {
     ctx.scale(scale, scale);
     drawSpecimen(ctx, sp.kind, t + sp.phase, sp.dir);
     ctx.restore();
+    // 반짝이 표본: 둘레를 도는 별 셋
+    if (sp.shiny && (sp.state === 'live' || sp.state === 'caught')) {
+      for (let i = 0; i < 3; i++) {
+        const a = t * 2.4 + (i * TAU) / 3 + sp.phase;
+        const tw = 0.55 + 0.45 * Math.sin(t * 9 + i * 2);
+        ctx.fillStyle = withAlpha(i === 1 ? '#ffffff' : '#ffe066', tw);
+        star(ctx, x + Math.cos(a) * 24, y + Math.sin(a) * 17, 5.5 * tw + 2, 2, 4, a);
+        ctx.fill();
+      }
+    }
     if (sp.state === 'live' && !cloaked) {
       const def = SPECIMEN_BY_ID[sp.kind];
       if (def.cause && game.chance(def.cause) >= 0.01) drawRiskBadge(ctx, x + 15, y - 17, t + sp.phase);

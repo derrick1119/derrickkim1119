@@ -241,6 +241,9 @@ function archive(ui) {
   const game = ui.game;
   const seen = game.state.seen;
   const kinds = ['all', 'specimen', 'gaze', 'mission', 'special'];
+  // 등급(tier)이 없으면 일반, hidden 이 없으면 숨은 사건이 아니다. 문구는 progression 기능의 것을 쓴다.
+  const TIERS = ['common', 'rare', 'legendary'];
+  const tierOf = (c) => (TIERS.includes(c.tier) ? c.tier : 'common');
   const list = CAUSES.filter((c) => archiveFilter === 'all' || c.kind === archiveFilter);
   const filters = h(
     'div',
@@ -265,17 +268,40 @@ function archive(ui) {
       );
     }),
   );
+  const tierCounts = h(
+    'div',
+    { class: 'tier-counts' },
+    TIERS.map((tier) => {
+      const all = CAUSES.filter((c) => tierOf(c) === tier);
+      if (!all.length) return null;
+      const got = all.filter((c) => seen[c.id]).length;
+      return h(
+        'span',
+        { class: `tier-count t-${tier}` },
+        h('i', { class: 'tier-gem', 'aria-hidden': 'true' }),
+        h('b', { text: t(`progression.archive.tier.${tier}`) }),
+        h('small', { text: `${got}/${all.length}` }),
+      );
+    }),
+  );
   const grid = h(
     'div',
     { class: 'grid' },
     list.map((c) => {
       const got = !!seen[c.id];
+      const tier = tierOf(c);
+      const secret = !!c.hidden && !got;
       return h(
         'button',
-        { class: `cell ${got ? '' : 'unknown'}`.trim(), type: 'button', onClick: () => showCause(ui, c.id) },
-        img(causeIconURL(c.id, 56, !got), 56),
+        { class: ['cell', `tier-${tier}`, got ? '' : 'unknown', secret ? 'secret' : ''].filter(Boolean).join(' '), type: 'button', onClick: () => showCause(ui, c.id) },
+        tier !== 'common' && h('span', { class: `tier-badge t-${tier}`, text: t(`progression.archive.tier.${tier}`) }),
+        secret ? h('span', { class: 'secret-pic', 'aria-hidden': 'true' }, h('b', { text: '?' })) : img(causeIconURL(c.id, 56, !got), 56),
         h('b', { text: got ? t(`cause.${c.id}.title`) : '???' }),
-        got ? h('small', { text: t('panel.archive.times', { n: game.state.resist[c.id] || 0 }) }) : h('small', { class: 'hint', text: t(`cause.${c.id}.hint`) }),
+        got
+          ? h('small', { text: t('panel.archive.times', { n: game.state.resist[c.id] || 0 }) })
+          : secret
+            ? h('small', { class: 'hint' }, h('i', { class: 'secret-tag', text: t('progression.archive.hidden') }), t(`cause.${c.id}.hint`))
+            : h('small', { class: 'hint', text: t(`cause.${c.id}.hint`) }),
       );
     }),
   );
@@ -286,6 +312,7 @@ function archive(ui) {
       { class: 'archive-top' },
       h('div', { class: 'archive-count' }, h('b', { text: t('panel.archive.progress', { a: game.uniqueCauses, b: CAUSES.length }) }), h('span', { text: t('panel.archive.nextStart', { size: formatSize(game.nextStartSize) }) })),
       h('div', { class: 'bar' }, h('i', { style: { '--p': `${pct}%` } })),
+      tierCounts,
       h('p', { class: 'panel-hint', text: t('panel.archive.hint') }),
     ),
     filters,

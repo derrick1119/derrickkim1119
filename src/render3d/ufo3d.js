@@ -99,6 +99,52 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
   return { group: g, sprites, amberSprites, topY: (tier ? 0.285 : 0.235) * R, bellyY: -0.27 * R };
 }
 
+/** 조종석 유리: 가운데는 거의 투명(피포가 또렷이 보이게), 가장자리로 갈수록 하늘빛이 짙어진다. */
+let pilotGlassMat = null;
+function pilotGlass() {
+  if (pilotGlassMat) return pilotGlassMat;
+  const m = new THREE.MeshStandardMaterial({
+    color: new THREE.Color('#c6f6ff'),
+    transparent: true,
+    roughness: 0.04,
+    metalness: 0.1,
+    envMapIntensity: 1.8,
+    depthWrite: false,
+  });
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `float glassF = 1.0 - saturate( dot( geometryNormal, geometryViewDir ) );
+      diffuseColor.a = mix( 0.04, 0.62, pow( glassF, 2.4 ) );
+      outgoingLight += vec3( 0.55, 0.92, 1.0 ) * pow( glassF, 3.0 ) * 0.45;
+      #include <opaque_fragment>`,
+    );
+  };
+  m.customProgramCacheKey = () => 'pipoGlass';
+  pilotGlassMat = m;
+  return m;
+}
+
+/** 돔 유리의 반짝 줄: 화면에서 본 돔 테두리의 왼쪽 위를 따라 휘는 흰 줄(긴 것 + 짧은 것). */
+let glintMat = null;
+function domeGlints(r, sy) {
+  glintMat ??= new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, depthWrite: false });
+  const g = new THREE.Group();
+  g.scale.set(1, sy, 1);
+  // 기체가 앞으로 기울어 있으므로 카메라는 돔을 앞 조금 위에서 본다. 그 시선 둘레의 원 위에 줄을 얹는다.
+  const view = new THREE.Vector3(0, Math.sin(UFO_TILT), Math.cos(UFO_TILT));
+  const gam = 1.18;
+  for (const [from, len, tube] of [[1.95, 0.85, 0.028], [2.95, 0.16, 0.024]]) {
+    const arc = mesh(torusGeo(r * Math.sin(gam) * 1.01, r * tube, 6, 16, len), glintMat, { cast: false });
+    arc.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), view);
+    arc.rotateZ(from);
+    arc.position.copy(view).multiplyScalar(r * Math.cos(gam) * 1.01);
+    arc.renderOrder = 4;
+    g.add(arc);
+  }
+  return g;
+}
+
 /** 유리 돔과 조종사. y = 돔 바닥. */
 function dome(o, y, r, withPilot = true) {
   const g = new THREE.Group();
@@ -109,17 +155,24 @@ function dome(o, y, r, withPilot = true) {
   });
   g.add(collar);
   let pilot = null;
+  // 조종석 돔은 큰 머리가 들어가게 조금 높게
+  const sy = withPilot ? 1.1 : 1;
   if (withPilot) {
-    pilot = createPipo(r * 0.42);
+    pilot = createPipo(r * 0.5);
     const seat = new THREE.Group();
-    seat.position.y = r * 0.08; // 스카프가 받침 바로 위에 오게
+    seat.position.y = r * 0.1; // 스카프·조종간 손잡이가 받침 위로 보이게
+    seat.rotation.x = -0.16; // 의자에 살짝 기대 앉아 얼굴이 화면을 향한다(기체가 앞으로 기울어 있으므로)
     seat.add(pilot.group);
     g.add(seat);
   } else {
     const inner = mesh(sphereGeo(1, 16, 10), mat(PAL.glow, { emissive: PAL.glow, emissiveIntensity: 0.8 }), { cast: false, scale: [r * 0.5, r * 0.4, r * 0.5], pos: [0, r * 0.2, 0] });
     g.add(inner);
   }
-  const glass = mesh(new THREE.SphereGeometry(r, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2), o.glassMat, { cast: false });
+  const glass = mesh(new THREE.SphereGeometry(r, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2), withPilot ? pilotGlass() : o.glassMat, { cast: false });
+  if (withPilot) {
+    glass.scale.y = sy;
+    g.add(domeGlints(r, sy));
+  }
   glass.renderOrder = 3;
   g.add(glass);
   return { group: g, pilot, baseY: y };
@@ -224,7 +277,7 @@ export function createUfo(form) {
   const d = dome(o, domeY, domeR);
   body.add(d.group);
   const pilot = d.pilot;
-  topY = domeY + domeR;
+  topY = domeY + domeR * 1.1; // 조종석 유리는 10% 더 높다
 
   // 안테나
   if (spec.antennas) {

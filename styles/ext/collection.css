@@ -1,1 +1,1063 @@
-/* collection */
+/* collection: 반짝이 표본 · 관측실(진열 선반·반짝이 도감) · 셀카 앨범 · 사진기 버튼
+   main.css 의 변수(외곽선 --ol, 색 묶음, 글꼴)를 그대로 쓴다. 애니메이션 이름은 col- 로 시작한다. */
+
+/* ───────── 사진기 버튼(계기판 윗줄, 설정 버튼 옆: 분홍 블록) ───────── */
+
+.icon-btn.round.cam-btn {
+  background: linear-gradient(to bottom, #ffd6f2, #ff9fd8 50%, #f57cc6 50%, #e25fb1);
+  box-shadow:
+    inset 0 calc(var(--i-lip) * -1) 0 #a63480,
+    inset 0 2.5px 0 rgba(255, 255, 255, 0.6),
+    0 var(--i-drop) 0 var(--ol),
+    0 calc(var(--i-drop) + 4px) 10px rgba(10, 14, 50, 0.3);
+  animation: col-pop-in 0.42s var(--spring) backwards;
+}
+/* 관측 중이 아닐 때: 자리는 남기고 감춘다 */
+.icon-btn.round.cam-btn.off {
+  visibility: hidden;
+  pointer-events: none;
+  animation: none;
+}
+/* 계기판 모양이 달라 윗줄에 못 들어갔을 때: 계기판 아래 오른쪽에 띄운다 */
+.icon-btn.round.cam-btn.floating {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+}
+.cam-btn .ico {
+  position: relative;
+  z-index: 1;
+}
+.cam-btn .ico svg {
+  stroke-width: 2.8px;
+}
+/* 재사용 대기: 남은 만큼 어두운 부채꼴이 걷힌다 */
+.cam-wait {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: conic-gradient(rgba(17, 20, 58, 0) var(--p, 100%), rgba(17, 20, 58, 0.55) 0);
+  opacity: 0;
+  pointer-events: none;
+}
+.cam-btn.wait {
+  filter: saturate(0.55);
+}
+.cam-btn.wait .cam-wait {
+  opacity: 1;
+}
+
+.cam-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  background: #ffffff;
+  pointer-events: none;
+  animation: col-flash 0.5s ease-out forwards;
+}
+.cam-fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  width: 130px;
+  height: auto;
+  border: var(--line) solid var(--ol);
+  border-radius: 8px;
+  box-shadow: 0 4px 0 var(--ol), 0 12px 20px rgba(10, 14, 50, 0.4);
+  pointer-events: none;
+}
+
+/* ───────── 관측실: 피포의 방 ───────── */
+
+.room-hero {
+  position: relative;
+  height: 172px;
+  overflow: hidden;
+  border: var(--line) solid var(--ol);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(255, 255, 255, 0.22) 0 2px, rgba(255, 255, 255, 0) 3px) 0 0 / 34px 34px,
+    radial-gradient(circle at 29px 29px, rgba(255, 233, 140, 0.35) 0 1.6px, rgba(255, 255, 255, 0) 2.6px) 0 0 / 34px 34px,
+    linear-gradient(#a891f2, #8a74e0 70%, #7a63d2);
+  box-shadow: inset 0 -5px 0 rgba(30, 20, 90, 0.2), inset 0 2px 0 rgba(255, 255, 255, 0.35), var(--shadow-sm);
+}
+/* 둥근 창(지금 관측지의 하늘) */
+.room-window {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 70% 76%, #9fe07a 0 18%, rgba(0, 0, 0, 0) 19%),
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.85) 0 4%, rgba(255, 255, 255, 0) 5%),
+    linear-gradient(#3d78e6, #79bff8 60%, #c8ecff);
+  border: 7px solid #c9d2f2;
+  box-shadow:
+    0 0 0 3px var(--ol),
+    inset 0 0 0 3px var(--ol),
+    inset 0 6px 10px rgba(10, 14, 50, 0.35),
+    0 4px 0 3px var(--ol);
+}
+.room-window[data-stage="suburb"] {
+  background:
+    radial-gradient(circle at 74% 80%, #ff9e7a 0 14%, rgba(0, 0, 0, 0) 15%),
+    linear-gradient(#4f8fee, #8fd0ff 60%, #e3f6ff);
+}
+.room-window[data-stage="camp"] {
+  background:
+    radial-gradient(circle at 70% 84%, #3f7fb0 0 22%, rgba(0, 0, 0, 0) 23%),
+    linear-gradient(#5b6fd8, #f6a96b 70%, #ffd58f);
+}
+.room-window[data-stage="city"] {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0) 18%, #3a3f7a 18% 34%, rgba(0, 0, 0, 0) 34% 52%, #2e3366 52% 66%, rgba(0, 0, 0, 0) 66%) bottom / 100% 34% no-repeat,
+    linear-gradient(#ff8a6b, #ffbe7d 55%, #ffe2a8);
+}
+.room-window[data-stage="observatory"] {
+  background:
+    radial-gradient(circle at 28% 30%, #fff 0 2%, rgba(0, 0, 0, 0) 3%),
+    radial-gradient(circle at 62% 22%, #fff 0 1.5%, rgba(0, 0, 0, 0) 2.5%),
+    radial-gradient(circle at 76% 48%, #fff7c2 0 2%, rgba(0, 0, 0, 0) 3%),
+    linear-gradient(#1c1f5c, #3b3f9e 70%, #6a5fc0);
+}
+.room-window[data-stage="cloudsea"] {
+  background:
+    radial-gradient(ellipse at 30% 92%, #ffffff 0 26%, rgba(255, 255, 255, 0) 27%),
+    radial-gradient(ellipse at 78% 96%, #f2f6ff 0 30%, rgba(255, 255, 255, 0) 31%),
+    linear-gradient(#2e64d8, #6fb6f8 70%, #bfe6ff);
+}
+.room-window[data-stage="orbit"] {
+  background:
+    radial-gradient(circle at 64% 110%, #4fa4ff 0 34%, #2a6ad0 40%, rgba(0, 0, 0, 0) 41%),
+    radial-gradient(circle at 24% 24%, #fff 0 2%, rgba(0, 0, 0, 0) 3%),
+    radial-gradient(circle at 52% 16%, #fff 0 1.4%, rgba(0, 0, 0, 0) 2.4%),
+    linear-gradient(#0d0f33, #1b1f58);
+}
+.room-glint {
+  position: absolute;
+  inset: 8px 34px 40px 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  transform: rotate(-20deg);
+}
+/* 나무 문패 */
+.room-plaque {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  translate: -38% 0;
+  padding: 4px 14px 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  white-space: nowrap;
+  color: #fff3d6;
+  -webkit-text-stroke: 4px #4a2a12;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 #4a2a12;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 9px, rgba(90, 50, 20, 0.12) 9px 11px),
+    linear-gradient(#e7a866, #c98445 55%, #b06f33);
+  border: var(--line) solid var(--ol);
+  border-radius: 10px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(90, 40, 10, 0.4), 0 3px 0 var(--ol);
+  rotate: -2deg;
+}
+/* 벽에 꽂아 둔 최신 사진 */
+.room-pin,
+.room-poster {
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  width: 64px;
+  padding: 4px 4px 12px;
+  background: #fffdf6;
+  border: 2.5px solid var(--ol);
+  border-radius: 4px;
+  box-shadow: 0 3px 0 var(--ol), 0 8px 10px rgba(10, 14, 50, 0.25);
+  rotate: 5deg;
+}
+.room-pin::before,
+.room-poster::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 30px;
+  height: 13px;
+  translate: -50% 0;
+  rotate: -6deg;
+  background: rgba(255, 232, 140, 0.85);
+  border: 1.5px solid rgba(17, 20, 58, 0.35);
+  border-radius: 2px;
+}
+.room-pin img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 320 / 432;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.room-poster {
+  height: 82px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.5) 0 1.5px, rgba(255, 255, 255, 0) 2.5px) content-box,
+    radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.6) 0 1.5px, rgba(255, 255, 255, 0) 2.5px) content-box,
+    linear-gradient(#1f2470, #4b3fa8) content-box,
+    #fffdf6;
+}
+/* 고리 달린 행성 포스터 */
+.room-planet {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 30px;
+  height: 30px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff0b8, #ffb84d 55%, #e0742a);
+  border: 2px solid var(--ol);
+}
+.room-planet::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 14px;
+  translate: -50% -50%;
+  rotate: -18deg;
+  border: 2.5px solid #ff9fd8;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ol), inset 0 0 0 1.5px var(--ol);
+  clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
+}
+.room-star {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ffe45c;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: col-twinkle 1.8s ease-in-out infinite;
+}
+.room-star.s1 {
+  left: 12px;
+  top: 12px;
+}
+.room-star.s2 {
+  right: 12px;
+  bottom: 20px;
+  animation-delay: -0.9s;
+}
+.room-floor {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 52px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 46px, rgba(80, 40, 10, 0.25) 46px 48px),
+    linear-gradient(#d08a4c, #b06c34);
+  border-top: var(--line) solid var(--ol);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.25);
+}
+.room-rug {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  width: 170px;
+  height: 30px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #ffd84a 0 34%, #ff9fd8 35% 58%, #6fd8ff 59%);
+  border: 2.5px solid var(--ol);
+  opacity: 0.9;
+}
+/* 받침대 위 피포의 기체 모형 */
+.room-desk {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 110px;
+  height: 112px;
+  translate: -50% 0;
+}
+.room-stand {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 76px;
+  height: 30px;
+  translate: -50% 0;
+  background:
+    radial-gradient(ellipse 50% 32% at 50% 30%, #f4f7ff 0 96%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(#c9d2f2, #8f9bd6);
+  border: 2.5px solid var(--ol);
+  border-radius: 50% / 34% 34% 50% 50%;
+  box-shadow: 0 3px 0 var(--ol), inset 0 -4px 0 rgba(40, 50, 120, 0.25);
+}
+.room-stand::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 46px;
+  height: 64px;
+  translate: -50% 4px;
+  background: linear-gradient(rgba(111, 242, 255, 0), rgba(111, 242, 255, 0.45));
+  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+}
+.room-ship {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 1;
+  translate: -50% 0;
+  filter: drop-shadow(0 6px 4px rgba(10, 14, 50, 0.3));
+  animation: col-bob 2.8s ease-in-out infinite;
+}
+.room-stats {
+  position: absolute;
+  right: 8px;
+  bottom: 9px;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.room-stats .chip {
+  gap: 3px;
+  min-height: 22px;
+  font-size: 11.5px;
+}
+.room-stats .chip .ico svg {
+  stroke-width: 2.8px;
+  filter: var(--ico-ol);
+}
+.chip.shiny-chip {
+  --c-hi: #ffe6f6;
+  --c: #c88cff;
+  --c-base: #7a4ad0;
+  background:
+    linear-gradient(115deg, rgba(255, 107, 154, 0.55), rgba(255, 228, 92, 0.5) 35%, rgba(125, 255, 154, 0.45) 60%, rgba(111, 216, 255, 0.5) 85%),
+    linear-gradient(var(--c-hi), var(--c) 55%);
+}
+.chip.shiny-chip.mini {
+  min-height: 20px;
+  padding: 0 6px 2px;
+  font-size: 11px;
+}
+
+/* 묶음 */
+.room-sec {
+  display: grid;
+  gap: 8px;
+}
+.room-sec > .sec {
+  margin-top: 4px;
+}
+.room-sub {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--white);
+  -webkit-text-stroke: 4px var(--ol);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--ol);
+}
+
+/* ───────── 진열 선반 ───────── */
+
+.shelves {
+  display: grid;
+  gap: 4px;
+  padding: 10px 8px 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 22px, rgba(40, 18, 4, 0.18) 22px 24px),
+    linear-gradient(#7a4a26, #5e381b);
+  border: var(--line) solid var(--ol);
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 3px #a86a38, inset 0 10px 14px rgba(20, 8, 0, 0.45), var(--shadow-sm);
+}
+.shelf {
+  display: grid;
+}
+.shelf-slots {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  align-items: end;
+  min-height: 108px;
+  padding: 0 2px;
+}
+.shelf-plank {
+  height: 16px;
+  margin: -4px -4px 4px;
+  background: linear-gradient(#ffd09a 0 18%, #e7a866 22%, #c98445 60%, #a5652e);
+  border: var(--line) solid var(--ol);
+  border-radius: 6px;
+  box-shadow: inset 0 -3px 0 rgba(90, 40, 10, 0.4), 0 4px 0 var(--ol), 0 9px 10px rgba(20, 8, 0, 0.45);
+}
+
+.slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 3px;
+  min-width: 0;
+  height: 104px;
+  padding: 0 0 2px;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  transition: transform 0.26s var(--spring);
+}
+button.slot:active {
+  transform: translateY(2px) scale(0.95);
+  transition-duration: 0.06s;
+}
+/* 이름표 */
+.slot-tag {
+  max-width: 100%;
+  padding: 1px 6px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--ink);
+  background: linear-gradient(#fffcf3, #f3e2bb);
+  border: 2px solid var(--ol);
+  border-radius: 6px;
+  box-shadow: 0 2px 0 var(--ol);
+}
+/* 유리 덮개 */
+.slot-dome {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  max-width: 100%;
+  height: 70px;
+  overflow: hidden;
+  border: 2.5px solid var(--ol);
+  border-radius: 34px 34px 10px 10px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.5) 0 14%, rgba(255, 255, 255, 0) 15% 100%),
+    radial-gradient(circle at 50% 70%, rgba(255, 255, 255, 0.18), rgba(170, 220, 255, 0.28) 70%),
+    var(--sky-tile);
+  box-shadow: inset 0 0 0 2.5px rgba(255, 255, 255, 0.55), inset 0 -6px 0 rgba(26, 100, 184, 0.35), 0 3px 0 var(--ol);
+}
+.slot-dome .pic {
+  position: relative;
+  z-index: 1;
+  width: 58px;
+  height: 58px;
+  filter: drop-shadow(0 3px 2px rgba(10, 14, 50, 0.3));
+}
+.slot.filled:hover .slot-dome .pic {
+  animation: col-wiggle 0.5s ease-in-out;
+}
+/* 반짝이: 무지개 테가 흐르고 별이 깜빡인다 */
+.slot.shiny .slot-dome {
+  border-color: transparent;
+  box-shadow: 0 0 0 2.5px var(--ol), 0 3px 0 2.5px var(--ol), 0 0 16px rgba(255, 220, 120, 0.8);
+}
+.slot.shiny .slot-dome::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(#ff6b9a, #ffa64d, #ffe45c, #7dff9a, #6fd8ff, #b28bff, #ff6b9a);
+  animation: col-spin 2.6s linear infinite;
+}
+.slot.shiny .slot-dome::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 30px 30px 7px 7px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.5) 0 14%, rgba(255, 255, 255, 0) 15% 100%),
+    radial-gradient(circle at 50% 62%, rgba(255, 236, 150, 0.95) 0 22%, rgba(255, 236, 150, 0) 58%),
+    linear-gradient(#4f9df0, #8fd0ff 70%, #c8ecff);
+}
+.slot-spark {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #fff3a8;
+  background: radial-gradient(circle at 45% 35%, #fff6b2, #ffd23f 60%, #f0a012);
+  border: 2px solid var(--ol);
+  border-radius: 50%;
+  box-shadow: 0 2px 0 var(--ol);
+  animation: col-twinkle 1.6s ease-in-out infinite;
+}
+.slot-spark svg {
+  color: var(--white);
+  stroke-width: 2.6px;
+  filter: var(--ico-ol);
+}
+.slot.just .slot-dome {
+  animation: col-drop 0.55s var(--spring) backwards;
+}
+.slot.just .slot-tag {
+  animation: col-pop-in 0.4s 0.25s var(--spring) backwards;
+}
+/* 빈 자리 */
+.slot.empty .slot-plus {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  max-width: 100%;
+  height: 62px;
+  color: #ffe9c4;
+  border: 2.5px dashed rgba(255, 233, 196, 0.75);
+  border-radius: 30px 30px 10px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  animation: col-breathe 2.2s ease-in-out infinite;
+}
+.slot.empty .slot-plus svg {
+  stroke-width: 3px;
+}
+.slot.empty .slot-tag {
+  color: #ffe9c4;
+  background: rgba(30, 14, 4, 0.45);
+  border-color: rgba(255, 233, 196, 0.55);
+  box-shadow: none;
+}
+/* 자리 늘리기 */
+.slot.buy,
+.slot.locked {
+  align-content: center;
+}
+.slot-lock {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #ffe9c4;
+  background: rgba(30, 14, 4, 0.4);
+  border: 2.5px solid rgba(255, 233, 196, 0.45);
+  border-radius: 50%;
+}
+.slot.locked .slot-lock {
+  opacity: 0.45;
+}
+.slot.buy .slot-tag {
+  font-size: 10.5px;
+}
+.slot.buy .grant {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: #fff3a8;
+  -webkit-text-stroke: 3.4px var(--ol);
+  paint-order: stroke fill;
+  text-shadow: 0 1.5px 0 var(--ol);
+}
+.slot.buy.can .slot-lock {
+  color: var(--ol);
+  background: radial-gradient(circle at 45% 30%, #fff6b2, #ffd23f 55%, #f0a012);
+  border: 2.5px solid var(--ol);
+  box-shadow: 0 3px 0 var(--ol), 0 0 14px rgba(255, 210, 63, 0.8);
+  animation: col-breathe 1.4s ease-in-out infinite;
+}
+
+/* ───────── 진열 효과 · 세트 ───────── */
+
+.bonus-list,
+.set-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bonus-row,
+.set-row {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px 7px 6px;
+  background: linear-gradient(#ffffff 50%, #f1f4fd);
+  border: 2.5px solid var(--ol);
+  border-radius: 13px;
+  box-shadow: inset 0 -4px 0 rgba(44, 56, 130, 0.1), 0 2.5px 0 var(--ol);
+}
+.bonus-row {
+  grid-template-columns: 30px minmax(0, 1fr) auto auto;
+}
+.bonus-row .pic {
+  border-radius: 9px;
+  background: var(--sky-tile);
+  border: 2px solid var(--ol);
+}
+.bonus-row.shiny {
+  background: linear-gradient(100deg, #fff4fb, #fffbe6 50%, #effbff);
+  box-shadow: inset 0 0 0 2px #ffd23f, inset 0 -4px 0 rgba(210, 123, 6, 0.18), 0 2.5px 0 var(--ol);
+}
+.bonus-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.bonus-val {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 13.5px;
+  color: var(--white);
+  -webkit-text-stroke: 3.6px var(--leaf-base);
+  paint-order: stroke fill;
+  text-shadow: 0 1.5px 0 var(--leaf-base);
+}
+.set-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.set-row.on {
+  background: linear-gradient(#f1ffe2, #d5f6bd);
+  box-shadow: inset 0 -4px 0 rgba(63, 154, 32, 0.22), 0 2.5px 0 var(--ol);
+}
+.set-icons {
+  display: inline-flex;
+}
+.set-icons .pic {
+  margin-right: -5px;
+  border-radius: 50%;
+  background: var(--sky-tile);
+  border: 2px solid var(--ol);
+}
+.set-icons .pic.miss {
+  filter: grayscale(1) opacity(0.45);
+}
+.set-text {
+  display: grid;
+  min-width: 0;
+  padding-left: 4px;
+}
+.set-text b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--white);
+  -webkit-text-stroke: 3.8px var(--ol);
+  paint-order: stroke fill;
+  text-shadow: 0 1.5px 0 var(--ol);
+}
+.set-text small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ───────── 반짝이 도감 ───────── */
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.dex-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 2px 7px;
+  text-align: center;
+  background: linear-gradient(#ffffff 50%, #f1f4fd);
+  border: 2.5px solid var(--ol);
+  border-radius: 13px;
+  box-shadow: inset 0 -4px 0 rgba(44, 56, 130, 0.1), 0 2.5px 0 var(--ol);
+}
+.dex-cell b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 12.5px;
+  line-height: 1.2;
+  color: var(--white);
+  -webkit-text-stroke: 3.4px var(--ol);
+  paint-order: stroke fill;
+  text-shadow: 0 1.5px 0 var(--ol);
+}
+.dex-cell small {
+  font-size: 9.5px;
+  line-height: 1.15;
+  color: var(--ink-soft);
+}
+.dex-cell.unknown {
+  background: rgba(70, 80, 140, 0.08);
+  border-color: #8a91b8;
+  box-shadow: inset 0 2px 4px rgba(17, 20, 58, 0.1);
+}
+.dex-cell.unknown .pic {
+  opacity: 0.5;
+}
+.dex-cell.unknown b {
+  color: #e8eaf6;
+  -webkit-text-stroke-color: #6a7199;
+  text-shadow: 0 1.5px 0 #6a7199;
+}
+.dex-cell.found {
+  background: linear-gradient(160deg, #fff4fb, #fffbe6 45%, #eefaff);
+}
+.dex-pic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--ol), 0 2px 0 2px var(--ol), 0 0 10px rgba(255, 210, 63, 0.7);
+}
+.dex-pic::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(#ff6b9a, #ffa64d, #ffe45c, #7dff9a, #6fd8ff, #b28bff, #ff6b9a);
+  animation: col-spin 3.2s linear infinite;
+}
+.dex-pic::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #fffbe6, #ffe0f4 70%, #d9ccff);
+}
+.dex-pic .pic {
+  position: relative;
+  z-index: 1;
+}
+
+/* ───────── 셀카 앨범 ───────── */
+
+.album-goals {
+  margin-top: 0;
+}
+.album-goals .chip .ico svg {
+  stroke-width: 3.4px;
+}
+.album-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 16px 14px 18px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-soft);
+  border: 2.5px dashed #a9b0d4;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.album-empty .ico {
+  color: #8a91b8;
+}
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 10px;
+  padding: 4px 4px 8px;
+}
+.polaroid {
+  position: relative;
+  display: block;
+  padding: 4px 4px 12px;
+  background: #fffdf6;
+  border: 2.5px solid var(--ol);
+  border-radius: 5px;
+  box-shadow: 0 3px 0 var(--ol), 0 8px 10px rgba(10, 14, 50, 0.18);
+  rotate: var(--tilt, 0deg);
+  transition: transform 0.26s var(--spring);
+}
+.polaroid:active {
+  transform: scale(0.95);
+  transition-duration: 0.06s;
+}
+.polaroid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 320 / 432;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.polaroid.bomb::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  width: 34px;
+  height: 12px;
+  translate: -50% 0;
+  rotate: -8deg;
+  background: rgba(255, 107, 94, 0.8);
+  border: 1.5px solid rgba(17, 20, 58, 0.35);
+}
+.polaroid-fav {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--white);
+  background: radial-gradient(circle at 45% 35%, #fff6b2, #ffd23f 60%, #f0a012);
+  border: 2px solid var(--ol);
+  border-radius: 50%;
+  box-shadow: 0 2px 0 var(--ol);
+}
+.polaroid-fav svg {
+  fill: #fff3a8;
+  stroke-width: 2.4px;
+  filter: var(--ico-ol);
+}
+
+/* 사진 크게 보기 */
+.modal-photo .photo-view {
+  display: grid;
+  gap: 12px;
+}
+.photo-frame {
+  justify-self: center;
+  rotate: -1.5deg;
+  animation: col-drop 0.5s var(--spring) backwards;
+}
+.photo-big {
+  display: block;
+  width: min(280px, 72vw);
+  max-height: 58vh;
+  height: auto;
+  object-fit: contain;
+  border: var(--line) solid var(--ol);
+  border-radius: 6px;
+  box-shadow: 0 4px 0 var(--ol), 0 14px 20px rgba(10, 14, 50, 0.3);
+}
+.photo-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.photo-actions .btn {
+  min-height: 44px;
+  padding: 0 6px 4px;
+  font-size: 13.5px;
+  white-space: normal;
+  text-align: center;
+}
+.photo-actions .btn .ico svg {
+  stroke-width: 3px;
+  filter: var(--ico-ol);
+}
+.photo-fav[aria-pressed="true"] .ico svg {
+  fill: #fff3a8;
+}
+.photo-del.armed {
+  animation: col-shake 0.35s ease-in-out;
+}
+
+/* ───────── 진열할 표본 고르기 ───────── */
+
+.modal-room .room-picker {
+  display: grid;
+  gap: 10px;
+}
+.pick-list {
+  display: grid;
+  gap: 8px;
+}
+.pick-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px 9px;
+  background: linear-gradient(#ffffff 50%, #f1f4fd);
+  border: 2.5px solid var(--ol);
+  border-radius: 15px;
+  box-shadow: inset 0 -4px 0 rgba(44, 56, 130, 0.1), 0 2.5px 0 var(--ol);
+}
+.pick-row > .pic {
+  background: var(--sky-tile);
+  border: 2.5px solid var(--ol);
+  border-radius: 12px;
+}
+.pick-row.here {
+  background:
+    linear-gradient(45deg, rgba(255, 210, 63, 0.16) 25%, rgba(255, 210, 63, 0) 25% 50%, rgba(255, 210, 63, 0.16) 50% 75%, rgba(255, 210, 63, 0) 75%) 0 0 / 22px 22px,
+    linear-gradient(#fffbea, #fff1c9);
+  box-shadow: inset 0 0 0 2.5px #ffd23f, 0 2.5px 0 var(--ol);
+}
+.pick-row.elsewhere > .pic,
+.pick-row.elsewhere .pick-body {
+  opacity: 0.6;
+}
+.pick-body {
+  display: grid;
+  min-width: 0;
+}
+.pick-body h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--white);
+  -webkit-text-stroke: 4px var(--ol);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--ol);
+}
+.pick-body small {
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+.pick-body .pick-shiny {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #b0369a;
+}
+.pick-shiny .ico svg {
+  stroke-width: 2.6px;
+}
+.pick-actions {
+  display: grid;
+  gap: 5px;
+}
+.btn.pick-btn {
+  min-height: 34px;
+  padding: 0 10px 3px;
+  font-size: 13px;
+  border-radius: 11px;
+  --b-lip: 4px;
+  --b-drop: 3px;
+}
+.pick-move {
+  display: grid;
+  justify-items: center;
+  line-height: 1.05;
+}
+.pick-move small {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: #e6f4ff;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+.btn.pick-btn.on {
+  outline: 3px solid #ffd23f;
+  outline-offset: 1px;
+}
+.btn.shiny-btn .ico svg {
+  stroke-width: 2.6px;
+  filter: var(--ico-ol);
+}
+
+/* ───────── 애니메이션 ───────── */
+
+@keyframes col-flash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes col-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes col-twinkle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.18) rotate(12deg);
+  }
+}
+@keyframes col-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes col-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes col-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-8deg);
+  }
+  65% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes col-drop {
+  0% {
+    transform: translateY(-36px) scale(0.6);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(3px) scale(1.06, 0.94);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-2px) scale(0.98, 1.02);
+  }
+}
+@keyframes col-pop-in {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+@keyframes col-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot.shiny .slot-dome::before,
+  .dex-pic::before,
+  .slot-spark,
+  .room-ship,
+  .room-poster .ico,
+  .slot.empty .slot-plus,
+  .slot.buy.can .slot-lock {
+    animation: none;
+  }
+}

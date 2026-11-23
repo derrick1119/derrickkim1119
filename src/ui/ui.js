@@ -124,7 +124,7 @@ export class UI {
           h('div', { class: 'pill grant-pill', 'aria-label': t('hud.grant') }, icon('grant', 16), this.grantText),
           h(
             'button',
-            { class: 'icon-btn round', type: 'button', 'aria-label': t('hud.settings'), onClick: () => this._openSettings() },
+            { class: 'icon-btn round settings-btn', type: 'button', 'aria-label': t('hud.settings'), onClick: () => this._openSettings() },
             icon('settings', 20),
           ),
         ),
@@ -322,7 +322,8 @@ export class UI {
       this.transitioning = true;
       this.enterPending = true;
       this.scene.ufo.mode = 'caught';
-      showReport(this, { ...game.state.lastReport }, () => this._nextGeneration());
+      const report = { ...game.state.lastReport };
+      showReport(this, report, () => this._afterReport(report));
       return;
     }
     this.scene.ufoArrive();
@@ -867,28 +868,35 @@ export class UI {
           console.warn(`보고서 앞 단계 ${step.id}`, err);
         }
         if (out?.excused) {
-          this._resumeAfterExcuse();
+          this._resumeAfterExcuse(report);
           return;
         }
       }
       audio.sfx('stamp');
       this.haptics.fire('stamp');
-      showReport(this, report, async () => {
-        for (const step of hooks.reportAfter) {
-          try {
-            await step.run(this, report);
-          } catch (err) {
-            console.warn(`보고서 뒤 단계 ${step.id}`, err);
-          }
-        }
-        this._nextGeneration();
-      });
+      showReport(this, report, () => this._afterReport(report));
     });
   }
 
+  /** 보고서를 닫은 뒤: 뒤 단계(교훈 카드 등)를 차례로 거쳐 다음 대원을 부른다. */
+  async _afterReport(report) {
+    for (const step of hooks.reportAfter) {
+      try {
+        await step.run(this, report);
+      } catch (err) {
+        console.warn(`보고서 뒤 단계 ${step.id}`, err);
+      }
+    }
+    this._nextGeneration();
+  }
+
   /** 변명이 통했다: 들킨 일을 없던 일로 하고 그 자리에서 이어 간다. */
-  _resumeAfterExcuse() {
+  _resumeAfterExcuse(report) {
     this.transitioning = false;
+    // 임무에서 들켰다면 출동 연출이 조작을 막아 둔 채다: 풀고 기체를 불러온다
+    this.game.busy = false;
+    const mode = this.scene.ufo.mode;
+    if (report?.ctx?.mission && (mode === 'away' || mode === 'gone')) this.scene.ufoReturn();
     this.scene.ufoRecover?.();
     this.world.recover?.();
     this.audio.sfx('safe');

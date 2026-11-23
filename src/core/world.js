@@ -731,7 +731,8 @@ export class World extends Emitter {
     this.droneT = Math.min(this.droneT + dt, interval);
     if (this.droneT < interval) return;
     // 드론은 작아서 눈에 띄지 않는다. 대신 조금씩만 떼어 온다.
-    const pool = this.specimens.filter((sp) => sp.state === 'live' && !sp.held && sp.age > 0.5 && sp.mode !== 'streak');
+    // 반짝이는 대원이 직접 데려가도록 남겨 둔다
+    const pool = this.specimens.filter((sp) => sp.state === 'live' && !sp.held && !sp.shiny && sp.age > 0.5 && sp.mode !== 'streak');
     if (!pool.length) return;
     const sp = pool[Math.floor(this.rng() * pool.length)];
     const res = this.game.collect(sp.kind, { auto: true });
