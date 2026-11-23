@@ -43,8 +43,11 @@ export class CodexScene {
     TABS.forEach((q, n) => { const n2 = q.list.filter(id => seen(q.id, id)).length; if (button(g, 'tab' + n, 810 + n * 112, 22, 106, 62, `${q.name} ${n2}/${q.list.length}`, { style: n === this.tab ? 'red' : 'wood', size: 16 }) && n !== this.tab) { this.tab = n; this.sel = 0; sfx('card'); } });
     // 왼쪽: 그리드
     panel(g, 26, 100, 780, 590);
-    T.list.forEach((id, n) => {
-      const x = 44 + (n % T.cols) * T.px, y = 118 + Math.floor(n / T.cols) * T.py, on = this.sel === n, ok = seen(T.id, id);
+    // 칸이 넘치면 쪽을 넘긴다 (패가 많다)
+    const per = T.cols * (Math.floor((554 - T.h) / T.py) + 1), pages = Math.ceil(T.list.length / per), pg = Math.min(pages - 1, Math.floor(this.sel / per));   // 고른 칸이 든 쪽
+    if (pages > 1) { for (const [dir, x] of [[-1, 340], [1, 470]]) { const off = dir < 0 ? pg <= 0 : pg >= pages - 1; if (button(g, 'cpg' + dir, x, 650, 46, 34, dir < 0 ? '◀' : '▶', { style: 'paper', size: 16, disabled: off }) && !off) { this.sel = (pg + dir) * per; sfx('card'); } } text(g, `${pg + 1} / ${pages}`, 431, 667, { size: 17, font: FONT_B, fill: '#5a4a3a' }); }
+    T.list.slice(pg * per, pg * per + per).forEach((id, k) => {
+      const n = pg * per + k, x = 44 + (k % T.cols) * T.px, y = 118 + Math.floor(k / T.cols) * T.py, on = this.sel === n, ok = seen(T.id, id);
       if (tapped('cx' + n, x, y, T.w, T.h)) { this.sel = n; sfx('card'); }
       if (T.id === 'card') { if (ok) cardFace(g, { id }, x, y, T.w, T.h); else cardBack(g, x, y, T.w, T.h); }
       else {
@@ -81,7 +84,7 @@ export class CodexScene {
       if (ok) { goldText(g, R.name, cx, 362, { size: 30, glow: false }); const ax = R.axis && AXES[R.axis]; text(g, R.curse ? '부정' : ax ? `빌드 축 · ${ax.name}` : R.req ? `${UNITS[R.req].name} 전용` : '보물', cx, 396, { size: 16, font: FONT_B, fill: R.curse ? '#6a3a7a' : ax ? ax.col : '#8a6a3a' }); textBlock(g, R.desc, cx, 436, 380, 24, { size: 17, fill: '#3a2a1a' }); }
       else unknown(g, cx, '아직 얻지 못한 보물입니다');
     } else {
-      if (ok) { cardFace(g, { id }, cx - 111, 118, 222, 294); const d = CARDS[id]; text(g, d.kind === 'lead' ? '영웅 패' : d.kind === 'unit' ? (UNITS[d.unit].beast ? '영물 패' : '병력 패') : d.hero ? `${UNITS[d.hero].name} 영웅기` : d.axis ? `전술 패 · ${AXES[d.axis].name}` : '전술 패', cx, 446, { size: 18, font: FONT_B, fill: '#5a4a3a' }); }
+      if (ok) { cardFace(g, { id }, cx - 111, 118, 222, 294); const d = CARDS[id]; text(g, d.kind === 'lead' ? '영웅 패' : d.kind === 'unit' ? (UNITS[d.unit].beast ? '영물 패' : '병력 패') : d.hero ? `${UNITS[d.hero].name} 영웅기${d.mastery ? ` · 숙련 ${d.mastery}` : ''}` : d.axis ? `전술 패 · ${AXES[d.axis].name}` : '전술 패', cx, 446, { size: 18, font: FONT_B, fill: '#5a4a3a' }); }
       else { cardBack(g, cx - 111, 118, 222, 294); unknown(g, cx, '아직 쥐어 보지 못한 패입니다', 448); }
     }
     if (button(g, 'back', 964, 606, 290, 84, '장부로', { style: 'paper', size: 32 })) nav.go('meta');

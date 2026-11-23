@@ -327,6 +327,7 @@ export class Battle {
   // 진형: 우리 부대(영웅·잠깐 불려 온 것·말뚝 빼고)의 무게중심 모양을 읽는다. 같은 모양이 1초 이어져야 서고, 1초 흐트러져야 풀린다
   formSquads() { return this.squads.filter(q => q.team === 0 && q.alive > 0 && !q.temp && !q.hero && !q.def.banner && !q.def.structure); }
   formations(dt) {
+    if (this.form && this.form.until && this.time > this.form.until) { this.form.fx = this.form.base; this.form.until = 0; }   // 진 다지기가 끝나면 본래의 힘으로
     const sq = this.formSquads(), p = sq.map(q => ({ x: q.cx, y: q.cy })), hq = this.squads.find(q => q.team === 0 && q.hero && q.alive > 0), h = hq ? { x: hq.cx, y: hq.cy } : null;
     let now = null; for (const id of FORM_ORDER) { const f = FORMS[id]; if (!this.mods.forms.includes(id) || p.length < f.need) continue; if (f.shape(p, h)) { now = id; break; } }
     const cur = this.form ? this.form.id : null;
@@ -524,7 +525,7 @@ export class Battle {
 
   // ───────── 패 효과 엔진: 데이터로 적은 패(CARDS[id].fx)를 차례로 실행한다 ─────────
   // 값은 숫자이거나 v 의 이름('dmg' 처럼). 대상 who: area(범위 안 아군) · all · ranged · melee · charge · mounted · heal · hero · inf(보병)
-  // op: aoe · tele · rain · zone · buff · summon · morale · draw · free · mark · weaken · cleanse · heroJump · heroBuff · expose · pull · bench
+  // op: aoe · tele · rain · zone · buff · summon · morale · draw · free · mark · weaken · cleanse · heroJump · heroBuff · expose · pull · bench · gold · formBoost
   runFx(s, v, x, y, r, P, h, hm) {
     const val = q => typeof q === 'string' ? (v[q] !== undefined ? v[q] : 0) : (q || 0), out = { x, y, r, ex: null };
     const pick = who => { const all = this.units.filter(u => !u.dead && u.team === 0 && !u.def.structure && !u.def.banner); switch (who) {
@@ -536,7 +537,7 @@ export class Battle {
       if (f.at === 'hero' && h) { out.x = h.x; out.y = h.y; if (f.r) out.r = rr; }
       switch (f.op) {
         case 'aoe': this.aoe(at[0], at[1], rr, val(f.dmg) * k, 1, src, { stun: val(f.stun), root: val(f.root), kb: val(f.kb), weaken: val(f.weaken), slow: f.slow ? val(f.slow) / 100 : 0, slowT: val(f.slowT) || 2, burn: f.burn ? 3 : 0, burnDmg: val(f.burn) * P }); break;
-        case 'tele': this.zones.push({ kind: 'tele', style: f.style || 'volley', ally: true, x: at[0], y: at[1], r: rr, t: 0, delay: val(f.delay) || 1.2, hits: 1, dmg: val(f.dmg) * k, stun: val(f.stun), burn: f.burn ? val(f.burn) * P : 0 }); break;
+        case 'tele': this.zones.push({ kind: 'tele', style: f.style || 'volley', ally: true, x: at[0], y: at[1], r: rr, t: 0, delay: val(f.delay) || 1.2, hits: 1, dmg: val(f.dmg) * k, stun: val(f.stun), burn: f.burn ? 3 : 0, burnDmg: f.burn ? val(f.burn) * P : 0 }); break;
         case 'rain': this.zones.push({ kind: 'rain', fire: !!f.fire, x: at[0], y: at[1], r: rr, t: 0, dur: val(f.dur) || 2.0, acc: 0.25, dmg: val(f.tick) * k * this.mods.rainDmg, burn: f.fire ? 1 : this.mods.rainBurn }); break;
         case 'zone': this.zones.push({ kind: 'caltrop', x: at[0], y: at[1], r: rr, t: 0, dur: val(f.dur), acc: 0.4, slow: val(f.slow) / 100, dmg: val(f.dps) * P }); break;
         case 'buff': for (const u of pick(f.who)) { const d = val(f.dur);
@@ -557,6 +558,9 @@ export class Battle {
         case 'cleanse': for (const u of pick(f.who || 'all')) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; } break;
         case 'heroJump': if (h) { h.jump = { sx: h.x, sy: h.y, tx: at[0], ty: at[1], t: 0, dur: 0.42, dmg: val(f.dmg) * hm * this.mods.heroAtk, r: rr, stun: val(f.stun) }; h.swing = 0.3; } break;
         case 'heroBuff': if (h) { const d = val(f.dur); if (f.guard) { h.guard = Math.max(h.guard, d); h.guardAmt = Math.max(h.guardAmt, val(f.guard) / 100); } if (f.haste) h.haste = Math.max(h.haste, d); if (f.dmgUp) { h.dmgUp = Math.max(h.dmgUp, d); h.dmgUpAmt = Math.max(h.dmgUpAmt, val(f.dmgUp) / 100); } if (f.taunt) { h.taunt = val(f.taunt); h.tauntT = d; } if (f.heal) h.hp = Math.min(h.maxHp, h.hp + h.maxHp * val(f.heal) / 100); if (f.gauge) h.gauge = Math.min(1, (h.gauge || 0) + val(f.gauge) / 100); } break;
+        // 영웅 패용: 엽전을 줍는다 / 선 진형의 힘을 잠시 k배로 (진형이 없으면 사기 else)
+        case 'gold': { const n = Math.round(val(f.n)); this.goldGain += n; this.ev('gold', { x: at[0], y: at[1] - 30, n }); break; }
+        case 'formBoost': if (this.form) { const fk = val(f.k) || 2; if (!this.form.base) this.form.base = this.form.fx; this.form.fx = Object.fromEntries(Object.entries(this.form.base).map(([q, w]) => [q, w * fk])); this.form.until = this.time + val(f.dur); this.ev('text', { x: 640, y: 300, s: `${FORMS[this.form.id].name}의 힘이 커졌다!`, c: '#b8862a', big: true }); } else if (f.else) this.gain(val(f.else), at[0], at[1] - 40); break;
         case 'bench': for (let q = 0; q < val(f.n) && this.bench.length; q++) { const back = this.bench.shift(), slot = this.hand.findIndex(z => !z); if (slot >= 0) this.hand[slot] = back; else this.drawPile.unshift(back); } break;
       }
     }
@@ -916,7 +920,7 @@ export class Battle {
         let omen = 0; for (const q of this.squads) if (q.team === 0 && q.alive > 0 && q.def.omen) omen = Math.max(omen, q.def.omen);
         sq.paid = true; const md = this.mods; this.gain(t.def.boss ? BOSS_MORALE : (sq.chaser ? SQUAD_MORALE * 0.5 : SQUAD_MORALE) + md.killMorale + omen + (this.gutT > 0 ? this.gutGain : 0), t.x, t.y);
         if (!sq.chaser) { if (++this.lootN >= md.lootEvery) { this.lootN = 0; this.loot(t.x, t.y); } if (md.killGold) { this.goldGain += md.killGold; this.ev('gold', { x: t.x, y: t.y, n: md.killGold }); } }
-        if (md.heroLoot && src && src.def.hero && src.type === this.lead && this.heroLootN < 3 && this.pouchCount() < md.pouch + 2) { const hc = Object.keys(CARDS).filter(k => CARDS[k].hero === this.lead); if (hc.length) { this.heroLootN++; this.gainCard(hc[(this.rand() * hc.length) | 0], t.x, t.y, 'hero'); } }
+        if (md.heroLoot && src && src.def.hero && src.type === this.lead && this.heroLootN < 3 && this.pouchCount() < md.pouch + 2) { const hc = Object.keys(CARDS).filter(k => CARDS[k].hero === this.lead && !CARDS[k].mastery); /* 숙련 패는 길에서만 얻는다 */ if (hc.length) { this.heroLootN++; this.gainCard(hc[(this.rand() * hc.length) | 0], t.x, t.y, 'hero'); } }
       }
     }
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });

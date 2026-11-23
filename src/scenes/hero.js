@@ -1,6 +1,6 @@
 // 영웅 고르기 (가로): 위에는 영웅 일곱의 얼굴, 아래에는 고른 영웅의 고유기와 전용 패
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr, poly } from '../render/draw.js';
 import { button, panel, brushTitle, seal, C, tapped, foil, goldText, shine, ui } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta, HARD, save, parseSeed, seedCode } from '../state.js';
@@ -80,7 +80,19 @@ export class HeroScene {
       ell(g, 286, yy + 14.5, 9, 9, col, INK, 1.1); text(g, String(n + 1), 286, yy + 15.5, { size: 12, font: FONT_B, fill: C.cream });
       text(g, sk.name, 302, yy + 15.5, { size: 16.5, font: FONT_B, align: 'left' }); text(g, sk.desc, 404, yy + 15.5, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 308 });
     });
-    cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
+    // 영웅 패 여덟 장: 두 장씩 넘겨 본다 (양옆 놋쇠 단추, 아래 네 점). 숙련이 모자란 패는 흐리게 '숙련 N에 열림'
+    if (this.cpgHero !== id) { this.cpgHero = id; this.cpg = 0; }
+    const pages = Math.ceil(cards.length / 2), pg = Math.min(this.cpg || 0, pages - 1);
+    cards.slice(pg * 2, pg * 2 + 2).forEach((k, n) => { const cx = 764 + n * 230, need = CARDS[k].mastery || 0, shut = need > ml || (locked && need);
+      cardFace(g, { id: k }, cx, 260, 222, 294, { dim: shut });
+      if (need && shut) { const ry = 396; rr(g, cx + 10, ry, 202, 30, 6, 'rgba(42,20,24,0.92)', INK, 1.4); rr(g, cx + 13, ry + 3, 196, 24, 4, null, foil(g, cx, cx + 222), 1); text(g, `숙련 ${need}에 열림`, cx + 111, ry + 15.5, { size: 15.5, font: FONT_B, fill: '#f0d99a' }); }
+      else if (need) { rr(g, cx + 150, 312, 62, 22, 11, '#2f6f5c', INK, 1.2); text(g, `숙련 ${need}`, cx + 181, 323.5, { size: 13, font: FONT_B, fill: C.cream }); } });
+    if (pages > 1) {
+      for (const [dir, x] of [[-1, 742], [1, 1220]]) { const off = dir < 0 ? pg <= 0 : pg >= pages - 1; g.save(); if (off) g.globalAlpha = 0.35;
+        rr(g, x, 362, 18, 74, 7, foil(g, x, x + 18), INK, 1.6); rr(g, x + 3, 365, 12, 68, 5, '#2a1418'); poly(g, dir < 0 ? [x + 12, 388, x + 6, 399, x + 12, 410] : [x + 6, 388, x + 12, 399, x + 6, 410], '#f0d264', INK, 0.8); g.restore();
+        if (!off && tapped('cpg' + dir, x - 6, 352, 30, 94)) { this.cpg = pg + dir; sfx('card'); } }
+      for (let q = 0; q < pages; q++) { const px = 985 + (q - (pages - 1) / 2) * 20, on = q === pg; g.save(); g.translate(px, 562); g.rotate(Math.PI / 4); rr(g, -4, -4, 8, 8, 1.4, on ? '#f0c85a' : 'rgba(60,40,20,0.25)', on ? '#5a3a10' : 'rgba(60,40,20,0.45)', 1); g.restore(); if (tapped('cpd' + q, px - 9, 553, 18, 18)) { this.cpg = q; sfx('card'); } }
+    }
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
     else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52, style: 'red' })) nav.go('prologue', { hero: id, seed: this.seed });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');

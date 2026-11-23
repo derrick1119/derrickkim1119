@@ -40,7 +40,7 @@ export const AXIS_CARDS = {
     fx: [{ op: 'aoe', dmg: 'dmg', slow: 'slow', slowT: 4 }] },
   byeorak: { name: '벼락 부적', kind: 'attack', axis: 'talisman', cost: 3, r: 72, target: true, rare: 1, v: { dmg: 270, stun: 1.5, amt: 20 }, up: { dmg: 360, stun: 2, amt: 30 }, desc: v => `범위 피해 ${v.dmg}, 기절 ${v.stun}초, 6초간 받는 피해 +${v.amt}%`,
     fx: [{ op: 'aoe', dmg: 'dmg', stun: 'stun' }, { op: 'mark', amt: 'amt', dur: 6 }] },
-  dungap: { name: '둔갑 부적', kind: 'support', axis: 'talisman', cost: 2, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `다음 패 ${v.n}장은 사기가 들지 않고, 빈 손패를 바로 채운다`,
+  dungapbu: { name: '둔갑 부적', kind: 'support', axis: 'talisman', cost: 2, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `다음 패 ${v.n}장은 사기가 들지 않고, 빈 손패를 바로 채운다`,
     fx: [{ op: 'free', n: 'n' }, { op: 'draw' }] },
   bujeokbi: { name: '부적 비', kind: 'attack', axis: 'talisman', cost: 4, r: 110, target: true, rare: 2, v: { dmg: 210, burn: 14, dps: 12 }, up: { dmg: 280, burn: 18, dps: 16 }, desc: v => `범위 피해 ${v.dmg} + 화상, 6초간 그 자리 적 속도 -30%·초당 피해 ${v.dps}`,
     fx: [{ op: 'aoe', dmg: 'dmg', burn: 'burn' }, { op: 'zone', dur: 6, slow: 30, dps: 'dps' }] },

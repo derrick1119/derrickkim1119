@@ -27,7 +27,7 @@ export const UNLOCK_PACE = [
   { at: 7, cards: ['byeorak', 'gyeorui', 'dokkaebibul'], relics: ['obangbuchae', 'hyangyak', 'beopgo', 'norigae'] },
   { at: 8, cards: ['sadae', 'gimamb', 'aekmagi'], relics: ['hangari', 'heuksal', 'bokjori', 'jeoul'] },
   { at: 9, cards: ['sasu', 'chongtong', 'holim'], relics: ['yakjo', 'sansin', 'pungdeung'] },
-  { at: 10, cards: ['hamjeong', 'dungap', 'ogu', 'bangmang'], relics: ['daejanggi'] },
+  { at: 10, cards: ['hamjeong', 'dungapbu', 'ogu', 'bangmang'], relics: ['daejanggi'] },
   { at: 11, cards: ['cheonbo', 'seonbong', 'ttukttak', 'gwolgi'], relics: ['singung', 'cheollima', 'cheorong'] },
   { at: 12, cards: ['bujeokbi', 'jakdu'], relics: ['singijeon', 'horibyeong', 'singal', 'hongui', 'dokkaebiwang'] },
 ];

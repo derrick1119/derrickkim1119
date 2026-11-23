@@ -188,7 +188,7 @@ export const priceMul = () => { const r = G.run; return hardOf(r.hard || 0).pric
 export const tacticCards = () => G.run.deck.filter(c => !isUnit(c) && CARDS[c.id].kind !== 'curse');
 export const pouchCap = () => mods().pouch;
 // 전장에서 줍는 패: 흔한 패가 자주, 이끄는 영웅의 영웅기도 섞인다
-export function lootTable() { const r = G.run, ax = runAxes(); return cardPool().map(id => [id, (CARDS[id].hero ? (CARDS[id].hero === r.hero ? 5 : 3) : [10, 5, 2][CARDS[id].rare || 0]) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 1.6 : 1)]); }
+export function lootTable() { const r = G.run, ax = runAxes(), pool = cardPool(), nh = Math.max(2, pool.filter(id => CARDS[id].hero).length); return pool.map(id => [id, (CARDS[id].hero ? (CARDS[id].hero === r.hero ? 16 : 6) / nh : [10, 5, 2][CARDS[id].rare || 0]) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 1.6 : 1)]); }
 // 싸움에서 쓴 패를 덱에서 지우고, 싸움에서 얻은 패와 엽전을 더한다 (전투 시뮬레이션은 원정 상태를 모른다)
 export function settleBattle(b) {
   const r = G.run;
@@ -277,12 +277,12 @@ export const canTemper = c => CARDS[c.id].kind === 'unit' && !c.tp;
 export function temper(uid) { const c = cardOf(uid); if (!c || !canTemper(c)) return null; c.tp = 1; save(); return c; }
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) { c.lv = (c.lv || 1) + 1; save(); } else master(c.id); return c; }
 // 영웅기 패는 덱에 그 영웅 패가 있을 때만 나온다
-export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero)) && paced('cards', id)); }
+export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero)) && paced('cards', id) && (!CARDS[id].mastery || G.run.daily || masteryLv((meta.heroXp || {})[CARDS[id].hero]) >= CARDS[id].mastery)); }
 // 지금 원정이 키우는 빌드 축: 승급한 갈래와 지닌 보물의 축 (그 축의 패·보물이 더 자주 나온다)
 export function runAxes() { const r = G.run, a = new Set(); if (!r) return a; for (const c of r.deck) { const B = branchOf(c.br); if (B) a.add(B.axis); } for (const id of r.relics) if (RELICS[id] && RELICS[id].axis) a.add(RELICS[id].axis); if (r.relics.some(id => RELICS[id] && RELICS[id].curse) || r.deck.some(c => c.id === 'doubt')) a.add('omen'); return a; }
 export function rollCards(kind, n = 3, keys) {
   const pool = cardPool().filter(id => !keys || !keys.has('cd' + id)), out = [], upP = kind === 'boss' ? 1 : kind === 'elite' ? 0.3 : kind === 'shop' ? 0.15 : 0.08;
-  const ax = runAxes(), w = id => (CARDS[id].hero ? 4 : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0)) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 2 : 1);
+  const ax = runAxes(), nh = Math.max(2, pool.filter(id => CARDS[id].hero).length), w = id => (CARDS[id].hero ? 12.8 / nh : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0)) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 2 : 1);
   for (let g = 0; out.length < n && g < 60; g++) { let x = rnd() * pool.reduce((a, id) => a + w(id), 0), id = pool[0]; for (const c of pool) { if ((x -= w(c)) < 0) { id = c; break; } } if (!id || out.some(o => o.id === id)) continue; out.push({ id, up: rnd() < upP }); }
   return out;
 }
