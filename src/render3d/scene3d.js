@@ -82,12 +82,61 @@ function beamTexture() {
   return beamTex;
 }
 
-/** 두 점을 잇는 원뿔(빔·시선). 위(y+) = 넓은 쪽. */
-function makeCone() {
+let ringTex = null;
+/** 견인 빔용: 가장자리가 밝은 빛 고리가 줄지어 있고(위로 흘러간다), 끝으로 갈수록 옅어진다. */
+function beamRingTexture() {
+  if (ringTex) return ringTex;
+  ringTex = canvasTexture(64, 128, (ctx, w, h) => {
+    // 가로: 가장자리가 밝은 유리관 느낌
+    const gx = ctx.createLinearGradient(0, 0, w, 0);
+    gx.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gx.addColorStop(0.18, 'rgba(255,255,255,0.45)');
+    gx.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+    gx.addColorStop(0.82, 'rgba(255,255,255,0.45)');
+    gx.addColorStop(1, 'rgba(255,255,255,0.95)');
+    ctx.fillStyle = gx;
+    ctx.fillRect(0, 0, w, h);
+    // 세로: 빛 고리 네 줄
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const y = (i + 0.5) * (h / 4);
+      const g = ctx.createLinearGradient(0, y - 10, 0, y + 10);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - 10, w, 20);
+    }
+  });
+  ringTex.wrapS = ringTex.wrapT = THREE.RepeatWrapping;
+  ringTex.repeat.set(3, 1.6);
+  return ringTex;
+}
+
+let fadeTex = null;
+/** 견인 빔 양 끝을 부드럽게 지우는 투명도 그림(흐르지 않는다). 초록 채널을 쓴다. */
+function beamFadeTexture() {
+  if (fadeTex) return fadeTex;
+  fadeTex = canvasTexture(4, 128, (ctx, w, h) => {
+    // 캔버스 위 = 텍스처 v 1(넓은 끝, 표본 쪽)
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgb(0,0,0)');
+    g.addColorStop(0.16, 'rgb(255,255,255)');
+    g.addColorStop(0.8, 'rgb(220,220,220)');
+    g.addColorStop(1, 'rgb(90,90,90)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }, { srgb: false });
+  return fadeTex;
+}
+
+/** 두 점을 잇는 원뿔(빔·시선). 위(y+) = 넓은 쪽. ring = 견인 빔(흐르는 빛 고리). */
+function makeCone(ring = false) {
   const geo = new THREE.CylinderGeometry(1, 0.12, 1, 24, 1, true);
   geo.translate(0, 0.5, 0);
   const m = new THREE.MeshBasicMaterial({
-    map: beamTexture(),
+    map: ring ? beamRingTexture() : beamTexture(),
+    alphaMap: ring ? beamFadeTexture() : null,
     color: new THREE.Color(BEAM),
     transparent: true,
     opacity: 0.5,
@@ -599,7 +648,7 @@ export class Scene3D extends Scene {
           strength = 0.6 + 0.3 * Math.sin(t * 40);
         }
         if (!target) continue;
-        const cone = this.beams[bi] || this._newCone(this.beams);
+        const cone = this.beams[bi] || this._newCone(this.beams, true);
         bi++;
         cone.visible = true;
         // 좁은 끝 = 기체 배, 넓은 끝 = 표본
@@ -609,6 +658,8 @@ export class Scene3D extends Scene {
       }
     }
     for (; bi < this.beams.length; bi++) this.beams[bi].visible = false;
+    // 빛 고리가 표본 쪽에서 기체 쪽으로 흘러 올라간다
+    if (ringTex) ringTex.offset.y = (t * 1.4) % 1;
 
     // 시선 원뿔: 머리 → 시선이 머무는 하늘(기체 높이). 넓은 끝의 반지름 = 시선 반폭.
     // 기체를 덮으면 빨갛게, 비켜 있으면 노랗게.
@@ -726,8 +777,8 @@ export class Scene3D extends Scene {
     return null;
   }
 
-  _newCone(list) {
-    const cone = makeCone();
+  _newCone(list, ring = false) {
+    const cone = makeCone(ring);
     this.engine.actors.add(cone);
     list.push(cone);
     return cone;
@@ -754,6 +805,7 @@ export class Scene3D extends Scene {
     ctx.save();
     ctx.translate(sx, sy);
     this._drawPlayHints();
+    this._drawBeamSparkles();
     const found = game.phase === 'discovered';
     const cloaked = game.cloaked;
     // 승급: 기체 뒤로 회전하는 빛줄기
@@ -942,6 +994,29 @@ export class Scene3D extends Scene {
         ctx.stroke();
       }
     }
+  }
+
+  /** 견인 빔 속을 타고 올라가는 반짝이. */
+  _drawBeamSparkles() {
+    const { ctx, world, t } = this;
+    if (!this.ufoVisible) return;
+    const belly = this.bellyPoint();
+    ctx.save();
+    for (const sp of world.specimens) {
+      if (sp.state !== 'beam') continue;
+      const k0 = easeIn(sp.bt);
+      const sx = lerp(sp.bx, belly.x, k0);
+      const sy = lerp(this._beamStartY(sp), belly.y + 6, k0);
+      for (let i = 0; i < 4; i++) {
+        const k = (t * 1.9 + i / 4 + sp.phase) % 1;
+        const x = lerp(sx, belly.x, k) + Math.sin(t * 9 + i * 2 + sp.phase) * 6 * (1 - k);
+        const y = lerp(sy, belly.y, k);
+        ctx.fillStyle = withAlpha(sp.auto ? '#c8ffe4' : '#ffffff', 0.85 * (1 - k * 0.7));
+        star(ctx, x, y, 4.5 - k * 2, 1.4, 4, t * 4 + i);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
 
   /** 시선이 곧 머물 자리: 기체 높이의 점선 띠, 위에 ?·! 표시와 남은 시간 고리. */
