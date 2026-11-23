@@ -105,7 +105,7 @@ export class HeroScene {
       if (button(g, 'h+', 262 + pw - 68, 608, 50, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
       if (vw) { const sel = Object.keys(meta.vowSel || {}).filter(k => meta.vowSel[k] && VOWS[k]), b = vowBonus(sel); if (button(g, 'vow', 704, 596, 124, 78, sel.length ? `서약 ${sel.length}` : '서약', { style: sel.length ? 'red' : 'wood', size: 22 })) { this.vowOpen = true; sfx('card'); } if (b) text(g, `공적 +${b}%`, 766, 688, { size: 13, fill: '#f0d99a' }); }
       text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', cx, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: pw - 160 });
-      text(g, lv ? `${hd.desc}${lv > 1 ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, cx, 652, { size: 14.5, fill: SUB, weight: 400, maxW: pw - 150 });
+      text(g, lv ? `${hd.desc}${lv > 1 && !vw ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, cx, 652, { size: 14.5, fill: SUB, weight: 400, maxW: pw - 150 });
     } else {
       text(g, '전술 패는 쓰면 사라집니다. 길에서 다시 채우세요.', 540, 626, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
       text(g, '영웅마다 병법이 다릅니다.', 540, 650, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
