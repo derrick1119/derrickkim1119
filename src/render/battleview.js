@@ -1,6 +1,6 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
 import { W, H, VIEW, MID_Y } from '../config.js';
-import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
+import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack, makeCanvas } from './draw.js';
 import { getLook, getWeapon, blinking, leftover, lookOf } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { CALL_R } from '../data/bossalt.js';
@@ -40,17 +40,16 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   const ap = clamp((ST - u.atkT) / (mode === 'lob' ? 0.9 : 0.36), 0, 1), act = ap < 1 ? Math.sin(ap * PI) : 0;
   let x = u.x, y = u.y - (u.jumpH || 0), sy = 1, sxm = 1;
   // 막 세워진 인형은 톡 하고 일어선다. 걸을 때는 디딜 때마다 살짝 눌린다
-  const age = ST - (u.born || 0); if (age >= 0 && age < 0.3) { const e = age / 0.3, b = 1 + 2.2 * Math.pow(e - 1, 3) + 1.2 * Math.pow(e - 1, 2); sy *= 0.3 + 0.7 * b; sxm *= 1.25 - 0.25 * b; }
-  if (moving) { const q = Math.abs(Math.cos(ph)); sy *= 1 - 0.05 * q * q; }
+  const age = ST - (u.born || 0); if (age >= 0 && age < 0.3) { const e = age / 0.3; y -= Math.sin(e * PI) * 10 * k; alpha *= Math.min(1, 0.35 + e * 1.6); }   // 세워질 때: 땅에서 톡 솟았다 내려앉는다 (찌그러뜨리지 않는다)
+
   // 맞은 순간: 맞은 방향으로 살짝 밀리며 뒤로 젖혀졌다가 곧 제자리로 돌아온다 (빠르게 밀리고 천천히 돌아온다)
   const ht = ST - (u.hitT === undefined ? -9 : u.hitT);
-  if (ht >= 0 && ht < HIT_T && !L.still) { const e = ht / HIT_T, f = e < 0.2 ? e / 0.2 : Math.pow(1 - (e - 0.2) / 0.8, 2), a = HIT_PX * k * f; x += u.hitX * a; y += u.hitY * a * 0.6; tilt += u.hitX * f * 0.1; sy *= 1 - 0.05 * f * Math.min(1, Math.abs(u.hitX) + Math.abs(u.hitY)); }
+  if (ht >= 0 && ht < HIT_T && !L.still) { const e = ht / HIT_T, f = e < 0.2 ? e / 0.2 : Math.pow(1 - (e - 0.2) / 0.8, 2), a = HIT_PX * k * f; x += u.hitX * a; y += u.hitY * a * 0.6; tilt += u.hitX * f * 0.1; }
   if (act > 0) {
     if (mode === 'slash' || mode === 'thrust' || mode === 'bite') { x += c * act * 6 * k; y += s * act * 6 * k; tilt += dir * act * (mode === 'bite' ? 0.2 : 0.12); }
-    else if (mode === 'shoot') { x -= c * act * 3 * k; y -= s * act * 3 * k; sy *= 1 - act * 0.05; }
+    else if (mode === 'shoot') { x -= c * act * 3 * k; y -= s * act * 3 * k; tilt -= dir * act * 0.05; }
     else if (mode === 'cast') { hop += act * 5; tilt += dir * act * 0.08; }
   }
-  if (u.flash > 0.4) { sy *= 1 - (u.flash - 0.4) * 0.1; sxm *= 1 + (u.flash - 0.4) * 0.08; }
   if (u.stun > 0) x += Math.sin(T * 40 + u.id) * 0.9;
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
   if (u.def && u.def.cloak) alpha *= 0.5 + 0.12 * Math.sin(T * 3 + u.id);   // 감투 도깨비: 도깨비감투를 써서 반쯤 비친다
@@ -136,16 +135,25 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
 }
 
 const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: '#5a4a8a', meteor: '#d9702a', volley: INDIGO, fox: '#3f9fd0', pounce: '#c8642a', poison: '#6a9a3a', devour: '#6a6f78', bolt: '#d9a41e', flood: '#3f7fb8', swap: '#8a5aa8', rock: '#7a6a5a', fire: '#d9702a', shoe: '#8a6a3a', gallop: '#3f7fb8', rope: '#8a2a26', breath: '#6a4a3a', wail: '#5a4a6a' };
-const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#c08ad8', '#b8a0e0', '#8fd3c8'] };
+const AMB = { pass: ['#f0d264', '#e8c24a', '#a9c47a'],   // 산수유 꽃잎과 새잎 (분홍 꽃잎은 벚꽃처럼 보여 쓰지 않는다)
+  grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#c08ad8', '#b8a0e0', '#8fd3c8'] };
 // 붉지 않은 원에는 무엇인지 이름을 붙인다
 const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인', swap: '자리 바꾸기', rock: '바위', fire: '불길', shoe: '신발 도둑', gallop: '내달리기', rope: '포승줄', breath: '세 머리 입김', wail: '소리 없는 울음' };
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
 // 이어 붙인 긴 그림 한 장(너비 period)을 화면에 보이는 만큼만 그린다. top 위쪽은 투명해서 건너뛴다
+// 그림의 양 끝에는 반대쪽 끝을 몇 픽셀 덧대 둔다: 끝 픽셀을 늘려 그릴 때 그림 밖(투명)과 섞여 이음매에 옅은 세로줄이 비치지 않게
+const PADDED = new WeakMap(), PADK = 8;
+function padded(img) {
+  let p = PADDED.get(img); if (p) return p;
+  const pw = PADK, c = makeCanvas(img.width + pw * 2, img.height), g = c.getContext('2d');
+  g.drawImage(img, pw, 0); g.drawImage(img, img.width - pw, 0, pw, img.height, 0, 0, pw, img.height); g.drawImage(img, 0, 0, pw, img.height, img.width + pw, 0, pw, img.height);
+  p = { c, pw }; PADDED.set(img, p); return p;
+}
 function strip(g, img, period, off, top) {
-  const k = img.width / period, full = img.height / k; let x = -Math.round(((off % period) + period) % period);
-  // 두 장이 만나는 자리는 정수 픽셀에 맞추고 반 픽셀 겹쳐 그린다 (소수 자리에서 만나면 가는 틈이 비친다)
-  for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(img, a * k, top * k, Math.min(img.width - a * k, (b - a + 0.5) * k), (full - top) * k, x + a, top, Math.min(b - a + 0.5, period - a), full - top); }
+  const P = padded(img), k = img.width / period, full = img.height / k; let x = -Math.round(((off % period) + period) % period);
+  // 덧댄 그림에서 떼어 그리므로 두 장이 만나는 자리도 양쪽이 진짜 그림이다. 반 픽셀 겹쳐 틈이 비치지 않게 한다
+  for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(P.c, P.pw + a * k, top * k, (b - a + 0.5) * k, (full - top) * k, x + a, top, b - a + 0.5, full - top); }
 }
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.fork = null; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }

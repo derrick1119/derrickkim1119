@@ -111,7 +111,7 @@ export const HARD = [
   { name: '더딘 손', desc: '손패가 15% 늦게 찬다' },
   { name: '두목의 분노', desc: '두목 체력 +20% 더' },
   { name: '부정 탄 길', desc: '부정 하나를 지고 떠난다' },
-  { name: '꺼진 기세', desc: '사기 회복 -15%' },
+  { name: '꺼진 기세', desc: '얻는 사기 -15%' },
   { name: '좁은 군막', desc: '부대 한도 -1로 떠난다' },
   { name: '쇠가죽 요괴', desc: '요괴 체력 +12% 더' },
   { name: '긴 밤의 끝', desc: '요괴 공격력 +12% 더' },
@@ -308,8 +308,10 @@ export function rollCards(kind, n = 3, keys) {
 }
 
 // ───────── 무기 ─────────
-export const usersOf = wid => Object.keys(ARMS).filter(t => canEquip(t, wid)).map(t => UNITS[t].name);
-export function weaponPool() { const types = [...new Set(unitCards().map(c => CARDS[c.id].unit))]; return LOOT_WEAPONS.filter(w => types.some(t => canEquip(t, w))); }
+export const usersOf = wid => Object.keys(ARMS).filter(t => canEquip(t, wid) && ARMS[t].base !== wid).map(t => UNITS[t].name);   // 처음부터 그 무기를 든 병종(언월도를 든 장군)은 빼고 적는다
+// 얻을 만한 무기: 덱의 병력 패 가운데 그 무기를 끼울 수 있고, 그것이 원래 든 무기도 아니고 이미 끼운 무기도 아닌 패가 하나라도 있어야 한다
+// (영웅 장군은 처음부터 언월도를 들고 있으니 장터·전리품에 언월도가 나오지 않는다)
+export function weaponPool() { const cards = unitCards(); return LOOT_WEAPONS.filter(w => cards.some(c => { const t = CARDS[c.id].unit; return canEquip(t, w) && ARMS[t].base !== w && c.wpn !== w; })); }
 // 부대가 전멸하면 그 패에 끼운 무기도 함께 사라진다 (보관함으로 돌아가지 않는다)
 export function loseWeapon(uid) { const c = G.run.deck.find(q => q.uid === uid); if (!c || !c.wpn) return null; const w = c.wpn; delete c.wpn; save(); return w; }
 export const weaponOf = c => c.wpn || (ARMS[CARDS[c.id].unit] ? ARMS[CARDS[c.id].unit].base : null);

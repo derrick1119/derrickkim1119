@@ -141,8 +141,9 @@ export class DeckView {
     text(g, `${CLS_NAME[WEAPONS[cur].cls]} · ${WEAPONS[cur].name}`, px + 16, 432, { size: 18, font: FONT_B, align: 'left', fill: INDIGO }); text(g, WEAPONS[cur].desc, px + 16, 454, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 334 }); if (c.wpn) text(g, '부대가 전멸하면 이 무기도 잃습니다', px + 350, 432, { size: 13, align: 'right', fill: RED, weight: 400 });
     // 끼운 무기의 세트: 덱에 몇 개 모였는지와 다음 세트 효과
     const S = setOf(cur); if (S) { const n = (setProgress(r.deck).find(q => q.set === S) || { n: 0 }).n, nx = S.tiers.find(t => n < t.n); rr(g, px + 14, 466, 8, 8, 1.5, S.col, INK, 0.8); text(g, `세트 · ${S.name} ${n}/3  ${nx ? `— ${nx.n}개: ${nx.desc}` : '— 세트 효과 모두 켜짐'}`, px + 28, 471, { size: 13.5, align: 'left', fill: S.col, maxW: 326 }); }
-    const slots = [{ wid: cur, on: true }]; if (c.wpn) slots.push({ wid: arm.base, base: true });
-    r.items.forEach(wid => { if (canEquip(type, wid)) slots.push({ wid }); }); r.items.forEach(wid => { if (!canEquip(type, wid)) slots.push({ wid, dim: true }); });
+    const slots = [{ wid: cur, on: true }]; if (c.wpn && c.wpn !== arm.base) slots.push({ wid: arm.base, base: true });   // 끼운 무기가 원래 무기와 같으면 '기본' 칸을 따로 두지 않는다
+    const same = wid => wid === cur;   // 지금 든 무기와 같은 무기는 끼워도 달라질 게 없으니 흐리게
+    r.items.forEach(wid => { if (canEquip(type, wid) && !same(wid)) slots.push({ wid }); }); r.items.forEach(wid => { if (!canEquip(type, wid) || same(wid)) slots.push({ wid, dim: true }); });
     slots.slice(0, 8).forEach((o, k) => {
       if (weaponTile(g, 'wt' + k, o.wid, px + 14 + (k % 4) * 85, 484 + Math.floor(k / 4) * 71, 80, 66, { on: o.on, dim: o.dim, tag: o.on ? '장착' : o.base ? '기본' : o.wid === this.hint ? '새것' : '' }) && !o.on) { equip(c.uid, o.base ? null : o.wid); sfx('place'); if (this.onChange) this.onChange(); }
     });

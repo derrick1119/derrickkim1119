@@ -36,7 +36,8 @@ export const DEFAULT_MODS = {
 export const HAND = 5, REFILL = 3.2, MAX_CAP = 9;
 // 사기는 가만히 있어도 차오르는 자원이 아니다: 물결이 시작될 때 한 몫, 요괴 무리를 하나 물리칠 때마다 한 닢.
 // 싸우는 동안에는 아주 천천히, 행군하며 숨을 고를 때는 조금 더 빨리 돌아온다. 아낀 사기는 다음 싸움으로 넘어간다
-export const MORALE_RATE = 0.03, MARCH_RATE = 0.16, WAVE_MORALE = 2, SQUAD_MORALE = 1, BOSS_MORALE = 3;
+// 사기는 시간이 흘러서 차오르지 않는다: 싸움이 열릴 때 북소리로 한 번(WAVE_MORALE), 요괴 무리를 물리칠 때마다(SQUAD_MORALE) 얻는다. moraleRate 는 얻는 양에 곱한다
+export const WAVE_MORALE = 6, SQUAD_MORALE = 2, BOSS_MORALE = 3;
 export const GAUGE_RATE = 0.085, COMBO_TIME = 26;
 // 요괴 쪽 보정 (강적 특성, 험로 단계)
 export const DEFAULT_FOE = { hp: 1, atk: 1, as: 1, spd: 1, regen: 0 };
@@ -261,7 +262,6 @@ export class Battle {
   step(dt) {
     if (this.over) return;
     this.time += dt; if (this.waveOn) this.waveT += dt;
-    this.morale = Math.min(this.moraleMax, this.morale + dt * (this.waveOn ? MORALE_RATE : MARCH_RATE) * this.mods.moraleRate);
     if (this.torch > 0) this.torch -= dt; if (this.gutT > 0) this.gutT -= dt; if (this.exposeT > 0) this.exposeT -= dt;
     for (let i = 0; i < HAND; i++) if (!this.hand[i] && (this.slotT[i] -= dt) <= 0) { const c = this.drawCard(); if (c) { this.hand[i] = c; this.ev('draw', { slot: i }); } }
     this.hash(); this.centroids();
@@ -301,7 +301,7 @@ export class Battle {
     this.chase = o.chase || null; this.chaseN = 0;
     this.later = [];
     for (const [type, col, row, op] of list) { const p = spawnPos(col, row); if (UNITS[type].structure) p.x = VIEW.x1 - 80 - row * 34; if (op && op.behind) { this.later.push({ at: this.time + (op.wait || 7), s: Object.assign({ type, x: VIEW.x0 - 20, y: p.y, lvl: o.lvl || 1 }, op) }); continue; } this.addSquad(1, Object.assign({ type, x: p.x, y: p.y, lvl: o.lvl || 1 }, op || {})); }
-    const md = this.mods; this.gain(WAVE_MORALE + md.startMorale); this.morale = Math.max(0, this.morale); this.free = md.freeFirst;
+    const md = this.mods; this.gain(WAVE_MORALE * md.moraleRate + md.startMorale); this.morale = Math.max(0, this.morale); this.free = md.freeFirst;
     // 척후를 미리 보냈다면: 사기를 더 얻고, 요괴는 허를 찔린 채 들어온다
     if (this.scout) { this.gain(this.scout.gain); this.expose = this.scout.expose / 100; this.scout = null; this.ev('text', { x: 640, y: 300, s: '척후의 보고 — 허를 찔렀다!', c: '#2f4d7e', big: true }); } else this.expose = 0;
     if (md.startShield) for (const u of this.units) if (u.team === 0 && !u.dead && !u.def.structure) { u.barrier = Math.max(u.barrier, md.startShield); u.barrierT = 30; }
@@ -383,6 +383,7 @@ export class Battle {
   updateOrders() {
     for (const sq of this.squads) {
       const o = sq.order; if (!sq.alive) continue;
+      if (sq.team === 0 && (o.kind === 'hold' || o.kind === 'move') && sq.groupN && sq.alive !== sq.groupN) this.reform(sq);
       if (o.kind === 'focus' && (!o.target || o.target.alive <= 0)) sq.order = { kind: 'auto' };
       else if (o.kind === 'hold' && o.until !== undefined && this.time > o.until) sq.order = { kind: 'auto' };
       else if (o.kind === 'move') {
@@ -403,15 +404,26 @@ export class Battle {
   // ───────── 플레이어 명령 ─────────
   // 명령을 받으면 홀림에서 깨어난다
   uncharm(sq) { let n = 0; for (const u of sq.units) if (u.charm > 0) { u.charm = 0; n++; } if (n) this.ev('text', { x: sq.cx, y: sq.cy - 60, s: '정신을 차렸다!', c: '#2f6f5c' }); }
-  orderMove(sq, x, y) {
-    this.uncharm(sq);
+  orderMove(sq, x, y, keep) {
+    this.uncharm(sq); if (!keep) sq.line = null; this.reform(sq);
     x = clamp(x, VIEW.x0 + 30, VIEW.x1 - 30); y = clamp(y, VIEW.y0 + 20, VIEW.y1 - 20); sq.home = { x, y };
     if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) { x = (c % NC + 0.5) * CELL; y = (((c / NC) | 0) + 0.5) * CELL; } }
     sq.order = { kind: 'move', x, y, t0: this.time }; for (const u of sq.units) { u.target = null; u.path = null; }
   }
   orderFocus(sq, target) { this.uncharm(sq); sq.order = { kind: 'focus', target }; for (const u of sq.units) { u.retarget = 0; u.path = null; } }
   orderAuto(sq) { this.uncharm(sq); sq.order = { kind: 'auto' }; for (const u of sq.units) u.retarget = 0; }
-  orderHold(sq) { this.uncharm(sq); sq.home = { x: sq.cx, y: sq.cy }; sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; for (const u of sq.units) if (!u.dead) { u.slot.dx = u.x - sq.cx; u.slot.dy = u.y - sq.cy; u.target = null; } }
+  orderHold(sq) { this.uncharm(sq); sq.home = { x: sq.cx, y: sq.cy }; sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; this.reform(sq); for (const u of sq.units) if (!u.dead) u.target = null; }
+  // 부대의 인형 자리를 다시 짠다 (reform): 살아 있는 인형 수에 맞춘 촘촘한 진(붓으로 친 진이면 획의 결을 따른 줄), 가까운 인형부터 자리를 맡는다
+  lineOffsets(n, ang, gap) {
+    const rows = n > 5 ? 2 : 1, sp = clamp(gap * 0.8 / Math.max(1, Math.ceil(n / rows) - 1), 18, 30), tx = Math.cos(ang), ty = Math.sin(ang), nx = -ty, ny = tx, out = [];
+    for (let i = 0; i < n; i++) { const r = rows > 1 ? (i % 2) : 0, c = rows > 1 ? (i >> 1) : i, cnt = rows > 1 ? (r ? Math.floor(n / 2) : Math.ceil(n / 2)) : n, along = (c - (cnt - 1) / 2) * sp + (r ? sp * 0.5 : 0), across = rows > 1 ? (r ? 14 : -14) : 0; out.push({ dx: tx * along + nx * across, dy: ty * along + ny * across }); }
+    return out;
+  }
+  reform(sq) {
+    const alive = sq.units.filter(u => !u.dead); sq.groupN = alive.length; if (!alive.length) return;
+    const offs = sq.line ? this.lineOffsets(alive.length, sq.line.ang, sq.line.gap) : formation(alive.length).map(o => ({ dx: o[1], dy: o[0] })), cx = sq.cx, cy = sq.cy, left = alive.slice();
+    for (const o of offs) { let bi = 0, bd = 1e9; left.forEach((u, i) => { const d = hyp(u.x - cx - o.dx, u.y - cy - o.dy); if (d < bd) { bd = d; bi = i; } }); const u = left.splice(bi, 1)[0]; u.slot.dx = o.dx; u.slot.dy = o.dy; }
+  }
   squadNear(x, y, team, maxD) {
     let best = null, bd = maxD;
     for (const u of this.units) { if (u.dead || u.team !== team || u.hidden > 0) continue; const d = hyp(u.x - x, u.y - 14 - y) - u.r * 0.5; if (d < bd) { bd = d; best = u.squad; } }
@@ -423,8 +435,10 @@ export class Battle {
   // 병력 패를 놓을 수 있는 오른쪽 한계 (요괴 전열 바로 앞까지)
   deployMaxX() { let m = 860; for (const e of this.units) if (!e.dead && e.team === 1 && e.hidden <= 0) m = Math.min(m, e.x - 150); return Math.max(260, m); }
   // ───────── 전술 패 ─────────
+  // 전장이 비었을 때: 사기가 시간으로 차오르지 않으니, 우리 부대가 하나도 서 있지 않으면 병력 패 한 장은 사기 없이 세운다 (싸움이 멈춰 버리지 않게)
+  emptyField() { return this.waveOn && !this.squads.some(q => q.team === 0 && q.alive > 0 && !q.temp && !q.def.banner && !q.def.structure); }
   costOf(c) {
-    if (!c) return 99; if (c.free) return 0; const d = CARDS[c.id], k = Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0));
+    if (!c) return 99; if (c.free) return 0; if (isUnit(c) && this.emptyField()) return 0; const d = CARDS[c.id], k = Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0));
     // 신선의 도술: 전술 패를 사기 1 덜 내고 쓴다 (1 아래로는 내려가지 않는다)
     return this.mods.tacDisc && !isUnit(c) && k > 1 ? Math.max(1, k - this.mods.tacDisc) : k;
   }
@@ -683,6 +697,7 @@ export class Battle {
     if (def.heal) { this.healerAI(u, dt, o); return; }
     if (u.target) this.engage(u, u.target, dt, o);
     else if (o.kind === 'hold') this.toSlot(u, o, dt);
+    else if (u.team === 0 && sq.alive > 1 && hyp(sq.cx + u.slot.dx - u.x, sq.cy + u.slot.dy - u.y) > 70) this.moveTo(u, sq.cx + u.slot.dx, sq.cy + u.slot.dy, dt);   // 홀로 떨어진 인형은 부대 곁으로
     else this.idle(u, dt);
   }
   idle(u, dt) {
@@ -759,9 +774,9 @@ export class Battle {
       if (o.kind !== 'hold') { this.moveTo(u, t.x, t.y, dt); return; }
     }
     if (o.kind === 'hold') { this.toSlot(u, o, dt); return; }
-    // 가장 가까운 전투 병력을 뒤따른다
-    let a = null, bd = 1e9; for (const e of this.units) { if (e.dead || e.team !== u.team || e.def.support || e.def.structure) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; a = e; } }
-    if (a) { const gx = a.x + (u.team === 0 ? -74 : 74); if (hyp(gx - u.x, a.y - u.y) > 34) { this.moveTo(u, gx, a.y + u.slot.dy, dt); return; } }
+    // 부대 가운데에서 가장 가까운 전투 병력을 부대가 함께 뒤따른다 (인형마다 다른 아군을 따라가 흩어지지 않게)
+    const sq = u.squad; let a = sq.follow; if (!a || a.dead || (sq.followT || 0) < this.time) { a = null; let bd = 1e9; for (const e of this.units) { if (e.dead || e.team !== u.team || e.def.support || e.def.structure) continue; const d = hyp(e.x - sq.cx, e.y - sq.cy); if (d < bd) { bd = d; a = e; } } sq.follow = a; sq.followT = this.time + 1; }
+    if (a) { const gx = a.x + (u.team === 0 ? -74 : 74) + u.slot.dx, gy = a.y + u.slot.dy; if (hyp(gx - u.x, gy - u.y) > 20) { this.moveTo(u, gx, gy, dt); return; } }
     this.idle(u, dt);
   }
   heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal * (1 + SYN_K.rite[this.syn.rite || 0]) * (this.form && this.form.fx.heal ? 1 + this.form.fx.heal : 1) : 1); t.hp = Math.min(t.maxHp, t.hp + amt);
@@ -941,7 +956,7 @@ export class Battle {
       if (sq.alive <= 0 && !sq.paid && !sq.summonPool) {
         // 까치가 전장에 있으면 반가운 소식만큼 사기를 더 얻는다
         let omen = 0; for (const q of this.squads) if (q.team === 0 && q.alive > 0 && q.def.omen) omen = Math.max(omen, q.def.omen);
-        sq.paid = true; const md = this.mods; this.gain(t.def.boss ? BOSS_MORALE : (sq.chaser ? SQUAD_MORALE * 0.5 : SQUAD_MORALE) + md.killMorale + omen + (this.gutT > 0 ? this.gutGain : 0), t.x, t.y);
+        sq.paid = true; const md = this.mods; this.gain(t.def.boss ? BOSS_MORALE : (sq.chaser ? SQUAD_MORALE * 0.5 : SQUAD_MORALE) * md.moraleRate + md.killMorale + omen + (this.gutT > 0 ? this.gutGain : 0), t.x, t.y);
         if (!sq.chaser) { if (++this.lootN >= md.lootEvery) { this.lootN = 0; this.loot(t.x, t.y); } if (md.killGold) { this.goldGain += md.killGold; this.ev('gold', { x: t.x, y: t.y, n: md.killGold }); } }
         if (md.heroLoot && src && src.def.hero && src.type === this.lead && this.heroLootN < 3 && this.pouchCount() < md.pouch + 2) { const hc = Object.keys(CARDS).filter(k => CARDS[k].hero === this.lead && !CARDS[k].mastery); /* 숙련 패는 길에서만 얻는다 */ if (hc.length) { this.heroLootN++; this.gainCard(hc[(this.rand() * hc.length) | 0], t.x, t.y, 'hero'); } }
       }

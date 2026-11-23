@@ -102,7 +102,7 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   else if (act === 'shake') { dx = Math.sin(t * 9) * 3 * s; rot = Math.sin(t * 9) * 0.06; }
   else if (act === 'tremble') { const q = Math.sin(t * 5.5 + x * 0.05); rot = q * 0.035; dy = (1 - Math.abs(q)) * 1.2 * s; }
   else if (pose) rot = 0;
-  else if (lie) { rot = (act === 'fall' ? -f : f) * 0.07; dy = act === 'sleep' ? Math.sin(t * 2) * 1.2 : 0; }
+  else if (lie) { rot = act === 'fall' ? -f * 0.5 : act === 'bow' ? f * (0.16 + 0.04 * Math.sin(t * 2.4)) : f * 0.1; dy = (act === 'fall' ? 6 : act === 'bow' ? 4 : 5) * s + (act === 'sleep' ? Math.sin(t * 2) * 1.2 : 0); }   // 엎드림·절·잠: 찌그러뜨리지 않고 몸을 앞으로 숙여 머리를 낮춘다
   else if (act === 'bow') rot = f * 0.4 * (0.6 + 0.4 * Math.sin(t * 3));
   else if (act === 'fall') { rot = -f * 1.4; dy = -22 * s; }
   else if (act === 'sleep') { rot = f * 1.5; dy = -22 * s + Math.sin(t * 2) * 1.5; }
@@ -115,7 +115,7 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다 (o.rodTo: 막대 아래 끝 y · o.rodSkip: [위, 아래] 그 사이는 앞의 세간에 가려 그리지 않는다)
   if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); const by = o.rodTo !== undefined ? o.rodTo : y + 96 * s, at = yy => cx + (bx - cx) * (yy - cy) / (by - cy), segs = o.rodSkip ? [[cy, o.rodSkip[0]], [o.rodSkip[1], by]] : [[cy, by]]; for (const [y0, y1] of segs) { if (y1 <= y0) continue; line(g, [at(y0), y0, at(y1), y1], INK, 4.4 * s); line(g, [at(y0), y0, at(y1), y1], '#9a7440', 2.4 * s); line(g, [at(y0) - 0.8 * s, y0 + 6 * s, at(y1) - 0.8 * s, y1], 'rgba(255,230,180,0.35)', 0.9 * s); } }
   const shut = act === 'sleep' || (lie && act === 'bow'), breathe = pose === '_sleep' ? 1 + Math.sin(t * 2) * 0.025 : 1;   // 잠든 범은 숨 쉬듯 부푼다
-  g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (breathe !== 1) g.scale(1, breathe); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
+  g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (breathe !== 1) g.scale(breathe, breathe); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
   portrait(g, type, 0, 0, ps * (L.scale / 1.1), shut ? 0 : t, false, bare ? 'none' : undefined, shut);
   g.restore();
   // 잠든 인형 위로 붓글씨 '쿨쿨' 이 번갈아 떠오른다

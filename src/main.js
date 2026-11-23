@@ -1,11 +1,10 @@
 import { W, H } from './config.js';
 import { nav } from './nav.js';
-import { stageWipe } from './render/stagewipe.js';
+import { stageWipe, stagePlaque } from './render/stagewipe.js';
 import { ui } from './ui/ui.js';
 import { sfx, unlockAudio } from './audio.js';
 import { load, G } from './state.js';
 import { preloadLooks } from './render/sprites.js';
-import { inkWipe } from './render/ink.js';
 import { warmIcons } from './render/icons.js';
 import { TitleScene } from './scenes/title.js';
 import { HeroScene } from './scenes/hero.js';
@@ -74,13 +73,16 @@ function frame(ts) {
   ui.top = 0; ui.layer = 0;
   if (nav.cur) nav.cur.frame(g, dt, inp);
   if (nav.dir) {
-    nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * (nav.dir > 0 ? 2.6 : 2.2)));
+    if (nav.plaque && nav.dir < 0 && nav.plaque.t < (nav.plaque.dur || 1.7)) nav.plaque.t += dt;   // 이름판이 걸린 동안은 막을 닫아 둔다
+    else nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * (nav.dir > 0 ? 2.6 : 2.2)));
     if (nav.dir > 0 && nav.fade >= 1) nav.hold = (nav.hold || 0) + dt;   // 다 닫힌 막을 잠깐 보여 준다
-    if (nav.dir > 0 && nav.fade >= 1 && nav.hold > 0.12) { nav.hold = 0; const n = nav.next; nav.next = null; nav.cur = new nav.scenes[n.name](n.args); nav.dir = -1; ui.active = null; }
-    else if (nav.dir < 0 && nav.fade <= 0) nav.dir = 0;
+    if (nav.dir > 0 && nav.fade >= 1 && nav.hold > 0.12) { nav.hold = 0; const n = nav.next; nav.next = null; nav.cur = new nav.scenes[n.name](n.args); nav.dir = -1; ui.active = null;
+      // 새 마당이 막간 이름판을 내밀면 닫힌 막 위에 걸고, 그만큼 막을 늦게 연다 (마당 안에서 막을 한 번 더 열지 않게)
+      if (nav.cur.intermission) { nav.plaque = Object.assign({ t: 0 }, nav.cur.intermission); nav.cur.intermission = null; } }
+    else if (nav.dir < 0 && nav.fade <= 0) { nav.dir = 0; nav.plaque = null; }
   }
   // 장면이 바뀔 때: 인형극 무대의 막이 양옆에서 닫혔다가, 새 마당 위에서 다시 열린다
-  if (nav.fade > 0) stageWipe(g, nav.fade, W, H, ts / 1000);
+  if (nav.fade > 0) { stageWipe(g, nav.fade, W, H, ts / 1000); if (nav.plaque) stagePlaque(g, nav.fade, W, H, nav.plaque); }
   if (inp.released) ui.active = null;
   inp.pressed = false; inp.released = false;
   requestAnimationFrame(frame);

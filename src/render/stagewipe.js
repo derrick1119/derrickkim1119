@@ -1,6 +1,6 @@
 // 장면이 바뀔 때: 인형극 무대의 막이 양옆에서 닫혔다가 새 마당 위에서 다시 열린다.
 // 쪽물 들인 무명 휘장(주름이 진 두꺼운 막) · 위의 가림막(색동 띠와 오방색 술) · 다 닫히면 가운데에 금빛 매듭이 내려온다.
-import { TAU, INK, makeCanvas, line, ell, path, rr } from './draw.js';
+import { TAU, INK, FONT_B, makeCanvas, line, ell, path, rr, text } from './draw.js';
 
 const OBANG = ['#c8402f', '#2f4d7e', '#e0b23c', '#f6efdc', '#2b2a30'], SAEK = ['#c8402f', '#e0b23c', '#3f6b5c', '#f6efdc', '#2f4d7e', '#d98aa0'];
 let TEX = null;
@@ -56,5 +56,16 @@ export function stageWipe(g, k, W, H, T = 0) {
     ell(g, cx, ky, 7, 7, '#e0b23c', INK, 1.4);
     for (let j = -3; j <= 3; j++) { const sw = Math.sin(T * 3 + j) * 1.4; line(g, [cx + j * 2.2, ky + 18, cx + j * 3.2 + sw, ky + 64], j % 2 ? '#e0b23c' : '#c8402f', 2.4); }
     g.restore(); }
+  g.restore();
+}
+
+// 닫힌 막 위에 거는 마당 이름판: 위에서 내려온 줄에 매달린 한지 판 (p: { n: '첫째 마당', s: '이야기 제목', t })
+export function stagePlaque(g, k, W, H, p) {
+  const a = Math.max(0, (k - 0.85) / 0.15) * Math.min(1, (p.t || 0) / 0.25 + (p.t === undefined ? 1 : 0)); if (a <= 0) return;
+  const cx = W / 2, cy = H * 0.46, drop = (1 - Math.min(1, (p.t || 0) / 0.35)) * -30;
+  g.save(); g.globalAlpha = a; g.translate(0, drop);
+  for (const sx of [-1, 1]) { line(g, [cx + sx * 150, 0, cx + sx * 150, cy - 48], INK, 3); line(g, [cx + sx * 150, 0, cx + sx * 150, cy - 48], '#c9962e', 1.4); }
+  rr(g, cx - 206, cy - 46, 420, 104, 8, 'rgba(8,6,10,0.45)'); rr(g, cx - 210, cy - 52, 420, 104, 8, '#f3e7c8', INK, 3); rr(g, cx - 202, cy - 44, 404, 88, 5, null, 'rgba(122,74,44,0.75)', 1.6);
+  text(g, p.n || '', cx, cy - 26, { size: 20, font: FONT_B, fill: '#7a4a2c' }); text(g, p.s || '', cx, cy + 12, { size: 40, font: FONT_B, fill: INK, maxW: 380 });
   g.restore();
 }

@@ -97,10 +97,8 @@ export function lineSlots(n, ang, gap) {
 export function applyBrush(b, brush) {
   const sq = b.formSquads(), plan = planBrush(sq, brush, (x, y) => b.spot(x, y));
   for (const p of plan) {
-    const alive = p.sq.units.filter(u => !u.dead), sl = lineSlots(alive.length, p.ang, p.gap);
-    // 가로로 긋던 획이면 결을 세로로 돌리지 않는다: 인형들의 앞뒤 순서는 오른쪽(요괴 쪽)이 앞
-    alive.sort((u, v) => (u.x - v.x) * Math.cos(p.ang) + (u.y - v.y) * Math.sin(p.ang)).forEach((u, i) => { u.slot.dx = sl[i].dx; u.slot.dy = sl[i].dy; });
-    b.orderMove(p.sq, p.x, p.y);
+    // 인형들은 획의 결을 따라 늘어선다 (자리 짜기는 battle.regroup: 수가 줄면 남은 인형들로 줄을 다시 좁힌다)
+    p.sq.line = { ang: p.ang, gap: p.gap }; b.orderMove(p.sq, p.x, p.y, true);
   }
   let hero = null;
   if (brush.closed) { const hq = b.squads.find(q => q.team === 0 && q.hero && q.alive > 0); if (hq) { const c = brush.center(); b.orderMove(hq, c.x, c.y); hero = c; } }

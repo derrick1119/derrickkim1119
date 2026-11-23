@@ -23,7 +23,7 @@ export const RELICS = {
   cheolgap: { name: '쇠미늘 등패', axis: 'wall', desc: '등패수·창병 체력 +25%', mod: m => { U(m, 'shield').hp = (U(m, 'shield').hp || 1) * 1.25; U(m, 'spear').hp = (U(m, 'spear').hp || 1) * 1.25; } },
   hwayakgo: { name: '화약고', axis: 'powder', req: 'cannon', desc: '화차 공격 속도 +25%, 폭발 범위 +10%', mod: m => { U(m, 'cannon').as = (U(m, 'cannon').as || 1) * 1.25; m.aoeR *= 1.1; } },
   bujeokjip: { name: '부적 보따리', axis: 'talisman', desc: '전술 패 위력 +15%', mod: m => { m.cardPow *= 1.15; } },
-  gutbang: { name: '굿판 방울', axis: 'gut', desc: '무녀·고승 치유량 +25%, 사기 회복 +10%', mod: m => { m.priestHeal *= 1.25; m.moraleRate *= 1.1; } },
+  gutbang: { name: '굿판 방울', axis: 'gut', desc: '무녀·고승 치유량 +25%, 얻는 사기 +10%', mod: m => { m.priestHeal *= 1.25; m.moraleRate *= 1.1; } },
   uibyeongjang: { name: '의병장의 격문', axis: 'militia', desc: '불려 온 아군(의병·매복·원군)이 6초 더 싸운다', mod: m => { m.summonLife += 6; } },
   // 진법서: 그 진형을 쓸 수 있다 (data/formations.js)
   f_hakik: { name: '진법서 · 학익진', form: 'hakik', desc: '학익진: 양 끝 부대를 앞으로 내밀어 날개를 펼치면(부대 5) 전군 피해 +20%', mod: m => { m.forms = m.forms.concat('hakik'); } },
@@ -68,7 +68,7 @@ export const RELICS = {
   meokbyeoru: { name: '먹과 벼루', axis: 'talisman', desc: '쓴 패의 자리가 20% 더 빨리 채워진다', mod: m => { m.drawRate *= 0.8; } },
   obangbuchae: { name: '오방 부채', axis: 'talisman', desc: '전술 패 위력 +10%, 주머니 +2', mod: m => { m.cardPow *= 1.1; m.pouch += 2; } },
   horibyeong: { name: '도사의 호리병', axis: 'talisman', legend: true, desc: '전설 — 싸움에서 전술 패를 쓸 때마다 다음 패의 위력 +8% (여덟 번까지)', mod: m => { m.chainPow += 0.08; } },
-  janggu: { name: '장구', axis: 'gut', desc: '사기 회복 +15%', mod: m => { m.moraleRate *= 1.15; } },
+  janggu: { name: '장구', axis: 'gut', desc: '얻는 사기 +15%', mod: m => { m.moraleRate *= 1.15; } },
   obanggi: { name: '오방기', axis: 'gut', desc: '요괴 무리를 물리칠 때마다 사기 +0.5, 무녀 사거리 +15%', mod: m => { m.killMorale += 0.5; U(m, 'priest').range = (U(m, 'priest').range || 1) * 1.15; } },
   singal: { name: '신칼', axis: 'gut', legend: true, desc: '전설 — 사기가 8 이상이면 모든 아군 피해 +25%', mod: m => { m.highMorale += 0.25; } },
   daesup: { name: '대나무 숲', axis: 'militia', desc: '불려 온 아군 체력·공격 +20%', mod: m => { m.summonPow *= 1.2; } },

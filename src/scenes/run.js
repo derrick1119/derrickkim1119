@@ -3,11 +3,12 @@
 import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
-import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
+import { Battle, formation, defOf, HAND, REFILL, SQUAD_MORALE } from '../sim/battle.js';
 import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull, hiddenFight, forkDesc } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { ALT_MARCH } from '../data/bossalt.js';
 import { Play, drawFrame } from '../ui/theater.js';
+import { stageWipe, stagePlaque } from '../render/stagewipe.js';
 import { juice, SPOT } from '../ui/juice.js';
 import { CHAPTERS, ORD, chapterOf } from '../data/stages.js';
 import { AFFIX, TWIST, BOSS_VAR } from '../data/encounters.js';
@@ -54,7 +55,7 @@ export class RunScene {
     this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.coach = new Coach(); this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     juice.clear();
-    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chFull(r), sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
+    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chFull(r), sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.intermission = { s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
     else if (rd.state === 'at') { this.phase = 'march'; this.arrive(); }
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
@@ -330,16 +331,9 @@ export class RunScene {
       g.globalAlpha = 1 - Math.abs(this.fade - 0.5) * 2; g.fillStyle = '#f8f0dc'; g.fillRect(0, HUD_H, W, BAR_Y - HUD_H); g.globalAlpha = 1;
     }
     this.drawHud(g, b);
-    // 마당이 바뀔 때: 싸움터가 곧 인형극 무대다. 막이 닫힌 채 마당 이름이 걸리고, 곧 막이 열린다 (그동안 곁의 표시는 숨긴다)
-    const cur = this.curtain, open = cur ? clamp((cur.t - 1.1) / 1.0, 0, 1) : 1;
-    if (cur) {
-      cur.t += dt; const fadeOut = clamp((3.0 - cur.t) / 0.5, 0, 1);
-      g.save(); g.globalAlpha = fadeOut; drawFrame(g, 20, HUD_H + 14, W - 40, BAR_Y - HUD_H - 34, open, this.T);
-      const k = clamp(cur.t / 0.3, 0, 1) * clamp((1.9 - cur.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 444, 256, 400, 96, 8, 'rgba(8,6,10,0.4)'); rr(g, 440, 250, 400, 96, 8, '#f3e7c8', INK, 3); rr(g, 448, 258, 384, 80, 5, null, 'rgba(122,74,44,0.75)', 1.6); text(g, cur.n || '', 640, 276, { size: 20, font: FONT_B, fill: '#7a4a2c' }); text(g, cur.s, 640, 312, { size: 40, font: FONT_B, fill: INK, maxW: 360 }); }
-      g.restore(); if (cur.t > 3.0) this.curtain = null;
-    }
-    if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
-    if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
+    const cv = this.curtain;   // 마당이 바뀌는 막이 닫혀 있는 동안은 곁의 표시를 숨긴다
+    if (!cv || cv.t > 2.5) { g.save(); if (cv) g.globalAlpha = clamp((cv.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
+    if (this.phase === 'prep' && (!cv || cv.t > 2.5)) this.drawPreview(g, b);
     // 진형이 선 순간: 화면 위쪽에 금박 붓글씨로 진의 이름과 힘을 크게 띄운다
     if (this.formBanner) { const fb = this.formBanner; fb.t += this.dt || 0.016; const k = clamp(fb.t / 0.25, 0, 1) * clamp((2.6 - fb.t) / 0.5, 0, 1); if (fb.t > 2.6) this.formBanner = null; else if (k > 0) {
       const sc = 0.8 + 0.2 * easeOutBack(clamp(fb.t / 0.35, 0, 1)); g.save(); g.globalAlpha = k; g.translate(640, 150); g.scale(sc, sc);
@@ -349,12 +343,15 @@ export class RunScene {
       g.restore(); } }
     if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((4.5 - b.waveT) / 0.8, 0, 1), 112);   // 싸움이 시작되면 위쪽(두목 체력 아래)으로 옮겨 부대를 가리지 않는다
     this.drawBar(g, b, i, live);
-    if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
     this.drawNotes(g, b);
     if (this.over) this.over.frame(g, dt);
     if (this.menu && !this.sub) this.drawMenu(g);
     if (this.sub) this.sub.frame(g, dt);
     juice.frame(g, dt);
+    // 원정 중에 마당이 바뀔 때: 장면 전환과 같은 막이 닫히고, 마당 이름판이 걸렸다가, 다시 열린다 (맨 위에 그린다)
+    const cur = this.curtain;
+    if (cur) { cur.t += dt; const k = cur.t < 0.45 ? cur.t / 0.45 : cur.t < 2.15 ? 1 : Math.max(0, 1 - (cur.t - 2.15) / 0.5);
+      stageWipe(g, k, W, H, this.T); if (cur.t > 0.45) stagePlaque(g, k, W, H, { n: cur.n, s: cur.s, t: cur.t - 0.45 }); if (cur.t > 2.7) this.curtain = null; }
     this.coach.frame(g, dt);
   }
   // 붓으로 그은 진: 그리는 동안은 진한 먹과 설 자리, 손을 떼면 낙관이 찍히고 먹이 종이에 스며들며 옅어진다
@@ -534,7 +531,7 @@ export class RunScene {
   }
   drawBar(g, b, i, live) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); text(g, '무리 격파 +1', 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
+    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); { const md = b.mods, kg = Math.round((SQUAD_MORALE * md.moraleRate + md.killMorale) * 10) / 10; text(g, `무리 격파 +${kg}`, 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); }   // 사기는 시간으로 차오르지 않는다: 무리를 물리칠 때 얻는 양을 보여 준다 text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });
