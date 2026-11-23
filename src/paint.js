@@ -254,6 +254,28 @@
       if (wd > o.fit) size *= o.fit / wd;
     }
     const lh = o.lh || (kind === 'hand' ? 1.12 : 1.5);
+    /* a line wider than the screen is broken at the spaces nearest even divisions, and lifted so its last line
+       stays where the caller put it (captions sit at the very foot of the screen). o.wrap sets the width; o.nowrap turns it off */
+    const maxW = o.nowrap ? 0 : o.wrap || (kind === 'serif' && T.view ? T.view.W - 90 : 0);
+    if (maxW > 0) {
+      g.save(); g.font = P.font(kind, size);
+      const src = str.split('\n'), out = [];
+      for (const line of src) {
+        const wd = g.measureText(line).width;
+        if (wd <= maxW) { out.push(line); continue; }
+        let rest = line;
+        for (let i = Math.ceil(wd / maxW); i > 1; i--) {
+          const target = rest.length / i;
+          let best = -1, bd = 1e9;
+          for (let j = 0; j < rest.length; j++) if (rest[j] === ' ' && Math.abs(j - target) < bd) { bd = Math.abs(j - target); best = j; }
+          if (best < 0) break;
+          out.push(rest.slice(0, best)); rest = rest.slice(best + 1);
+        }
+        out.push(rest);
+      }
+      g.restore();
+      if (out.length > src.length) { y -= (out.length - src.length) * size * lh; str = out.join('\n'); }
+    }
     const L = layout(g, str, kind, size, lh, o.track || 0);
     const k = o.k == null ? 1 : o.k;
     const shown = k * (L.n + 1);
