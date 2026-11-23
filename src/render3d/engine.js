@@ -7,6 +7,11 @@
 //     땅선(y = 0, z = 0)이 정확히 groundY 에 오게 한다. 그래서 행동 평면 위에서는 원근 왜곡 없이 선형으로 대응한다.
 //   · 무대 배경은 z < −1 에, 화면 아래(조작부 뒤)의 앞마당은 z > 0 에 둔다.
 import { THREE, makeSky } from './kit.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 export const PX = 64;
 export const CAM_DIST = 14;
@@ -20,6 +25,39 @@ export const DEFAULT_ENV = {
   sun: { color: '#fff0d6', intensity: 2.1, dir: [-0.55, 1, 0.75] },
   hemi: { sky: '#b4d6ff', ground: '#8fb86a', intensity: 0.85 },
   exposure: 1.0,
+};
+
+/**
+ * 마지막 색 보정(톤 매핑 뒤, 화면 색 공간에서): 채도·대비를 조금 올리고, 그늘은 남색으로 빛은 따뜻하게,
+ * 화면 가장자리를 살짝 어둡게(비네트) 해 시선을 가운데로 모은다. 슈퍼셀 게임 화면의 '쨍하고 진한' 마감.
+ */
+const GradeShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    saturation: { value: 1.12 },
+    contrast: { value: 1.06 },
+    vignette: { value: 0.22 },
+    shadowTint: { value: new THREE.Color('#1c2a6b') },
+    highlightTint: { value: new THREE.Color('#fff1d6') },
+    aspect: { value: 0.5 },
+  },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float saturation; uniform float contrast; uniform float vignette;
+    uniform vec3 shadowTint; uniform vec3 highlightTint; uniform float aspect; varying vec2 vUv;
+    void main(){
+      vec3 c = texture2D( tDiffuse, vUv ).rgb;
+      float l = dot( c, vec3( 0.299, 0.587, 0.114 ) );
+      c = mix( vec3( l ), c, saturation );
+      c = ( c - 0.5 ) * contrast + 0.5;
+      // 그늘은 차가운 남색, 밝은 곳은 따뜻한 햇빛 쪽으로 아주 살짝
+      c = mix( c, c * shadowTint * 2.2, ( 1.0 - smoothstep( 0.0, 0.45, l ) ) * 0.12 );
+      c = mix( c, c * highlightTint, smoothstep( 0.55, 1.0, l ) * 0.25 );
+      vec2 d = vUv - 0.5; d.x *= aspect;
+      float v = smoothstep( 0.75, 0.2, length( d ) );
+      c *= mix( 1.0 - vignette, 1.0, v );
+      gl_FragColor = vec4( clamp( c, 0.0, 1.0 ), 1.0 );
+    }`,
 };
 
 export class Engine {
@@ -69,7 +107,31 @@ export class Engine {
     scene.add(this.actors);
     this.pmrem = new THREE.PMREMGenerator(renderer);
     this.envTarget = null;
+
+    // 후처리: 장면 → 빛 번짐(블룸) → 톤 매핑·sRGB → 색 보정. 느린 기기에서는 끈다(setPost).
+    this.post = true;
+    this.bloomOn = true;
+    const isWebGL2 = renderer.capabilities.isWebGL2;
+    const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: isWebGL2 ? 4 : 0 });
+    this.composer = new EffectComposer(renderer, rt);
+    this.composer.addPass(new RenderPass(scene, this.camera));
+    // 문턱을 높여 스스로 빛나는 것(조명·빔·불)만 번지게 한다
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.45, 1.25);
+    this.composer.addPass(this.bloom);
+    this.composer.addPass(new OutputPass());
+    this.grade = new ShaderPass(GradeShader);
+    this.composer.addPass(this.grade);
     this.setEnv(DEFAULT_ENV);
+  }
+
+  /**
+   * 후처리 단계를 정한다.
+   * @param {{post?: boolean, bloom?: boolean}} o post = 색 보정·멀티샘플링 등 후처리 전체, bloom = 빛 번짐
+   */
+  setPost({ post = this.post, bloom = this.bloomOn } = {}) {
+    this.post = post;
+    this.bloomOn = bloom;
+    this.bloom.enabled = bloom;
   }
 
   /** 하늘·안개·빛을 바꾼다. 무대를 바꿀 때 부른다. */
@@ -96,6 +158,14 @@ export class Engine {
     this.hemi.groundColor.set(hemi.ground);
     this.hemi.intensity = hemi.intensity;
     this.renderer.toneMappingExposure = e.exposure ?? 1;
+    // 무대가 색 보정을 조금 바꿀 수 있다(밤 무대는 비네트를 더 진하게 등)
+    const g = { saturation: 1.12, contrast: 1.06, vignette: 0.22, bloom: 0.5, ...(env.grade || {}) };
+    if (this.grade) {
+      this.grade.uniforms.saturation.value = g.saturation;
+      this.grade.uniforms.contrast.value = g.contrast;
+      this.grade.uniforms.vignette.value = g.vignette;
+      this.bloom.strength = g.bloom;
+    }
     // 금속(기체)에 비칠 환경: 지금 하늘을 흐리게 구운 것
     const envScene = new THREE.Scene();
     envScene.add(makeSky({ ...sk, sunDir: new THREE.Vector3(...sk.sunDir) }));
@@ -137,6 +207,11 @@ export class Engine {
     this.groundY = groundY;
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
+    this.composer.setPixelRatio(dpr);
+    this.composer.setSize(w, h);
+    // 빛 번짐은 반 해상도로 충분하다(가장 비싼 부분)
+    this.bloom.setSize(Math.round((w * dpr) / 2), Math.round((h * dpr) / 2));
+    this.grade.uniforms.aspect.value = w / h;
     // 땅이 보이는 띠: 화면이 낮으면 카메라를 낮춰 하늘을 더 남긴다
     this.camY = Math.min(Math.max((0.45 * (groundY - insetTop)) / PX, CAM_Y_MIN), CAM_Y_MAX);
     this._applyCamera();
@@ -182,13 +257,15 @@ export class Engine {
   }
 
   render() {
-    this.renderer.render(this.scene, this.camera);
+    if (this.post) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   dispose() {
     if (this.stage) disposeTree(this.stage.group);
     if (this.envTarget) this.envTarget.dispose();
     this.pmrem.dispose();
+    this.composer.dispose();
     this.renderer.dispose();
   }
 }

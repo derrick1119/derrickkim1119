@@ -1,5 +1,5 @@
-// 3D 기체 8형태와 조종사(회색 외계인). 컨셉: 짙은 남색 금속 접시, 띠를 따라 박힌 알약 모양 청록 조명,
-// 아래쪽 발광부, 유리 돔 속 커다란 검은 눈의 외계인.
+// 3D 기체 8형태. 조종사는 피포(pipo.js). 짙은 남보라 금속 접시에 금빛 테두리와 리벳,
+// 띠를 따라 박힌 알약 모양 청록 조명, 아래쪽 발광부, 유리 돔(피포의 더듬이가 돔을 뚫고 나와 있다).
 // 모델 단위: 원점 = 기체 중심, 윗면이 +y. 장면이 화면 너비에 맞춰 배율을 정하고, 윗면이 보이게 앞으로 기울인다.
 import {
   THREE,
@@ -15,149 +15,18 @@ import {
   roundBoxGeo,
   addOutline,
   glowSprite,
-  faceTexture,
-  faceCap,
 } from './kit.js';
+import { createPipo } from './pipo.js';
 
 /** 윗면이 카메라를 보도록 앞으로 기울이는 각도(라디안). */
 export const UFO_TILT = 0.36;
 
-const ALIEN = '#a7b6cf';
-// 컨셉의 건메탈 선체: 남색 기가 도는 회청색(빛을 받으면 밝은 회색, 그늘은 짙은 남색)
-const HULL = '#5a6690';
-const HULL_DARK = '#262d52';
-const EYE = '#141a36';
+// 선체: 남보라 금속(피포의 보라와 어울리게) + 금빛 장식
+const HULL = '#3a3e92';
+const HULL_DARK = '#1e2257';
+const GOLD = '#ffc444';
 const AMBER = '#ffb347';
 const DIM = '#24505c';
-
-// ───────── 외계인 얼굴 ─────────
-
-function alienFace(mood) {
-  return faceTexture(`alien:${mood}`, (ctx, s) => {
-    const cx = s / 2;
-    const cy = s * 0.52;
-    const ex = s * 0.2;
-    // 볼
-    ctx.fillStyle = `rgba(255,143,143,${mood === 'hide' ? 0.55 : 0.4})`;
-    for (const k of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(cx + k * s * 0.3, cy + s * 0.15, s * 0.07, s * 0.04, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    if (mood === 'happy') {
-      ctx.strokeStyle = EYE;
-      ctx.lineWidth = s * 0.045;
-      for (const k of [-1, 1]) {
-        ctx.beginPath();
-        ctx.arc(cx + k * ex, cy + s * 0.04, s * 0.085, Math.PI * 1.12, Math.PI * 1.88);
-        ctx.stroke();
-      }
-    } else if (mood === 'shock') {
-      for (const k of [-1, 1]) {
-        ctx.beginPath();
-        ctx.ellipse(cx + k * ex, cy - s * 0.01, s * 0.13, s * 0.15, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.lineWidth = s * 0.012;
-        ctx.strokeStyle = EYE;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + k * ex, cy, s * 0.035, 0, Math.PI * 2);
-        ctx.fillStyle = EYE;
-        ctx.fill();
-      }
-    } else if (mood === 'blink') {
-      ctx.strokeStyle = EYE;
-      ctx.lineWidth = s * 0.035;
-      for (const k of [-1, 1]) {
-        ctx.beginPath();
-        ctx.moveTo(cx + k * ex - s * 0.1, cy + s * 0.01 * k);
-        ctx.lineTo(cx + k * ex + s * 0.1, cy - s * 0.01 * k);
-        ctx.stroke();
-      }
-    } else {
-      // 비스듬한 아몬드 눈. 긴장하면 커지고, 숨으면 반쯤 감는다.
-      const big = mood === 'alert' ? 1.18 : 1;
-      const lid = mood === 'hide' ? 0.5 : 1;
-      for (const k of [-1, 1]) {
-        ctx.save();
-        ctx.translate(cx + k * ex, cy + (1 - lid) * s * 0.04);
-        ctx.rotate(-k * 0.42);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, s * 0.135 * big, s * 0.088 * big * lid, 0, 0, Math.PI * 2);
-        const g = ctx.createLinearGradient(0, -s * 0.09, 0, s * 0.09);
-        g.addColorStop(0, '#323a72');
-        g.addColorStop(1, EYE);
-        ctx.fillStyle = g;
-        ctx.fill();
-        ctx.restore();
-        if (lid > 0.6) {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(cx + k * ex - s * 0.045, cy - s * 0.03, s * 0.03, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(cx + k * ex + s * 0.04, cy + s * 0.025, s * 0.014, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-    // 입
-    ctx.fillStyle = '#2a3160';
-    ctx.strokeStyle = '#2a3160';
-    ctx.lineWidth = s * 0.022;
-    const my = cy + s * 0.2;
-    if (mood === 'shock') {
-      ctx.beginPath();
-      ctx.ellipse(cx, my + s * 0.02, s * 0.04, s * 0.055, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (mood === 'happy') {
-      ctx.beginPath();
-      ctx.arc(cx, my - s * 0.02, s * 0.065, 0.1 * Math.PI, 0.9 * Math.PI);
-      ctx.closePath();
-      ctx.fill();
-    } else if (mood === 'alert') {
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.04, my + s * 0.01);
-      ctx.quadraticCurveTo(cx, my - s * 0.015, cx + s * 0.04, my + s * 0.01);
-      ctx.stroke();
-    } else if (mood !== 'hide') {
-      ctx.beginPath();
-      ctx.arc(cx, my - s * 0.02, s * 0.04, 0.2 * Math.PI, 0.8 * Math.PI);
-      ctx.stroke();
-    }
-    // 식은땀
-    if (mood === 'alert' || mood === 'hide') {
-      const sx = cx + s * 0.38;
-      const sy = cy - s * 0.2;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy - s * 0.07);
-      ctx.quadraticCurveTo(sx + s * 0.05, sy, sx, sy + s * 0.02);
-      ctx.quadraticCurveTo(sx - s * 0.05, sy, sx, sy - s * 0.07);
-      ctx.fillStyle = '#9fe3ff';
-      ctx.fill();
-      ctx.strokeStyle = '#4a9cc4';
-      ctx.lineWidth = s * 0.01;
-      ctx.stroke();
-    }
-  });
-}
-
-/** 외계인(머리 + 어깨). 원점 = 어깨 아래. */
-function makeAlien(r) {
-  const g = new THREE.Group();
-  const skin = mat(ALIEN, { rough: 0.55 });
-  const body = mesh(capsuleGeo(r * 0.55, r * 1.2), skin, { pos: [0, r * 0.1, 0] });
-  addOutline(body, r * 0.06);
-  const head = mesh(sphereGeo(1, 32, 24), skin, { pos: [0, r * 1.05, 0], scale: [r * 1.06, r, r * 0.96] });
-  addOutline(head, 0.055);
-  const face = faceCap(1, alienFace('idle'), { width: 2.0, height: 1.5 });
-  head.add(face);
-  g.add(body, head);
-  return { group: g, face, head };
-}
 
 // ───────── 부품 ─────────
 
@@ -178,8 +47,20 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
     ? [[1.0, 0.08], [0.93, 0.11], [0.78, 0.16], [0.64, 0.19], [0.62, 0.235], [0.5, 0.27], [0.001, 0.285]]
     : [[1.0, 0.08], [0.9, 0.12], [0.7, 0.18], [0.45, 0.22], [0.001, 0.235]];
   const upper = mesh(latheGeo(P(topPts), 56), hullMat);
-  for (const m of [under, band, upper]) addOutline(m, 0.014 * R);
+  for (const m of [under, band, upper]) addOutline(m, 0.016 * R);
   g.add(under, band, upper);
+  // 금빛 장식: 가장자리 테 + 윗면 줄무늬 + 솟은 단의 리벳
+  const gold = mat(GOLD, { metal: 0.75, rough: 0.28, envIntensity: 1.4 });
+  const trim = mesh(torusGeo(R * 0.985, R * 0.022, 8, 72), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.085, 0], cast: false });
+  addOutline(trim, R * 0.006);
+  const stripe = mesh(torusGeo(R * 0.8, R * 0.014, 6, 64), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.155, 0], cast: false });
+  g.add(trim, stripe);
+  if (tier) {
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      g.add(mesh(sphereGeo(1, 8, 6), gold, { pos: [Math.sin(a) * R * 0.635, R * 0.215, Math.cos(a) * R * 0.635], scale: R * 0.022, cast: false }));
+    }
+  }
   // 띠의 청록 선
   const line = mesh(torusGeo(R * 1.02, R * 0.006, 6, 64), o.lineMat, { cast: false, rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.04, 0] });
   g.add(line);
@@ -189,7 +70,7 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
     const a = (i / pills) * Math.PI * 2;
     const holder = new THREE.Group();
     holder.rotation.y = a;
-    const p = mesh(capsuleGeo(R * 0.032, R * 0.15, 4, 10), o.pillMat, { cast: false, rot: [0, 0, Math.PI / 2], pos: [0, R * 0.04, R * 1.025] });
+    const p = mesh(capsuleGeo(R * 0.038, R * 0.17, 4, 10), o.pillMat, { cast: false, rot: [0, 0, Math.PI / 2], pos: [0, R * 0.04, R * 1.028] });
     holder.add(p);
     const sp = glowSprite(PAL.glow, R * 0.32, 0.6);
     sp.position.set(0, R * 0.04, R * 1.08);
@@ -229,9 +110,11 @@ function dome(o, y, r, withPilot = true) {
   g.add(collar);
   let pilot = null;
   if (withPilot) {
-    pilot = makeAlien(r * 0.47);
-    pilot.group.position.y = -r * 0.02;
-    g.add(pilot.group);
+    pilot = createPipo(r * 0.42);
+    const seat = new THREE.Group();
+    seat.position.y = r * 0.08; // 스카프가 받침 바로 위에 오게
+    seat.add(pilot.group);
+    g.add(seat);
   } else {
     const inner = mesh(sphereGeo(1, 16, 10), mat(PAL.glow, { emissive: PAL.glow, emissiveIntensity: 0.8 }), { cast: false, scale: [r * 0.5, r * 0.4, r * 0.5], pos: [0, r * 0.2, 0] });
     g.add(inner);
@@ -341,7 +224,6 @@ export function createUfo(form) {
   const d = dome(o, domeY, domeR);
   body.add(d.group);
   const pilot = d.pilot;
-  const pilotBaseY = pilot.group.position.y;
   topY = domeY + domeR;
 
   // 안테나
@@ -407,37 +289,25 @@ export function createUfo(form) {
   }
 
   const bellyY = main.bellyY;
-  let lastMood = 'idle';
-  let lastFace = null;
 
-  function update({ t = 0, mood = 'idle', lit = 1, beam = 0 } = {}) {
+  /** look = 피포가 눈으로 따라갈 세계 좌표(없으면 정면). */
+  function update({ t = 0, mood = 'idle', lit = 1, beam = 0, look = null } = {}) {
     const L = Math.min(Math.max(lit, 0), 1);
-    o.pillMat.emissiveIntensity = 0.15 + 2.1 * L;
+    // 빛 번짐은 블룸이 맡으므로 조명 자체와 스프라이트는 은은하게
+    o.pillMat.emissiveIntensity = 0.15 + 1.55 * L;
     o.pillMat.color.set(L > 0.3 ? '#bffaff' : DIM);
     o.lineMat.opacity = 0.15 + 0.8 * L;
     o.amberMat.emissiveIntensity = 0.1 + 1.5 * L;
-    o.bowlMat.emissiveIntensity = 0.15 + Math.max(beam * 2.2, L * 1.1);
-    for (const { sp, i } of sprites) sp.material.opacity = L * (0.35 + 0.35 * (0.5 + 0.5 * Math.sin(t * 4 - i * 0.9)));
+    o.bowlMat.emissiveIntensity = 0.15 + Math.max(beam * 1.9, L * 0.9);
+    for (const { sp, i } of sprites) sp.material.opacity = L * (0.12 + 0.2 * (0.5 + 0.5 * Math.sin(t * 4 - i * 0.9)));
     ambers.forEach((sp, i) => {
       sp.material.opacity = L > 0.3 && Math.sin(t * 3 + i * 2) > -0.4 ? 0.6 : 0;
     });
     blinkers.forEach((sp, i) => {
       sp.material.opacity = L > 0.3 && Math.sin(t * 4 + i * 1.7) > -0.2 ? 0.8 : 0.05;
     });
-    // 표정과 몸짓
-    let face = mood;
-    if (mood === 'idle' && (t % 4.3 > 4.15 || (t + 1.9) % 6.7 > 6.58)) face = 'blink';
-    if (face !== lastFace) {
-      pilot.face.material.map = alienFace(face);
-      pilot.face.material.needsUpdate = true;
-      lastFace = face;
-    }
-    const r = domeR * 0.47;
-    const duck = mood === 'hide' ? -r * 0.9 : mood === 'shock' ? r * 0.25 : 0;
-    const hop = mood === 'happy' ? Math.abs(Math.sin(t * 9)) * r * 0.2 : 0;
-    pilot.group.position.y = pilotBaseY + duck + hop;
-    pilot.head.rotation.z = mood === 'happy' ? Math.sin(t * 6) * 0.12 : 0;
-    if (lastMood !== mood) lastMood = mood;
+    // 피포: 표정·몸짓·눈길
+    pilot.update({ t, mood, look, lit: L });
     // 움직이는 부품
     if (radar) radar.rotation.y = Math.sin(t * 0.9) * 0.6;
     if (ring) {

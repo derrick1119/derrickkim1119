@@ -2,7 +2,8 @@
 // 세계(무대·기체·지구인·표본·빔)는 three.js 로 그린다. 숫자 팝업·말풍선·고리·반짝이는 위의 투명 2D 층에 그린다.
 import { FORMS, WATCHERS } from '../data/content.js';
 import { Scene } from '../render/scene.js';
-import { C, clamp, lerp, easeIn, easeOut, easeBack, circle, star, withAlpha, label } from '../render/draw.js';
+import { C, TAU, clamp, lerp, easeIn, easeOut, easeBack, circle, star, withAlpha, label } from '../render/draw.js';
+import { t as tr } from '../i18n/index.js';
 import { THREE, PAL, canvasTexture, cloud3d } from './kit.js';
 import { Engine, PX } from './engine.js';
 
@@ -132,6 +133,27 @@ export class Scene3D extends Scene {
     this.perf = { time: 0, frames: 0, skip: 1 };
     // UI 카드·보고서의 그림도 같은 3D 모델로 찍는다
     setIconRenderer(renderIcon3d);
+    // 손맛: 꿀꺽(표본을 삼킬 때 찌그러졌다 튕김), 들킴 글자, 승급 빛줄기
+    this.gulp = 0;
+    this.burst = null; // { t, text }
+    this.rays = 0;
+    this.lookTarget = new THREE.Vector3();
+    this.camTarget = new THREE.Vector3();
+    world.on('absorbed', (sp) => {
+      this.gulp = sp.auto ? 0.5 : 1;
+    });
+    game.on('discovered', () => {
+      this.burst = { t: 0, text: tr('report.burst') };
+    });
+    game.on('formUp', () => {
+      this.rays = 1.6;
+    });
+    game.on('generation', () => {
+      this.burst = null;
+    });
+    game.on('replaced', () => {
+      this.burst = null;
+    });
   }
 
   // ───────── 배치 ─────────
@@ -241,6 +263,9 @@ export class Scene3D extends Scene {
     super.update(dt);
     this.t3 += dt;
     this._watchPerf(dt);
+    this.gulp = Math.max(0, this.gulp - dt / 0.38);
+    this.rays = Math.max(0, this.rays - dt);
+    if (this.burst) this.burst.t += dt;
     if (this.stageFade > 0) this.stageFade = Math.max(0, this.stageFade - dt / 0.8);
     this.engine.stage?.update?.(this.t, dt);
   }
@@ -275,12 +300,17 @@ export class Scene3D extends Scene {
     const ufo = this.ufo3d;
     const visible = this.ufoVisible;
     ufo.root.visible = visible;
-    const s = this.ufoScale * u.scale * u.k;
-    this._w(u.x, u.y, ufo.root.position);
-    ufo.root.scale.setScalar(s);
+    // 첫 화면에서는 기체를 크게 띄우고 피포가 카메라를 보며 반긴다
+    const hero = this.canvas.parentNode?.classList?.contains('is-title');
+    const s = this.ufoScale * u.scale * u.k * (hero ? 1.55 : 1);
+    this._w(u.x, u.y + (hero ? 10 : 0), ufo.root.position);
+    // 꿀꺽: 삼키는 순간 납작해졌다가 통통 튕긴다
+    const g = this.gulp;
+    const sq = g > 0 ? Math.sin((1 - g) * Math.PI * 3) * 0.16 * g : 0;
+    ufo.root.scale.set(s * (1 + sq), s * (1 - sq), s * (1 + sq));
     ufo.root.rotation.set(UFO_TILT, 0, -u.rot);
     const beaming = world.specimens.some((sp) => sp.state === 'beam' || sp.state === 'caught');
-    ufo.update({ t, mood: this._mood(), lit: this.lit, beam: beaming ? 1 : 0 });
+    ufo.update({ t, mood: hero ? 'happy' : this._mood(), lit: this.lit, beam: beaming ? 1 : 0, look: this._lookTarget(hero) });
     // 은폐 구름
     const ca = this.cloakAmt;
     this.cloak3d.visible = visible && ca > 0.02;
@@ -449,6 +479,36 @@ export class Scene3D extends Scene {
     for (; si < this.strings.length; si++) this.strings[si].visible = false;
   }
 
+  /** 피포가 눈으로 따라갈 곳: 하늘을 보는 지구인 → 끌어오는 표본 → 가장 가까운 표본 → 정면. */
+  _lookTarget(hero) {
+    const { world } = this;
+    if (hero) return this.camTarget.copy(this.engine.camera.position);
+    const watcher = world.humans.find((h) => h.state === 'look' || h.state === 'notice');
+    if (watcher) {
+      const entry = this.watchers.get(watcher.id);
+      if (entry) return entry.obj.headWorld(this.lookTarget);
+    }
+    let best = null;
+    let bestD = Infinity;
+    for (const sp of world.specimens) {
+      if (sp.state === 'beam') {
+        best = sp;
+        break;
+      }
+      if (sp.state !== 'live') continue;
+      const d = Math.hypot(sp.x - this.home.x, sp.y - this.home.y);
+      if (d < bestD) {
+        bestD = d;
+        best = sp;
+      }
+    }
+    if (best) {
+      const e = this.specs.get(best.id);
+      if (e) return this.lookTarget.copy(e.obj.root.position);
+    }
+    return null;
+  }
+
   _newCone(list) {
     const cone = makeCone();
     this.engine.actors.add(cone);
@@ -476,6 +536,29 @@ export class Scene3D extends Scene {
     ctx.translate(sx, sy);
     const found = game.phase === 'discovered';
     const cloaked = game.cloaked;
+    // 승급: 기체 뒤로 회전하는 빛줄기
+    if (this.rays > 0 && this.ufoVisible) {
+      const k = Math.min(1, this.rays / 0.6);
+      const cx = this.ufo.x;
+      const cy = this.ufo.y;
+      const R = Math.max(w, h) * 0.6;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(t * 0.6);
+      const gr = ctx.createRadialGradient(0, 0, 10, 0, 0, R);
+      gr.addColorStop(0, withAlpha('#fff6c8', 0.55 * k));
+      gr.addColorStop(1, withAlpha('#fff6c8', 0));
+      ctx.fillStyle = gr;
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * TAU;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, R, a, a + TAU / 28);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
     // 머리 위 말풍선
     for (const hmn of world.humans) {
       const entry = this.watchers.get(hmn.id);
@@ -531,5 +614,37 @@ export class Scene3D extends Scene {
       ctx.fillStyle = withAlpha(this.flashColor, Math.min(1, this.flashA));
       ctx.fillRect(0, 0, w, h);
     }
+    if (this.burst && game.phase === 'discovered') this._drawBurst(this.burst);
+  }
+
+  /** 들킨 순간 기체 옆에 쾅 찍히는 "들켰다!" — 별 모양 폭발 위에 굵은 글자. */
+  _drawBurst(b) {
+    const { ctx, w, t } = this;
+    const k = b.t;
+    if (k > 1.6) return;
+    const pop = k < 0.18 ? easeBack(k / 0.18) : 1;
+    const fade = k > 1.25 ? 1 - (k - 1.25) / 0.35 : 1;
+    const x = clamp(this.ufo.x, 120, w - 120);
+    const y = Math.max(this.insets.top + 50, this.ufo.y - 112); // 당황한 피포가 보이게 기체 위쪽에
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.translate(x, y);
+    ctx.rotate(-0.08 + Math.sin(t * 30) * 0.01);
+    ctx.scale(pop * 0.88, pop * 0.88);
+    // 별 모양 폭발
+    star(ctx, 0, 0, 108, 70, 14, t * 0.4);
+    ctx.fillStyle = '#ffd23f';
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#1f2350';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    star(ctx, 0, 0, 86, 58, 14, t * 0.4);
+    ctx.fillStyle = '#ff5a4e';
+    ctx.fill();
+    // 글자: 굵은 외곽선 + 아래 그림자
+    label(ctx, b.text, 3, 5, { size: 40, fill: '#1f2350', stroke: '#1f2350', lw: 12 });
+    label(ctx, b.text, 0, 0, { size: 40, fill: '#ffffff', stroke: '#1f2350', lw: 10 });
+    ctx.restore();
   }
 }

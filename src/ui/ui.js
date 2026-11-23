@@ -186,6 +186,7 @@ export class UI {
     this.panelSig = '';
     this.sizeShown = game.run.size;
     this.grantShown = game.state.grant;
+    this.grantSeen = game.state.grant; // 저장본을 바꾼 직후에는 동전을 날리지 않는다
     this.update(0);
     this.measure();
   }
@@ -316,6 +317,10 @@ export class UI {
     const [num, unit] = formatSize(this.sizeShown).split(' ');
     setText(this.sizeNum, num);
     setText(this.sizeUnit, unit);
+    // 연구비가 늘면 동전이 계기판으로 날아간다(슈퍼셀식 보상 손맛)
+    if (this.grantSeen === undefined) this.grantSeen = s.grant;
+    if (s.grant > this.grantSeen && this.started) this._flyCoins(s.grant - this.grantSeen);
+    this.grantSeen = s.grant;
     const gd = s.grant - this.grantShown;
     this.grantShown = Math.abs(gd) < 1 ? s.grant : this.grantShown + gd * Math.min(1, dt * 10);
     setText(this.grantText, formatInt(this.grantShown));
@@ -389,6 +394,63 @@ export class UI {
       this.tabDots.missions.hidden = !can.missions;
       this.tabDots.gadgets.hidden = !can.gadgets;
       if (can.specimens && this.started && game.playing && !this.modals.active) this.showCoach('shop');
+    }
+  }
+
+  /** 화면 가운데에서 연구비 칸으로 동전을 날린다. */
+  _flyCoins(amount) {
+    if (typeof Element === 'undefined' || !Element.prototype.animate) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const pill = this.hud.querySelector('.grant-pill');
+    if (!pill) return;
+    const stage = this.stage.getBoundingClientRect();
+    const to = pill.getBoundingClientRect();
+    const tx = to.left - stage.left + 18;
+    const ty = to.top - stage.top + to.height / 2;
+    const fx = stage.width / 2;
+    const fy = stage.height * 0.45;
+    const n = Math.max(3, Math.min(9, Math.round(Math.log2(amount + 1))));
+    for (let i = 0; i < n; i++) {
+      const coin = h('i', {
+        class: 'coin-fly',
+        'aria-hidden': 'true',
+        style: {
+          position: 'absolute',
+          left: '0',
+          top: '0',
+          width: '22px',
+          height: '22px',
+          marginLeft: '-11px',
+          marginTop: '-11px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 30%, #fff6b0 0 18%, #ffd23f 40%, #e09a12 100%)',
+          border: '2.5px solid #1f2350',
+          boxShadow: '0 2px 0 #1f2350',
+          pointerEvents: 'none',
+          zIndex: '80',
+        },
+      });
+      this.root.append(coin);
+      const sx = fx + (Math.random() - 0.5) * 120;
+      const sy = fy + (Math.random() - 0.5) * 80;
+      const mx = (sx + tx) / 2 + (Math.random() - 0.5) * 160;
+      const my = Math.min(sy, ty) - 60 - Math.random() * 80;
+      const anim = coin.animate(
+        [
+          { transform: `translate(${fx}px, ${fy}px) scale(0.2)`, opacity: 0 },
+          { transform: `translate(${sx}px, ${sy}px) scale(1.15)`, opacity: 1, offset: 0.22 },
+          { transform: `translate(${mx}px, ${my}px) scale(1)`, opacity: 1, offset: 0.6 },
+          { transform: `translate(${tx}px, ${ty}px) scale(0.6)`, opacity: 1 },
+        ],
+        { duration: 720 + i * 70, delay: i * 45, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' },
+      );
+      anim.onfinish = () => {
+        coin.remove();
+        if (i === n - 1) {
+          this.audio.sfx('coin');
+          pill.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+        }
+      };
     }
   }
 

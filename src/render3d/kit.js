@@ -14,6 +14,22 @@ import { tone } from '../render/draw.js';
 
 export { THREE, tone };
 
+// ───────── 림 라이트(모든 표준 재질에 적용) ─────────
+// 물체 가장자리에 하늘빛 테두리를 더한다. 위쪽 가장자리일수록 강하다. 슈퍼셀 게임 캐릭터가 배경에서
+// 또렷하게 떠 보이는 핵심 요소다. 하늘빛(반구광의 하늘색)을 쓰므로 무대 시간대에 따라 색이 따라간다.
+if (!THREE.ShaderChunk.lights_fragment_end.includes('RIM_LIGHT')) {
+  THREE.ShaderChunk.lights_fragment_end += `
+#if NUM_HEMI_LIGHTS > 0
+  // RIM_LIGHT
+  {
+    float rimF = 1.0 - saturate( dot( geometryNormal, geometryViewDir ) );
+    rimF = smoothstep( 0.5, 1.0, rimF ) * ( 0.55 + 0.45 * saturate( geometryNormal.y + 0.35 ) );
+    reflectedLight.directDiffuse += hemisphereLights[ 0 ].skyColor * rimF * 0.6 * ( 0.3 + 0.7 * diffuseColor.rgb );
+  }
+#endif
+`;
+}
+
 /** 컨셉 아트에서 뽑은 팔레트. 2D 팔레트(P)와 같은 계열이다. */
 export const PAL = {
   ink: '#1f2350',
