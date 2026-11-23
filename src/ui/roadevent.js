@@ -2,7 +2,7 @@
 // 무대에서는 영웅 인형과 길에서 만난 이가 마주 서고, 고를 수 있는 일은 무대 앞 새끼줄에 매단 한지 쪽지로 걸린다.
 // 쪽지 하나를 뜯으면 나머지는 떨어지고, 무대의 인형이 결과에 따라 기뻐 뛰거나 부르르 떤 뒤 얻은 것이 새 쪽지로 걸린다
 import { W, H } from '../config.js';
-import { TAU, INK, RED, TEAL, SUB, FONT_B, text, textBlock, ell, rr, line, path, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
+import { TAU, INK, RED, TEAL, SUB, FONT_B, text, textBlock, textLines, ell, rr, line, path, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { button, icon, panel, tapped, isDown } from './ui.js';
 import { Overlay, resultIcon, BAD, GOOD } from './overlays.js';
 import { glow, chorong, hangSign, scroll, motes, beams } from './places.js';
@@ -82,6 +82,13 @@ function audience(g, x, y, s, kind, t) {
   g.strokeStyle = rim; g.lineWidth = 1.4; g.beginPath(); g.arc(0, -20, 12, -2.2, -0.6); g.stroke(); g.beginPath(); g.moveTo(-20, 4); g.quadraticCurveTo(0, -10, 20, 4); g.stroke();
   g.restore();
 }
+// 얻은 것 쪽지의 글: 한 줄에 들면 크게, 길면 '이름 — 설명' 을 두 단으로 (설명은 두 줄까지), 그래도 길면 줄여서 감싼다
+function noteText(g, s, cx, cy, wa, col) {
+  g.font = `400 22px ${FONT_B}`; if (g.measureText(s).width <= wa * 1.1) { text(g, s, cx, cy, { size: 22, font: FONT_B, fill: col, maxW: wa }); return; }
+  const m = s.split(' — ');
+  if (m.length === 2) { text(g, m[0], cx, cy - 20, { size: 19, font: FONT_B, fill: col, maxW: wa }); textBlock(g, m[1], cx, cy + 4, wa, 18, { size: 15, fill: '#4a4034', weight: 400, maxH: 36 }); return; }
+  const n = textLines(g, s, wa, { size: 19, font: FONT_B }).length; textBlock(g, s, cx, cy - (Math.min(n, 3) - 1) * 11, wa, 22, { size: 19, font: FONT_B, fill: col, maxH: 66 });
+}
 export class EventScene extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, after: o.after, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', bg: o.bg || null, result: null, pickI: -1, rt: 0 }); }
   textW(g, s) { g.save(); g.font = `400 20px ${FONT_B}`; const w = Math.max(...String(s).split('\n').map(l => g.measureText(l).width)); g.restore(); return w; }
@@ -160,8 +167,8 @@ export class EventScene extends Overlay {
       g.save(); g.globalAlpha = Math.min(1, k * 1.8); g.translate(cx, ty); g.rotate(Math.sin(t * 1.4 + i * 2) * 0.016 + (1 - e) * 0.3); g.translate(-cx, -ty - (1 - e) * 40);
       sheet(g, x, y, w, h, !s ? '#8a7f6a' : no ? RED : TEAL, { fill: !s ? '#f3ecd9' : no ? '#f5e2d8' : '#e6eedb' });
       if (!s) text(g, '별일 없이 지나갑니다', cx, y + h / 2 + 3, { size: 20, font: FONT_B, fill: SUB });
-      else if (ic) { ic(g, x + 50, y + h / 2 + 4); text(g, s, x + 92 + (w - 104) / 2, y + h / 2 + 4, { size: 22, font: FONT_B, fill: no ? RED : TEAL, maxW: w - 108 }); }
-      else text(g, s, cx, y + h / 2 + 4, { size: 22, font: FONT_B, fill: no ? RED : TEAL, maxW: w - 30 });
+      else if (ic) { ic(g, x + 50, y + h / 2 + 4); noteText(g, s, x + 92 + (w - 104) / 2, y + h / 2 + 4, w - 108, no ? RED : TEAL); }
+      else noteText(g, s, cx, y + h / 2 + 4, w - 30, no ? RED : TEAL);
       g.restore();
       if (k < 1) for (let q = 0; q < 6; q++) { const a = q / 6 * TAU + i, d = 24 + 50 * k; ell(g, cx + Math.cos(a) * d * 2, y + h / 2 + Math.sin(a) * d * 0.5, 3 * (1 - k), 3 * (1 - k), no ? '#c8402f' : '#d9a441'); }
     }
