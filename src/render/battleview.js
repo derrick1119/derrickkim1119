@@ -8,6 +8,7 @@ import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, makeFrame, makeBackdrop, scenePines, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
 import { Fx, glow, trailImg } from './fx.js';
+import { paintFar, paintBack, paintGround, paintFront, paintTrees } from './painted.js';
 import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
@@ -131,7 +132,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
 }
 
 const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: '#5a4a8a', meteor: '#d9702a', volley: INDIGO, fox: '#3f9fd0', pounce: '#c8642a', poison: '#6a9a3a', devour: '#6a6f78', bolt: '#d9a41e', flood: '#3f7fb8' };
-const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#e06a5a', '#b8a0e0', '#dfe8ee'] };
+const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#c08ad8', '#b8a0e0', '#8fd3c8'] };
 // 붉지 않은 원에는 무엇인지 이름을 붙인다
 const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인' };
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
@@ -144,7 +145,7 @@ function strip(g, img, period, off, top) {
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
-    this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
+    this.seed = seed; this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
@@ -154,18 +155,26 @@ export class BattleView {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
-    strip(g, this.far, FW, sc * 0.25, 0);
-    // 큰 산과 언덕: 먼 산보다 빠르고 바닥보다 느리게 흐른다
-    strip(g, makeBackdrop(this.theme), BW, sc * 0.5, 0);
-    strip(g, this.ground, GW, sc, 200);
+    // 배경은 두 벌: 'paint' 붓으로 칠한 풍경화(기본) · 'paper' 종이 디오라마. 위 띠의 단추로 바꿔 볼 수 있다
+    const paint = this.style !== 'paper';
+    if (paint) { strip(g, paintFar(this.theme, this.seed), FW, sc * 0.25, 0); strip(g, paintBack(this.theme), BW, sc * 0.5, 0); strip(g, paintGround(this.theme, this.seed), GW, sc, 100); }
+    else {
+      strip(g, this.far, FW, sc * 0.25, 0);
+      // 큰 산과 언덕: 먼 산보다 빠르고 바닥보다 느리게 흐른다
+      strip(g, makeBackdrop(this.theme), BW, sc * 0.5, 0);
+      strip(g, this.ground, GW, sc, 200);
+    }
     // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
-    { const bl = backlight(isNight(this.theme)), k = bl.width / W; g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(bl, 0, 0, bl.width, 610 * k, 0, 0, W, 610); g.restore(); }
+    { const bl = backlight(isNight(this.theme)), k = bl.width / W; g.save(); g.globalCompositeOperation = 'screen'; if (paint) g.globalAlpha = 0.55; g.drawImage(bl, 0, 0, bl.width, 610 * k, 0, 0, W, 610); g.restore(); }
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
     if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
-    strip(g, makeFrame(this.theme), GW, sc, 280);
+    if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
+      // 모서리 꽃나무: 들판 가장자리를 꾸미되 인형·표시는 가리지 않게 그 아래에 깐다
+      const off2 = sc % GW; for (const p of paintTrees(this.theme)) if (p.under) for (const k of [0, 1]) { const x = p.wx - off2 + k * GW; if (x > -p.hw * 1.6 && x < W + p.hw * 1.6) drawSprite(g, p.spr, x, p.y); }
+    } else strip(g, makeFrame(this.theme), GW, sc, 280);
     if (opt.deploy) this.drawDeployZone(g, opt.deploy, T);
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
@@ -184,11 +193,11 @@ export class BattleView {
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     // 들판의 큰 소나무: 밑동 높이로 인형들과 앞뒤를 맞추고, 뒤에 인형이나 표시(붉은 원 …)가 가려지면 옅어진다
     const pa = this.pineA || (this.pineA = {}), off = sc % GW;
-    scenePines(this.theme).forEach((p, i) => { for (const k of [0, 1]) {
+    (paint ? paintTrees : scenePines)(this.theme).forEach((p, i) => { if (p.under) return; for (const k of [0, 1]) {
       const x = p.wx - off + k * GW; if (x < -p.hw * 1.6 || x > W + p.hw * 1.6) continue;
       const hid = q => q.y < p.y + 4 && q.y > p.y - p.h && Math.abs(q.x - x) < p.hw + (q.r || 0);
       const behind = !!opt.deploy || b.units.some(u => !u.dead && !(u.hidden > 0) && hid(u)) || b.zones.some(hid);
-      const key = i + ':' + k, a0 = pa[key] === undefined ? 1 : pa[key]; pa[key] = a0 + ((behind ? 0.32 : 1) - a0) * 0.18;
+      const key = (paint ? 'p' : '') + i + ':' + k, a0 = pa[key] === undefined ? 1 : pa[key]; pa[key] = a0 + ((behind ? p.fade || 0.32 : 1) - a0) * 0.18;
       list.push({ y: p.y, x, pine: p.spr, a: pa[key] });
     } });
     if (opt.extra) for (const e of opt.extra) list.push(e);
