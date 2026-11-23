@@ -525,7 +525,8 @@ export class Scene3D extends Scene {
       this._w(x, y, root.position);
       root.scale.setScalar(Math.max(scale, 0.001));
       root.rotation.set(0, spin, 0);
-      entry.obj.update((sp.flee > 0 ? t * 3 : t) + sp.phase, sp.dir);
+      // 세 번째 인자: 표본 상태(held·hold·flee·rec·cut·shiny·state) — 모델이 버둥거림·녹화등 등을 그린다
+      entry.obj.update((sp.flee > 0 ? t * 3 : t) + sp.phase, sp.dir, sp);
     }
     for (const [id, entry] of this.specs) {
       if (alive.has(id)) continue;
