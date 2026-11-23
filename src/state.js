@@ -361,14 +361,22 @@ export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it
 
 // ───────── 사건에서 쓰는 도우미 ─────────
 export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang',
-  'haedal', 'bangui', 'dokkaebibul', 'banjjogi', 'gureong', 'gureong2', 'jeoseung', 'dangsan', 'talchum', 'dure', 'sanjeok', 'sanjeok2', 'child', 'child2', 'seowon', 'trap', 'dokkaebisijang', 'flood', 'armory', 'sansa', 'sotdae', 'pansori', 'bongsu', 'madang', 'gutdang'];
+  'haedal', 'bangui', 'dokkaebibul', 'banjjogi', 'gureong', 'gureong2', 'jeoseung', 'dangsan', 'talchum', 'dure', 'sanjeok', 'sanjeok2', 'child', 'child2', 'seowon', 'trap', 'dokkaebisijang', 'flood', 'armory', 'sansa', 'sotdae', 'pansori', 'bongsu', 'madang', 'gutdang',
+  'uturi', 'uturi2', 'brothers', 'brothers2', 'bari', 'bari2', 'cave', 'cave2', 'axe2', 'kongjwi2', 'oldhelm', 'fathersword', 'voice', 'soulpath', 'broom', 'nodance', 'sanchae', 'dokgamtu', 'debt', 'gongyang', 'patjuk', 'jopssal', 'foxbead'];
 // 앞선 사건의 선택이 있어야 나오는 이어지는 사건
-const EVENT_NEED = { gureong2: 'gureong', sanjeok2: 'sanjeok', child2: 'child' };
-const EVENT_MIN = { well: 1, tomb: 1, jeoseung: 2, armory: 1, gureong2: 2, sanjeok2: 2, child2: 2 };
+const EVENT_NEED = { gureong2: 'gureong', sanjeok2: 'sanjeok', child2: 'child', uturi2: 'uturi', brothers2: 'brothers', bari2: 'bari', cave2: 'cave', axe2: 'axe', kongjwi2: 'kongjwi' };
+const EVENT_MIN = { well: 1, tomb: 1, jeoseung: 2, armory: 1, gureong2: 2, sanjeok2: 2, child2: 2, uturi2: 2, brothers2: 2, bari2: 2, cave2: 2, axe2: 1, kongjwi2: 1, dokgamtu: 1, debt: 1, oldhelm: 1, fathersword: 1, voice: 1, soulpath: 1, broom: 1, nodance: 1, sanchae: 1 };
+// 이어지는 사건의 첫 갈래는 늦어도 이 고개까지만 (보답 받을 고개가 남아야 하므로)
+const EVENT_MAX = { uturi: 8, brothers: 8, bari: 8, cave: 8 };
+// 그 영웅이 이끌 때만 나오는 사건 (프롤로그의 사연과 이어진다)
+export const EVENT_HERO = { oldhelm: 'commander', fathersword: 'blade', voice: 'hunter', soulpath: 'bishop', broom: 'archmage', nodance: 'sangsoe', sanchae: 'chief' };
+// 드문 사건: 고를 때 절반은 건너뛴다
+const EVENT_RARE = { dokgamtu: 1, debt: 1, foxbead: 1 };
 // 인연을 맺은 영물이 이번 원정의 덱에 없으면, 사건 자리에서 가끔 그 영물을 다시 만난다 ('beast:까치' 처럼)
-export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const ok = e => !EVENT_NEED[e] || (r.flags || []).includes(EVENT_NEED[e]), pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && ok(e) && (EVENT_MIN[e] || 0) <= r.ch),
-    // 이어지는 사건이 기다리고 있으면 먼저 꺼낸다
-    chain = pool.filter(e => EVENT_NEED[e]), ev = chain.length && rnd() < 0.7 ? pick(chain) : pick(pool.length ? pool : EVENT_IDS.filter(e => ok(e) && !EVENT_NEED[e])); r.evSeen.push(ev); return ev; }
+export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const ok = e => (!EVENT_NEED[e] || (r.flags || []).includes(EVENT_NEED[e])) && (!EVENT_HERO[e] || EVENT_HERO[e] === r.hero), pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && ok(e) && (EVENT_MIN[e] || 0) <= r.ch && (EVENT_MAX[e] === undefined || r.ch <= EVENT_MAX[e])),
+    // 이어지는 사건이 기다리고 있으면 먼저 꺼내고, 그다음엔 이끄는 영웅의 사건을 자주 꺼낸다. 드문 사건은 절반만 후보에 든다
+    chain = pool.filter(e => EVENT_NEED[e]), own = pool.filter(e => EVENT_HERO[e]), plain = pool.filter(e => !EVENT_RARE[e] || rnd() < 0.5),
+    ev = chain.length && rnd() < 0.7 ? pick(chain) : own.length && rnd() < 0.1 ? pick(own) : pick(plain.length ? plain : pool.length ? pool : EVENT_IDS.filter(e => ok(e) && !EVENT_NEED[e])); r.evSeen.push(ev); return ev; }
 const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
