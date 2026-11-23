@@ -168,7 +168,8 @@
       const m = S.pie;
       if (!m || h !== T.world.hillOf(T.plot.BOARD_X)) return;
       const t = T.time, flap = m.land ? 0 : Math.sin(t * 16), dir = m.dx == null ? 1 : m.dx;
-      g.save(); g.translate(m.x, m.y + (m.land ? 0 : Math.sin(t * 3) * 6)); g.scale(m.x > T.plot.BOARD_X + 100 ? 1 : -1, 1); void dir;
+      const mv = m.px == null ? 0 : m.x - m.px; m.px = m.x; if (Math.abs(mv) > 0.05) m.face = Math.sign(mv);   /* a bird faces the way it flies */
+      g.save(); g.translate(m.x, m.y + (m.land ? 0 : Math.sin(t * 3) * 6)); g.scale(m.face || 1, 1); void dir;
       /* tail, body, white belly and shoulder, the wing going */
       P.fill(g, P.poly([[-10, -2], [-46, -14], [-48, -6], [-12, 6]]), '#1f2c3f'); P.line(g, -44, -10, -46, -9, 2, '#3a6aa0');
       P.fill(g, P.ellipse(0, 0, 16, 10, -0.15), '#1c2232'); P.fill(g, P.ellipse(2, 4, 10, 6, -0.1), '#f4f1ea');

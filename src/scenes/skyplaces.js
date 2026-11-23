@@ -387,7 +387,7 @@
       const b = V.boat;
       if (!b) return Promise.resolve();
       return new Promise((res) => {
-        b.phase = 'glide'; b.k = 0; b.glideDur = so.glide || 2.6; b.riseDur = so.rise || 5.2; b.from = [b.x, b.y];
+        b.phase = 'glide'; b.k = 0; b.glideDur = so.glide || 6.5; b.riseDur = so.fade || 2.2; b.from = [b.x, b.y];
         b.done = () => {
           if (T.audio) { T.audio.sfx('join'); }
           if (so.onGone) so.onGone();
@@ -459,8 +459,8 @@
       g.lineCap = 'round';
       for (let i = 0; i < 24; i++) {
         const u = ((i * 0.618) % 1) - 0.5, sheet = i < 6, sp = sheet ? 46 + i * 6 : 90 + (i % 6) * 24;
-        g.setLineDash(sheet ? [120 + (i % 3) * 60, 80 + (i % 2) * 70] : [60 + (i % 4) * 34, 40 + (i % 3) * 36]); g.lineDashOffset = -t * sp - i * 37;
-        g.strokeStyle = sheet ? 'rgba(255,240,226,0.1)' : i % 3 ? 'rgba(255,250,240,0.26)' : 'rgba(255,214,176,0.26)';
+        g.setLineDash(sheet ? [120 + (i % 3) * 60, 80 + (i % 2) * 70] : [60 + (i % 4) * 34, 40 + (i % 3) * 36]); g.lineDashOffset = -t * sp * 0.18 - i * 37;
+        g.strokeStyle = sheet ? 'rgba(255,240,226,0.08)' : i % 3 ? 'rgba(255,250,240,0.14)' : 'rgba(255,214,176,0.14)';
         g.lineWidth = sheet ? 18 + (i % 3) * 8 : 1.6 + (i % 5) * 0.7;
         g.beginPath();
         for (let y = BASE; y >= TOP; y -= 34) { const x = FXX + u * 2 * half(y) * 0.95 + Math.sin(y * 0.012 + t * 0.8 + i) * 5; if (y === BASE) g.moveTo(x, y); else g.lineTo(x, y); }
@@ -513,13 +513,12 @@
       if (b.phase === 'glide') {
         b.k = Math.min(1, b.k + dt / b.glideDur);
         const e = T.ease.io(b.k);
-        b.x = T.lerp(b.from[0], FXX, e); b.y = T.lerp(b.from[1], BASE + 8, e) - Math.sin(e * Math.PI) * 10; b.sc = T.lerp(1, 0.8, e); b.glow = e * 0.4;
+        b.x = T.lerp(b.from[0], FXX, e); b.y = T.lerp(b.from[1], BASE + 8, e); b.sc = T.lerp(1, 0.3, e); b.glow = e * 0.8;   /* out across the sea, smaller as it goes */
         if (b.k >= 1) { b.phase = 'rise'; b.k = 0; if (T.audio) T.audio.sfx('star', 0.3); }
-      } else if (b.phase === 'rise') {
+      } else if (b.phase === 'rise') {   /* at the foot of the light it does not climb: it grows bright and is gone into it */
         b.k = Math.min(1, b.k + dt / b.riseDur);
-        const e = T.ease.in(b.k) * 0.6 + b.k * 0.4;
-        b.y = T.lerp(BASE + 8, TOP + 40, e); b.x = FXX + Math.sin(b.k * 5) * 10 * (1 - b.k); b.sc = T.lerp(0.8, 0.26, e);
-        b.glow = 0.4 + b.k * 1.4; b.a = 1 - T.clamp((b.k - 0.62) / 0.38);
+        b.x = FXX; b.y = BASE + 8; b.sc = 0.3;
+        b.glow = 0.8 + b.k * 1.2; b.a = 1 - T.ease.io(T.clamp((b.k - 0.2) / 0.8));
         if (b.k >= 1) { b.phase = 'gone'; const d = b.done; b.done = null; if (d) d(); }
       }
     };
@@ -539,7 +538,7 @@
       g.save(); g.translate(fp[0], fp[1]);
       fallsBody(g, t, W);
       /* far boats, always some rising */
-      if (o.ambient !== false) for (const q of ambient) {
+      if (o.ambient === true) for (const q of ambient) {
         const life = (t / 17 + q.ph) % 1, y = BASE - 30 - life * (BASE - TOP), sc = q.s * (1 - life * 0.6);
         boatShape(g, { hull: '#5f4a6e', lamp: true, riders: [] }, t, FXX + q.x + Math.sin(life * 7) * 6, y, sc, Math.sin(life * Math.PI) * 0.75, 0.3);
       }
@@ -549,7 +548,7 @@
       const b = V.boat;
       if (b && b.phase !== 'gone') {
         const depth = b.phase === 'moored' ? 0.6 : b.phase === 'glide' ? T.lerp(0.6, 0.35, b.k) : 0.3;
-        const mp = T.par(depth), by = b.y + (b.phase === 'rise' ? 0 : Math.sin(t * 1.3) * 3);
+        const mp = T.par(depth), by = b.y + Math.sin(t * 1.3) * 3 * (b.sc || 1);
         if (b.phase === 'moored') { const lp = T.par(0.9); g.strokeStyle = '#8a7058'; g.lineWidth = 2; g.beginPath(); g.moveTo(-188 + lp[0], LAND - 30 + lp[1]); g.quadraticCurveTo(-140, LAND, b.x - 60 + mp[0], by - 20 + mp[1]); g.stroke(); }
         boatShape(g, b, t, b.x + mp[0], by + mp[1], b.sc, b.a, b.glow);
       }
