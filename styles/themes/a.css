@@ -1779,28 +1779,22 @@
   background: #ffffff;
   border-top: 2px solid var(--a-line);
 }
-/* 연구비 지급: 노란 상패 블록 + 남색 큰 숫자 */
+/* 연구비 지급: 옅은 금빛 상패 + 금빛 큰 숫자(단색 노랑은 아래 '다음' 버튼 하나만) */
 :root[data-ui="a"] .report-grant {
   gap: 4px 12px;
-  padding: 12px 14px;
+  padding: 12px 14px 13px;
   font-family: var(--a-font);
   font-weight: 800;
   font-size: 16px;
   color: var(--a-ink);
-  background: var(--a-yellow);
-  border: 0;
+  background: var(--a-yellow-tint);
+  border: 2px solid var(--a-yellow);
   border-radius: 16px;
-  box-shadow: 0 4px 0 var(--a-yellow-lip);
+  box-shadow: 0 3px 0 #e8b400;
 }
 :root[data-ui="a"] .report-grant .grant.big {
-  color: var(--a-ink);
-  -webkit-text-stroke: 0;
-  text-shadow: none;
   font-size: 36px;
   animation: a-count 0.3s 0.7s ease-out backwards;
-}
-:root[data-ui="a"] .report-grant .grant.big .ico {
-  filter: none;
 }
 :root[data-ui="a"] .report-grant .chip.gain {
   --c-bg: var(--a-navy);
