@@ -1437,6 +1437,11 @@ const SKIN = ['#f8d3ac', '#ecb98c', '#cf946a', '#f6dcc2'];
 /** 사람 한 장: fr 0 섬 · 1·2 걸음 · 3 나르기(두 팔 위) · 4 만세/허우적 · 5 연장 들기 · 6 연장 내리치기 */
 function paintPerson(g: C2, look: Look, fr: number, skin: number) {
   const [c0, c1] = JOBC[look], sk = SKIN[skin];
+  if (fr !== 4) {
+    g.fillStyle = 'rgba(40,30,20,.22)';
+    ell(g, 0, -0.01, 0.27, 0.075);
+    g.fill();
+  }
   const la = fr === 1 ? 0.42 : fr === 2 ? -0.42 : fr === 4 ? 0.3 : fr === 6 ? 0.2 : 0;
   // 다리
   for (const [hx, a, col] of [[-0.07, -la, '#5a4636'], [0.07, la, '#6e5644']] as [number, number, string][]) {
@@ -1773,6 +1778,9 @@ const RES_ITEM: Record<Res, Item> = { wood: 'log', stone: 'stone', food: 'sheaf'
 const TF: Fr = { w: 1.2, h: 1.14, ox: 0.6, oy: 1.06 };
 function paintTree(g: C2, style: number, v: number) {
   const lw = 0.035, k = 1 + (v - 1) * 0.06;
+  g.fillStyle = 'rgba(40,60,20,.22)';
+  ell(g, 0, 0, style === 9 ? 0.12 : 0.3, 0.055);
+  g.fill();
   const trunk = (top: number, col: string) => {
     g.beginPath();
     g.moveTo(-0.07, 0);
@@ -3034,7 +3042,8 @@ const ZCOL: Partial<Record<ZK, string>> = { forest: '#4f9a3a', field: '#d8a838',
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 /** 화면에 쓰는 글꼴(px · 굵기) — 미리 불러 둔다 (juice 떠오르는 글자 크기 포함) */
 const FONTS: [number, number][] = [[12, 700], [12, 800], [12, 900], [13, 800], [13, 900], [14, 800], [14, 900], [15, 800], [16, 800], [16, 900], [17, 800], [18, 800], [18, 900], [20, 800], [20, 900], [21, 900], [22, 800], [23, 900], [24, 900]];
-const PART_MAX = 90;
+const PART_MAX = 80;
+const CLF: Fr = { w: 3.6, h: 2.2, ox: 1.8, oy: 1.1 };
 const DRAWL: [number, number, Obj | Per | null][] = [];
 /** 나무 모양: 장마다 · 구름 과수원은 열매 나무 */
 const treeStyle = (s: GiantState, o: Obj) => (o.k === 'fruit' ? 3 : STAGES[s.stage].ch === 1 ? 1 : STAGES[s.stage].ch === 2 ? 2 : 0);
@@ -3102,12 +3111,14 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   ctx.save();
   fx.begin(ctx);
 
-  (globalThis as any).__pm?.('bg0');
   // ── 하늘 · 구름 · 먼 산 (천천히 흐른다) ──
   ctx.drawImage(skyBg(ch, W0, sc2), 0, 0, w, w);
-  for (let i = 0; i < 4; i++) {
-    const k = R(0.035 + hsh(i) * 0.02), x = ((hsh(i * 3) * 1.6 - s.cam * 0.08 + t * 0.00006 * (1 + i * 0.3)) % 1.6 + 1.6) % 1.6 - 0.3;
-    cloudShape(ctx, R(x), Y(0.3 + hsh(i * 7) * 0.25), k, ch === 1 ? 'rgba(255,246,234,.9)' : 'rgba(255,255,255,.92)');
+  {
+    const cs = spr('cloud' + ch, CLF, R(0.05) * sc2, (g) => cloudShape(g, 0, 0, 1, ch === 1 ? 'rgba(255,246,234,.9)' : 'rgba(255,255,255,.92)'));
+    for (let i = 0; i < 4; i++) {
+      const k = R(0.035 + hsh(i) * 0.02), x = ((hsh(i * 3) * 1.6 - s.cam * 0.08 + t * 0.00006 * (1 + i * 0.3)) % 1.6 + 1.6) % 1.6 - 0.3;
+      put(ctx, cs, CLF, R(x), Y(0.3 + hsh(i * 7) * 0.25), k);
+    }
   }
   for (const [near, par, top] of [[false, 0.12, HZ - 0.36], [true, 0.35, HZ - 0.28]] as [boolean, number, number][]) {
     const c = hillBg(ch, W0, sc2, near), off = -((((s.cam * par) % 2) + 2) % 2) * w;
@@ -3181,7 +3192,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
     ctx.stroke();
   }
 
-  (globalThis as any).__pm?.('signs');
   // ── 땅 위 표지: 무엇을 얻나 (남아 있을 때만) ──
   for (let zi = 0; zi < s.zones.length; zi++) {
     const z = s.zones[zi], zd = ZD[z.k];
@@ -3209,7 +3219,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
     if (z.k === 'village') put(ctx, personSpr('folk', 4, 0, PQ(R, sc2)), PF, X(mx), by + r * 0.75, R(0.032));
   }
 
-  (globalThis as any).__pm?.('world');
   // ── 세상: 깊이 차례로 (뒤 → 앞) ──
   // (2 = 거인, 3 = 땅에 내려진 성) — 배열은 다시 쓴다
   const list = DRAWL;
@@ -3248,7 +3257,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
     else if (kind === 0) drawObj(ctx, s, ref as Obj, sc2, X, Y, R);
     else drawPerson(ctx, s, ref as Per, sc2, X, Y, R);
   }
-  (globalThis as any).__pm?.('shots');
   // 대포알
   for (const sh of s.shots) {
     const k = sh.t / sh.T, x = sh.x0 + (sh.x1 - sh.x0) * k, y = sh.y0 + (sh.y1 - sh.y0) * k - Math.sin(k * Math.PI) * 0.12;
@@ -3256,7 +3264,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
     ink(ctx, '#2a2a33', 1.5, '#000');
   }
 
-  (globalThis as any).__pm?.('storm');
   // ── 폭풍: 앞자락 왼쪽은 어둡고 비가 온다 ──
   if (s.phase === 'play' || s.phase === 'result') {
     const fx0 = X(s.sx);
@@ -3332,7 +3339,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
       }
     }
   }
-  (globalThis as any).__pm?.('soil');
   // ── 앞 흙 단면 ──
   {
     const c = soilBg(ch, W0, sc2), off = -((((s.cam % 1) + 1) % 1)) * w;
@@ -3340,7 +3346,6 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
     ctx.drawImage(c, off + w, Y(1.215), w, R(0.16));
   }
 
-  (globalThis as any).__pm?.('events');
   // ── 방금 일어난 일: 소리 · 가루 · 흔들림 · 글자 (한 번만) ──
   let sn = 0, deps = 0;
   const snd = (n: Parameters<typeof fx.sound>[0], p = 1, v = 1) => void (sn++ < 3 && fx.sound(n, p, v));
@@ -3435,9 +3440,7 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1 + Math.min(8, s.big.n) * 0.04, 1), fx.blink('#fff6c8', 0.2);
   fx.memo.t = t;
   ctx.restore();
-  (globalThis as any).__pm?.('hud');
   drawHud(ctx, s, w, h, sc2);
-  (globalThis as any).__pm?.('end');
 }
 /** 성 밑에 깔린 몬스터 (연출) */
 const FLAT = new WeakMap<object, { x: number; y: number; mk: MK; t: number }[]>();
@@ -3454,9 +3457,6 @@ function drawObj(ctx: C2, s: GiantState, o: Obj, sc2: number, X: XF, Y: XF, R: X
     case 'tree':
     case 'fruit': {
       const stl = treeStyle(s, o), u = R(TREE_H) * dp * (0.88 + (o.v % 3) * 0.07);
-      ctx.fillStyle = 'rgba(40,60,20,.22)';
-      ell(ctx, ox, oy, u * 0.32, u * 0.06);
-      ctx.fill();
       if (o.amt > 0) {
         const a = t - o.hitT, shake = a < 36 ? Math.sin(a * 0.7) * 0.14 * (1 - a / 36) : o.workers > 0 ? Math.sin(t * 0.6 + o.v) * 0.025 : 0;
         put(ctx, treeSpr(stl, o.v % 3, TQ(R, sc2)), TF, ox, oy, u, 1, shake);
@@ -3513,9 +3513,6 @@ function drawObj(ctx: C2, s: GiantState, o: Obj, sc2: number, X: XF, Y: XF, R: X
       if (!o.mk || o.dead) break;
       const md = MD[o.mk], u = R(md.r) * dp, mood = o.stun > 0 ? 3 : t - o.hitT < 8 ? 2 : o.wind > 0 ? 1 : 0;
       const hop = mood === 0 ? Math.abs(Math.sin(t * 0.1 + o.v)) * u * 0.12 : 0, sq = t - o.slamT < 20 ? 1 - 0.25 * Math.sin(((t - o.slamT) / 20) * Math.PI) : 1;
-      ctx.fillStyle = 'rgba(40,20,30,.22)';
-      ell(ctx, ox, oy, u * 1.05, u * 0.22);
-      ctx.fill();
       ctx.save();
       ctx.translate(ox, oy - hop);
       ctx.scale((o.dir < 0 ? -1 : 1) * (2 - sq), sq);
@@ -3547,9 +3544,6 @@ function drawObj(ctx: C2, s: GiantState, o: Obj, sc2: number, X: XF, Y: XF, R: X
     case 'loot': {
       if (o.dead) break;
       const u = R(ITEM_S) * dp;
-      ctx.fillStyle = 'rgba(40,30,20,.2)';
-      ell(ctx, ox, oy, u * 0.5, u * 0.15);
-      ctx.fill();
       put(ctx, itemSpr(o.sub, IQ(R, sc2)), IF, ox, oy - R(o.z) - u * 0.4, u, 1, o.z > 0 ? (t * 0.3 + o.v) % TAU : 0);
       break;
     }
@@ -3607,7 +3601,7 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
       break;
   }
   const x = X(p.x), y = Y(p.y) - R(p.z) - bob;
-  if (p.z < 0.03) {
+  if (fr === 4 && p.z < 0.03) {
     ctx.fillStyle = 'rgba(40,30,20,.2)';
     ell(ctx, x, Y(p.y), u * 0.26, u * 0.07);
     ctx.fill();

@@ -352,10 +352,14 @@ function newStage(s: HauntState) {
   addPerson(s, null, 'dog', d.dog, d.dog === 3 && d.ch === 0 ? 0.66 : s.rooms[d.dog].x0 + 0.2);
   if (s.perk[1] === 1 && d.ch >= 2) addPerson(s, null, 'cat', 1, s.rooms[1].x0 + 0.25);
   if (s.stage === 0) {
-    // 첫 톡의 약속: 아빠는 액자 옆에서 우유를 들고 서 있다
-    const dad = s.people[0];
+    // 첫 톡의 약속: 아빠는 액자 옆에서 우유를 들고 서 있다 · 엄마는 침실을 왔다 갔다 · 할머니는 양치 중
+    const [dad, gm, mom] = s.people;
     dad.face = -1;
     dad.stLen = 9999;
+    gm.stLen = 200;
+    planTo(s, mom, 1, 0.585);
+    mom.st = 'walk';
+    mom.act = 'look';
   }
   s.pend = [];
   s.chains = [];
@@ -3439,9 +3443,9 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
     ctx.strokeStyle = wv.depth >= 3 ? '#ff5a4e' : '#ffb03a';
     ctx.lineCap = 'round';
     for (let k = 0; k < 3; k++) {
-      ctx.lineWidth = R(0.007) * (1 + Math.min(4, wv.depth) * 0.15);
+      ctx.lineWidth = R(0.009) * (1 + Math.min(4, wv.depth) * 0.15);
       ctx.beginPath();
-      ctx.arc(-R(0.018) * k, 0, R(0.022 + k * 0.012), -0.8, 0.8);
+      ctx.arc(-R(0.022) * k, 0, R(0.03 + k * 0.016), -0.85, 0.85);
       ctx.stroke();
     }
     ctx.restore();
@@ -4023,6 +4027,8 @@ function drawPerson(ctx: C2, s: HauntState, p: Person, X: (x: number) => number,
     ctx.restore();
     return;
   }
+  // 하는 일마다 몸을 살랑 (서 있는 일만)
+  if (p.st === 'act' && pose === 'stand' && !rot) ctx.rotate(Math.sin(t * 0.11 + p.id * 2) * 0.045);
   if (rot) {
     const sd = p.x < (r.x0 + r.x1) / 2 ? 1 : -1;
     ctx.translate(sd * u * 0.1 * rot, -u * 0.12 * rot);
@@ -4036,6 +4042,28 @@ function drawPerson(ctx: C2, s: HauntState, p: Person, X: (x: number) => number,
     ctx.drawImage(suitcase(sc2, u * 0.32), u * 0.2, -u * 0.36 * pop, u * 0.4 * pop, u * 0.4 * pop);
     if ((p.stT >> 3) % 2) (ell(ctx, u * 0.4, -u * 0.42, u * 0.08, u * 0.05, p.stT * 0.3), ink(ctx, '#ffd166', 1));
   } else if (p.st === 'flee') ctx.drawImage(suitcase(sc2, u * 0.3), -u * 0.42, -u * 0.38, u * 0.34, u * 0.34);
+  // 하는 일 작은 몸짓: 양치(칫솔·거품) · 요리(김) · 피아노(음표) · 설거지(거품)
+  if (p.st === 'act' && p.act && p.k !== 'kid') {
+    const ph2 = (t * 0.05 + p.id) % 1;
+    if (p.act === 'brush') {
+      const bx = u * 0.16 + Math.sin(t * 0.6) * u * 0.04;
+      seg(ctx, bx, -u * 0.62, bx + u * 0.16, -u * 0.5, u * 0.035, '#5aa9e6');
+      for (let k = 0; k < 3; k++) (ell(ctx, u * 0.14 + k * u * 0.05, -u * 0.66 - ((ph2 + k * 0.3) % 1) * u * 0.2, u * 0.03, u * 0.03), (ctx.fillStyle = 'rgba(255,255,255,.9)'), ctx.fill());
+    } else if (p.act === 'cook' || p.act === 'wash') {
+      for (let k = 0; k < 3; k++) {
+        const f = (ph2 + k * 0.33) % 1;
+        ctx.globalAlpha = 0.7 * (1 - f);
+        ell(ctx, u * (0.3 + Math.sin(f * 6 + k) * 0.05), -u * (0.5 + f * 0.5), u * (0.05 + f * 0.05), u * (0.04 + f * 0.04));
+        ctx.fillStyle = p.act === 'cook' ? '#ffffff' : '#bfe8ff';
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    } else if (p.act === 'piano' && (t >> 4) % 3 === 0) {
+      ell(ctx, u * 0.2, -u * (1.0 + ph2 * 0.2), u * 0.05, u * 0.04, -0.4);
+      ctx.fillStyle = '#ff6fd0';
+      ctx.fill();
+    }
+  }
   // 유튜버: 셀카봉 카메라 (빨간 녹화 불)
   if (p.k === 'youtuber' && p.st !== 'react') {
     seg(ctx, u * 0.18, -u * 0.38, u * 0.42, -u * 0.72, u * 0.03, '#5a5a6a');

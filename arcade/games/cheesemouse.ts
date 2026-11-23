@@ -230,8 +230,8 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나 (세상 속 큰 물건) */
 export const PERKS: { name: string; line: string }[][] = [
-  [{ name: '골무 투구', line: '판마다 한 번은 잡혀도 땡! 안 떨궈요' }, { name: '방울 장난감', line: '소리 물건이 더 멀리, 더 오래' }],
-  [{ name: '롤러스케이트', line: '생쥐가 더 빨라져요' }, { name: '치즈 자석', line: '하나를 주우면 둘레 치즈도 쏙' }],
+  [{ name: '골무 투구', line: '판마다 한 번은 잡혀도 땡!' }, { name: '방울 장난감', line: '땡그랑이 더 멀리·오래' }],
+  [{ name: '롤러스케이트', line: '생쥐가 더 빨리 쪼르르' }, { name: '치즈 자석', line: '줍는 김에 둘레 치즈도 쏙' }],
 ];
 /** 쥐구멍 마을: 판을 깰 때마다 하나씩 */
 export const TOWN = ['치즈 창고', '빵집', '우체국', '도서관', '놀이터', '시계탑', '학교', '극장', '온천', '기차역', '꽃밭', '치즈 성'];
@@ -3007,21 +3007,23 @@ function bakeBg(ch: number, hc: number, w: number, h: number, sc: number): HTMLC
       g.fill();
     } else {
       const tw = ch === 0 ? 0.1 : 0.0833, th2 = tw * YS;
+      // 바닥을 먼저 꽉 채운다 (타일 틈이 비면 지난 프레임이 비친다)
+      g.fillStyle = P.floorA;
+      g.fillRect(0, WALL1, 1, FB - WALL1 + 0.3);
       for (let r = 0; r * th2 < FB - WALL1 + 0.3; r++)
         for (let i = 0; i < Math.ceil(1 / tw) + 1; i++) {
           const x = i * tw - (ch === 2 && r % 2 ? tw / 2 : 0), y = WALL1 + r * th2;
-          g.fillStyle = (i + r) % 2 ? P.floorA : P.floorB;
           if (ch === 2) {
+            g.fillStyle = P.floorB;
             g.beginPath();
-            g.moveTo(x + tw / 2, y);
-            g.lineTo(x + tw, y + th2 / 2);
-            g.lineTo(x + tw / 2, y + th2);
-            g.lineTo(x, y + th2 / 2);
+            g.moveTo(x + tw / 2, y + th2 * 0.12);
+            g.lineTo(x + tw * 0.88, y + th2 / 2);
+            g.lineTo(x + tw / 2, y + th2 * 0.88);
+            g.lineTo(x + tw * 0.12, y + th2 / 2);
             g.closePath();
             g.fill();
-          } else g.fillRect(x, y, tw, th2);
+          } else if ((i + r) % 2 === 0) (g.fillStyle = P.floorB), g.fillRect(x, y, tw, th2);
         }
-      if (ch === 2) (g.fillStyle = 'rgba(255,255,255,.25)'), g.fillRect(0, WALL1, 1, FB);
     }
     // 창 햇살 · 벽 밑 그늘 · 가장자리
     if (ch !== 2) {
@@ -3344,6 +3346,8 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
   const d = STAGES[s.stage], ch = d.ch, m = s.m, seenT = fx.memo.t ?? -1, room = ROOMS[ch];
   let sn = 0;
   const snd = (n: Parameters<typeof fx.sound>[0], p = 1, v = 1) => void (sn++ < 2 && fx.sound(n, p, v));
+  // 결과·선물·끝 화면이 뜨면 떠 있던 짧은 글자는 걷는다 (카드 위에 겹치지 않게)
+  if (s.phase !== 'play' && fx.memo.clr !== s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)) (fx.memo.clr = s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)), (fx.popups.length = 0);
   wantStage(s.stage, Math.round(w), Math.round(h), sc);
   if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, Math.round(w), Math.round(h), sc);
   idlePump();
@@ -4110,7 +4114,7 @@ function drawResult(ctx: C2, s: MouseState, w: number, sc2: number) {
   };
   const INK = '#4a2c1d', MUTED = '#a08a70';
   const pt = s.pt, a = Math.min(1, pt / 10), slide = (1 - a) * R(0.06);
-  const cx0 = X(0.06), cy0 = Y(0.13) - slide, cw = R(0.88), chh = R(0.62);
+  const cx0 = X(0.06), cy0 = Y(0.13) - slide, cw = R(0.88), chh = R(0.69);
   ctx.globalAlpha = a;
   rr(ctx, cx0, cy0 + 4, cw, chh, R(0.04));
   ctx.fillStyle = 'rgba(74,44,29,.25)';
@@ -4171,7 +4175,7 @@ function drawResult(ctx: C2, s: MouseState, w: number, sc2: number) {
   text(`도감 — 고양이 ${s.dexC.length}/${CAT_DEX.length} · 치즈 ${s.dexQ.length}/${Q_DEX.length}`, X(0.1), cy0 + R(0.54), MUTED);
   ctx.textAlign = 'center';
   CAT_DEX.forEach((k, i) => {
-    const has = s.dexC.includes(k), px = X(0.11 + i * 0.058), py = cy0 + R(0.595), u = R(0.017);
+    const has = s.dexC.includes(k), px = X(0.1 + i * 0.058), py = cy0 + R(0.605), u = R(0.02);
     ctx.save();
     ctx.translate(px, py);
     if (has) stamp(ctx, k === 'king' ? kingSpr(0, R(0.018) * sc2 * 2) : catSpr(k, PST, R(0.02) * sc2 * 2), k === 'king' ? F_KING : F_CAT, k === 'king' ? u * 0.75 : u);
@@ -4179,12 +4183,11 @@ function drawResult(ctx: C2, s: MouseState, w: number, sc2: number) {
     ctx.restore();
   });
   Q_DEX.forEach((k, i) => {
-    const has = s.dexQ.includes(k), px = X(0.7 + (i % 4) * 0.055), py = cy0 + R(0.56 + Math.floor(i / 4) * 0.045);
-    if (i === 0) void px;
+    const has = s.dexQ.includes(k), px = X(0.705 + (i % 4) * 0.058), py = cy0 + R(0.57 + Math.floor(i / 4) * 0.05);
     ctx.save();
     ctx.translate(px, py);
-    if (has) stamp(ctx, qSpr(k, R(0.012) * sc2 * 2), F_PROP, R(0.012));
-    else (ell(ctx, 0, -R(0.006), R(0.012), R(0.009)), (ctx.fillStyle = '#e6d6bc'), ctx.fill());
+    if (has) stamp(ctx, qSpr(k, R(0.019) * sc2 * 2), F_PROP, R(0.019));
+    else (ell(ctx, 0, -R(0.008), R(0.016), R(0.012)), (ctx.fillStyle = '#e6d6bc'), ctx.fill());
     ctx.restore();
   });
   font(0.036, 900);
@@ -4199,8 +4202,8 @@ function drawPick(ctx: C2, s: MouseState, w: number) {
   const text = (str: string, x: number, y: number, fill: string) => ((ctx.fillStyle = fill), ctx.fillText(str, x, y));
   const INK = '#4a2c1d';
   const pt = s.pt, picked = s.picked, opts = PERKS[d.ch];
-  ctx.fillStyle = 'rgba(255,246,220,.35)';
-  ctx.fillRect(0, Y(0.36), w, Y(0.94));
+  ctx.fillStyle = 'rgba(255,246,220,.72)';
+  ctx.fillRect(0, Y(0.1), w, Y(1.205));
   rr(ctx, X(0.08), Y(0.135), R(0.84), R(0.105), R(0.03));
   ink(ctx, 'rgba(255,250,235,.97)', 2, INK);
   ctx.textAlign = 'center';
@@ -4222,11 +4225,11 @@ function drawPick(ctx: C2, s: MouseState, w: number) {
       ctx.setLineDash([]);
     }
     drawPerk(ctx, d.ch * 2 + i, px, py, k, t);
-    rr(ctx, px - R(0.205), Y(0.955), R(0.41), R(0.105), R(0.025));
+    rr(ctx, px - R(0.2), Y(0.955), R(0.4), R(0.105), R(0.025));
     ink(ctx, chosen ? '#ffe9a0' : 'rgba(255,250,235,.97)', 2, chosen ? '#e0a020' : INK);
     font(0.04, 900);
     text(o.name, px, Y(0.99), '#d9480f');
-    font(0.029, 800);
+    font(0.03, 800);
     text(o.line, px, Y(1.034), INK);
     ctx.globalAlpha = 1;
   });
