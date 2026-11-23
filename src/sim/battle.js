@@ -618,6 +618,7 @@ export class Battle {
     if (u.flash > 0) u.flash -= dt * 5;
     if (u.team === 1 && this.foe.regen && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * this.foe.regen * dt);
     if (u.thornT > 0) u.thornT -= dt; if (u.fireT > 0) u.fireT -= dt;
+    if (u.lured > 0) u.lured -= dt;   // 창귀에게 불려 나간 아군
     if (u.haste > 0) u.haste -= dt; if (u.weaken > 0) u.weaken -= dt; if (u.root > 0) u.root -= dt; if (u.rage > 0) u.rage -= dt;
     if (u.slow > 0) u.slow -= dt; if (u.guard > 0) u.guard -= dt; if (u.dmgUp > 0) u.dmgUp -= dt; if (u.mark > 0) u.mark -= dt;
     if (u.tauntT > 0) { u.tauntT -= dt; if (u.tauntT <= 0) u.taunt = def.taunt || 0; }
@@ -628,6 +629,8 @@ export class Battle {
     // 그슨대: 살려 둘수록 커지고 세진다
     if (def.grow && this.waveOn && u.x < VIEW.x1 && (u.grown || 0) < def.grow.max) { u.growT = (u.growT || 0) + dt; if (u.growT >= def.grow.every) { u.growT = 0; u.grown = (u.grown || 0) + 1; u.atk *= 1 + def.grow.atk; const add = u.maxHp * def.grow.hp; u.maxHp += add; u.hp += add; this.ev('grow', { x: u.x, y: u.y, n: u.grown }); } }
     if (u.burn > 0) { u.burn -= dt; u.burnAcc += dt; if (u.burnAcc >= 0.5) { u.burnAcc -= 0.5; this.damage(u, u.burnDmg * 0.5, null, 'burn'); if (u.dead) return; } }
+    // 달걀귀신·강철이·창귀·아귀의 버릇 (때리지 않아도 둘레에 미친다)
+    if (u.team === 1 && this.waveOn && u.x < VIEW.x1 && (def.fear || def.heat || def.lure || def.devour)) this.foeHabit(u, dt);
     if (u.ai) { bossTick(this, u, dt); if (u.dead) return; }
     if (u.jump) { this.doJump(u, dt); return; }
     if (u.hidden > 0) { u.hidden -= dt; if (u.hidden <= 0) this.finishLeap(u); return; }
@@ -698,8 +701,10 @@ export class Battle {
       if (e.def.banner) continue;   // 군기 수레는 행렬의 장식: 아무도 노리지 않는다
       if (e.team === 1 && e.x > VIEW.x1 + 6) continue;
       const d = hyp(e.x - u.x, e.y - u.y) - e.r - u.r;
+      if (e.def.cloak && d > e.def.cloak && this.time - (e.revealAt || -9) > 2.5) continue;   // 감투 도깨비: 멀리서는 보이지 않는다 (때린 직후에만 드러난다)
       if (hold) { if (melee) { if (hyp(e.x - sx, e.y - sy) > 105 + e.r) continue; } else if (d > rng) continue; }
       let s = d;
+      if (e.lured > 0 && u.team === 1) s -= 160;   // 창귀가 불러낸 아군을 먼저 노린다
       if (melee) s += e.eng * 9;
       if (def.prefer === 'soft' && e.def.soft) s -= 120;
       if (def.antiCav && (e.def.mounted || e.def.large)) s -= 50;
@@ -805,6 +810,8 @@ export class Battle {
   resolveAttack(u) {
     const t = u.swingTarget, def = u.def; u.swingTarget = null;
     if (!t || t.dead || t.hidden > 0) return;
+    if (def.cloak) u.revealAt = this.time;   // 감투 도깨비: 때리는 순간 감투가 들썩여 모습이 드러난다
+    if (def.veil && !u.unveiled) { u.unveiled = true; this.ev('text', { x: u.x, y: u.y - 66, s: '둔갑이 풀렸다!', c: '#b8742a' }); }   // 여우 할미: 덤벼드는 순간 본색이 드러난다
     if (def.range > 0) { this.fire(u, t); return; }
     if (hyp(t.x - u.x, t.y - u.y) - u.r - t.r > this.rangeOf(u) + 16) return;
     this.damage(t, u.atk, u, 'melee'); this.onHit(u, t);
@@ -821,6 +828,10 @@ export class Battle {
     if (u.team === 1 && this.foe.burn && t.team === 0 && !t.def.structure) { t.burn = Math.max(t.burn, 3); t.burnDmg = Math.max(t.burnDmg, u.atk * this.foe.burn); }
     // 야광귀: 때릴 때마다 사기를 훔쳐 간다
     if (d.steal && u.team === 1 && t.team === 0 && this.morale > 0) { this.morale = Math.max(0, this.morale - d.steal); this.ev('steal', { x: t.x, y: t.y, n: d.steal }); }
+    // 물귀신: 붙잡은 아군을 물속(요괴 쪽)으로 끌고 간다
+    if (d.drag && u.team === 1 && t.team === 0 && !t.def.structure) { const k = d.drag.d * (t.def.hero || t.def.large || t.def.mounted ? 0.4 : 1); t.x = Math.min(VIEW.x1 - 30, t.x + k); u.x = Math.min(VIEW.x1 - 20, u.x + k); t.slow = Math.max(t.slow, d.drag.t); t.slowAmt = Math.max(t.slowAmt, d.drag.slow); }
+    // 묘두사: 독니에 물리면 힘이 빠지고 굼떠진다
+    if (d.venom && u.team === 1 && t.team === 0 && !t.def.structure) { t.weaken = Math.max(t.weaken, d.venom.t); t.slow = Math.max(t.slow, d.venom.t); t.slowAmt = Math.max(t.slowAmt, d.venom.slow); }
   }
   fire(u, t) {
     const k = u.def.proj;
@@ -862,11 +873,16 @@ export class Battle {
     if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 0.85;
     if (t.team === 0 && this.form && this.form.fx.guard) d *= 1 - this.form.fx.guard;
     if (t.team === 1 && this.foe.projGuard && kind === 'proj' && !t.def.boss) d *= 1 - this.foe.projGuard;
+    // 영노: 화살·돌을 받아먹고 세진다 / 여우 할미: 둔갑해 있는 동안은 공격이 잘 들지 않는다
+    if (t.def.eat && kind === 'proj') { d *= t.def.eat.proj; if ((t.eaten || 0) < t.def.eat.max) { t.eaten = (t.eaten || 0) + 1; t.atk *= 1 + t.def.eat.atk; this.ev('grow', { x: t.x, y: t.y, n: t.eaten, s: '꿀꺽!' }); } }
+    if (t.def.veil && !t.unveiled) d *= t.def.veil;
     if (t.team === 1 && this.expose && (this.waveT < 8 || this.exposeT > 0)) d *= 1 + this.expose;
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
+    // 밤박쥐: 문 만큼 피를 빨아 낫는다
+    if (src && src.def.drain && !src.dead && d > 0) src.hp = Math.min(src.maxHp, src.hp + d * src.def.drain);
     // 맞은 순간의 움찔: 그림만 맞은 방향으로 아주 살짝 밀렸다가 제자리로 돌아온다 (실제 자리와 진형은 그대로).
     // 잇달아 맞아도 밀린 채로 있지 않도록 가벼운 타격은 0.3초에 한 번만, 큰 타격도 0.12초 안에는 다시 움찔하지 않는다
     if (d > 0 && kind !== 'burn' && !t.def.structure && this.time - t.hitT > (d > t.maxHp * 0.12 ? 0.12 : 0.3)) {
@@ -913,6 +929,36 @@ export class Battle {
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });
     else if (t.def.revive && !t.revived && !this.inGrail(t.x, t.y) && !(src && src.def.seal)) { this.corpses.push({ x: t.x, y: t.y, t: 3, revive: true, u: t }); this.pending++; }
     else if (!t.def.structure && !t.def.boss && !silent) this.corpses.push({ x: t.x, y: t.y, t: 12, raisable: true, type: t.type });
+    // 왕지네: 토막 나도 마디마다 꿈틀거리며 달려든다
+    if (t.def.split && t.team === 1 && !t.summoned && !silent) this.spawnNow(t.def.split.type, 1, t.x, t.y, t.def.split.n, t.lvl);
+    // 손각시: 원한 — 쓰러뜨린 이는 오싹해 굳고 둘레의 아군은 힘이 빠진다
+    if (t.def.grudge && t.team === 1 && src && src.team === 0 && !src.dead) { const q = t.def.grudge; if (!src.def.structure) src.stun = Math.max(src.stun, q.stun * (src.def.hero ? 0.5 : 1)); this.allies(t.x, t.y, q.r, a => { a.weaken = Math.max(a.weaken, q.weak); }); this.ev('text', { x: t.x, y: t.y - 60, s: '원통하다…', c: '#6a3a7a' }); }
+  }
+  // 그 자리에 바로 요괴를 세운다 (왕지네의 새끼처럼, 기다리지 않고 곧장 싸움에 낀다)
+  spawnNow(utype, team, x, y, n, lvl) {
+    let sq = this.squads.find(s => s.team === team && s.type === utype && s.summonPool);
+    if (!sq) { sq = { id: this.squads.length, team, type: utype, def: defOf(utype), lvl, units: [], alive: 0, total: 0, order: { kind: 'auto' }, cx: x, cy: y, summonPool: true }; this.squads.push(sq); }
+    for (let i = 0; i < n; i++) { const a = i / n * TAU + 0.4, u = this.spawn(utype, team, x + Math.cos(a) * 16, y + Math.sin(a) * 12, sq, lvl, [0, 0]); u.summoned = true; u.revived = true; u.stun = 0.3; sq.total++; }
+    this.ev('appear', { x, y, summon: true });
+  }
+  // 때리지 않아도 둘레에 미치는 요괴의 버릇
+  foeHabit(u, dt) {
+    const def = u.def;
+    // 달걀귀신: 얼굴 없는 얼굴을 들이밀면 둘레의 아군이 질겁해 잠깐 굳는다 (영웅은 꿈쩍 않는다)
+    if (def.fear && (u.fearT = (u.fearT === undefined ? def.fear.every * 0.5 : u.fearT) - dt) <= 0) { u.fearT = def.fear.every; let n = 0; this.allies(u.x, u.y, def.fear.r, a => { if (a.def.hero) return; a.stun = Math.max(a.stun, def.fear.t); a.weaken = Math.max(a.weaken, 2); n++; }); if (n) this.ev('text', { x: u.x, y: u.y - 70, s: '으악!', c: '#5a4a7a' }); }
+    // 강철이: 지나는 곳마다 가문다 — 곁의 아군이 타들어 간다 (비가 오면 식는다)
+    if (def.heat && this.sky !== 'rain' && (u.heatT = (u.heatT || 0) - dt) <= 0) { u.heatT = 0.5; const dps = def.heat.dps * lvlMult(u.lvl); this.allies(u.x, u.y, def.heat.r, a => { if (a.def.fireproof) return; a.burn = Math.max(a.burn, 1.1); a.burnDmg = Math.max(a.burnDmg, dps); }); }
+    // 창귀: 범의 앞잡이가 아군 하나를 불러내면, 둘레의 요괴가 모두 그를 노린다
+    if (def.lure && (u.lureT = (u.lureT === undefined ? 2 : u.lureT) - dt) <= 0) {
+      u.lureT = def.lure.cd; let v = null, bd = def.lure.r;
+      for (const a of this.units) { if (a.dead || a.team !== 0 || a.def.structure || a.def.banner || a.def.hero) continue; const d = hyp(a.x - u.x, a.y - u.y); if (d < bd) { bd = d; v = a; } }
+      if (v) { v.lured = def.lure.t; v.mark = Math.max(v.mark, def.lure.t); v.markAmt = Math.max(v.markAmt, def.lure.amt); this.near(u.x, u.y, 300, e => { if (e.team === 1 && !e.dead && !e.def.boss && !e.def.structure) { e.target = v; e.retarget = def.lure.t * 0.5; } }); this.ev('text', { x: v.x, y: v.y - 64, s: '이리 오너라…', c: '#8a6a3c' }); }
+    }
+    // 아귀: 쓰러진 자를 주워 먹고 낫고 세진다
+    if (def.devour && (u.devT = (u.devT || 0) - dt) <= 0) {
+      u.devT = 0.8; if ((u.ate || 0) >= def.devour.max) return;
+      for (const c of this.corpses) { if (!c.raisable || hyp(c.x - u.x, c.y - u.y) > def.devour.r) continue; c.raisable = false; c.t = 0; u.ate = (u.ate || 0) + 1; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * def.devour.heal); u.atk *= 1 + def.devour.atk; u.cast = 0.5; this.ev('grow', { x: u.x, y: u.y, n: u.ate, s: '우걱우걱…' }); break; }
+    }
   }
   inGrail(x, y) { for (const z of this.zones) if (z.kind === 'grail' && hyp(z.x - x, z.y - y) < z.r) return true; return false; }
   aoe(x, y, r, dmg, hits, src, o = {}) {

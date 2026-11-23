@@ -18,6 +18,17 @@ const MAPS = ['meadow', 'ruins', 'pillars', 'forest', 'river', 'graveyard', 'for
 // 편성에서 가장 눈에 띄는 요괴가 싸움 이름을 정한다
 const FEATURE = ['necro', 'geuseun', 'bulga', 'jangsan', 'catapult', 'dueok', 'wolf', 'bomber', 'treant', 'shaman', 'skel', 'rassassin', 'rshield', 'garcher', 'orc', 'goblin'];
 const NAMES = { necro: ['저승사자의 명부', '저승사자 일행'], catapult: ['바위 세례', '투석 패거리'], skel: ['되살아나는 자들', '망령 무리'], wolf: ['멧돼지 몰이', '멧돼지 몰이패'], bomber: ['푸른 불빛', '도깨비불 떼'], treant: ['걸어오는 장승', '장승 행렬'], shaman: ['둥둥 북소리', '북 도깨비 패'], rassassin: ['여우 울음', '불여우 무리'], rshield: ['솥뚜껑 방벽', '솥뚜껑 패거리'], garcher: ['돌팔매질', '돌팔매 패'], orc: ['방망이 패거리', '방망이 패'], goblin: ['고갯마루의 불청객', '도깨비 떼'], geuseun: ['커지는 그림자', '그슨대와 그림자들'], bulga: ['쇠 먹는 짐승', '불가사리 무리'], jangsan: ['부르는 목소리', '장산범 무리'], dueok: ['내리찍는 주먹', '두억시니 패'], yagwang: ['신발 도둑', '야광귀 떼'] };
+// 새 요괴 열둘: 위협 · 자리 · 한 판에 나오는 무리 수 · 싸움 이름
+Object.assign(THREAT, { gamtu: 3, bat: 2.8, yeongno: 4.2, changgwi: 3.4, foxhag: 3.2, mulgwi: 3.5, myodusa: 3.3, jine: 4.4, gangcheol: 5, dalgyal: 3.8, songaksi: 3.6, agwi: 3.6 });
+Object.assign(ROLE, { gamtu: 'front', bat: 'mid', yeongno: 'front', changgwi: 'mid', foxhag: 'mid', mulgwi: 'front', myodusa: 'flank', jine: 'front', gangcheol: 'front', dalgyal: 'mid', songaksi: 'mid', agwi: 'front' });
+Object.assign(LIMIT, { gamtu: 2, bat: 2, yeongno: 2, changgwi: 1, foxhag: 2, mulgwi: 2, myodusa: 2, jine: 2, gangcheol: 1, dalgyal: 2, songaksi: 2, agwi: 2 });
+FEATURE.splice(FEATURE.indexOf('catapult'), 0, 'gangcheol', 'jine', 'yeongno', 'dalgyal', 'songaksi', 'agwi', 'changgwi');
+FEATURE.splice(FEATURE.indexOf('wolf'), 0, 'mulgwi', 'foxhag', 'myodusa', 'gamtu', 'bat');
+Object.assign(NAMES, {
+  gamtu: ['사라진 발소리', '감투 도깨비 패'], bat: ['밤하늘의 날갯짓', '밤박쥐 떼'], yeongno: ['탈판의 영노', '영노 패'], changgwi: ['범의 앞잡이', '창귀 무리'],
+  foxhag: ['길가의 낯선 할미', '여우 할미 패'], mulgwi: ['물가의 손짓', '물귀신 무리'], myodusa: ['풀숲의 독니', '묘두사 떼'], jine: ['꿈틀대는 마디', '왕지네 무리'],
+  gangcheol: ['타들어 가는 고개', '강철이와 무리'], dalgyal: ['얼굴 없는 귀신', '달걀귀신 무리'], songaksi: ['원통한 혼례', '손각시 무리'], agwi: ['굶주린 넋', '아귀 떼'],
+});
 export const AFFIX = {
   rage: { name: '광분', desc: '공격 속도 +20%', foe: { as: 1.2 } },
   iron: { name: '철갑', desc: '체력 +30%', foe: { hp: 1.3 } },
@@ -101,7 +112,7 @@ export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   const pool = { w: C.pool };
   let budget = budgetFor(ch, row, kind, eliteMul);
   const first = ch === 0 && row === 0;
-  const avail = Object.keys(pool.w).filter(t => !(first && (t === 'rshield' || t === 'rassassin' || t === 'yagwang')));
+  const avail = Object.keys(pool.w).filter(t => !(first && (t === 'rshield' || t === 'rassassin' || t === 'yagwang' || t === 'gamtu' || t === 'foxhag')));
   const picks = [], cnt = {};
   for (let guard = 0; budget >= 1.8 && picks.length < 10 && guard < 80; guard++) {
     let cand = avail.filter(t => THREAT[t] <= budget + 0.6 && (cnt[t] || 0) < (LIMIT[t] || 4));

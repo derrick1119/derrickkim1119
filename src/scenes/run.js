@@ -39,7 +39,7 @@ const MARCH = 520, MARCH_V = 300;
 const PAPER_BG = typeof location !== 'undefined' && new URLSearchParams(location.search).has('paper');
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
-const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman', 'dueok', 'yagwang'], GHOST = ['skel', 'skelarcher'];
+const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman', 'dueok', 'yagwang', 'gamtu'], GHOST = ['skel', 'skelarcher'];
 
 export class RunScene {
   constructor() {

@@ -382,6 +382,7 @@ export function dokkaebi(g, o, sel) {
       rope(g, p => { p.moveTo(-8.6, -47.4); p.quadraticCurveTo(0, -45.8, 8.6, -47.4); }, '#2f4d7e', 1.3); curve(g, p => { p.moveTo(-12, -44); p.quadraticCurveTo(-11, -33, -5, -27); }, '#7a4a2c', 0.8);
     }
     if (o.hat === 'beong') { part(g, E(0, -44.2, 17.4, 4.2), '#4a3a30', E(2, -42.6, 16, 3), { k: 0.24, lw: 1.1 }); part(g, p => { p.moveTo(-10.4, -44.4); p.bezierCurveTo(-11, -57, 11, -57, 10.4, -44.4); p.quadraticCurveTo(0, -42.4, -10.4, -44.4); p.closePath(); }, '#5a4636', P(3, -57, 12, -57, 12, -43, 4, -43), { k: 0.24, hi: E(-4, -52, 3, 1.6), hk: 0.2, lw: 1.1 }); rope(g, p => { p.moveTo(-10.2, -46.6); p.quadraticCurveTo(0, -44.4, 10.2, -46.6); }, RED, 1.2); }
+    if (o.headItem) o.headItem(g);   // 머리에 쓴 다른 것 (감투 도깨비의 도깨비감투)
   }
 }
 export const DITEM = {

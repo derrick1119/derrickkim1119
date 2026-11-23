@@ -51,6 +51,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.flash > 0.4) { sy *= 1 - (u.flash - 0.4) * 0.1; sxm *= 1 + (u.flash - 0.4) * 0.08; }
   if (u.stun > 0) x += Math.sin(T * 40 + u.id) * 0.9;
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
+  if (u.def && u.def.cloak) alpha *= 0.5 + 0.12 * Math.sin(T * 3 + u.id);   // 감투 도깨비: 도깨비감투를 써서 반쯤 비친다
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
   if (!L.float && !L.gshadow && !u.jumpH && !L.still) { g.fillStyle = 'rgba(70,46,22,0.2)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1.5, u.r * 1.05 * Math.min(1.6, k), u.r * 0.34 * Math.min(1.6, k), 0, 0, TAU); g.fill(); }   // 발밑의 옅은 그림자 (들판에 묻히지 않게)
   if (L.gshadow) { const [dx, dy, rx, ry] = L.gshadow; for (const [m, a2] of [[1.15, 0.12], [1, 0.2], [0.8, 0.18]]) { g.fillStyle = `rgba(58,38,24,${a2})`; g.beginPath(); g.ellipse(x + dx * k, u.y + dy * k, rx * k * m, ry * k * m, 0, 0, TAU); g.fill(); } }   // 땅에 닿은 그림자 (수레)
@@ -429,7 +430,7 @@ export class BattleView {
         }
         case 'rainTick': if (e.fire) fx.embers(e.x, e.y - 6, 4, '#ff9a2e'); for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * e.r, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r * 0.6, life = 0.2 + Math.random() * 0.12; fx.add({ k: 'arrow', x, y, life }); fx.add({ k: 'stuck', ground: true, x, y, life: 1.1 }); if (i % 3 === 0) fx.puff(x, y - 2, 1, '#e8dcc0', 7); if (e.fire && i % 2 === 0) fx.flare(x, y - 4, 12, '#ffa040', 0.18, 1); } sfx('rain'); break;
         case 'vanish': fx.puff(e.x, e.y - 14, e.ally ? 4 : 7, e.ally ? PAPER : '#cfe6f0', 11); if (e.ally) fx.scraps(e.x, e.y - 20, 3); else sfx('leap'); break;
-        case 'grow': fx.txt(e.x, e.y - 74 - e.n * 4, '커진다…', '#5a4a8a', 18, 0.8); fx.wisp(e.x, e.y - 30, 2); fx.ring(e.x, e.y, 46 + e.n * 4, '#3d3560', 0.4, 4); break;
+        case 'grow': fx.txt(e.x, e.y - 74 - e.n * 4, e.s || '커진다…', '#5a4a8a', 18, 0.8); fx.wisp(e.x, e.y - 30, 2); fx.ring(e.x, e.y, 46 + e.n * 4, '#3d3560', 0.4, 4); break;
         // 야광귀가 훔친 사기는 한 줄로 더해서 보여 준다
         case 'steal': { const p = fx.p.find(q => q.steal && q.t < 0.7); if (p) { p.val += e.n; p.s = '사기 -' + p.val.toFixed(1); p.t = Math.min(p.t, 0.15); } else fx.add({ k: 'text', steal: true, val: e.n, x: e.x, y: e.y - 50, vy: -30, drag: 1.5, s: '사기 -' + e.n.toFixed(1), col: RED, size: 19, life: 1 }); break; }
         case 'appear': if (e.pounce) { fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 70, OCHRE, 0.45, 7); fx.slash(e.x, e.y - 18, 36, MEOK); fx.txt(e.x, e.y - 62, '어흥!', '#c8642a', 28, 0.9); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break; }

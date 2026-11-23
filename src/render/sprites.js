@@ -3,6 +3,7 @@ import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly,
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
+import { mulgwisin, dalgyal, agwi, yeongno, myodusa, centipede, gangcheori, bat, foxTailOne, caneItem, lureLamp, gamtuCap } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
 
 // 요괴가 끌고 가던 나무 우리: 안에 흰 옷 입은 마을 사람이 웅크려 있다 (부수면 의병으로 합류한다)
@@ -219,6 +220,20 @@ export const LOOKS = {
   bulga: { body: bulgasari, blinkBody: g => bulgasari(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 54, w: 136, ox: 64, scale: 1.3 },
   jangsan: { body: g => tiger(g, JANGSAN), blinkBody: g => tiger(g, Object.assign({ blink: true }, JANGSAN)), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.16 },
   geuseun: { body: geuseundae, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 1.2, float: true, border: '#dcd6f2' },
+  // 새 요괴: 감투 도깨비(도깨비감투를 쓴 도깨비) · 손각시(혼례복의 처녀 귀신) · 창귀(범의 앞잡이가 된 넋) · 여우 할미(할미로 둔갑한 여우)
+  gamtu: DK({ skin: '#9fa69a', cloth: '#4a4652', vest: '#3a3640', hair: '#2a2630', warts: true, headItem: gamtuCap }, { scale: 0.92 }),
+  songaksi: { doll: Object.assign({}, GHOST, { robe: '#2f6a52', top: '#3f7a5c', sleeve: '#3f7a5c', stripes: [RED, OCHRE, INDIGO, '#f6efdc'], git: '#c8402f', collar: '#f6efdc', cuff: '#f6efdc', hem: '#c8402f', hat: 'jokduri', hair: '#1f1e26', skin: '#efe9e4', eyes: 'heavy', brow: 'thin', lip: '#c8402f', mouth: 'flat' }), weapon: 'none', hold: hold(0, 'cast'), float: true, border: '#eef6f8', h: 64 },
+  changgwi: { doll: Object.assign({}, GHOST, { robe: '#c8c2b0', top: '#d6d0be', git: '#8a7a5a', collar: '#e9e4d6', cuff: '#e9e4d6', pelt: true, hat: 'band', bandCol: '#8a6a3c', mouth: 'smirk', item: lureLamp }), weapon: 'none', hold: hold(0, 'cast'), float: true, border: '#eef6f8', h: 62 },
+  foxhag: { doll: { robe: '#7a6a58', top: '#e6dcc6', git: '#5a4a3a', goreum: '#8a2a26', hem: '#5a4a3a', hat: 'jjok', hair: '#e2ddd2', skin: '#e8cfae', jaw: 'long', brow: 'old', old: true, lines: true, eyes: 'narrow', mouth: 'smirk', item: caneItem, under: foxTailOne }, weapon: 'none', hold: hold(0, 'bite'), h: 62 },
+  mulgwi: { body: mulgwisin, weapon: 'none', hold: hold(0, 'bite'), h: 52, float: true, border: '#e6f3f7' },
+  dalgyal: { body: dalgyal, weapon: 'none', hold: hold(0, 'bite'), h: 58, float: true, border: '#f3f6fa' },
+  agwi: { body: agwi, weapon: 'none', hold: hold(0, 'bite'), h: 62, border: '#e6eef2' },
+  yeongno: { body: yeongno, weapon: 'none', hold: hold(0, 'bite'), h: 66, scale: 1.08 },
+  myodusa: { body: myodusa, weapon: 'none', hold: hold(0, 'bite'), h: 36, w: 120, ox: 60 },
+  jine: { body: centipede, weapon: 'none', hold: hold(0, 'bite'), h: 30, w: 130, ox: 66, scale: 1.1 },
+  jinebit: { body: g => centipede(g, { small: true }), weapon: 'none', hold: hold(0, 'bite'), h: 20, w: 90, ox: 45 },
+  gangcheol: { body: gangcheori, weapon: 'none', hold: hold(0, 'bite'), h: 54, w: 136, ox: 62, scale: 1.12 },
+  bat: { body: bat, blinkBody: g => bat(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 40, float: true, scale: 0.86 },
   // 두목
   warchief: DK({ skin: '#4f6a8a', knot: true, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
   elder: { body: mokshin, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 2.2, boss: true, still: true },
