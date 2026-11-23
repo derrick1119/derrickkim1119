@@ -149,14 +149,31 @@ export const COMBOS = {};
 const INF = ['sword', 'shield', 'spear', 'berserk'], RNG = ['xbow', 'wizard', 'cannon'];
 export const BEAST_TYPES = ['magpie', 'sapsal', 'haetae', 'samjoko', 'tiger'];
 export const SYN_CLASS = t => INF.includes(t) ? 'inf' : RNG.includes(t) ? 'rng' : t === 'knight' ? 'cav' : t === 'priest' || t === 'bishop' ? 'heal' : BEAST_TYPES.includes(t) ? 'beast' : '';
+// 진법: 전장에 선 부대 구성을 세어 켠다. tiers 가 있으면 단계형(셀수록 세진다: SYN_K 의 배율), 없으면 한 단계
+// c = { inf, rng, cav, heal, beast, t: {병종: 부대 수}, temp: 불려 온 무리 수, all: 부대 수 }
+const T = (c, k) => c.t[k] || 0;
 export const SYNERGIES = [
-  { id: 'phalanx', name: '방진', need: '보병 3', desc: '보병이 받는 피해 -15%', n: c => [c.inf, 3] },
-  { id: 'volley', name: '일제 사격', need: '원거리 2', desc: '원거리 공격 속도 +15%', n: c => [c.rng, 2] },
-  { id: 'cav', name: '기동대', need: '기마 2', desc: '돌격 피해 +25%', n: c => [c.cav, 2] },
-  { id: 'rite', name: '굿판', need: '치유 2', desc: '치유량 +25%', n: c => [c.heal, 2] },
+  { id: 'phalanx', name: '방진', need: '보병', tiers: [2, 4, 6], desc: ['보병이 받는 피해 -10%', '-18%', '-25%'], n: c => [c.inf, 2] },
+  { id: 'volley', name: '일제 사격', need: '원거리', tiers: [2, 3, 5], desc: ['원거리 공격 속도 +12%', '+22%', '+32%'], n: c => [c.rng, 2] },
+  { id: 'cav', name: '기동대', need: '기마', tiers: [2, 3, 4], desc: ['돌격 피해 +25%', '+45%', '+70%'], n: c => [c.cav, 2] },
+  { id: 'rite', name: '굿판', need: '치유', tiers: [2, 3, 4], desc: ['치유량 +20%', '+35%', '+50%'], n: c => [c.heal, 2] },
+  { id: 'spirit', name: '서낭의 가호', need: '영물', tiers: [2, 3, 4], desc: ['영물이 주는 피해 +15%', '+25%', '+40%'], n: c => [c.beast, 2] },
   { id: 'three', name: '삼군', need: '보병·원거리·기마', desc: '모든 아군 피해 +8%', n: c => [(c.inf ? 1 : 0) + (c.rng ? 1 : 0) + (c.cav ? 1 : 0), 3] },
-  { id: 'spirit', name: '서낭의 가호', need: '영물 2', desc: '영물이 주는 피해 +15%', n: c => [c.beast, 2] },
+  { id: 'changbang', name: '창방패진', need: '창병·등패수', desc: '창병·등패수가 받는 피해 -12%', n: c => [(T(c, 'spear') ? 1 : 0) + (T(c, 'shield') ? 1 : 0), 2] },
+  { id: 'hwagong', name: '화공', need: '도사·화차', desc: '폭발 범위 +20%', n: c => [(T(c, 'wizard') ? 1 : 0) + (T(c, 'cannon') ? 1 : 0), 2] },
+  { id: 'chugyeok', name: '추격대', need: '궁수 2·기마', desc: '모든 아군 이동 속도 +12%', n: c => [Math.min(2, T(c, 'xbow')) + (c.cav ? 1 : 0), 3] },
+  { id: 'muye', name: '무예 수련', need: '환도 무사 3', desc: '배후 공격 피해 +25% 더', n: c => [T(c, 'sword'), 3] },
+  { id: 'pajin', name: '파진', need: '창병 3', desc: '거대 요괴·두목에게 주는 피해 +30%', n: c => [T(c, 'spear'), 3] },
+  { id: 'bangpae', name: '방패벽', need: '등패수 3', desc: '등패수가 막는 정면 화살 피해가 절반으로', n: c => [T(c, 'shield'), 3] },
+  { id: 'jangsa', name: '장사패', need: '철퇴 장사 2', desc: '철퇴 장사 피해 +15%, 받는 피해 -15%', n: c => [T(c, 'berserk'), 2] },
+  { id: 'salpuri', name: '살풀이', need: '무녀·도사', desc: '아군이 받는 해로운 효과 -40%', n: c => [(T(c, 'priest') ? 1 : 0) + (T(c, 'wizard') ? 1 : 0), 2] },
+  { id: 'uibyeongjin', name: '의병진', need: '불려 온 무리 3', desc: '불려 온 아군 피해 +20%', n: c => [c.temp, 3] },
+  { id: 'chongnyeok', name: '총력전', need: '부대 6', desc: '모든 아군 공격 속도 +10%', n: c => [c.all, 6] },
 ];
+// 단계형 진법의 배율 (0단계는 꺼짐)
+export const SYN_K = { phalanx: [0, 0.10, 0.18, 0.25], volley: [0, 0.12, 0.22, 0.32], cav: [0, 0.25, 0.45, 0.7], rite: [0, 0.2, 0.35, 0.5], spirit: [0, 0.15, 0.25, 0.4] };
+export const synLv = (sy, c) => { const [n, need] = sy.n(c); return sy.tiers ? sy.tiers.filter(t => n >= t).length : n >= need ? 1 : 0; };
+export const synDesc = (sy, lv) => Array.isArray(sy.desc) ? (lv > 1 ? sy.desc[0].replace(/[+-]\d+%/, sy.desc[lv - 1]) : sy.desc[0]) : sy.desc;
 
 export const PLAYER_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard', 'berserk', 'cannon'].concat(BEAST_TYPES);
 export const HEROES = ['commander', 'blade', 'hunter', 'bishop', 'archmage', 'sangsoe', 'chief'];

@@ -14,7 +14,7 @@ import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
 import { RELICS } from '../data/relics.js';
-import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES } from '../data/units.js';
+import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES, synLv, synDesc } from '../data/units.js';
 import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
 import { portrait, getLook } from '../render/sprites.js';
@@ -384,12 +384,13 @@ export class RunScene {
     const y = 110;
     let k = 0;
     for (const sy of SYNERGIES) {
-      const [n, need] = sy.n(b.synN), on = n >= need; if (!n) continue;
+      // 켜진 진법과 하나만 더 세우면 켜지는 진법만 보인다 (단계형은 다음 단계까지의 수를 함께)
+      const [n, need] = sy.n(b.synN), lv = synLv(sy, b.synN), on = lv > 0, nx = sy.tiers ? sy.tiers[lv] : null; if (!n || (!on && n < need - 1)) continue;
       const x = 12 + (k % 2) * 108, yy = y + Math.floor(k / 2) * 28; k++;
       // 진법 칸: 어두운 옻칠에 크림빛 글자 (갖춰지면 쑥빛에 금테)
       rr(g, x + 1, yy + 2, 104, 24, 6, 'rgba(0,0,0,0.35)'); rr(g, x, yy, 104, 24, 6, on ? TEAL : 'rgba(30,22,26,0.88)', INK, 1.5); rr(g, x + 2.6, yy + 2.6, 98.8, 18.8, 3.6, null, on ? 'rgba(243,210,124,0.85)' : 'rgba(226,184,90,0.45)', 0.9);
-      text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 14, fill: on ? C.cream : '#e8dcc0', maxW: 94 });
-      if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name} (${sy.need}) — ${sy.desc}`, 3.5);
+      text(g, on ? `${sy.name}${sy.tiers ? ' ' + lv + '단' : ''}` : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 14, fill: on ? C.cream : '#e8dcc0', maxW: 94 });
+      if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name}${on && sy.tiers ? ' ' + lv + '단' : ''} (${sy.need}${sy.tiers ? ' ' + sy.tiers.join('/') : ''}) — ${synDesc(sy, Math.max(1, lv))}${nx ? ` · 다음 단계 ${sy.need} ${nx}` : ''}`, 3.8);
     }
     // 싸움 준비 동안: 아는 진형을 작은 그림으로 보여 준다 (부대를 그 모양으로 세우면 진이 선다)
     if (!b.form && (this.phase === 'prep' || (this.phase === 'fight' && b.waveT < 8))) { const known = FORM_ORDER.filter(id => b.mods.forms.includes(id)), y0 = y + Math.ceil(k / 2) * 28 + 4, hh = 22 + known.length * 30;

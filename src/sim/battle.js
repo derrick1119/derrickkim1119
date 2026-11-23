@@ -2,7 +2,7 @@
 // 한 원정 동안 이어지는 하나의 전장: 아군은 왼쪽, 요괴 무리(물결)는 오른쪽 화면 밖에서 걸어 들어온다.
 // 병력·영웅·전술이 모두 패이고, 손패에서 사기를 내고 쓴다.
 import { W, H, FIELD, VIEW, CELL, BANNER_POS, MID_Y, spawnPos } from '../config.js';
-import { UNITS, lvlMult, squadN, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS } from '../data/units.js';
+import { UNITS, lvlMult, squadN, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS, SYN_K, synLv, synDesc } from '../data/units.js';
 import { TERRAINS } from '../data/terrain.js';
 import { CARDS, cardVals, cardCost, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
@@ -27,6 +27,10 @@ export const DEFAULT_MODS = {
   // 패의 살림: 주머니 한도, 무리 몇을 물리칠 때마다 노획하는가, 그리고 이끄는 영웅의 병법
   // 진형: 아는 진법 (진법서 보물로 늘어난다)
   forms: FORM_START, formPow: 1,
+  // 빌드 축의 전설 보물·부정 거래: 패를 쓸수록 세지는 패 · 사기가 높을 때 피해 · 근접 반사 · 불려 온 아군의 힘 · 두 발 쏘기 · 거대 적 피해 · 부정의 수
+  chainPow: 0, highMorale: 0, thornAll: 0, summonPow: 1, doubleShot: 0, bigDmg: 0, curseDmg: 0, curses: 0, allGuard: 0,
+  // 원정 쪽에서 쓰는 보물 효과: 장터 값 · 전리품 다시 뽑기 · 밤에도 사거리 그대로 · 싸움의 부대 한도
+  shopAll: 1, freeReroll: 0, nightOk: 0, capPlus: 0,
   pouch: 9, lootEvery: 5, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
 };
 export const HAND = 5, REFILL = 3.2, MAX_CAP = 9;
@@ -290,6 +294,7 @@ export class Battle {
   prepWave(o = {}) { this.setTerrain(o.terrain || 'open'); this.sky = o.sky || 'day'; }
   // 새 물결: [병종, 열, 줄, 옵션] 목록을 오른쪽 화면 밖에 세운다
   startWave(list, o = {}) {
+    this.chainN = 0;   // 도사의 호리병은 싸움마다 처음부터
     this.units = this.units.filter(u => !u.dead); this.squads = this.squads.filter(q => q.alive > 0);
     this.prepWave(o);
     this.foe = Object.assign({}, DEFAULT_FOE, o.foe || {}); this.allDown = false; this.waveOn = true; this.waveT = 0; this.waveLost = 0; this.waves++; this.waveLvl = o.lvl || 1;
@@ -314,10 +319,10 @@ export class Battle {
   }
   // 진법: 전장에 선 부대 구성을 세어 켜고 끈다
   synergies() {
-    const c = { inf: 0, rng: 0, cav: 0, heal: 0, beast: 0 };
-    for (const q of this.squads) if (q.team === 0 && q.alive > 0 && !q.temp) { const k = SYN_CLASS(q.type); if (k) c[k]++; }
+    const c = { inf: 0, rng: 0, cav: 0, heal: 0, beast: 0, t: {}, temp: 0, all: 0 };
+    for (const q of this.squads) { if (q.team !== 0 || q.alive <= 0 || UNITS[q.type].structure) continue; if (q.temp) { c.temp++; continue; } const k = SYN_CLASS(q.type); if (k) c[k]++; if (q.hero) continue; c.all++; c.t[q.type] = (c.t[q.type] || 0) + 1; }
     this.synN = c;
-    for (const sy of SYNERGIES) { const [n, need] = sy.n(c), on = n >= need; if (on !== !!this.syn[sy.id]) { this.syn[sy.id] = on; if (on) this.ev('synergy', { id: sy.id, name: sy.name, desc: sy.desc }); } }
+    for (const sy of SYNERGIES) { const lv = synLv(sy, c), was = this.syn[sy.id] || 0; if (lv !== was) { this.syn[sy.id] = lv; if (lv > was) this.ev('synergy', { id: sy.id, name: sy.name + (sy.tiers && lv > 1 ? ` ${lv}단` : ''), desc: synDesc(sy, lv) }); } }
   }
   // 진형: 우리 부대(영웅·잠깐 불려 온 것·말뚝 빼고)의 무게중심 모양을 읽는다. 같은 모양이 1초 이어져야 서고, 1초 흐트러져야 풀린다
   formSquads() { return this.squads.filter(q => q.team === 0 && q.alive > 0 && !q.temp && !q.hero && !q.def.banner && !q.def.structure); }
@@ -366,7 +371,7 @@ export class Battle {
     this.sun = false;
     for (const s of this.units) { if (s.dead) continue; if (s.def.sun && s.team === 0) this.sun = true; if (!s.def.aura) continue; const a = s.def.aura; this.near(s.x, s.y, a.r, o => { if (o.team === s.team && !o.dead && hyp(o.x - s.x, o.y - s.y) <= a.r) { if (a.dmg) o.auraDmg = a.dmg; if (a.haste && o !== s) o.auraHaste = a.haste; if (a.ward && o !== s) o.auraWard = Math.max(o.auraWard, a.ward); } }); }
   }
-  atkSpeed(u) { let s = 1; if (u.haste > 0) s += 0.3; if (u.auraHaste) s += u.auraHaste; if (u.def.frenzy && u.hp < u.maxHp * 0.5) s += 0.5; if (u.team === 0) { if (u.def.range > 0) { s *= this.mods.rangedAS; if (this.syn.volley && !u.def.heal) s *= 1.15; } const um = this.mods.unit[u.type]; if (um && um.as) s *= um.as; } else s *= this.foe.as; return s; }
+  atkSpeed(u) { let s = 1; if (u.haste > 0) s += 0.3; if (u.auraHaste) s += u.auraHaste; if (u.def.frenzy && u.hp < u.maxHp * 0.5) s += 0.5; if (u.team === 0) { if (u.def.range > 0) { s *= this.mods.rangedAS; if (this.syn.volley && !u.def.heal) s *= 1 + SYN_K.volley[this.syn.volley]; } if (this.syn.chongnyeok) s *= 1.1; const um = this.mods.unit[u.type]; if (um && um.as) s *= um.as; } else s *= this.foe.as; return s; }
   updateOrders() {
     for (const sq of this.squads) {
       const o = sq.order; if (!sq.alive) continue;
@@ -445,17 +450,18 @@ export class Battle {
   summon(type, x, y, n, life, P) {
     x = clamp(x, VIEW.x0 + 40, VIEW.x1 - 40); y = clamp(y, VIEW.y0 + 30, VIEW.y1 - 30);
     const sq = this.addSquad(0, { type, x, y, n, lvl: 1 }); sq.temp = true; sq.total = 0;
-    for (const u of sq.units) { u.temp = true; u.life = life + this.mods.summonLife; u.hp = u.maxHp *= P; u.atk *= P; u.stun = 0.35; u.cd = 0.5; }
+    const sk = this.mods.summonPow || 1; for (const u of sq.units) { u.temp = true; u.life = life + this.mods.summonLife; u.hp = u.maxHp *= P * sk; u.atk *= P * sk; u.stun = 0.35; u.cd = 0.5; }
     this.ev('appear', { x, y, summon: true, ally: true, r: 44 });
     return sq;
   }
   play(i, x, y) {
     if (!this.canPlay(i)) return false;
-    const c = this.hand[i], id = c.id, s = CARDS[id], v = cardVals(c), md = this.mods, P = this.power * md.cardPow, cost = this.costOf(c);
+    const c = this.hand[i], id = c.id, s = CARDS[id], v = cardVals(c), md = this.mods, P = this.power * md.cardPow * (isUnit(c) ? 1 : 1 + md.chainPow * Math.min(8, this.chainN || 0)), cost = this.costOf(c);
     x = clamp(x || 0, VIEW.x0, VIEW.x1); y = clamp(y || 0, VIEW.y0, VIEW.y1);
     if (this.free > 0) { this.free--; this.ev('text', { x: 640, y: 520, s: '공짜 패!', c: '#b8862a' }); }
     else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 640, y: 520, s: '사기 환급!', c: '#b8862a' }); } }
     this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++; this.lastCard = { id, t: this.time };
+    if (!isUnit(c) && md.chainPow) this.chainN = (this.chainN || 0) + 1;   // 도사의 호리병: 전술 패를 쓸수록 다음 패가 세진다
     if (isUnit(c)) { x = Math.min(x, this.deployMaxX()); this.deploy(c, x, y); this.ev('cast', { id, x, y, r: 46, unit: true, slot: i }); return true; }
     // 전술 패는 쓰면 사라진다. 고승이 이끌면 지원 패만은 싸움이 끝난 뒤 돌아온다
     if (md.keepSupport && s.kind === 'support' && (this.keptN = (this.keptN || 0) + 1) <= md.keepSupport) this.rest.push(c); else { this.spent.push(c.uid); this.gone.add(c.uid); }   // 고승의 공양: 싸움마다 몇 장까지만 돌아온다
@@ -536,12 +542,12 @@ export class Battle {
         case 'buff': for (const u of pick(f.who)) { const d = val(f.dur);
           if (f.haste) u.haste = Math.max(u.haste, d); if (f.dmgUp) { u.dmgUp = Math.max(u.dmgUp, d); u.dmgUpAmt = Math.max(u.dmgUpAmt, val(f.dmgUp) / 100); }
           if (f.guard) { u.guard = Math.max(u.guard, d); u.guardAmt = Math.max(u.guardAmt, val(f.guard) / 100); } if (f.barrier) { u.barrier = Math.max(u.barrier || 0, val(f.barrier) * k); u.barrierT = Math.max(u.barrierT || 0, d || 7); }
-          if (f.heal) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * val(f.heal) / 100); if (f.regen) { u.regen = Math.max(u.regen, d); u.regenAmt = Math.max(u.regenAmt, val(f.regen) / 100); }
+          if (f.heal) u.hp = Math.max(1, Math.min(u.maxHp, u.hp + u.maxHp * val(f.heal) / 100)); if (f.regen) { u.regen = Math.max(u.regen, d); u.regenAmt = Math.max(u.regenAmt, val(f.regen) / 100); }
           if (f.fire) { u.fireT = Math.max(u.fireT || 0, d); u.fireDmg = Math.max(u.fireDmg || 0, val(f.fire) * P); } if (f.thorn) { u.thornT = Math.max(u.thornT || 0, d); u.thorn = Math.max(u.thorn || 0, val(f.thorn) / 100); }
           if (f.ready) { if (u.def.charge) u.run = 999; u.cd = 0; } if (f.cleanse) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; } if (f.life && u.temp) u.life += val(f.life); }
           break;
         case 'summon': this.summon(f.type, at[0], at[1], val(f.n), val(f.life), P); break;
-        case 'morale': this.gain(val(f.n), at[0], at[1] - 40); break;
+        case 'morale': this.gain(val(f.n), at[0], at[1] - 40); this.morale = Math.max(0, this.morale); break;
         case 'draw': for (let q = 0; q < HAND; q++) if (!this.hand[q]) this.slotT[q] = Math.min(this.slotT[q], 0.05); break;
         case 'free': this.free = (this.free || 0) + val(f.n); break;
         case 'mark': for (const e of this.foesIn(at[0], at[1], rr)) { e.mark = Math.max(e.mark, val(f.dur)); e.markAmt = Math.max(e.markAmt, val(f.amt) / 100); } break;
@@ -674,7 +680,7 @@ export class Battle {
   face(u, a, dt, rate) { const d = angDiff(u.facing, a), m = rate * dt; u.facing += Math.abs(d) < m ? d : Math.sign(d) * m; }
   // 밤에는 망령과 도깨비불이 힘을 얻는다 (횃불이 켜져 있으면 아니다)
   nightFoe(u) { return this.sky === 'night' && this.torch <= 0 && !this.sun && u.team === 1 && (u.def.revive || u.def.raise || u.def.bomber || u.type === 'skelking'); }
-  rangeOf(u) { const def = u.def; if (!(def.range > 0)) return 5 + (def.reach || 0); if (u.team !== 0) return def.range; const um = this.mods.unit[u.type]; return def.range * (def.heal ? 1 : this.mods.rangeMul * (this.torch > 0 ? 1 + this.torchRange : this.sky === 'night' && !this.sun ? 0.88 : 1) * (this.form && this.form.fx.range ? 1 + this.form.fx.range : 1)) * (um && um.range || 1); }
+  rangeOf(u) { const def = u.def; if (!(def.range > 0)) return 5 + (def.reach || 0); if (u.team !== 0) return def.range; const um = this.mods.unit[u.type]; return def.range * (def.heal ? 1 : this.mods.rangeMul * (this.torch > 0 ? 1 + this.torchRange : this.sky === 'night' && !this.sun && !this.mods.nightOk ? 0.88 : 1) * (this.form && this.form.fx.range ? 1 + this.form.fx.range : 1)) * (um && um.range || 1); }
   engage(u, t, dt, o) {
     const def = u.def, dx = t.x - u.x, dy = t.y - u.y, d = hyp(dx, dy), gap = d - u.r - t.r, rng = this.rangeOf(u);
     // 요괴는 화면 안으로 들어온 뒤에야 싸운다
@@ -742,7 +748,7 @@ export class Battle {
     if (a) { const gx = a.x + (u.team === 0 ? -74 : 74); if (hyp(gx - u.x, a.y - u.y) > 34) { this.moveTo(u, gx, a.y + u.slot.dy, dt); return; } }
     this.idle(u, dt);
   }
-  heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal * (this.syn.rite ? 1.25 : 1) * (this.form && this.form.fx.heal ? 1 + this.form.fx.heal : 1) : 1); t.hp = Math.min(t.maxHp, t.hp + amt);
+  heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal * (1 + SYN_K.rite[this.syn.rite || 0]) * (this.form && this.form.fx.heal ? 1 + this.form.fx.heal : 1) : 1); t.hp = Math.min(t.maxHp, t.hp + amt);
     if (u.def.healHaste) t.haste = Math.max(t.haste, u.def.healHaste);   // 굿무녀: 치유받으면 신이 난다
     if (u.def.healCleanse) { t.root = 0; t.weaken = 0; t.burn = 0; t.slow = 0; if (t.barrier < u.def.healCleanse * lvlMult(u.lvl)) { t.barrier = u.def.healCleanse * lvlMult(u.lvl); t.barrierT = Math.max(t.barrierT, 5); } }
     this.ev('heal', { x: t.x, y: t.y, fx: u.x, fy: u.y, amt, team: u.team }); }
@@ -751,7 +757,7 @@ export class Battle {
     if (u.root > 0 || u.def.structure) { u.moving = false; return; }
     let spd = u.def.spd * (u.team === 1 ? this.foe.spd * (this.nightFoe(u) ? 1.2 : 1) : 1); if (u.haste > 0) spd *= 1.35; if (u.slow > 0) spd *= 1 - u.slowAmt;
     if (u.team === 0 && this.mods.vanguard && this.waveOn && this.waveT < 10) spd *= 1.3;
-    if (u.team === 0 && this.form && this.form.fx.spd) spd *= 1 + this.form.fx.spd;
+    if (u.team === 0 && this.form && this.form.fx.spd) spd *= 1 + this.form.fx.spd; if (u.team === 0 && this.syn.chugyeok) spd *= 1.12;
     for (const s of this.slow) if (u.x > s.x && u.x < s.x + s.w && u.y > s.y && u.y < s.y + s.h) { spd *= 0.55; break; }
     let tx = gx, ty = gy;
     if (this.hasObst && !this.los(u.x, u.y, gx, gy)) {
@@ -796,7 +802,7 @@ export class Battle {
       this.ev('text', { x: t.x, y: t.y - 40, s: '창 방벽!', c: '#2f4d7e' });
       this.damage(u, t.atk * 4, t, 'melee'); if (!u.dead) u.stun = t.def.braceStun || 0.6; this.damage(t, u.atk * 0.6, u, 'melee'); return;
     }
-    const mult = c.mult * (u.team === 0 ? this.mods.chargeMult * (this.syn.cav ? 1.25 : 1) * (this.form && this.form.fx.charge ? 1 + this.form.fx.charge : 1) : 1);
+    const mult = c.mult * (u.team === 0 ? this.mods.chargeMult * (1 + SYN_K.cav[this.syn.cav || 0]) * (this.form && this.form.fx.charge ? 1 + this.form.fx.charge : 1) : 1);
     this.ev('charge', { x: t.x, y: t.y, team: u.team });
     const nx = -ax / al, ny = -ay / al;
     const hit = [t]; this.near(t.x, t.y, 30, n => { if (n.team !== u.team && !n.dead && n !== t && hyp(n.x - t.x, n.y - t.y) < 26 + n.r) hit.push(n); });
@@ -827,8 +833,10 @@ export class Battle {
     if (u.def.aoe > 0 && (k === 'fireball' || k === 'shell' || k === 'iceball')) {
       const d = hyp(t.x - u.x, t.y - u.y); const dur = Math.max(0.35, Math.min(1.5, d / (k === 'shell' ? 400 : 330)));
       const lead = t.moving ? 0.55 * dur : 0;
-      this.proj.push({ kind: k, lob: true, x: u.x, y: u.y, sx: u.x, sy: u.y, tx: t.x + t.vx * lead, ty: t.y + t.vy * lead, t: 0, dur, dmg: u.atk, aoe: u.def.aoe * (u.team === 0 ? this.mods.aoeR : 1), team: u.team, src: u, slow: u.def.slowHit });
+      this.proj.push({ kind: k, lob: true, x: u.x, y: u.y, sx: u.x, sy: u.y, tx: t.x + t.vx * lead, ty: t.y + t.vy * lead, t: 0, dur, dmg: u.atk, aoe: u.def.aoe * (u.team === 0 ? this.mods.aoeR * (this.syn.hwagong ? 1.2 : 1) : 1), team: u.team, src: u, slow: u.def.slowHit });
     } else this.proj.push({ kind: k, x: u.x, y: u.y - 12, ox: u.x, oy: u.y, target: t, tx: t.x, ty: t.y - 12, spd: k === 'bullet' ? 1250 : k === 'spark' ? 900 : k === 'bolt' || k === 'firearrow' ? 640 : 520, dmg: u.atk, team: u.team, src: u });
+    // 신궁의 깍지: 우리 원거리 부대가 가끔 한 발 더 쏜다
+    if (u.team === 0 && this.mods.doubleShot && !(u.def.aoe > 0) && !u.def.heal && this.rand() < this.mods.doubleShot) { const q = Object.assign({}, this.proj[this.proj.length - 1]); q.y -= 8; q.x -= 6; this.proj.push(q); }
     this.ev('shoot', { kind: k, x: u.x, y: u.y, team: u.team });
   }
   damage(t, amt, src, kind, ox, oy) {
@@ -843,7 +851,7 @@ export class Battle {
         if (t.def.boss) mult = 1 + (mult - 1) * 0.5;
         if (src.stab) { mult *= src.def.backstab / 1.4; src.stab = false; }
         if (src.def.rearK) mult *= src.def.rearK;   // 쌍검수: 배후를 치면 더 아프다
-      } else if (t.def.shield && dot > 0.1 && !src.def.pierce) { const tm = t.team === 0 ? this.mods.unit[t.type] : null; mult *= kind === 'proj' ? (t.def.shieldK || 0.3) : 0.75 - (tm && tm.block || 0); block = kind === 'proj'; }
+      } else if (t.def.shield && dot > 0.1 && !src.def.pierce) { const tm = t.team === 0 ? this.mods.unit[t.type] : null; mult *= kind === 'proj' ? (t.def.shieldK || 0.3) * (t.team === 0 && this.syn.bangpae ? 0.5 : 1) : 0.75 - (tm && tm.block || 0); block = kind === 'proj'; }
       if (src.def.antiCav) { if (t.def.mounted) mult *= 2; else if (t.def.large) mult *= src.def.bigK || 1.5; }
       if (t.def.armor && kind === 'melee') mult *= 1 - t.def.armor;
       // 삽살개: 망령과 저승 요괴를 쫓는다
@@ -851,19 +859,19 @@ export class Battle {
     }
     if (src) {
       if (src.weaken > 0) mult *= 0.7; if (src.auraDmg) mult *= 1 + src.auraDmg; if (src.rage > 0) mult *= 1.25; if (src.dmgUp > 0) mult *= 1 + src.dmgUpAmt;
-      if (src.team === 0 && this.syn.three) mult *= 1.08; if (src.team === 0 && this.syn.spirit && src.def.beast) mult *= 1.15; if (this.nightFoe(src)) mult *= 1.2;
+      if (src.team === 0 && this.syn.three) mult *= 1.08; if (src.team === 0 && this.syn.spirit && src.def.beast) mult *= 1 + SYN_K.spirit[this.syn.spirit]; if (src.team === 0) { const sy = this.syn; if (sy.pajin && src.type === 'spear' && (t.def.large || t.def.boss)) mult *= 1.3; if (sy.jangsa && src.type === 'berserk') mult *= 1.15; if (sy.uibyeongjin && src.temp) mult *= 1.2; if (sy.muye && flank) mult *= 1.25; } if (this.nightFoe(src)) mult *= 1.2;
       if (this.sky === 'rain') { const pj = src.def.proj; if (pj === 'fireball' || pj === 'shell' || pj === 'firearrow' || pj === 'sunfire') mult *= 0.7; else if (pj === 'spark') mult *= 1.3; }
       if (src.team === 0 && this.form) { const f = this.form.fx; if (f.dmg) mult *= 1 + f.dmg; if (f.melee && kind === 'melee') mult *= 1 + f.melee; }
-      if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.waveOn && this.waveT < 10) mult *= 1.15; }
+      if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.waveOn && this.waveT < 10) mult *= 1.15; if (md.highMorale && this.morale >= 8) mult *= 1 + md.highMorale; if (md.curseDmg) mult *= 1 + md.curseDmg * md.curses; if (md.bigDmg && (t.def.large || t.def.boss)) mult *= 1 + md.bigDmg; }
     }
     let d = amt * mult; if (t.guard > 0) d *= 1 - t.guardAmt; if (t.mark > 0) d *= 1 + t.markAmt; if (t.auraWard) d *= 1 - t.auraWard;
     // 불가사리: 쇠붙이(칼·화살)는 잘 통하지 않고, 불과 도술에는 크게 다친다
     if (t.def.iron) d *= kind === 'melee' || kind === 'proj' ? t.def.iron.cut : kind === 'aoe' || kind === 'burn' ? t.def.iron.fire : 1;
-    if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 0.85;
+    if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 1 - SYN_K.phalanx[this.syn.phalanx]; if (t.team === 0 && this.syn.changbang && (t.type === 'spear' || t.type === 'shield')) d *= 0.88; if (t.team === 0 && this.syn.jangsa && t.type === 'berserk') d *= 0.85;
     if (t.team === 0 && this.form && this.form.fx.guard) d *= 1 - this.form.fx.guard;
     if (t.team === 1 && this.foe.projGuard && kind === 'proj' && !t.def.boss) d *= 1 - this.foe.projGuard;
     if (t.team === 1 && this.expose && (this.waveT < 8 || this.exposeT > 0)) d *= 1 + this.expose;
-    if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
+    if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; if (md.allGuard) d *= 1 - md.allGuard; }
     if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
@@ -884,6 +892,7 @@ export class Battle {
     if (src && src.fireT > 0 && t.hp > 0 && (kind === 'melee' || kind === 'proj')) { t.burn = Math.max(t.burn, 3); t.burnDmg = Math.max(t.burnDmg, src.fireDmg); }
     // 반격 태세: 근접으로 맞은 만큼 되돌려 준다
     if (t.thornT > 0 && kind === 'melee' && src && !src.dead && src.team !== t.team && t.hp > 0) this.damage(src, d * t.thorn, t, 'riposte');
+    else if (t.team === 0 && this.mods.thornAll && kind === 'melee' && src && !src.dead && src.team !== 0 && t.hp > 0) this.damage(src, d * this.mods.thornAll, t, 'riposte');   // 철옹성
     // 본국검수: 근접으로 맞으면 되받아친다
     else if (kind === 'melee' && t.def.riposte && t.hp > 0 && src && !src.dead && src.team !== t.team && this.rand() < t.def.riposte) { this.ev('melee', { x: (t.x + src.x) / 2, y: (t.y + src.y) / 2 - 12, big: false, team: t.team }); this.damage(src, t.atk * 0.8, t, 'riposte'); }
     return d;
@@ -921,7 +930,7 @@ export class Battle {
       if (e.dead || e.jump) return; if (hits !== 2 && e.team !== hits) return;
       const d = hyp(e.x - x, e.y - y); if (d > r + e.r * 0.6) return;
       n++; this.damage(e, dmg, src, 'aoe'); if (e.dead) return;
-      const dk = e.team === 0 ? this.mods.debuff : 1;
+      const dk = e.team === 0 ? this.mods.debuff * (this.syn.salpuri ? 0.6 : 1) : 1;
       if (o.stun && !e.def.boss) e.stun = Math.max(e.stun, o.stun * dk);
       if (o.root && !e.def.boss) e.root = Math.max(e.root, o.root * dk);
       if (o.weaken) e.weaken = Math.max(e.weaken, o.weaken * dk);

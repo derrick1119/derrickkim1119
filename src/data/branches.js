@@ -55,6 +55,7 @@ export const AXES = {
   talisman: { name: '도술', col: '#5a4a8a', sym: 'flame' },
   gut: { name: '굿', col: '#2f6f5c', sym: 'support' },
   militia: { name: '의병', col: '#8a6a3a', sym: 'sword' },
+  omen: { name: '도깨비 거래', col: '#5a2a5a', sym: 'curse' },
 };
 const BY_ID = {}; for (const t of Object.keys(BRANCHES)) for (const b of BRANCHES[t]) { b.type = t; BY_ID[b.id] = b; }
 export const branchOf = id => (id && BY_ID[id]) || null;
