@@ -2168,12 +2168,17 @@ function drawBubble(ctx: C2, s: S, i: number, c: Cust, w: number, sc: number, li
 
 /** 그날 쓸 그림을 미리 굽기 줄에: 재료(공중·꿰임·불판·손님 손·말풍선 크기) · 손님 얼굴 여섯 · 손가락 */
 function wantDay(s: S, w: number, sc: number) {
-  const tag = `d${s.day}:${w}:${sc}`;
+  wantDayN(s.day, w, sc);
+  // 다음 날 것도 미리 (결과 화면을 보는 동안 구워 둔다)
+  if (s.day + 1 < DAYS && (s.phase !== 'day' || s.dt > 60 * 20)) wantDayN(s.day + 1, w, sc);
+}
+function wantDayN(day: number, w: number, sc: number) {
+  const tag = `d${day}:${w}:${sc}`;
   if (WK.has(tag)) return;
   WK.add(tag);
-  const D = DAYDEF[s.day], kinds = new Set<IK>([...D.pool, ...D.haz]);
+  const D = DAYDEF[day], kinds = new Set<IK>([...D.pool, ...D.haz]);
   if (D.egg) kinds.add('egg');
-  const nx = DAYDEF[s.day + 1]?.add;
+  const nx = DAYDEF[day + 1]?.add;
   for (const k of kinds) {
     const u = IKD[k].r * w * sc;
     want(`i${k}0:${q3(u)}`, () => itemSpr(k, 0, u));
@@ -2184,6 +2189,24 @@ function wantDay(s: S, w: number, sc: number) {
   }
   for (const k of new Set<CK>([...D.cust, ...(D.bear ? ['bear' as CK] : [])])) for (let m = 0; m < 6; m++) want(`c${k}${m}:${w}:${sc}`, () => custSpr(k, m, 0.062 * w * sc * (k === 'bear' ? 1.16 : 1)));
   if (nx && nx in IKD) want(`n${nx}`, () => itemSpr(nx as IK, 0, IKD[nx as IK].r * w * sc * 0.9));
+  // 그날 처음 뜨는 글자 (날 판 · 새것)
+  const add = D.add;
+  want(`t${day}:${sc}`, () => {
+    DPR = sc;
+    const g = GLY_CTX(sc);
+    gtext(g, `${day + 1}일째`, 0, 0, 20, 900, '#5a2a0a');
+    gtext(g, `${day + 1}일째`, 0, 0, 14, 900, '#fff3c8');
+    if (add) gtext(g, `NEW ${addName(add)}`, 0, 0, 14, 900, '#e8473c');
+    // 결과 판 글자
+    gtext(g, `${day + 1}일째 장사 끝`, 0, 0, 15, 900, '#ffffff');
+    gtext(g, '최고 기록!', 0, 0, 17, 900, '#7a3a00');
+    gtext(g, 'NEW', 0, 0, 13, 900, '#e8473c');
+    gtext(g, '톡 → 다음 날', 0, 0, 14, 800, '#8a4f2c');
+    const nx2 = DAYDEF[day + 1]?.add;
+    if (nx2) gtext(g, `내일 ${addName(nx2)}`, 0, 0, 19, 900, '#5a2a0a');
+  });
+  for (const c of '0123456789,') want(`r${c}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, 40, 900, '#5a2a0a', '#ffffff', 5)));
+  for (const col of ['#5a2a0a', '#9a7a6a', '#8a6a5a']) for (const c of '장사끝손님한꼬치최고/0123456789, ') want(`q${c}${col}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, col === '#8a6a5a' ? 13 : 12, 800, col)));
   want(`hand:${w}:${sc}`, () => handSpr(0.06 * w * sc));
   want(`chip:${w}:${sc}`, () => custSpr('cat', 3, 0.016 * w * sc));
   // 떠오르는 숫자 (재료 점수는 그날 나올 값이 정해져 있다 · 곱하기)
@@ -2447,7 +2470,7 @@ function drawHud(ctx: C2, s: S, w: number, sc: number, V: View) {
   V.disp += (s.dayScore - V.disp) * 0.2;
   if (Math.abs(s.dayScore - V.disp) < 1) V.disp = s.dayScore;
   // 판(점수·날 판자)은 구워 둔 한 장
-  const hk = `hud${s.day}:${w}:${sc}`;
+  const hk = `hud:${w}:${sc}`;
   let hb = HUDB.get(hk);
   if (!hb) {
     if (HUDB.size > 4) HUDB.clear();
@@ -2540,7 +2563,7 @@ function drawResult(ctx: C2, s: S, w: number, h: number, sc: number) {
     ink(ctx, lin(ctx, 0, -14, 0, 14, [0, '#fff27a'], [1, '#ffb81a']), 2.5, '#a86a00');
     gtext(ctx, '최고 기록!', 0, 0.5, 17, 900, '#7a3a00');
     ctx.restore();
-  } else if (pt > 40) gtext(ctx, `최고 ${fmt(s.best)}`, 0, -ch * 0.17, 13, 800, '#8a6a5a');
+  } else if (pt > 40) ntext(ctx, `최고 ${fmt(s.best)}`, 0, -ch * 0.17, 13, 800, '#8a6a5a');
   // 별 셋
   const D = DAYDEF[s.day], cap = ['장사 끝', `손님 ${Math.min(99, s.served)}/${D.s2}`, `한 꼬치 ${s.maxN}/${D.s3}`];
   for (let i = 0; i < 3; i++) {
@@ -2552,7 +2575,7 @@ function drawResult(ctx: C2, s: S, w: number, h: number, sc: number) {
     star(ctx, 0, 0, X(0.06), 0.48);
     ink(ctx, on ? lin(ctx, 0, -X(0.06), 0, X(0.06), [0, '#fff27a'], [1, '#ffb81a']) : 'rgba(120,90,70,.25)', 3, on ? '#a86a00' : 'rgba(120,90,70,.5)');
     ctx.restore();
-    gtext(ctx, cap[i], x, y + X(0.085), 12, 800, on ? '#5a2a0a' : '#9a7a6a');
+    ntext(ctx, cap[i], x, y + X(0.085), 12, 800, on ? '#5a2a0a' : '#9a7a6a');
   }
   // 새것 풀림 / 일주일 완주
   const add = DAYDEF[s.day + 1]?.add ?? null;

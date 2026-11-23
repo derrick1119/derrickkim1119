@@ -4,10 +4,11 @@
  *   병아리는 콕콕 쪼고 · 아기 용은 에취! 불 · 아기 고래는 물 뿜기 · 아기 거북은 데굴데굴 볼링 · 아기 공룡은 쿵 · 토끼는 콩콩 · 번개새는 찌릿.
  * 알 무늬가 무엇이 나올지 살짝 알려 준다(점박이 = 새 · 불꽃 = 용 · 물방울 = 물 쪽 …). 같은 무늬에서도 아기는 여럿, 가끔 드문 것(황금 병아리·무지개 용·별 고래).
  * 톡으로 나온 아기는 가장 많이 깰 쪽을 보고, 다른 아기에게 깨어난 아기는 맞은 쪽에서 밀려난 방향으로 — 그래서 '어디를 먼저'가 연쇄를 가른다.
- * 둥지 하나 = 톡 8번(아래 알 그림). 연쇄 중에도 바로 또 톡할 수 있다(기다림 없음). 한 번의 연쇄에서 n번째로 나온 아기는 n점 — 길게 이을수록 크게.
- * 별 셋(쉬운 말): 반 깨우기 · 다 깨우기 · 한 번에 N마리. 반도 못 깨우면 하트 -1(같은 둥지 다시). 둥지를 깨면 새 알 하나가 풀린다(6가지) — 7번째 둥지가 마지막.
- * 모으기: 처음 나온 아기는 도감에 쏙(16종, 드문 것 셋). 결과 카드에 도감 줄 · 다음 알.
- * 결정적: 난수는 둥지를 만들 때만(s.rng). 깨짐·연쇄는 시간표(사건 줄)로만 흘러서 봇이 그대로 앞질러 셈할 수 있다.
+ * 2차(공장): 연쇄(×N)는 꺼지기 전에(사건이 끝나고 1초 안) 또 톡 하면 이어진다 — '언제' 톡 할지가 고민. 다 논 아기는 둥지 밖으로 콩 나가고,
+ *   엄마 새가 빈자리에 새 알을 0.3~0.6초마다 톡톡 던져 넣어 둥지는 늘 차 있다(새 알 무늬는 섞여서 좋은 자리가 계속 바뀐다).
+ * 둥지 하나 = 톡 8번을 다 쓰고 연쇄가 끝나면 끝. 하트·실패 없음 — 점수·최고 기록·도감. 한 연쇄의 k번째 아기는 k점(10번째부터 가파르게).
+ * 별 셋(쉬운 말): 아기 N마리 · 새 친구 만나기 · 한 번에 N마리. 둥지마다 새 알 하나가 풀린다(6가지) — 7번째 둥지가 마지막.
+ * 결정적: 난수는 둥지를 만들 때와 엄마가 알을 채울 때만(s.rng, 놀이 틱 안). 깨짐·연쇄는 시간표(사건 줄)로만 흘러서 봇이 그대로 앞질러 셈할 수 있다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -16,24 +17,27 @@ import { juice } from '../juice.ts';
 const A = 1.5, TAU = Math.PI * 2;
 // ───────────────────────────── 자리 (가로 폭 = 1, 세로 0~1.5) ─────────────────────────────
 /** 둥지 바닥(반지름 1인 원) → 화면: x = NX + gx·RX, y = NY + gz·RY */
-const NX = 0.5, NY = 0.95, RX = 0.46, RY = 0.31, FLOOR = 0.84;
-/** 엄마 새 (발 자리, 몸 반지름) */
-const MX = 0.81, MY = 0.43, MU = 0.095;
-const TAPS = 8, NESTS = 7, HEARTS = 3;
+const NX = 0.5, NY = 0.92, RX = 0.52, RY = 0.39, FLOOR = 0.84;
+/** 엄마 새: 왼쪽 위 구석에 작게 (발 자리, 몸 반지름) — 오른쪽(둥지)을 본다 */
+const MX = 0.115, MY = 0.335, MU = 0.058;
+const TAPS = 8, NESTS = 6;
+/** 연쇄가 꺼지기 전 여유(사건이 다 끝나고 1초) · 다 논 아기가 둥지를 떠나기까지 · 엄마가 던진 알이 날아오는 틱 */
+const GRACE = 60, LEAVE = 80, DROP_T = 18;
 const TAP_T = 8, HIT_T = 7, POP_T = 12, END_WAIT = 40, RES_MIN = 30, RES_AUTO = 60 * 45, END_T = 220;
-const EGG_H = 2.4, VS = 1.3;
+const EGG_H = 2.4, VS = 1.45;
 const SHARD_R = 0.16, CONE = 0.34, GAP = 0.03, SMALL_P = [0.8, 0.46, 0.4, 0.38, 0.36, 0.34, 0.32];
 const HOLES = [0, 1, 1, 2, 1, 1, 1];
 const NEST_N = [22, 24, 26, 27, 28, 29, 30];
-const CHAIN_GOAL = [6, 8, 14, 15, 18, 20, 22];
-/** 한 연쇄에서 k번째 아기의 점수: 10번째까지 k, 20번째까지 세 칸씩, 그다음은 다섯 칸씩 */
-const ptsOf = (k: number) => (k <= 10 ? k : k <= 20 ? 10 + (k - 10) * 3 : 40 + (k - 20) * 5);
+const HATCH_GOAL = [20, 26, 30, 32, 34, 36];
+const CHAIN_GOAL = [25, 40, 60, 66, 80, 76];
+/** 한 연쇄에서 k번째 아기의 점수: k점, 30점까지 (연쇄가 끊기면 다시 1점부터) */
+const ptsOf = (k: number) => Math.min(k, 30);
 
 // ───────────────────────────── 알 · 아기 ─────────────────────────────
 export type ET = 'spot' | 'flame' | 'drop' | 'stripe' | 'giant' | 'star' | 'zap' | 'rainbow' | 'gold';
 const START: ET[] = ['spot', 'flame', 'drop'];
 /** 둥지를 깰 때마다 하나씩 풀린다 (1번 둥지 뒤 → 줄무늬 …) */
-const UNLOCK: ET[] = ['stripe', 'giant', 'star', 'zap', 'rainbow', 'gold'];
+const UNLOCK: ET[] = ['stripe', 'giant', 'star', 'zap', 'rainbow'];
 export const ET_NAME: Record<ET, string> = { spot: '점박이 알', flame: '불꽃 알', drop: '물방울 알', stripe: '줄무늬 알', giant: '왕 알', star: '별무늬 알', zap: '번개 알', rainbow: '무지개 알', gold: '황금 알' };
 const ET_LINE: Record<ET, string> = { spot: '콕콕 쪼아요', flame: '에취! 불', drop: '물을 뿜어요', stripe: '데굴데굴 볼링!', giant: '쿵! 둘레를 와르르', star: '콩콩 뛰어 깨요', zap: '찌릿! 멀리 튀어요', rainbow: '무엇이든 나와요', gold: '반짝! 동전 와르르' };
 type Fam = 'peck' | 'fire' | 'splash' | 'roll' | 'hop' | 'stomp' | 'zap' | 'gold';
@@ -73,19 +77,22 @@ const FAM_ET: Record<Fam, ET> = { peck: 'spot', fire: 'flame', splash: 'drop', r
 
 // ───────────────────────────── 상태 ─────────────────────────────
 const HATCH = 0, HIT = 1, ACT = 2;
-interface Egg { x: number; z: number; r: number; t: ET; sp: number; hp: number; hp0: number; st: number; tc: number; th: number; ch: number; dx: number; dz: number; tap: boolean; h: number }
+/** st: 0 그대로 · 1 깨지는 중 · 2 아기가 껍데기 안 · 3 아기가 떠나 빈자리 · 4 엄마가 던져 날아오는 중(th = 내려앉는 틱) */
+interface Egg { x: number; z: number; r: number; t: ET; sp: number; hp: number; hp0: number; st: number; tc: number; th: number; ch: number; dx: number; dz: number; tap: boolean; h: number; fr: number }
 interface QE { t: number; k: number; e: number; d: number; ch: number; fx: number; fz: number }
 /** 그림용 아기 기록: path = (x, z, t) 셋씩 — 쪼는 곳·굴러간 길·뛴 곳·번개 */
-interface Baby { e: number; sp: number; x: number; z: number; t0: number; ta: number; te: number; dx: number; dz: number; path: number[]; ex: number; ez: number; big: boolean; L: number }
+interface Baby { e: number; sp: number; x: number; z: number; t0: number; ta: number; te: number; dx: number; dz: number; path: number[]; ex: number; ez: number; big: boolean; L: number; r: number; fr: number }
 interface Ev { t: number; k: string; x: number; z: number; n: number; m: number }
-type Phase = 'play' | 'result' | 'fail' | 'end';
+type Phase = 'play' | 'result' | 'end';
 
 export interface NestState {
   rng: Rng; seed: number; t: number; lt: number; hold: number; pt: number;
-  phase: Phase; nest: number; stage: number; hearts: number;
+  phase: Phase; nest: number; stage: number;
   eggs: Egg[]; q: QE[]; babies: Baby[];
-  taps: number; chains: number[]; maxChain: number; hatched: number; endT: number;
-  pts: number; nestPts: number; best: number; newBest: boolean; got: number; starOk: boolean[]; bonus: number; full: boolean;
+  /** combo: 지금 이어지는 연쇄의 아기 수 · pend: 남은 깨짐 사건 수 · live: 연쇄가 살아 있나 · lastEv: 마지막 깨짐 틱 */
+  taps: number; combo: number; comboPts: number; live: boolean; pend: number; lastEv: number; maxChain: number; hatched: number; endT: number;
+  free: number[]; dropT: number; newHit: boolean;
+  pts: number; nestPts: number; best: number; newBest: boolean; got: number; starOk: boolean[];
   unlocked: ET[]; newT: ET | null; unlockT: ET | null; dex: number[]; nestNew: number[];
   seen: Set<string>; wowN: number; events: Ev[]; sim: boolean; down: boolean; lastTap: number; dead: boolean; firstTap: number; won: boolean;
 }
@@ -116,6 +123,16 @@ function pickW(r: Rng, w: [number, number][]): number {
   return w[w.length - 1][0];
 }
 
+/** 무늬에서 나올 아기 (무지개 알 = 풀린 것 무엇이든, 드문 것 35%) */
+function pickSp(s: NestState, t: ET): number {
+  const r = s.rng;
+  if (t !== 'rainbow') return pickW(r, EGG_SP[t]);
+  if (r() < 0.35) return 13 + Math.floor(r() * 3);
+  const pool: number[] = [];
+  for (let i = 0; i < SPN; i++) if (!SP[i].rare && s.unlocked.includes(FAM_ET[SP[i].fam])) pool.push(i);
+  return pool[Math.floor(r() * pool.length)];
+}
+
 // ───────────────────────────── 둥지 만들기 ─────────────────────────────
 function newNest(s: NestState) {
   const r = s.rng, n = s.nest, N = NEST_N[n];
@@ -123,13 +140,18 @@ function newNest(s: NestState) {
   s.q = [];
   s.babies = [];
   s.taps = TAPS;
-  s.chains = [];
+  s.combo = 0;
+  s.comboPts = 0;
+  s.live = false;
+  s.pend = 0;
+  s.lastEv = -999;
+  s.free = [];
+  s.dropT = 0;
+  s.newHit = false;
   s.maxChain = 0;
   s.hatched = 0;
   s.endT = -1;
   s.nestPts = 0;
-  s.bonus = 0;
-  s.full = false;
   s.nestNew = [];
   s.lt = 0;
   s.pt = 0;
@@ -169,16 +191,8 @@ function newNest(s: NestState) {
       const a = r() * TAU, d = Math.sqrt(r()) * (FLOOR - rr), x = Math.cos(a) * d, z = Math.sin(a) * d;
       if (tr < 300 && holes.some(([hx, hz, hr]) => hyp(hx - x, hz - z) < hr + rr)) continue;
       if (s.eggs.some((o) => hyp(o.x - x, o.z - z) < o.r + rr + GAP)) continue;
-      let spi = 0;
-      if (t === 'rainbow') {
-        if (r() < 0.35) spi = 13 + Math.floor(r() * 3);
-        else {
-          const pool: number[] = [];
-          for (let i = 0; i < SPN; i++) if (!SP[i].rare && s.unlocked.includes(FAM_ET[SP[i].fam])) pool.push(i);
-          spi = pool[Math.floor(r() * pool.length)];
-        }
-      } else spi = pickW(r, EGG_SP[t]);
-      s.eggs.push({ x, z, r: rr, t, sp: spi, hp, hp0: hp, st: 0, tc: -99, th: 0, ch: -1, dx: 0, dz: 0, tap: false, h: r() });
+      const spi = pickSp(s, t);
+      s.eggs.push({ x, z, r: rr, t, sp: spi, hp, hp0: hp, st: 0, tc: -99, th: 0, ch: 0, dx: 0, dz: 0, tap: false, h: r(), fr: 1e9 });
       break;
     }
   }
@@ -187,14 +201,20 @@ function newNest(s: NestState) {
 }
 
 // ───────────────────────────── 깨기 · 연쇄 ─────────────────────────────
+/** 연쇄가 살아 있나: 남은 깨짐이 있거나, 끝난 지 1초가 안 됐다 */
+const alive = (s: NestState) => s.pend > 0 || (s.live && s.lt - s.lastEv <= GRACE);
+function sched(s: NestState, q: QE) {
+  s.pend++;
+  pushQ(s.q, q);
+}
 function tapEgg(s: NestState, i: number) {
   const e = s.eggs[i];
+  if (!alive(s)) (s.combo = 0), (s.comboPts = 0);
+  s.live = true;
   e.st = 1;
   e.tap = true;
   e.th = s.lt + TAP_T;
-  e.ch = s.chains.length;
-  s.chains.push(0);
-  pushQ(s.q, { t: s.lt + TAP_T, k: HATCH, e: i, d: 0, ch: e.ch, fx: e.x, fz: e.z });
+  sched(s, { t: s.lt + TAP_T, k: HATCH, e: i, d: 0, ch: 0, fx: e.x, fz: e.z });
   s.taps--;
   s.lastTap = s.lt;
   s.hold = 2;
@@ -205,6 +225,8 @@ function tapEgg(s: NestState, i: number) {
 function proc(s: NestState, q: QE) {
   const e = s.eggs[q.e];
   if (q.k === ACT) return ev(s, 'act', e.x, e.z, q.d, e.sp);
+  s.pend--;
+  s.lastEv = s.lt;
   if (q.k === HATCH) return hatch(s, q.e);
   if (e.st !== 0) return;
   e.hp -= q.d;
@@ -212,10 +234,9 @@ function proc(s: NestState, q: QE) {
   if (e.hp <= 0) {
     e.st = 1;
     e.th = s.lt + HIT_T;
-    e.ch = q.ch;
     e.dx = dx / l;
     e.dz = dz / l;
-    pushQ(s.q, { t: e.th, k: HATCH, e: q.e, d: 0, ch: q.ch, fx: q.fx, fz: q.fz });
+    sched(s, { t: e.th, k: HATCH, e: q.e, d: 0, ch: 0, fx: q.fx, fz: q.fz });
     ev(s, 'crack', e.x, e.z, 2, q.e);
   } else {
     e.tc = s.lt;
@@ -227,17 +248,18 @@ function hatch(s: NestState, i: number) {
   const e = s.eggs[i], d = SP[e.sp];
   e.st = 2;
   e.th = s.lt;
-  const k = ++s.chains[e.ch], pk = ptsOf(k);
+  const k = ++s.combo, pk = ptsOf(k) + (d.fam === 'gold' ? 20 : 0);
   s.hatched++;
   s.pts += pk;
   s.nestPts += pk;
+  s.comboPts += pk;
   if (k > s.maxChain) s.maxChain = k;
-  if (d.fam === 'gold') (s.pts += 20), (s.nestPts += 20);
+  if (e.t === s.newT) s.newHit = true;
   if (e.tap) {
     // 톡으로 깬 알: 껍데기 조각이 튀어 바로 옆 알에 금을 낸다 (첫 1초가 시원하게)
     for (let j = 0; j < s.eggs.length; j++) {
       const o = s.eggs[j], q = hyp(o.x - e.x, o.z - e.z);
-      if (j !== i && o.st === 0 && q < SHARD_R + o.r) pushQ(s.q, { t: s.lt + 3 + Math.round(q * 10), k: HIT, e: j, d: 1, ch: e.ch, fx: e.x, fz: e.z });
+      if (j !== i && o.st === 0 && q < SHARD_R + o.r) sched(s, { t: s.lt + 3 + Math.round(q * 10), k: HIT, e: j, d: 1, ch: 0, fx: e.x, fz: e.z });
     }
   }
   if (!s.sim) {
@@ -466,10 +488,11 @@ function act(s: NestState, i: number) {
     }
   }
   const dmg = d.fam === 'hop' || (d.fam === 'stomp' && !e.tap) ? 2 : d.dmg;
-  for (let k = 0; k < hits.length; k += 4) pushQ(s.q, { t: hits[k + 1], k: HIT, e: hits[k], d: dmg, ch: e.ch, fx: hits[k + 2], fz: hits[k + 3] });
+  for (let k = 0; k < hits.length; k += 4) sched(s, { t: hits[k + 1], k: HIT, e: hits[k], d: dmg, ch: 0, fx: hits[k + 2], fz: hits[k + 3] });
+  e.fr = te + LEAVE;
   if (s.sim) return;
-  pushQ(s.q, { t: ta, k: ACT, e: i, d: 0, ch: e.ch, fx: 0, fz: 0 });
-  s.babies.push({ e: i, sp: e.sp, x: e.x, z: e.z, t0: s.lt, ta, te, dx, dz, path, ex, ez, big: e.t === 'giant', L: d.L });
+  pushQ(s.q, { t: ta, k: ACT, e: i, d: 0, ch: 0, fx: 0, fz: 0 });
+  s.babies.push({ e: i, sp: e.sp, x: e.x, z: e.z, t0: s.lt, ta, te, dx, dz, path, ex, ez, big: e.t === 'giant', L: d.L, r: e.r, fr: e.fr });
 }
 
 function run(s: NestState) {
@@ -492,43 +515,49 @@ function ff(s: NestState) {
   }
 }
 
-function finishNest(s: NestState) {
-  const N = s.eggs.length, ok = s.hatched >= Math.ceil(N / 2), full = s.hatched >= N;
-  s.full = full;
-  if (full) {
-    s.bonus = s.taps * 70;
-    s.pts += s.bonus;
-    s.nestPts += s.bonus;
+/** 다 논 아기는 둥지 밖으로 콩 — 빈자리에 엄마 새가 새 알을 톡 던져 넣는다 (놀이 틱에서만, 봇의 앞질러 셈에는 없음) */
+function refill(s: NestState) {
+  for (let i = 0; i < s.eggs.length; i++) {
+    const e = s.eggs[i];
+    if (e.st === 2 && s.lt >= e.fr) (e.st = 3), (e.th = s.lt), s.free.push(i);
+    else if (e.st === 4 && s.lt >= e.th) (e.st = 0), ev(s, 'land', e.x, e.z, i);
   }
-  s.starOk = [ok, full, ok && s.maxChain >= CHAIN_GOAL[s.nest]];
+  if (!s.free.length || s.lt < s.dropT || s.taps <= 0) return;
+  const r = s.rng, o = s.eggs[s.free.shift()!];
+  const pool: [ET, number][] = [['spot', 4], ['flame', 2.4], ['drop', 2.4], ['stripe', 2], ['star', 2], ['zap', 0.8], ['rainbow', 0.6], ['gold', 0.3]];
+  // 황금 알은 5번째 둥지부터 엄마가 가끔 던져 주는 깜짝 선물
+  const ok = pool.filter(([t]) => s.unlocked.includes(t) || (t === 'gold' && s.nest >= 4));
+  if (s.newT && s.newT !== 'giant') ok.push([s.newT, 1.5]);
+  let t = o.r >= 0.15 && s.unlocked.includes('giant') && r() < 0.5 ? 'giant' : ok[pickW(r, ok.map(([, w], k) => [k, w] as [number, number]))][0];
+  if (t === 'giant' && o.r < 0.15) t = 'spot';
+  const rr = t === 'giant' ? 0.16 : o.r >= 0.15 ? 0.115 : o.r, hp = t === 'giant' ? 2 : rr > 0.09 && t !== 'gold' ? 2 : 1;
+  s.eggs.push({ x: o.x, z: o.z, r: rr, t, sp: pickSp(s, t), hp, hp0: hp, st: 4, tc: -99, th: s.lt + DROP_T, ch: 0, dx: 0, dz: 0, tap: false, h: r(), fr: 1e9 });
+  s.dropT = s.lt + (s.free.length > 5 ? 9 + Math.floor(r() * 8) : 18 + Math.floor(r() * 18));
+  see(s, 'et:' + t);
+  ev(s, 'drop', o.x, o.z, s.eggs.length - 1);
+}
+function finishNest(s: NestState) {
+  s.starOk = [s.hatched >= HATCH_GOAL[s.nest], s.nestNew.length > 0 || s.newHit, s.maxChain >= CHAIN_GOAL[s.nest]];
   s.got = s.starOk.filter(Boolean).length;
   s.pt = 0;
-  if (ok) {
-    s.phase = 'result';
-    s.newBest = s.nestPts > s.best;
-    s.best = Math.max(s.best, s.nestPts);
-    if (s.nest < UNLOCK.length) {
-      s.unlockT = UNLOCK[s.nest];
-      s.unlocked.push(s.unlockT);
-      see(s, 'unlock:' + s.unlockT);
-    }
-    ev(s, 'result', 0, 0, s.got);
-  } else {
-    s.phase = 'fail';
-    s.hearts--;
-    ev(s, 'fail', 0, 0, s.hearts);
+  s.phase = 'result';
+  s.newBest = s.nestPts > s.best;
+  s.best = Math.max(s.best, s.nestPts);
+  if (s.nest < UNLOCK.length) {
+    s.unlockT = UNLOCK[s.nest];
+    s.unlocked.push(s.unlockT);
+    see(s, 'unlock:' + s.unlockT);
   }
+  ev(s, 'result', 0, 0, s.got);
 }
 function nextNest(s: NestState) {
-  if (s.phase === 'result') {
-    if (s.nest + 1 >= NESTS) return ((s.won = true), (s.phase = 'end'), (s.pt = 0), ev(s, 'final', 0, 0, 1));
-    s.nest++;
-  } else if (s.hearts <= 0) return ((s.phase = 'end'), (s.pt = 0), ev(s, 'final', 0, 0, 0));
+  if (s.nest + 1 >= NESTS) return ((s.phase = 'end'), (s.pt = 0), ev(s, 'final', 0, 0, 1));
+  s.nest++;
   newNest(s);
 }
 
 function onTap(s: NestState, px: number, py: number) {
-  if (hyp(px - (MX - 0.01), py - (MY - MU * 1.05)) < MU * 1.3) return ev(s, 'mom', MX, MY);
+  if (hyp(px - (MX + 0.01), py - (MY - MU * 1.05)) < MU * 1.5) return ev(s, 'mom', MX, MY);
   let bi = -1, bd = Infinity;
   for (let i = 0; i < s.eggs.length; i++) {
     const e = s.eggs[i];
@@ -539,7 +568,7 @@ function onTap(s: NestState, px: number, py: number) {
   if (bi >= 0) return s.taps > 0 ? tapEgg(s, bi) : ev(s, 'empty', s.eggs[bi].x, s.eggs[bi].z);
   for (let k = s.babies.length - 1; k >= 0; k--) {
     const b = s.babies[k], e = s.eggs[b.e];
-    if (s.lt > b.te + 30 && hyp(px - eggCx(e), (py - eggCy(e)) * 0.85) < 0.06) return ev(s, 'baby', b.x, b.z, k);
+    if (e.st === 2 && s.lt > b.te + 6 && hyp(px - eggCx(e), (py - eggCy(e)) * 0.85) < 0.07) return ev(s, 'baby', b.x, b.z, k);
   }
   ev(s, 'straw', (px - NX) / RX, (py - NY) / RY);
 }
@@ -549,11 +578,11 @@ const game: GameDef<NestState> & { wows(s: NestState): number } = {
   id: 'eggnest',
   name: '🥚 알 깨기 부화 둥지',
   genes: ['eggnest', 'chain', 'collect'],
-  twist: '알을 톡 하면 무엇이 나올지 깜짝 — 나온 아기가 저마다 다른 짓(콕콕·에취 불·물 뿜기·데굴 볼링·쿵)으로 옆 알을 깨서 둥지가 줄줄이 부화한다. 무늬가 힌트, 어디를 먼저 깨느냐가 연쇄를 가른다',
+  twist: '알을 톡 하면 무엇이 나올지 깜짝 — 나온 아기가 저마다 다른 짓(콕콕·에취 불·물 뿜기·데굴 볼링·쿵)으로 옆 알을 깨서 둥지가 줄줄이 부화한다. 연쇄가 꺼지기 전에 엄마가 새로 채운 알을 또 톡 하면 ×N이 이어진다',
   rules: [
     '알을 톡 — 쩍! 나온 아기가 저마다 다른 짓으로 옆 알을 깨요.',
-    '무늬가 힌트: 점박이는 콕콕, 불꽃은 에취 불, 물방울은 물 뿜기.',
-    '톡은 둥지마다 8번. 큰 알은 두 번 맞아야 깨져요 — 길게 이을수록 점수가 커요.',
+    '연쇄가 꺼지기 전에 또 톡 하면 ×N이 이어져요. 빈자리는 엄마 새가 채워요.',
+    '톡은 둥지마다 8번. 무늬가 힌트, 큰 알은 두 번 맞아야 깨져요.',
   ],
   controls: 'touch',
   hint: '알을 톡 — 쩍! 줄줄이 부화 / 화살표로 고르고 스페이스',
@@ -564,14 +593,14 @@ const game: GameDef<NestState> & { wows(s: NestState): number } = {
     palette: { bg: '#fff3d6', ink: '#5a3418', muted: '#a8875f', accent: '#ffc531', hot: '#ff6b4a', soft: '#ffe9bf' },
   },
   reveals: (s) => s.seen.size,
-  guard: (s) => s.hearts,
   cleared: (s) => (s.phase === 'result' ? { stage: s.nest, got: s.got, of: 3 } : null),
   wows: (s) => s.wowN,
   create(seed) {
     const s: NestState = {
-      rng: mulberry32(seed), seed, t: 0, lt: 0, hold: 0, pt: 0, phase: 'play', nest: 0, stage: 0, hearts: HEARTS,
-      eggs: [], q: [], babies: [], taps: TAPS, chains: [], maxChain: 0, hatched: 0, endT: -1,
-      pts: 0, nestPts: 0, best: 0, newBest: false, got: 0, starOk: [false, false, false], bonus: 0, full: false,
+      rng: mulberry32(seed), seed, t: 0, lt: 0, hold: 0, pt: 0, phase: 'play', nest: 0, stage: 0,
+      eggs: [], q: [], babies: [], taps: TAPS, combo: 0, comboPts: 0, live: false, pend: 0, lastEv: -999, maxChain: 0, hatched: 0, endT: -1,
+      free: [], dropT: 0, newHit: false,
+      pts: 0, nestPts: 0, best: 0, newBest: false, got: 0, starOk: [false, false, false],
       unlocked: [...START], newT: null, unlockT: null, dex: new Array(SPN).fill(0), nestNew: [],
       seen: new Set<string>(), wowN: 0, events: [], sim: false, down: false, lastTap: -999, dead: false, firstTap: -1, won: false,
     };
@@ -590,13 +619,17 @@ const game: GameDef<NestState> & { wows(s: NestState): number } = {
       else {
         s.lt++;
         run(s);
+        refill(s);
       }
-      if (!s.q.length && (s.taps <= 0 || s.hatched >= s.eggs.length)) {
-        if (s.endT < 0) {
-          s.endT = s.lt;
-          if (s.hatched >= s.eggs.length) (s.wowN++), ev(s, 'full', 0, 0, s.taps);
-          else ev(s, 'out');
-        } else if (s.lt - s.endT >= END_WAIT) finishNest(s);
+      // 연쇄가 꺼짐: 남은 깨짐이 없고 1초가 지났다 (톡이 없으면 바로)
+      if (s.live && s.pend === 0 && (s.taps <= 0 || s.lt - s.lastEv > GRACE)) {
+        s.live = false;
+        if (s.combo >= 10) s.wowN++;
+        ev(s, 'chainEnd', 0, 0, s.combo, s.comboPts);
+      }
+      if (s.taps <= 0 && !s.live && s.pend === 0) {
+        if (s.endT < 0) (s.endT = s.lt), ev(s, 'out');
+        else if (s.lt - s.endT >= END_WAIT) finishNest(s);
       }
     } else {
       s.lt++;
@@ -620,7 +653,7 @@ const NO: Input = { tap: false, dir: 0, pointer: null };
 const at = (x: number, y: number): Input => ({ tap: false, dir: 0, pointer: { x, y: y / A } });
 const eggAt = (e: Egg) => at(eggCx(e), eggCy(e));
 function clone(s: NestState): NestState {
-  return { ...s, sim: true, eggs: s.eggs.map((e) => ({ ...e })), q: s.q.slice(), chains: s.chains.slice(), babies: [], events: [] };
+  return { ...s, sim: true, eggs: s.eggs.map((e) => ({ ...e })), q: s.q.slice(), free: [], babies: [], events: [] };
 }
 /** 알마다 '지금 톡 하면 연쇄가 끝날 때까지 몇 점 더'를 똑같은 사건 줄로 앞질러 셈한다 — 좋은 넷은 그다음 톡까지 한 수 더 */
 function oneStep(s: NestState): { i: number; v: number; c: NestState }[] {
@@ -642,10 +675,10 @@ export function bestTap(s: NestState): number {
   let bi = top[0].i, bv = -Infinity;
   for (const o of top.slice(0, 4)) {
     let v = o.v;
-    if (o.c.taps > 0 && o.c.hatched < o.c.eggs.length) {
+    if (o.c.taps > 0) {
       const nx = oneStep(o.c);
       v += nx.length ? nx[0].v * 0.8 : 0;
-    } else if (o.c.hatched >= o.c.eggs.length) v += o.c.taps * 70;
+    }
     if (v > bv) (bv = v), (bi = o.i);
   }
   return bi;
@@ -670,14 +703,14 @@ function between(s: NestState): Input | null {
   if (s.phase === 'play') return null;
   return !s.down && s.pt >= RES_MIN + 6 + (s.phase === 'end' ? 50 : 0) ? at(0.5, 0.9) : NO;
 }
-/** 봇: 연쇄를 지켜보다(최대 1.5초) 가장 크게 이어질 알을 셈해 톡 */
+/** 봇: 연쇄가 꺼지기 직전에(엄마가 채운 알까지 보고) 가장 크게 이어질 알을 셈해 톡 */
 export const eggnestSmart: Bot<NestState> = {
-  name: '연쇄를 앞질러 셈해 가장 길게',
+  name: '연쇄를 앞질러 셈해 꺼지기 전에 이어 붙이기',
   act(s) {
     const mid = between(s);
     if (mid) return mid;
     if (s.down || s.taps <= 0) return NO;
-    if (s.q.length && s.lt - s.lastTap < 90) return NO;
+    if (alive(s) ? s.pend > 0 || s.lt - s.lastEv < 6 : s.free.length > 3 && s.lt - s.lastTap < 90) return NO;
     const i = bestTap(s);
     return i < 0 ? NO : eggAt(s.eggs[i]);
   },
@@ -691,8 +724,8 @@ export const eggnestRandom: Bot<NestState> = {
     return at(0.08 + rng() * 0.84, 0.6 + rng() * 0.64);
   },
 };
-const idle = (s: NestState) => !s.down && s.taps > 0 && !s.q.length;
-/** 버릇 봇: 연쇄가 끝나면 늘 가장 큰 알 */
+const idle = (s: NestState) => !s.down && s.taps > 0 && s.pend === 0;
+/** 버릇 봇: 깨짐이 멎으면 곧바로 늘 가장 큰 알 */
 export const eggnestHabit: Bot<NestState> = {
   name: '버릇: 늘 가장 큰 알',
   act(s) {
@@ -704,7 +737,7 @@ export const eggnestHabit: Bot<NestState> = {
     return bi < 0 ? NO : eggAt(s.eggs[bi]);
   },
 };
-/** 독립 버릇 봇: 연쇄가 끝나면 늘 둥지 한가운데에 가장 가까운 알 */
+/** 독립 버릇 봇: 깨짐이 멎으면 곧바로 늘 둥지 한가운데에 가장 가까운 알 */
 export const eggnestHabit2: Bot<NestState> = {
   name: '버릇: 늘 가운데 알',
   act(s) {
@@ -1680,12 +1713,12 @@ function paintBack(g: C2, w: number, h: number) {
     g.fill();
   }
   // 가지: 엄마 가지 · 둥지 밑 가지
-  branch(g, [X(1.06), X(0.36), X(0.9), X(0.43), X(0.74), X(0.452), X(0.6), X(0.44), X(0.5), X(0.4)], X(0.052), X(0.016));
-  branch(g, [X(0.66), X(0.445), X(0.62), X(0.39), X(0.6), X(0.34)], X(0.014), X(0.008));
+  branch(g, [X(-0.06), X(0.3), X(0.08), X(0.338), X(0.2), X(0.345), X(0.3), X(0.326), X(0.36), X(0.3)], X(0.034), X(0.012));
+  branch(g, [X(0.24), X(0.34), X(0.28), X(0.29), X(0.3), X(0.25)], X(0.01), X(0.006));
   branch(g, [X(-0.06), X(1.46), X(0.18), X(1.32), X(0.42), X(1.24), X(0.62), X(1.2)], X(0.07), X(0.04));
   branch(g, [X(1.06), X(1.42), X(0.86), X(1.3), X(0.7), X(1.23)], X(0.06), X(0.035));
   foliage(g, X(0.08), X(0.06), X(0.2), 14, 120, false);
-  for (let k = 0; k < 9; k++) leaf(g, X(0.62 + hsh(k + 200) * 0.4), X(0.36 + hsh(k + 210) * 0.1), X(0.05 + hsh(k + 220) * 0.04), -0.6 - hsh(k + 230) * 2, k % 2 ? '#79c45a' : '#5fae4a');
+  for (let k = 0; k < 7; k++) leaf(g, X(0.18 + hsh(k + 200) * 0.18), X(0.27 + hsh(k + 210) * 0.08), X(0.045 + hsh(k + 220) * 0.03), -0.6 - hsh(k + 230) * 2, k % 2 ? '#79c45a' : '#5fae4a');
   for (let k = 0; k < 7; k++) leaf(g, X(hsh(k + 300) * 0.25), X(1.25 + hsh(k + 310) * 0.2), X(0.06 + hsh(k + 320) * 0.04), -1.2 + hsh(k + 330) * 2.4, k % 2 ? '#79c45a' : '#5fae4a');
   for (let k = 0; k < 6; k++) leaf(g, X(0.8 + hsh(k + 400) * 0.22), X(1.28 + hsh(k + 410) * 0.18), X(0.06 + hsh(k + 420) * 0.04), Math.PI + 0.8 - hsh(k + 430) * 2, k % 2 ? '#8fd468' : '#5fae4a');
   // 둥지 그림자
@@ -1793,7 +1826,7 @@ const kcol = (k: number) => KCOL[Math.min(KCOL.length - 1, Math.floor(k / 4))];
 const hintMemo = new WeakMap<object, { key: string; i: number }>();
 function hintEgg(s: NestState): number {
   let m = hintMemo.get(s);
-  const key = `${s.nest}:${s.hatched}:${s.taps}:${s.eggs.length}:${s.hearts}`;
+  const key = `${s.nest}:${s.hatched}:${s.taps}:${s.eggs.length}`;
   if (!m || (m.key !== key && !s.q.length)) hintMemo.set(s, (m = { key, i: s.firstTap < 0 && s.nest === 0 ? firstTap(s) : (oneStep(s)[0]?.i ?? -1) }));
   return m.i;
 }
@@ -1822,7 +1855,7 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
     while (fx.popups.length >= 5) fx.popups.shift();
     fx.pop(clamp(x, w * 0.1, w * 0.9), Math.max(Y(0.2), y), str, col, size);
   };
-  if (s.phase !== 'play' && fx.memo.clr !== s.nest * 10 + s.hearts) (fx.memo.clr = s.nest * 10 + s.hearts), (fx.popups.length = 0);
+  if (s.phase !== 'play' && fx.memo.clr !== s.nest) (fx.memo.clr = s.nest), (fx.popups.length = 0);
   pumpBudget = s.phase === 'play' ? 5 : 12;
   prebake(s, w, sc2);
   idlePump();
@@ -1867,32 +1900,26 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
     }
     ctx.restore();
   }
-  // ── 엄마 새 ──
+  // ── 엄마 새 (왼쪽 위 구석, 표정만) ──
   {
     let mp = M_IDLE;
     const mt = fx.memo.momT ?? -999, mpose = fx.memo.momP ?? 0;
-    if (t - mt < (mpose === M_DIZZY ? 150 : mpose === M_WOW ? 60 : 30)) mp = mpose;
-    else if (s.phase === 'result' || s.phase === 'end') mp = s.phase === 'end' && !s.won ? M_DIZZY : M_HAPPY;
-    else if (s.phase === 'fail') mp = M_DIZZY;
+    if (t - mt < (mpose === M_WOW ? 60 : mpose === M_HAPPY ? 16 : 30)) mp = mpose;
+    else if (s.phase === 'result' || s.phase === 'end') mp = M_HAPPY;
     else if ((t + 37) % 220 < 8) mp = M_BLINK;
-    const ih = (t + 90) % 300, u = R(MU), hop = mp === M_WOW ? Math.abs(Math.sin((t - mt) * 0.3)) * R(0.02) : mp === M_HAPPY ? Math.abs(Math.sin(t * 0.2)) * R(0.008) : ih < 24 ? Math.abs(Math.sin((ih / 12) * Math.PI)) * R(0.012) : 0;
+    const u = R(MU), hop = mp === M_WOW ? Math.abs(Math.sin((t - mt) * 0.3)) * R(0.016) : mp === M_HAPPY ? Math.abs(Math.sin((t - mt) * 0.3)) * R(0.008) : 0;
     ctx.save();
     ctx.translate(X(MX), Y(MY) - hop);
     const br = 1 + Math.sin(t * 0.05) * 0.015;
-    ctx.scale(1 / br, br);
+    ctx.scale(-1 / br, br);
     stamp(ctx, momSpr(mp, Q(u)), F_MOM, u);
     ctx.restore();
-    if (mp === M_DIZZY)
-      for (let k = 0; k < 3; k++) {
-        const a = t * 0.12 + (k * TAU) / 3;
-        starPath(ctx, X(MX - 0.05) + Math.cos(a) * R(0.06), Y(MY - 0.23) + Math.sin(a) * R(0.02), R(0.014), 0.45);
-        ink(ctx, '#ffe36b', 1.2);
-      }
   }
   // ── 그림자 (한 번에) ──
   ctx.beginPath();
   for (const e of s.eggs) {
-    const u = e.r * RX * VS * w;
+    if (e.st === 3) continue;
+    const u = e.r * RX * VS * w * (e.st === 4 ? clamp(1 - (e.th - lt) / DROP_T, 0.2, 1) : 1);
     ctx.moveTo(SX(e.x) + u * 1.05, SY(e.z) + u * 0.12);
     ctx.ellipse(SX(e.x), SY(e.z) + u * 0.12, u * 1.05, u * 0.38, 0, 0, TAU);
   }
@@ -1900,15 +1927,28 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
   ctx.fill();
   // ── 알·껍데기·아기 (앞뒤 순서) ──
   const items: { y: number; k: number; i: number }[] = [];
-  const later: number[] = [];
-  const bst = s.babies.map((b) => babyAt(s, b));
-  s.eggs.forEach((e, i) => items.push({ y: SY(e.z) + (e.st === 2 ? 0.5 : 0), k: 0, i }));
-  bst.forEach((b, i) => (b.late ? later.push(i) : items.push({ y: Y(NY + b.z * RY), k: 1, i })));
+  const later: number[] = [], flying: number[] = [];
+  const first = new Map<number, number>();
+  s.babies.forEach((b, i) => first.has(b.sp) || first.set(b.sp, i));
+  const bst = s.babies.map((b, i) => (lt - b.fr > 26 ? null : babyAt(s, b, i, first.get(b.sp) === i)));
+  s.eggs.forEach((e, i) => (e.st === 4 ? flying.push(i) : e.st === 3 && lt - e.th > 14 ? 0 : items.push({ y: SY(e.z) + (e.st >= 2 ? 0.5 : 0), k: 0, i })));
+  bst.forEach((b, i) => b && (b.late ? later.push(i) : items.push({ y: Y(NY + b.z * RY), k: 1, i })));
   items.sort((a, b) => a.y - b.y);
-  const hint = s.phase === 'play' && s.taps > 0 && (s.firstTap < 0 || (lt - s.lastTap > 420 && !s.q.length)) ? hintEgg(s) : -1;
+  const hint = s.phase === 'play' && s.taps > 0 && (s.firstTap < 0 || (lt - s.lastTap > 420 && !alive(s))) ? hintEgg(s) : -1;
   const spot = s.newT && lt < 300 ? s.newT : null;
   const drawEgg = (i: number) => {
     const e = s.eggs[i], u = e.r * RX * VS * w, bx = SX(e.x), by = SY(e.z), tilt = (e.h - 0.5) * 0.16;
+    if (e.st === 3) {
+      // 아기가 떠난 껍데기: 바스락 부서져 사라짐
+      const f = (lt - e.th) / 14;
+      ctx.save();
+      ctx.globalAlpha = 1 - f;
+      ctx.translate(bx, by);
+      ctx.scale(1 + f * 0.3, 1 - f * 0.6);
+      stamp(ctx, eggSpr(e.t, 0, 1, Q(u)), F_EGG, u);
+      ctx.restore();
+      return;
+    }
     if (e.st === 2) {
       ctx.save();
       ctx.translate(bx, by);
@@ -1929,9 +1969,12 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
       return;
     }
     let jx = 0, dy = 0, rot = tilt, sx = 1, sy = 1, crack = e.hp < e.hp0 ? 1 : 0;
-    // 떨어져 들어오기 (둥지가 새로 차는 0.7초)
+    // 떨어져 들어오기 (둥지가 새로 차는 0.7초) · 엄마가 던진 알이 쏙 내려앉음
     const dl = e.h * 22, fall = clamp((lt - dl) / 14, 0, 1);
-    if (fall < 1) dy = -((1 - fall) ** 2) * R(0.5);
+    if (e.fr === 1e9 && e.th > 0 && e.st === 0 && lt - e.th < 10) {
+      const q = (lt - e.th) / 10;
+      (sy = 1 - 0.18 * Math.sin(q * Math.PI)), (sx = 1 + 0.12 * Math.sin(q * Math.PI));
+    } else if (fall < 1) dy = -((1 - fall) ** 2) * R(0.5);
     else if (lt - dl < 24) {
       const q = (lt - dl - 14) / 10;
       (sy = 1 - 0.14 * Math.sin(q * Math.PI)), (sx = 1 + 0.1 * Math.sin(q * Math.PI));
@@ -1965,9 +2008,26 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
     stamp(ctx, eggSpr(e.t, crack, 0, Q(u)), F_EGG, u);
     ctx.restore();
   };
+  /** 엄마 새가 던진 알: 엄마 부리에서 빈자리로 포물선 */
+  const drawFlying = (i: number) => {
+    const e = s.eggs[i], u = e.r * RX * VS * w, f = clamp(1 - (e.th - lt) / DROP_T, 0, 1), sd = e.h > 0.5 ? 1 : -1;
+    const x0 = X(MX + 0.07), y0 = Y(MY - 0.07), x1 = SX(e.x), y1 = SY(e.z);
+    ctx.globalAlpha = 0.5 * f;
+    ell(ctx, x1, y1 - u * 0.1, u * 1.2 * (1.4 - f * 0.4), u * 0.45 * (1.4 - f * 0.4));
+    ctx.strokeStyle = '#fff6c8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f * f - Math.sin(f * Math.PI) * R(0.1));
+    ctx.rotate(sd * (1 - f) * 3);
+    ctx.scale(0.7 + 0.3 * f, 0.7 + 0.3 * f);
+    stamp(ctx, eggSpr(e.t, 0, 0, Q(u)), F_EGG, u);
+    ctx.restore();
+  };
   const drawBaby = (i: number) => {
-    const b = bst[i], bb = s.babies[i];
-    const u = s.eggs[bb.e].r * RX * VS * w * (bb.big ? 1.25 : 1.0), x = X(NX + b.x * RX), y = Y(NY + b.z * RY) - b.lift * u;
+    const b = bst[i]!, bb = s.babies[i];
+    const u = bb.r * RX * VS * w * (bb.big ? 1.25 : 1.0), x = X(NX + b.x * RX), y = Y(NY + b.z * RY) - b.lift * u;
     const dt = s.lt - bb.t0;
     if (dt < 8) {
       // 쩍! 만화 같은 별 터짐 (아기 뒤)
@@ -1978,13 +2038,15 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
       ctx.globalAlpha = 1;
     }
     ctx.save();
+    ctx.globalAlpha = b.alpha;
     ctx.translate(x, y);
     if (b.rot) ctx.rotate(b.rot);
     ctx.scale(b.flip ? -b.sc : b.sc, b.sc * b.sy);
     stamp(ctx, babySpr(bb.sp, b.pose, Q(u)), F_BABY, u);
     ctx.restore();
+    ctx.globalAlpha = 1;
     if (b.isNew) {
-      // 처음 본 아기: 반짝반짝 (글자 없이)
+      // 처음 본 아기: 반짝반짝 + 작은 NEW 딱지
       const f = (lt - bb.t0) / 70;
       ctx.globalAlpha = Math.min(1, (1 - f) * 2.5);
       for (let k = 0; k < 4; k++) {
@@ -1993,12 +2055,14 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
         ctx.fillStyle = k % 2 ? '#ff9ecb' : '#fff3a0';
         ctx.fill();
       }
+      gtext(ctx, 'NEW', x, y - u * 2.75, Math.max(12, u * 0.62), 900, '#ffffff', '#ff4f7a', 4);
       ctx.globalAlpha = 1;
     }
   };
   for (const it of items) it.k ? drawBaby(it.i) : drawEgg(it.i);
   ctx.drawImage(bakeFront(Math.round(w), sc), 0, Y(FRONT_Y0), w, Y(FRONT_Y1 - FRONT_Y0));
   for (const i of later) drawBaby(i);
+  for (const i of flying) drawFlying(i);
   // ── 하는 짓 (불·물·쿵·번개·반짝) ──
   for (const b of s.babies) effect(ctx, s, b, w, X, Y, R);
   // ── 손가락 ──
