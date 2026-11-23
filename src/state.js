@@ -12,6 +12,7 @@ import { N_CH, chapterOf } from './data/stages.js';
 import { masteryLv, paceAt, UNLOCK_PACE, DAILY_RULES, dayRng, today, VOWS, vowBonus } from './data/progress.js';
 import { FORM_ORDER } from './data/formations.js';
 import { FEATS } from './data/feats.js';
+import { QUIZ } from './data/quiz.js';
 
 const KEY = 'gogae.save.v4';
 export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [], deeds: {}, heroXp: {}, alt: {}, daily: {}, codex: { foe: {}, relic: {}, card: {} } };
@@ -212,16 +213,31 @@ export const STOP = {
   // ch = 도장에 찍는 그림 기호 (render/symbols.js 의 이름. 사건만 물음표 그대로)
   battle: { ch: 'battle', name: '싸움', col: '#2f4d7e' }, elite: { ch: 'elite', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
   shop: { ch: 'shop', name: '장터', col: '#b8742a' }, rest: { ch: 'rest', name: '주막', col: '#2f6f5c' }, treasure: { ch: 'treasure', name: '보물', col: '#b8862a' }, boss: { ch: 'boss', name: '두목', col: '#7a1f1c' }, fork: { ch: 'fork', name: '갈림길', col: '#5a5346' }, forge: { ch: 'forge', name: '대장간', col: '#c8642a' },
+  shaman: { ch: 'shaman', name: '무당집', col: '#a8325a' }, seodang: { ch: 'seodang', name: '서당', col: '#3f5f86' }, gamble: { ch: 'gamble', name: '투전판', col: '#6a3a7a' }, muster: { ch: 'muster', name: '의병 모집소', col: '#8a6a3a' }, hidden: { ch: 'hidden', name: '숨은 길', col: '#2f4a3a' },
 };
-const FORK_DESC = { forge: '대장간 연기가 오르는 길 — 무기를 벼린다', battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
+const FORK_DESC = { shaman: '오색 천이 펄럭이는 무당집 — 부정을 씻는다', seodang: '글 읽는 소리가 들리는 서당 — 패를 익힌다', gamble: '왁자한 투전판 — 엽전을 걸어 본다', muster: '격문이 붙은 마을 — 의병을 모은다', hidden: '수풀에 가린 좁은 길 — 위험한 보물이 있다',
+  forge: '대장간 연기가 오르는 길 — 무기를 벼린다', battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
+// 새 장소(무당집·서당·투전판·의병 모집소·숨은 길)가 길에 나오는가 (해금 속도는 이 자리에서 정한다)
+export const placeOpen = id => paced('stops', id);   // 새 장소도 끝낸 원정 수에 따라 하나씩 열린다 (data/progress.js 의 UNLOCK_PACE)
+export const NEW_PLACES = ['shaman', 'seodang', 'gamble', 'muster'];
 export function genRoad(ch) {
   const vw = (G.run && G.run.vows) || [], ns = t => vw.includes('noshop') && t === 'shop' ? 'event' : t;
-  const side = () => ns(pick(['event', 'event', 'shop', 'treasure'].concat(paced('stops', 'forge') ? ['forge'] : []))), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
-  const [a, b] = two().map(ns), [c, d] = two().map(ns), safe = ns(pick(['event', 'shop', 'treasure']));
+  // 곁길: 열에 셋은 새 장소, 나머지는 사건·장터·보물·대장간
+  const base = ['event', 'event', 'shop', 'treasure'].concat(paced('stops', 'forge') ? ['forge'] : []), fresh = NEW_PLACES.filter(placeOpen);
+  const side = () => ns(fresh.length && rnd() < 0.3 ? pick(fresh) : pick(base)), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = ns(pick(['event', 'shop', 'battle'])); return [a, b]; };
+  const other = (...not) => { for (let g = 0; g < 20; g++) { const e = side(); if (!not.includes(e)) return e; } return null; };
+  const [a, b] = two(), safe = ns(pick(['event', 'shop', 'treasure']));
+  const f1 = { type: 'fork', a: { type: a }, b: { type: b } }, f2 = { type: 'fork', a: { type: 'elite' }, b: { type: safe } };
+  // 가끔은 세 갈래 (첫 갈림길에 곁길 하나 더, 둘째 갈림길에도 가끔), 아주 가끔은 수풀 사이로 숨은 길이 보인다
+  if (rnd() < 0.35) { const e = other(a, b); if (e) f1.c = { type: e }; }
+  if (rnd() < 0.2) { const e = other('elite', safe); if (e) f2.c = { type: e }; }
+  for (const f of [f1, f2]) if (ch >= 1 && placeOpen('hidden') && rnd() < 0.12) f.h = { type: 'hidden' };
   // 고개 하나는 여섯 칸: 싸움 · 갈림길 · 싸움 · 갈림길(강적이냐 쉬운 길이냐) · 주막(그 고개의 옛이야기를 듣는다) · 두목
-  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: vw.includes('norest') ? 'battle' : 'rest' }, { type: 'boss' }];
+  const stops = [{ type: 'battle' }, f1, { type: 'battle' }, f2, { type: vw.includes('norest') ? 'battle' : 'rest' }, { type: 'boss' }];
   return { ch, stops, i: 0, state: 'march' };
 }
+// 갈림길의 갈래들: a·b (·c) — 숨은 길(h)은 갈림길 앞에 서야 보인다
+export const forkKeys = st => ['a', 'b', 'c'].filter(k => st[k]);
 export const forkDesc = t => FORK_DESC[t] || '';
 export const curStop = () => { const rd = G.run.road; return rd.stops[rd.i]; };
 // 싸움 칸에 닿았을 때 편성을 정한다 (다시 불러와도 같은 편성)
@@ -229,7 +245,9 @@ export function encounterHere() {
   const r = G.run, st = curStop(); if (!st.enc) { st.enc = genEncounter(r.ch, Math.min(5, r.road.i), st.type, rnd, hardOf(r.hard || 0).elite); save(); }
   return st.enc;
 }
-export function chooseFork(which) { const rd = G.run.road, st = rd.stops[rd.i]; if (st.type !== 'fork') return; rd.stops[rd.i] = which === 'a' ? st.a : st.b; save(); }
+export function chooseFork(which) { const rd = G.run.road, st = rd.stops[rd.i]; if (st.type !== 'fork') return; rd.stops[rd.i] = st[which] || st.a; save(); }
+// 숨은 길에서 도깨비 굴로 들어가면 그 자리가 강적 싸움터가 된다 (이기면 강적의 전리품: 보물)
+export function hiddenFight() { const rd = G.run.road; rd.stops[rd.i] = { type: 'elite', hidden: true }; save(); }
 // 지금 칸을 끝내고 다음 칸으로. 두목을 물리쳤으면 다음 고개로 넘어간다. 원정이 끝났으면 true
 export function advance() {
   const r = G.run, rd = r.road, st = rd.stops[rd.i]; r.pending = null;
@@ -376,6 +394,33 @@ export function genShop() {
   return items;
 }
 export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it.price) return false; r.gold -= it.price; it.sold = true; applyReward(it); return true; }
+
+// ───────── 길 위의 새 장소: 무당집 · 서당 · 투전판 · 의병 모집소 · 숨은 길 (그림은 ui/places2.js) ─────────
+export const PLACE_COST = { gut: 40, naerim: 20, charm: 45, study: 25, call: 25, feed: 90, bet: 30 };
+export const BET_WIN = 0.45;   // 투전 한 판에 이길 확률: 화면에 그대로 적는다 (이기면 건 돈의 두 배를 받는다)
+export const curseCount = () => { const r = G.run; return r.relics.filter(id => RELICS[id] && RELICS[id].curse).length + r.deck.filter(c => c.id === 'doubt').length; };
+export const place = {
+  // 무당집: 굿으로 부정을 씻고, 신내림으로 기세를 올리고, 부적을 받는다
+  gut() { const r = G.run; r.gold -= PLACE_COST.gut; const out = []; for (let k = 0; k < 4; k++) { const a = act.cleanse(); if (!a) break; out.push(a); } for (let k = 0; k < 4; k++) { const b = act.clearDoubt(); if (!b) break; out.push(b); } save(); return out; },
+  naerim() { G.run.gold -= PLACE_COST.naerim; const s = act.morale(5); save(); return [s]; },
+  charm() { const r = G.run; r.gold -= PLACE_COST.charm; const pool = ['amulet', 'obsidian'].filter(id => RELICS[id] && !r.relics.includes(id)), s = pool.length ? act.relic(pick(pool)) : act.card('bujeok', true, 2); save(); return [s]; },
+  // 서당: 전술 하나를 익히고, 병법서로 패를 바꾸고, 훈장의 시험을 본다
+  study(uid) { const c = cardOf(uid); if (!c || isUnit(c) || !canUp(c)) return null; G.run.gold -= PLACE_COST.study; master(c.id); save(); return `전술을 익혔습니다: [${CARDS[c.id].name}] → [${CARDS[c.id].name}+]`; },
+  readOffer() { return rollCards('shop', 3).map(o => o.id); },
+  read(uid, id) { const c = cardOf(uid), nm = c ? cardName(c) : ''; if (!c || !removeCard(uid)) return null; addCard(id); save(); return [`[${nm}] 를 덜어 냈습니다`, `패 [${CARDS[id].name}] 를 얻었습니다`]; },
+  quiz() { const r = G.run, seen = r.quizSeen || (r.quizSeen = []), pool = QUIZ.filter((_, i) => !seen.includes(i)), q = pick(pool.length ? pool : QUIZ), i = QUIZ.indexOf(q); seen.push(i); const order = [0, 1, 2].sort(() => rnd() - 0.5); return { q: q.q, a: order.map(k => q.a[k]), right: order.indexOf(0) }; },
+  quizWin() { const r = G.run; r.gold += 40; r.merit = (r.merit || 0) + 3; save(); return ['엽전 +40', '공적 +3']; },
+  // 투전판: 엽전을 건다 (이길 확률은 숨기지 않는다) / 패 한 장을 걸고 도깨비와 내기
+  bet() { const r = G.run, win = rnd() < BET_WIN; r.gold -= PLACE_COST.bet; if (win) r.gold += PLACE_COST.bet * 2; save(); return win; },
+  wager(uid) { const c = cardOf(uid); if (!c || CARDS[c.id].kind === 'lead') return null; const nm = cardName(c); if (rnd() < 0.5) { const s = act.relic(); save(); return { win: true, lines: [s] }; } if (removeCard(uid)) { save(); return { win: false, lines: [`패 [${nm}] 를 잃었습니다`] }; } const s = act.gold(-20); save(); return { win: false, lines: [s] }; },
+  // 의병 모집소: 병력 패 셋 중 하나를 데려가고, 격문을 붙여 의병 봉기 패를 얻고, 군량을 대어 부대를 늘린다
+  musterOffer() { const r = G.run, types = unitPool(), owned = ownedTypes(), out = []; for (let g = 0; out.length < 3 && g < 60; g++) { const fresh = types.filter(t => !owned.includes(t) && !out.includes(t)), t = fresh.length && rnd() < 0.55 ? pick(fresh) : pick(types); if (!out.includes(t)) out.push(t); } return out.map(t => ({ id: 'u_' + t, lv: 1 + Math.floor(r.ch * 0.8) })); },
+  recruit(o) { addCard(o.id, { lv: o.lv }); save(); return `병력 패 [${CARDS[o.id].name}]${o.lv > 1 ? ` ${o.lv}단` : ''}`; },
+  call() { G.run.gold -= PLACE_COST.call; const s = act.card('uibyeong', false, 2); save(); return [s]; },
+  feed() { G.run.gold -= PLACE_COST.feed; const s = act.cap(1); save(); return [s]; },
+  // 숨은 길: 금줄 너머의 보물 둘을 챙기면 부정도 함께 따라온다
+  loot() { const a = act.relic(), b = act.relic(), c = act.curse(); save(); return [a, b, c]; },
+};
 
 // ───────── 사건에서 쓰는 도우미 ─────────
 export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang',

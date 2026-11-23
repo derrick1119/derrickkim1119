@@ -1,4 +1,4 @@
-// 개발용 진입: ?debug=1&ch=1&i=3&type=shop  (i = 노정의 몇 번째 칸, type = 그 칸을 바꿔치기)
+// 개발용 진입: ?debug=1&ch=1&i=3&type=shop  (i = 노정의 몇 번째 칸, type = 그 칸을 바꿔치기: shaman·seodang·gamble·muster·hidden 도)
 //   &state=at 그 칸에 바로 도착 · &scene=end&win=1 · &scene=meta&merit=60
 //   &alt=1 두목 칸에 또 다른 두목(0 이면 원래 두목) · &cards=thunder,volley!,u_knight (! = 강화) · &items=gun,axe (무기 보관함) · &relics=drum,yut · &gold=300 · &speed=2
 import { nav } from './nav.js';
@@ -21,6 +21,8 @@ export function debugBoot(q) {
   if (q.get('wpn')) q.get('wpn').split(',').forEach(kv => { const [t, w] = kv.split(':'); const c = r.deck.find(x => x.id === 'u_' + t && !x.wpn); if (c) c.wpn = w; });
   if (q.get('type')) r.road.stops[i] = { type: q.get('type') };
   if (q.get('alt') !== null) forceBossAlt(q.get('alt') === '1');   // &alt=1 또 다른 두목 · &alt=0 원래 두목
+  // &fork=shop,seodang,gamble (두세 갈래) · &hidden=1 (숨은 길도)
+  if (q.get('fork')) { const t = q.get('fork').split(','), f = { type: 'fork', a: { type: t[0] }, b: { type: t[1] || 'event' } }; if (t[2]) f.c = { type: t[2] }; if (q.get('hidden')) f.h = { type: 'hidden' }; r.road.stops[i] = f; }
   if (q.get('ev')) r.pending = { kind: 'event', id: q.get('ev') };
   if (q.get('state')) r.road.state = q.get('state');
   if (q.get('merit')) meta.merit = Number(q.get('merit'));
