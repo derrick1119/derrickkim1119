@@ -9,16 +9,24 @@ export const WEAPONS = {
   axe: { name: '도끼', cls: 'short', spr: 'axe', a: 0.35, mode: 'slash', desc: '공격력 +15%, 방패 무시', mod: d => { d.atk *= 1.15; d.pierce = true; } },
   flail: { name: '편곤', cls: 'short', spr: 'flail', a: 0.35, mode: 'slash', desc: '공격마다 20% 확률로 0.8초 기절', mod: d => { d.stunHit = { p: 0.2, t: 0.8 }; } },
   yedo: { name: '예도 한 쌍', cls: 'short', base: true, spr: 'twin', a: 0.3, mode: 'slash', hand: 'B', desc: '검객의 쌍검' },
+  ssangsudo: { name: '쌍수도', cls: 'short', spr: 'ssangsudo', a: 0.26, mode: 'slash', desc: '공격력 +25%, 리치 +8, 공격 속도 -10%', mod: d => { d.atk *= 1.25; d.reach = (d.reach || 0) + 8; d.as *= 1.1; } },
+  ungeom: { name: '운검', cls: 'short', spr: 'ungeom', a: 0.3, mode: 'slash', desc: '공격력 +15%, 맞으면 15%로 되받아친다', mod: d => { d.atk *= 1.15; d.riposte = Math.max(d.riposte || 0, 0.15); } },
+  bujeokgeom: { name: '부적검', cls: 'short', spr: 'bujeokgeom', a: 0.3, mode: 'slash', desc: '맞은 적 2초 화상, 공격력 -5%', mod: d => { d.atk *= 0.95; d.burnHit = { t: 2, k: 0.3 }; } },
   // 장병기
   spear: { name: '장창', cls: 'pole', base: true, spr: 'spear', a: 0.1, mode: 'thrust', desc: '긴 리치. 돌진형 적 2배, 정면 돌격 받아치기', mod: d => { d.reach = (d.reach || 0) + 14; d.antiCav = true; d.brace = true; } },
   lance: { name: '기창', cls: 'pole', base: true, spr: 'lance', a: 0.18, mode: 'thrust', desc: '말 위에서 쓰는 긴 창' },
   dangpa: { name: '당파', cls: 'pole', spr: 'dangpa', a: 0.1, mode: 'thrust', desc: '리치 +10, 받는 근접 피해 -20%, 돌격 받아치기', mod: d => { d.reach = (d.reach || 0) + 10; d.brace = true; d.armor = 0.2; } },
   hyeopdo: { name: '협도', cls: 'pole', spr: 'hyeopdo', a: 0.2, mode: 'slash', desc: '리치 +10, 한 번에 2명 타격', mod: d => { d.reach = (d.reach || 0) + 10; d.cleave = Math.max(d.cleave || 0, 2); } },
+  bamboo: { name: '낭선', cls: 'pole', spr: 'bamboo', a: 0.14, mode: 'thrust', desc: '리치 +12, 2명 타격, 감속, 공격력 -15%', mod: d => { d.reach = (d.reach || 0) + 12; d.cleave = Math.max(d.cleave || 0, 2); d.slowHit = { amt: 0.3, t: 1.5 }; d.atk *= 0.85; } },
+  jukjang: { name: '죽장창', cls: 'pole', spr: 'jukjang', a: 0.08, mode: 'thrust', desc: '리치 +22, 돌진형 적 2배, 공격력 -10%', mod: d => { d.reach = (d.reach || 0) + 22; d.antiCav = true; d.atk *= 0.9; } },
+  galgori: { name: '갈고리창', cls: 'pole', spr: 'galgori', a: 0.12, mode: 'thrust', desc: '리치 +10, 기마 2배·거대 적 1.8배, 감속', mod: d => { d.reach = (d.reach || 0) + 10; d.antiCav = true; d.bigK = Math.max(d.bigK || 0, 1.8); d.slowHit = { amt: 0.25, t: 1 }; } },
   woldo: { name: '언월도', cls: 'pole', spr: 'woldo', a: 0.22, mode: 'slash', desc: '공격력 +30%, 2명 타격, 리치 +8, 공격 속도 -18%', mod: d => { d.atk *= 1.3; d.as *= 1.18; d.reach = (d.reach || 0) + 8; d.cleave = Math.max(d.cleave || 0, 2); } },
   // 둔기
   mace: { name: '철퇴', cls: 'blunt', base: true, spr: 'mace', a: 0.4, mode: 'slash', desc: '한 번에 3명 타격', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); } },
   bigaxe: { name: '큰 도끼', cls: 'blunt', spr: 'bigaxe', a: 0.4, mode: 'slash', desc: '공격력 +35%, 2명 타격, 방패 무시', mod: d => { d.atk *= 1.35; d.cleave = Math.max(d.cleave || 0, 2); d.pierce = true; } },
   thresher: { name: '쇠도리깨', cls: 'blunt', spr: 'thresher', a: 0.4, mode: 'slash', desc: '3명 타격, 25%로 0.8초 기절, 공격 속도 -15%', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); d.stunHit = { p: 0.25, t: 0.8 }; d.as *= 1.15; } },
+  gombong: { name: '곤봉', cls: 'blunt', spr: 'gombong', a: 0.3, mode: 'slash', desc: '리치 +6, 공격 속도 +10%, 15%로 기절', mod: d => { d.reach = (d.reach || 0) + 6; d.as /= 1.1; d.stunHit = { p: 0.15, t: 0.6 }; } },
+  hongdukkae: { name: '홍두깨', cls: 'blunt', spr: 'hongdukkae', a: 0.38, mode: 'slash', desc: '공격력 +20%, 12%로 0.5초 기절', mod: d => { d.atk *= 1.2; d.stunHit = { p: 0.12, t: 0.5 }; } },
   ssangdokki: { name: '쌍도끼', cls: 'blunt', base: true, spr: 'axe', a: 0.35, mode: 'slash', hand: 'B', desc: '두령의 쌍도끼. 한 번에 2명 타격', mod: d => { d.cleave = Math.max(d.cleave || 0, 2); } },
   // 활
   bow: { name: '각궁', cls: 'bow', base: true, spr: 'bow', a: 0, mode: 'shoot', hand: 'L', desc: '기본 활' },
@@ -26,17 +34,25 @@ export const WEAPONS = {
   firebow: { name: '불화살 활', cls: 'bow', spr: 'firebow', a: 0, mode: 'shoot', hand: 'L', desc: '맞은 적에게 3초 화상, 피해 -10%', mod: d => { d.atk *= 0.9; d.burnHit = { t: 3, k: 0.4 }; d.proj = 'firearrow'; } },
   pyeonjeon: { name: '편전', cls: 'bow', spr: 'pyeonjeon', a: 0, mode: 'shoot', hand: 'L', desc: '사거리 +25%, 피해 -10%', mod: d => { d.range *= 1.25; d.atk *= 0.9; } },
   gun: { name: '조총', cls: 'bow', spr: 'gun', a: 1.05, mode: 'shoot', hand: 'C', desc: '피해 +130%, 방패 관통, 공격 속도 -55%', mod: d => { d.atk *= 2.3; d.as *= 1.55; d.pierce = true; d.proj = 'bullet'; } },
+  seungja: { name: '승자총통', cls: 'bow', spr: 'seungja', a: 1.0, mode: 'shoot', hand: 'C', desc: '피해 +80%, 관통, 사거리 -10%, 공격 속도 -40%', mod: d => { d.atk *= 1.8; d.as *= 1.4; d.range *= 0.9; d.pierce = true; d.proj = 'bullet'; } },
+  sosingijeon: { name: '소신기전', cls: 'bow', spr: 'sosingijeon', a: 0, mode: 'shoot', hand: 'L', desc: '피해 +15%, 2초 화상, 공격 속도 -15%', mod: d => { d.atk *= 1.15; d.as *= 1.15; d.burnHit = { t: 2, k: 0.35 }; d.proj = 'firearrow'; } },
   greatbow: { name: '대궁', cls: 'bow', base: true, spr: 'greatbow', a: 0, mode: 'shoot', hand: 'L', desc: '범 사냥꾼의 큰 활. 방패를 꿰뚫는다' },
   // 부적
   firetal: { name: '불 부적', cls: 'talisman', base: true, spr: 'firetal', a: 0.2, mode: 'cast', desc: '터지며 범위 피해' },
   featherfan: { name: '깃털 부채', cls: 'talisman', base: true, spr: 'featherfan', a: 0.35, mode: 'cast', desc: '신선의 부채. 터지며 범위 피해' },
   icetal: { name: '얼음 부적', cls: 'talisman', spr: 'icetal', a: 0.2, mode: 'cast', desc: '피해 -20%, 맞은 적 2.5초간 속도 -35%', mod: d => { d.atk *= 0.8; d.slowHit = { amt: 0.35, t: 2.5 }; d.proj = 'iceball'; } },
+  baramtal: { name: '바람 부적', cls: 'talisman', spr: 'baramtal', a: 0.2, mode: 'cast', desc: '폭발 범위 +30%, 피해 -15%', mod: d => { d.aoe = (d.aoe || 0) * 1.3; d.atk *= 0.85; } },
+  dokkaebital: { name: '도깨비불 부적', cls: 'talisman', spr: 'dokkaebital', a: 0.2, mode: 'cast', desc: '맞은 적 3초 화상, 피해 -10%', mod: d => { d.atk *= 0.9; d.burnHit = { t: 3, k: 0.45 }; } },
   bolttal: { name: '벼락 부적', cls: 'talisman', spr: 'bolttal', a: 0.2, mode: 'cast', desc: '한 명만 노려 피해 +130%, 0.4초 기절', mod: d => { d.atk *= 2.3; d.aoe = 0; d.proj = 'spark'; d.stunHit = { p: 1, t: 0.4 }; d.prefer = null; } },
   // 무구
   fans: { name: '부채', cls: 'ritual', base: true, spr: 'fans', a: 0.5, mode: 'cast', hand: 'B', desc: '가장 다친 아군을 치유' },
   staff: { name: '석장', cls: 'ritual', base: true, spr: 'staff', a: 0, mode: 'cast', cast: 0.22, desc: '고승의 지팡이. 두 명을 치유' },
   bells: { name: '방울', cls: 'ritual', spr: 'bells', a: 0.2, mode: 'cast', cast: 0.7, desc: '한 명을 더 치유, 치유량 -25%', mod: d => { d.healN = (d.healN || 1) + 1; d.heal *= 0.75; } },
   chae: { name: '꽹과리', cls: 'gong', base: true, spr: 'chae', a: 0.4, mode: 'cast', cast: 0.7, desc: '상쇠의 꽹과리와 채. 쇳소리로 적을 친다' },
+  sinkal: { name: '신칼', cls: 'ritual', spr: 'sinkal', a: 0.3, mode: 'cast', cast: 0.6, desc: '치유받은 아군 공격 속도 +30%, 치유 -10%', mod: d => { d.healHaste = Math.max(d.healHaste || 0, 3); d.heal *= 0.9; } },
+  yeomju: { name: '염주', cls: 'ritual', spr: 'yeomju', a: 0.1, mode: 'cast', cast: 0.4, desc: '치유량 +25%, 공격 속도 -15%', mod: d => { d.heal *= 1.25; d.as *= 1.15; } },
+  jing: { name: '징', cls: 'gong', spr: 'jing', a: 0.35, mode: 'cast', cast: 0.7, desc: '공격력 +40%, 25%로 기절, 공격 속도 -20%', mod: d => { d.atk *= 1.4; d.stunHit = { p: 0.25, t: 0.5 }; d.as *= 1.2; } },
+  sogo: { name: '소고', cls: 'gong', spr: 'sogo', a: 0.4, mode: 'cast', cast: 0.7, desc: '공격 속도 +30%, 공격력 -15%', mod: d => { d.as /= 1.3; d.atk *= 0.85; } },
   bowl: { name: '정화수', cls: 'ritual', spr: 'bowl', a: 0, mode: 'cast', cast: 0.3, desc: '치유할 때 해로운 효과를 씻고 보호막 25', mod: d => { d.healCleanse = 25; } },
 };
 for (const k of Object.keys(WEAPONS)) WEAPONS[k].id = k;
@@ -51,3 +67,35 @@ export const CLS_NAME = { short: '단병기', pole: '장병기', blunt: '둔기'
 export const canEquip = (type, wid) => !!(ARMS[type] && WEAPONS[wid] && ARMS[type].cls.includes(WEAPONS[wid].cls) && (!WEAPONS[wid].base || ARMS[type].base === wid));
 export const weaponOf = s => s.wpn || (ARMS[s.type] ? ARMS[s.type].base : null);
 export const LOOT_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].base);
+
+// ───────── 무기 세트: 같은 계열의 무기를 덱 여기저기에 끼워 둘(2)·셋(3) 모으면 군대 전체에 힘이 붙는다 ─────────
+// 끼운 무기만 센다(보관함에 든 것은 세지 않는다). 같은 무기를 두 패에 끼워도 한 번만 센다
+const U = (m, t) => (m.unit[t] || (m.unit[t] = {}));
+export const SETS = {
+  geomsul: { name: '조선 검술', col: '#7a1f1c', members: ['twin', 'ssangsudo', 'ungeom', 'bujeokgeom'],
+    tiers: [{ n: 2, desc: '환도 무사·등패수 공격력 +12%', mod: m => { for (const t of ['sword', 'shield']) { const u = U(m, t); u.atk = (u.atk || 1) * 1.12; } } },
+      { n: 3, desc: '배후를 치면 피해 +30% 더', mod: m => { m.flank += 0.3; } }] },
+  changbeop: { name: '장창 무예', col: '#2f4d7e', members: ['dangpa', 'hyeopdo', 'woldo', 'bamboo', 'jukjang', 'galgori'],
+    tiers: [{ n: 2, desc: '창병·기마 무사 체력 +12%', mod: m => { for (const t of ['spear', 'knight', 'militia']) { const u = U(m, t); u.hp = (u.hp || 1) * 1.12; } } },
+      { n: 3, desc: '돌격 피해 +30%', mod: m => { m.chargeMult *= 1.3; } }] },
+  jangsa: { name: '장사의 쇠붙이', col: '#5a5346', members: ['axe', 'flail', 'bigaxe', 'thresher', 'gombong', 'hongdukkae'],
+    tiers: [{ n: 2, desc: '보병 체력 +10%', mod: m => { m.hpInf *= 1.1; } },
+      { n: 3, desc: '철퇴 장사 공격력·체력 +20%', mod: m => { const u = U(m, 'berserk'); u.atk = (u.atk || 1) * 1.2; u.hp = (u.hp || 1) * 1.2; } }] },
+  singung: { name: '신궁과 총통', col: '#8a5a2c', members: ['crossbow', 'firebow', 'pyeonjeon', 'gun', 'seungja', 'sosingijeon'],
+    tiers: [{ n: 2, desc: '원거리 사거리 +8%', mod: m => { m.rangeMul *= 1.08; } },
+      { n: 3, desc: '원거리 공격 속도 +12%', mod: m => { m.rangedAS *= 1.12; } }] },
+  bujeok: { name: '도사의 부적', col: '#5a4a8a', members: ['icetal', 'bolttal', 'baramtal', 'dokkaebital'],
+    tiers: [{ n: 2, desc: '폭발 범위 +12%', mod: m => { m.aoeR *= 1.12; } },
+      { n: 3, desc: '전술 패 위력 +10%', mod: m => { m.cardPow *= 1.1; } }] },
+  gutpan: { name: '굿판 무구', col: '#2f6f5c', members: ['bells', 'bowl', 'sinkal', 'yeomju', 'jing', 'sogo'],
+    tiers: [{ n: 2, desc: '치유량 +12%', mod: m => { m.priestHeal *= 1.12; } },
+      { n: 3, desc: '요괴 무리를 물리칠 때마다 사기 +0.3', mod: m => { m.killMorale += 0.3; } }] },
+};
+for (const k of Object.keys(SETS)) { SETS[k].id = k; for (const w of SETS[k].members) if (WEAPONS[w]) WEAPONS[w].set = k; }
+export const setOf = wid => (wid && WEAPONS[wid] && SETS[WEAPONS[wid].set]) || null;
+// 덱에 끼운 무기로 세트마다 몇 개 모였는지: [{ set, n, on: [2개 효과, 3개 효과] }] (하나라도 모인 세트만)
+export function setProgress(deck) {
+  const got = {}; for (const c of deck || []) { const S = setOf(c.wpn); if (S) (got[S.id] || (got[S.id] = new Set())).add(c.wpn); }
+  return Object.keys(got).map(k => ({ set: SETS[k], n: got[k].size, on: SETS[k].tiers.map(t => got[k].size >= t.n) }));
+}
+export function applySets(m, deck) { for (const p of setProgress(deck)) p.set.tiers.forEach((t, i) => { if (p.on[i]) t.mod(m); }); }

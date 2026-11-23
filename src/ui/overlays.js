@@ -7,7 +7,7 @@ import { cardFace, DeckView } from './cards.js';
 import { G, save, openReward, rollRewards, describeReward, applyReward, canUp, act } from '../state.js';
 import { CARDS, isUnit } from '../data/cards.js';
 import { RELICS } from '../data/relics.js';
-import { WEAPONS } from '../data/weapons.js';
+import { WEAPONS, setOf, setProgress } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
 import { portrait, weaponIcon, getLook } from '../render/sprites.js';
 import { cardIcon, relicIcon, miscIcon } from '../render/icons.js';
@@ -45,8 +45,16 @@ function tile(g, d, x, y, w, h, t) {
   text(g, d.title, x + w / 2, y + 24, { size: 26, font: FONT_B, fill: C.cream });
   const cx = x + w / 2, cy = y + 112;
   if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 2.3); else if (d.misc === 'trainOne') trainArt(g, d.unit, d.lv, cx, cy, t); else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }
+  if (d.weapon) setTag(g, d.weapon, cx, y + 168);
   text(g, d.name, cx, y + 196, { size: 23, font: FONT_B, maxW: w - 20 });
   textBlock(g, d.desc, cx, y + 228, w - 26, 22, { size: 15.5, fill: SUB, weight: 400 });
+}
+// 무기 세트 딱지: 세트 빛깔의 작은 띠에 '세트 · 이름' (덱에 이미 끼운 같은 세트 수도 함께)
+export function setTag(g, wid, cx, cy) {
+  const S = setOf(wid); if (!S) return;
+  const p = G.run ? setProgress(G.run.deck).find(q => q.set === S) : null, s = `세트 · ${S.name}${p ? `  ${p.n}/3` : ''}`;
+  g.font = `400 13px ${FONT_B}`; const w = g.measureText(s).width + 20;
+  rr(g, cx - w / 2, cy - 10, w, 20, 10, S.col, INK, 1.1); text(g, s, cx, cy + 0.5, { size: 13, font: FONT_B, fill: C.cream });
 }
 
 // ───────── 전리품: 셋 중 하나 ─────────
