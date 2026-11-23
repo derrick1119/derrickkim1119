@@ -10,7 +10,10 @@
 
   /* ---------- the lake ---------- */
   /* o: { paint(g, t), leo: style, mom: bool, mirror: 0..1 (how plainly he sees himself), warm: bool,
-     shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }], kid: a style (someone small sitting on the bank, looking in) } */
+     shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }], kid: a style (someone small sitting on the bank, looking in;
+     on the near bank kidDx/kidDy move her from her place, a little way up the bank from him),
+     leoPose(lo, t): change how he sits on the near bank (it goes for his reflection too),
+     leoProp(g, j, lo, t, inWater): draw something on him after he is drawn (j: his joints; inWater for the reflection) } */
   T.lake = function (o) {
     const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
     const SC = 0.7, TOP = 232, PH = 640;
@@ -18,7 +21,7 @@
        shadow straight down into her picture. Slid until it lies on its counterpart, a shadow stays. */
     const BANK = 228, DEPTH = { lamp: TOP + 304 * SC, pot: TOP + 548 * SC, leo: TOP + (COUNTER - 34) * SC };
     /* a thing: { kind: 'lamp'|'pot'|'leo'|'who'|'dog' or anything with its own bank()/ghost(), id, x (on the bank),
-       at: [x, y] where its shadow belongs in the picture, style (people), flip, ps (picture size) } */
+       at: [x, y] where its shadow belongs in the picture, style (people), flip, ps (picture size), bs (size on the bank, 172) } */
     const things = () => L.things || [];
     const idOf = (q) => q.id || q.kind;
     const person = (q) => q.kind === 'leo' || q.kind === 'who';
@@ -229,16 +232,19 @@
         const lo = { x: bx + 96, y: 208, s, style: ls, sit: true, lean: 0.16 + reach * 0.14, headTilt: 0.26, legF: { a: Math.PI / 2 - 0.5, b: 0.5 }, legB: { a: Math.PI / 2 - 0.62, b: 0.62 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
         lo.armF = reach > 0.02 ? { a: 0.5 + reach * 0.5, b: 0.1 } : { a: 0.5, b: 1.0 };
         lo.armB = { a: 0.3, b: 0.9 };
+        if (L.leoPose) L.leoPose(lo, t);
         /* his reflection, upside down in the dark water under him */
         g.save();
         g.beginPath(); g.rect(-W / 2, 250, W, 400); g.clip();
         g.translate(Math.sin(t * 1.4) * 2.5, 2 * 262); g.scale(1, -1);
         g.globalAlpha = L.mirror * (0.75 + 0.25 * Math.sin(t * 1.1));
-        F.person(g, lo);
+        const rj = F.person(g, lo);
+        if (L.leoProp) L.leoProp(g, rj, lo, t, true);
         g.restore();
-        if (L.kid) sitter(g, t, bx - 96, 176, false);
+        if (L.kid) sitter(g, t, bx - 96 + (L.kidDx || 0), 176 + (L.kidDy || 0), false);
         if (L.mom) { const gs = guideStyle(L), gz = (gs.kid ? 0.66 : gs === F.styles.bram ? 1.06 : 1) * 158; const no = { x: bx - 4, y: 206 - F.hipHeight(gs, gz), s: gz, style: gs, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); if (!gs.kid) { P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); } }
-        F.person(g, lo);
+        const lj = F.person(g, lo);
+        if (L.leoProp) L.leoProp(g, lj, lo, t, false);
         /* reeds */
         g.strokeStyle = '#2f4a48'; g.lineCap = 'round';
         for (let i = 0; i < 16; i++) { const rx = -W / 2 + 20 + i * 27 + T.noise(i, 3) * 12, h = 50 + T.noise(i * 1.7, 4) * 26, sw = Math.sin(t * 1.2 + i) * 5; g.lineWidth = 3; g.beginPath(); g.moveTo(rx, 330 + (i % 3) * 8); g.quadraticCurveTo(rx + sw * 0.4, 300, rx + sw, 330 - h); g.stroke(); }
@@ -356,8 +362,8 @@
         } else if (person(q)) {
           const leoHere = q.kind === 'leo', qs = q.style || ls;
           const reach = leoHere ? T.ease.io(L.reach.k) : 0, seated = T.ease.io(L.lit[idOf(q)]), sip = leoHere ? T.ease.io(L.sip.k) : 0, sk = !leoHere || L.beat === 1 ? 0 : L.salt.k;
-          const hh = F.hipHeight(qs, 172);
-          const lo = { x, y: T.lerp(BANK - hh, BANK - 6, seated), s: 172, style: qs, flip: q.lock ? (q.lockFlip == null ? true : q.lockFlip) : !!q.flip, lean: 0.05 + reach * 0.34, headTilt: 0.2 + reach * 0.16, face: Object.assign({ blush: 0.14 }, leoHere ? L.leoFace : q.face) };
+          const bs = q.bs || 172, hh = F.hipHeight(qs, bs);
+          const lo = { x, y: T.lerp(BANK - hh, BANK - 6, seated), s: bs, style: qs, flip: q.lock ? (q.lockFlip == null ? true : q.lockFlip) : !!q.flip, lean: 0.05 + reach * 0.34, headTilt: 0.2 + reach * 0.16, face: Object.assign({ blush: 0.14 }, leoHere ? L.leoFace : q.face) };
           if (seated > 0.5) { lo.sit = true; lo.legF = { a: Math.PI / 2 - 0.5, b: 0.5 }; lo.legB = { a: Math.PI / 2 - 0.62, b: 0.62 }; lo.armF = reach > 0.02 ? { hand: F.local(lo, x - 14 - 30 * reach, T.lerp(BANK - 16, BANK + 74, reach)) } : { a: 0.5, b: 1.0 }; lo.armB = { a: 0.3, b: 0.9 }; }
           else if (live && (R.held === i || q.go != null)) lo.walk = q.ph || 0;
           /* his pot is beside him: a pinch of salt, a spoon to the mouth */
