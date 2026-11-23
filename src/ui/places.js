@@ -1,5 +1,6 @@
 // 길 위의 장소들: 장터 · 주막 · 갈림길 · 보물 터. 버튼만 띄우는 대신 그 장소를 종이 인형극 무대처럼 통째로 그린다.
 // 정지한 그림(하늘·집·진열대·평상)은 한 번 굽고, 물건·인형·불빛·김만 매 장면 그린다. 그 장면을 걸개그림 삼아 단청 무대틀·막·구경꾼을 두른다 (stage.js)
+import { geumjul } from '../render/geumjul.js';
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, path, st, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { part, curve, P, R as RECT, E, dk, lt } from '../render/figures.js';
@@ -358,12 +359,22 @@ export function bojagi(g, x, y, s = 1, R = rng(31), peek = null) {
   DAB(g, x, y - 53 * s, 9 * s, 7 * s, '#e0b23c', 1); g.beginPath(); g.ellipse(x, y - 53 * s, 9 * s, 7 * s, 0, 0, TAU); g.stroke(); PSTROKE(g, [x - 5 * s, y - 55 * s, x + 4 * s, y - 51 * s], '#8a6a1c', 1.2 * s);
   g.globalAlpha = 1;
 }
+const mix2 = (a, b, k) => { const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), A = h(a), B = h(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
 // 평상 위 살림살이 (원점 = 바닥 가운데): 조각보 보따리 · 실로 맨 병법서와 등잔
 function tavernThing(g, id, x, y, t, on) {
   const S2 = PSTROKE;
   if (id === 'supply') bojagi(g, x, y, 0.9);
   else if (id === 'study') { // 실로 맨 병법서 묶음과 등잔
-    for (let k = 0; k < 3; k++) { const by = y - 10 - k * 11, c = ['#2f4d7e', '#8a2a26', '#3f6b5c'][k]; g.globalAlpha = 1; g.fillStyle = '#efe6cf'; g.fillRect(x - 32 + k * 2, by - 1, 52, 11); g.fillStyle = c; g.fillRect(x - 34 + k * 2, by, 52, 9); for (let q = 0; q < 4; q++) S2(g, [x - 30 + k * 2 + q * 4, by, x - 30 + k * 2 + q * 4, by + 9], '#f3e6c4', 0.8); }
+    // 선장본: 치자 물 들인 누런 한지 표지, 책장 결, 왼쪽 묶음 자리를 붉은 실로 다섯 번 꿰맸다 (오침안정법)
+    for (let k = 0; k < 3; k++) { const by = y - 10 - k * 11, bx = x - 34 + k * 2 + (k === 1 ? -3 : 0), c = ['#d9c086', '#cdb176', '#e0cb94'][k]; g.globalAlpha = 1;
+      g.fillStyle = 'rgba(40,26,14,0.35)'; g.fillRect(bx + 2, by + 8, 52, 2.4);
+      g.fillStyle = c; g.fillRect(bx, by, 52, 9); g.fillStyle = 'rgba(255,248,226,0.55)'; g.fillRect(bx, by, 52, 1.6);
+      for (let q = 0; q < 3; q++) S2(g, [bx + 7, by + 3 + q * 2, bx + 51, by + 3.4 + q * 2], '#f6eed8', 0.6, 0.8);   // 책장 결
+      g.fillStyle = mix2(c, '#6a4a22', 0.25); g.fillRect(bx, by, 6, 9);   // 묶은 쪽
+      for (let q = 0; q < 5; q++) S2(g, [bx + 1.2 + q * 1.1, by - 0.4, bx + 1.2 + q * 1.1, by + 9.4], '#a8322a', 0.9);   // 붉은 실
+      g.strokeStyle = 'rgba(70,46,20,0.7)'; g.lineWidth = 0.8; g.strokeRect(bx, by, 52, 9); }
+    // 맨 위 책의 제첨(제목 쪽지)
+    g.fillStyle = '#f6efdc'; g.fillRect(x - 22, y - 33.5, 10, 2.4); S2(g, [x - 21, y - 32.4, x - 13, y - 32.4], '#2a2a30', 0.5, 0.7);
     g.fillStyle = '#efe6cf'; g.fillRect(x - 26, y - 44, 40, 5); S2(g, [x - 20, y - 42, x + 8, y - 42], '#2a2a30', 0.8, 0.6);
     g.fillStyle = '#5a3820'; g.fillRect(x + 28, y - 8, 20, 8); S2(g, [x + 38, y - 8, x + 38, y - 46], '#5a3820', 3); DAB(g, x + 38, y - 48, 9, 3.4, '#8a6a4a', 1);
     const f = 1 + Math.sin(t * 11) * 0.08; glow(g, x + 38, y - 58, 28, '255,200,110', 0.5); DAB(g, x + 38, y - 56 * f, 3.4, 7 * f, '#ffb040', 1); DAB(g, x + 38, y - 54, 1.6, 3.6, '#fff4c0', 1);
@@ -488,9 +499,8 @@ function treasureBG() {
       for (const [cx, cy, r] of clumps) for (let k = 0; k < r * 0.5; k++) { const a = -Math.PI * (0.15 + R() * 0.55), d = r * (0.55 + R() * 0.45); DAB(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.62, 3 + R() * 6, 1.6 + R() * 3, R() < 0.5 ? '#5f8a6c' : '#7fa88a', 0.55); }
       g.globalAlpha = 1; }
     [[70, 270, RED], [110, 300, '#e0b23c'], [300, 270, '#2f4d7e'], [350, 262, '#f6efdc'], [260, 290, '#3f8a6a'], [40, 250, '#f6efdc']].forEach(([x, y, c], i) => { line(g, [x, y - 8, x, y], INK, 1.2); path(g, p => { p.moveTo(x - 5, y); p.quadraticCurveTo(x - 7 + (i % 2) * 6, y + 30, x - 3, y + 58); p.lineTo(x + 4, y + 56); p.quadraticCurveTo(x + 2 + (i % 2) * 6, y + 28, x + 5, y); p.closePath(); }, c, INK, 1.2); });
-    // 금줄: 새끼줄에 흰 종이 술을 끼웠다
-    path(g, p => { p.moveTo(156, 500); p.quadraticCurveTo(206, 528, 256, 500); }, null, INK, 8); path(g, p => { p.moveTo(156, 500); p.quadraticCurveTo(206, 528, 256, 500); }, null, '#c9a862', 5);
-    for (let i = 0; i < 5; i++) { const x = 168 + i * 19, y = 506 + Math.sin((i + 0.5) / 5 * Math.PI) * 10; path(g, p => { p.moveTo(x - 4, y); p.lineTo(x + 4, y); p.lineTo(x + 4, y + 9); p.lineTo(x - 2, y + 9); p.lineTo(x - 2, y + 18); p.lineTo(x + 4, y + 18); p.lineTo(x + 4, y + 26); p.lineTo(x - 4, y + 26); p.closePath(); }, '#f6efdc', INK, 1); }
+    // 금줄: 왼새끼 짚줄에 고추·숯·솔가지를 끼워 둥치에 둘렀다
+    geumjul(g, 150, 498, 262, 498, 16, 0, 5, { k: 1.1, items: ['pepper', 'charcoal', 'pine', 'charcoal', 'pepper'] });
     // 마을 어귀의 장승 한 쌍
     jangseung(g, 1080, 640, 300, true, R); jangseung(g, 1196, 664, 270, false, R);
     // 파낸 구덩이와 흙더미, 꽂아 둔 삽

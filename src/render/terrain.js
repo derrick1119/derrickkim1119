@@ -1,4 +1,5 @@
 // 한지 전장(가로): 멀리 겹친 산, 끝없이 이어지는 고갯길, 길가에서 만나는 것들
+import { hangItem } from './geumjul.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, st, fs, ell, rr, rrPath, poly, line, path, makeCanvas, paperSprite, rng } from './draw.js';
 import { part, dk, lt, E, R as RC, P, curve, rope } from './figures.js';
 import { symbol } from './symbols.js';
@@ -432,9 +433,9 @@ const STOPS = {
     const roof = p => { p.moveTo(-64, -35); p.quadraticCurveTo(-46, -66, -21, -68); p.quadraticCurveTo(4, -66, 22, -35); p.quadraticCurveTo(-21, -42, -64, -35); p.closePath(); };
     part(g, roof, STRAW, p => { p.moveTo(-66, -33); p.quadraticCurveTo(-21, -56, 24, -33); p.lineTo(24, -29); p.lineTo(-66, -29); p.closePath(); }, { shc: '#b98f3a', lw: 1.5 });
     for (let i = -4; i <= 4; i++) curve(g, p => { p.moveTo(-21 + i * 5, -66 + Math.abs(i) * 2); p.quadraticCurveTo(-21 + i * 7.4, -54, -21 + i * 9.4, -40); }, '#a8843c', 0.8);
-    // 처마 밑 금줄: 새끼줄에 흰 종이 술
+    // 처마 밑 금줄: 왼새끼 짚줄에 고추·숯·솔가지
     rope(g, p => { p.moveTo(-56, -35); p.quadraticCurveTo(-21, -28, 14, -35); }, '#e3c890', 1.8);
-    for (const x of [-46, -34, -22, -10, 2]) poly(g, [x - 2, -32, x + 2, -32, x + 3.4, -26, x + 0.6, -24, x + 2.6, -19, x - 1.2, -18], WHITE, INK, 0.6);
+    [-46, -34, -22, -10, 2].forEach((x, i) => { g.save(); g.translate(x, -33 + Math.abs(x + 21) * -0.04); hangItem(g, ['pepper', 'charcoal', 'pine', 'pepper', 'charcoal'][i], 0.55); g.restore(); });
     // 신대: 꼭대기에 흰 종이 꽃, 오색 천이 바람에 날린다
     post(g, 38, 104, 2.6);
     for (let k = 0; k < 7; k++) { const a = -Math.PI / 2 + (k - 3) * 0.34; line(g, [38, -104, 38 + Math.cos(a) * 13, -104 + Math.sin(a) * 13 + 6], INK, 2.6); line(g, [38, -104, 38 + Math.cos(a) * 13, -104 + Math.sin(a) * 13 + 6], WHITE, 1.4); }

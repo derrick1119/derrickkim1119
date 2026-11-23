@@ -16,6 +16,7 @@ import { stageFront, stageCurtain, stagePuppet, stageRod, openOf, OPEN_T } from 
 import { glow, motes, beams } from './places.js';
 import { pal as PAL, mix as MIX, vgrad as VG, dab as dab0, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK, stroke as stroke0 } from '../render/painted.js';
 import { symbol } from '../render/symbols.js';
+import { geumjul } from '../render/geumjul.js';
 import { sfx } from '../audio.js';
 import { juice } from './juice.js';
 
@@ -133,13 +134,7 @@ function tujeon(g, x, y, s, n, face, rot = 0) {
 function cloth(g, x, y, l, col, t, ph, k = 1) {
   path(g, p => { const w = 5.6 * k; p.moveTo(x - w / 2, y); for (let i = 1; i <= 6; i++) { const q = i / 6; p.lineTo(x - w / 2 + Math.sin(t * 3.2 + ph + q * 3) * 9 * q * k + q * 8 * k, y + l * q); } for (let i = 6; i >= 0; i--) { const q = i / 6; p.lineTo(x + w / 2 + Math.sin(t * 3.2 + ph + q * 3) * 9 * q * k + q * 8 * k, y + l * q); } p.closePath(); }, col, 'rgba(30,20,20,0.6)', 0.8);
 }
-// 금줄: 새끼줄에 흰 종이 술을 듬성듬성 끼운다
-function geumjul(g, x0, y0, x1, y1, sag, t, n = 6) {
-  const at = q => [x0 + (x1 - x0) * q, y0 + (y1 - y0) * q + Math.sin(q * Math.PI) * sag];
-  g.beginPath(); for (let i = 0; i <= 24; i++) { const [x, y] = at(i / 24); if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.strokeStyle = INK; g.lineWidth = 5; g.stroke(); g.strokeStyle = '#d9bc78'; g.lineWidth = 3; g.stroke();
-  for (let i = 0; i < 24; i += 2) { const [x, y] = at(i / 24); line(g, [x - 2, y - 2, x + 2, y + 2], '#8a6a3a', 1); }
-  for (let i = 1; i <= n; i++) { const [x, y] = at(i / (n + 1)), sw = Math.sin(t * 2 + i) * 0.12; g.save(); g.translate(x, y); g.rotate(sw); poly(g, [-3.6, 0, 3.6, 0, 5.6, 9, 1, 12, 4.6, 21, -2, 23], '#fbf7ec', INK, 0.9); g.restore(); }
-}
+// 금줄은 render/geumjul.js (왼새끼 짚줄에 고추·숯·솔가지)
 
 // ═════════════════════════ 장소의 틀 ═════════════════════════
 // cfg: bg() · title · hello · bub [가운데 x, y, 꼬리 x] · leave(떠나는 말)
@@ -267,7 +262,7 @@ function shamanBG() {
       for (const [x0, y0, x1, y1, w] of [[150, 220, 20, 150, 11], [160, 190, 340, 118, 10], [140, 170, 60, 70, 8], [170, 160, 270, 40, 8], [190, 280, 390, 236, 7], [60, 70, 0, 40, 4], [340, 118, 430, 92, 4]]) S2(g, [x0, y0, (x0 + x1) / 2 + 8, (y0 + y1) / 2 - 10, x1, y1], '#22170f', w);
       for (let i = 0; i < 420; i++) { const a = R() * TAU, d = Math.sqrt(R()), x = 180 + Math.cos(a) * 230 * d, y = 120 + Math.sin(a) * 112 * d; DAB(g, x, y, 5 + R() * 8, 3 + R() * 4, R() < 0.55 ? '#1c2620' : '#2c3a2c', 0.88, R() * 3); }
       for (let i = 0; i < 80; i++) { const a = -0.1 - R() * 3, x = 180 + Math.cos(a) * 210, y = 128 + Math.sin(a) * 96; DAB(g, x, y, 3 + R() * 5, 1.6 + R() * 2, '#b06a50', 0.45); }
-      for (const y of [376, 398]) { S2(g, [100, y + 4, 150, y + 11, 210, y + 2], INK, 5.4); S2(g, [100, y + 4, 150, y + 11, 210, y + 2], '#d9bc78', 3.2); for (const x of [120, 146, 174, 198]) { const yy = y + 8; g.fillStyle = '#fbf7ec'; g.beginPath(); g.moveTo(x - 3, yy); g.lineTo(x + 3, yy); g.lineTo(x + 5, yy + 9); g.lineTo(x + 1, yy + 12); g.lineTo(x + 4, yy + 21); g.lineTo(x - 2, yy + 23); g.closePath(); g.fill(); g.strokeStyle = INK; g.lineWidth = 0.8; g.stroke(); } }
+      geumjul(g, 98, 380, 212, 378, 10, 0, 4, { items: ['pepper', 'charcoal', 'pine', 'pepper'] }); geumjul(g, 100, 404, 210, 402, 8, 0, 0);   // 둥치를 두 겹 두른 금줄
       for (const [x, y, c] of [[40, 170, OBANG[0]], [72, 150, OBANG[1]], [300, 140, OBANG[3]], [330, 128, OBANG[4]], [256, 110, OBANG[2]], [370, 242, OBANG[0]]]) { g.fillStyle = c; g.beginPath(); g.moveTo(x - 3, y); g.lineTo(x + 3, y); g.lineTo(x + 6, y + 34); g.lineTo(x, y + 32); g.closePath(); g.fill(); }
       for (const [x, y, r] of [[250, 540, 20], [284, 544, 16], [226, 548, 16], [264, 520, 14], [242, 524, 12], [254, 502, 10]]) PROCK(g, x, y, r * 2, r * 1.3, { rock: ['#8a7e7a', '#4a4044'], grass: ['#2e3a30', '#3e4a3c', '#1e2a22'] }, R);
     }
@@ -461,15 +456,39 @@ function gambleBG() {
     for (const x of [320, 1000]) { g.fillStyle = VG(g, 0, 470, [[0, '#1a100c'], [1, '#4a3022']]); g.fillRect(x - 12, 60, 24, 410); S2(g, [x - 5, 70, x - 5, 460], '#9a6a48', 1.2, 0.4); }
     g.fillStyle = VG(g, 40, 80, [[0, '#5a3a22'], [1, '#22140c']]); g.fillRect(0, 48, W, 30); S2(g, [0, 51, W, 51], '#a06a44', 1.2, 0.45);
     for (let x = 20; x < W; x += 60) { g.fillStyle = '#1a100a'; g.fillRect(x, 0, 14, 48); }
-    // 창호지 문 (달빛, 대 그림자)
+    // 창호지 바른 띠살문 (달빛, 대 그림자)
     { const ax = 40, aw = 240, ay = 130, ah = 300; g.fillStyle = '#c8cce0'; g.fillRect(ax, ay, aw, ah); const gr = g.createLinearGradient(ax, 0, ax + aw, 0); gr.addColorStop(0, 'rgba(120,140,200,0.55)'); gr.addColorStop(1, 'rgba(200,150,110,0.25)'); g.fillStyle = gr; g.fillRect(ax, ay, aw, ah);
       for (let k = 0; k < 5; k++) { const x = ax + 30 + k * 46; S2(g, [x, ay + ah, x + 6, ay], 'rgba(30,30,60,0.35)', 4); for (let j = 0; j < 4; j++) DAB(g, x + 10 + j * 4, ay + 40 + j * 60, 18, 4, 'rgba(30,30,60,0.3)', 1, -0.4); }
-      g.strokeStyle = '#2a1c16'; g.lineWidth = 2.4; for (let x = ax; x <= ax + aw; x += 24) { g.beginPath(); g.moveTo(x, ay); g.lineTo(x, ay + ah); g.stroke(); } for (let y = ay; y <= ay + ah; y += 30) { g.beginPath(); g.moveTo(ax, y); g.lineTo(ax + aw, y); g.stroke(); }
+      // 띠살문: 촘촘한 세로살에, 위·가운데·아래로 가로살을 서너 줄씩 모아 띠를 두른다 (가운데 문설주로 두 짝)
+      g.strokeStyle = '#2a1c16'; g.lineWidth = 1.6; for (let x = ax + 9; x < ax + aw; x += 9.4) { g.beginPath(); g.moveTo(x, ay); g.lineTo(x, ay + ah); g.stroke(); }
+      g.lineWidth = 1.8; for (const by of [ay + 14, ay + ah * 0.5 - 12, ay + ah - 30]) for (let q = 0; q < 4; q++) { const y = by + q * 6; g.beginPath(); g.moveTo(ax, y); g.lineTo(ax + aw, y); g.stroke(); }
+      g.lineWidth = 6; g.strokeStyle = '#1a100c'; g.beginPath(); g.moveTo(ax + aw / 2, ay); g.lineTo(ax + aw / 2, ay + ah); g.stroke();
+      for (const sx of [-1, 1]) { g.fillStyle = '#8a6a3a'; g.beginPath(); g.arc(ax + aw / 2 + sx * 9, ay + ah * 0.52, 3, 0, TAU); g.fill(); }   // 문고리
       rr(g, ax - 7, ay - 7, aw + 14, ah + 14, 2, null, '#1a100c', 7); }
-    // 병풍 (도깨비 뒤): 검은 테 안에 매화 가지
-    { const bx = 420, by = 150, pw = 120, ph = 300; for (let k = 0; k < 4; k++) { const x = bx + k * pw; g.fillStyle = '#1e1410'; g.fillRect(x, by, pw, ph); g.fillStyle = VG(g, by, by + ph, [[0, '#e6d6b4'], [1, '#c8b48c']]); g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 0.25; g.fillStyle = '#ffb070'; g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 1; }
-      S2(g, [bx + 30, by + 270, bx + 120, by + 180, bx + 210, by + 160, bx + 330, by + 90, bx + 430, by + 70], '#3a2a22', 6, 0.75); S2(g, [bx + 210, by + 160, bx + 250, by + 210], '#3a2a22', 3.6, 0.75); S2(g, [bx + 330, by + 90, bx + 350, by + 40], '#3a2a22', 3.6, 0.75);
-      for (let i = 0; i < 36; i++) { const q = R(), x = bx + 60 + q * 380, y = by + 250 - q * 190 + (R() - 0.5) * 50; for (let p2 = 0; p2 < 5; p2++) DAB(g, x + Math.cos(p2 * 1.26) * 4, y + Math.sin(p2 * 1.26) * 4, 3.2, 3.2, i % 3 ? '#f6f2ea' : '#c8402f', 0.9); DAB(g, x, y, 1.6, 1.6, '#8a2a26', 1); }
+    // 병풍 (도깨비 뒤): 네 폭에 이어 그린 민화 호작도 — 소나무 가지의 까치가 짖고, 그 아래 눈 동그란 호랑이가 앉아 올려다본다
+    { const bx = 420, by = 150, pw = 120, ph = 300;
+      for (let k = 0; k < 4; k++) { const x = bx + k * pw; g.fillStyle = '#1e1410'; g.fillRect(x, by, pw, ph); g.fillStyle = VG(g, by, by + ph, [[0, '#e8dab8'], [1, '#cdb88e']]); g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 0.22; g.fillStyle = '#ffb070'; g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 1; }
+      g.save(); g.beginPath(); for (let k = 0; k < 4; k++) g.rect(bx + k * pw + 8, by + 8, pw - 16, ph - 16); g.clip();
+      // 땅과 바위
+      DAB(g, bx + 250, by + 278, 220, 18, '#a89668', 0.5); DAB(g, bx + 70, by + 270, 70, 30, '#7f7a6a', 0.8); DAB(g, bx + 60, by + 262, 50, 20, '#9a9484', 0.7);
+      // 소나무: 왼쪽 폭에서 솟아 둘째 폭으로 휘어 뻗는 줄기, 솔잎 부채
+      S2(g, [bx + 40, by + 290, bx + 56, by + 200, bx + 44, by + 120, bx + 90, by + 60], '#4a3424', 11, 0.95); S2(g, [bx + 48, by + 170, bx + 120, by + 130, bx + 200, by + 118], '#4a3424', 6, 0.95); S2(g, [bx + 70, by + 90, bx + 150, by + 66], '#4a3424', 4.6, 0.95);
+      for (let k = 0; k < 7; k++) S2(g, [bx + 44 + k * 2, by + 270 - k * 24, bx + 54 + k * 2, by + 262 - k * 24], '#2a1c12', 1.4, 0.6);   // 껍질 결
+      for (const [cx, cy, r] of [[bx + 96, by + 54, 26], [bx + 150, by + 62, 24], [bx + 204, by + 112, 22], [bx + 128, by + 122, 20], [bx + 30, by + 112, 20]]) { for (let i = 0; i < 26; i++) { const a = Math.PI * (1.05 + R() * 0.9), d = r * (0.4 + R() * 0.6); S2(g, [cx, cy + 6, cx + Math.cos(a) * d, cy + 6 + Math.sin(a) * d * 0.6], i % 3 ? '#2f4a30' : '#46684a', 1.6, 0.9); } }
+      // 까치: 가지 끝에 앉아 고개를 돌린다 (검은 머리·꼬리, 흰 배, 날개에 푸른 윤)
+      { const mx = bx + 196, my = by + 104; DAB(g, mx, my, 15, 9, '#14161c', 1, -0.3); DAB(g, mx + 2, my + 3, 9, 5.4, '#f6f2e8', 1, -0.3); DAB(g, mx - 4, my - 2, 8, 4, '#2c4c7a', 0.9, -0.4); DAB(g, mx + 14, my - 9, 6.4, 6, '#14161c', 1);
+        S2(g, [mx - 12, my + 2, mx - 34, my + 18], '#14161c', 5, 1); S2(g, [mx - 14, my + 2, mx - 34, my + 14], '#2c4c7a', 1.6, 0.8); S2(g, [mx + 19, my - 10, mx + 26, my - 8], '#2a2a2a', 2, 1); DAB(g, mx + 16, my - 10, 1.2, 1.2, '#f6f2e8', 1); }
+      // 호랑이: 셋째·넷째 폭 아래에 앉아 까치를 올려다본다 (민화처럼 동그란 눈, 줄무늬, S 자로 말린 꼬리)
+      { const tx = bx + 330, ty = by + 214;
+        S2(g, [tx + 66, ty + 40, tx + 96, ty + 10, tx + 84, ty - 30, tx + 100, ty - 52], '#d8892e', 8, 1); for (const [x, y] of [[80, 26], [94, 2], [88, -20], [94, -40]]) S2(g, [tx + x - 6, ty + y + 2, tx + x + 6, ty + y - 2], '#1e140c', 3.4, 1);
+        DAB(g, tx + 30, ty + 30, 61, 37, '#a8561a', 1); DAB(g, tx + 30, ty + 30, 58, 34, '#d8892e', 1); DAB(g, tx + 24, ty + 42, 40, 18, '#f2e2c0', 0.85);   // 몸과 배
+        for (const [x, y] of [[-14, 8], [0, 0], [14, -4], [28, -3], [42, 0], [56, 6], [68, 16], [74, 30], [-16, 28]]) S2(g, [tx + x, ty + y, tx + x + 7, ty + y + 9, tx + x + 3, ty + y + 20], '#1e140c', 4.4, 0.95);   // 굵게 굽이치는 줄무늬
+        for (const sx of [-14, 8]) { DAB(g, tx + sx, ty + 58, 9, 16, '#d8892e', 1); S2(g, [tx + sx - 4, ty + 70, tx + sx + 4, ty + 70], '#1e140c', 1.4, 0.8); }   // 앞다리
+        const hx = tx - 26, hy = ty - 20; DAB(g, hx, hy, 37, 33, '#a8561a', 1); DAB(g, hx, hy, 34, 30, '#d8892e', 1); DAB(g, hx, hy + 12, 22, 13, '#f2e2c0', 1);
+        for (const sx of [-1, 1]) { DAB(g, hx + sx * 24, hy - 24, 9, 9, '#d8892e', 1); DAB(g, hx + sx * 24, hy - 23, 4.4, 4.4, '#3a2418', 1); DAB(g, hx + sx * 12, hy - 4, 9, 8.6, '#fbf6e8', 1); DAB(g, hx + sx * 11, hy - 6, 4.6, 4.6, '#1e140c', 1); DAB(g, hx + sx * 10, hy - 8, 1.4, 1.4, '#ffffff', 1); }
+        for (const [x0, y0, x1, y1] of [[-8, -26, -4, -14], [8, -26, 4, -14], [0, -28, 0, -16], [-30, -4, -22, 0], [30, -4, 22, 0]]) S2(g, [hx + x0, hy + y0, hx + x1, hy + y1], '#1e140c', 2.6, 0.95);
+        DAB(g, hx, hy + 6, 5, 3.4, '#3a2418', 1); S2(g, [hx - 8, hy + 14, hx, hy + 18, hx + 8, hy + 14], '#1e140c', 1.6, 1); for (const sx of [-1, 1]) for (const dy of [10, 14]) S2(g, [hx + sx * 10, hy + dy, hx + sx * 30, hy + dy - 2], '#3a2418', 0.9, 0.8); }
+      g.restore();
       for (let k = 1; k < 4; k++) S2(g, [bx + k * pw, by, bx + k * pw, by + ph], '#0e0806', 2.4, 0.9); }
     // 장판 바닥: 기름 먹인 누런 종이, 이음매
     g.fillStyle = VG(g, 460, H, [[0, '#9a7a44'], [1, '#4a3420']]); g.fillRect(0, 456, W, H - 456);
