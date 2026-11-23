@@ -28,7 +28,6 @@ const stage = buildStage('farm', { w: S, h: S });
 engine.setStage(stage);
 stage.update(2, 1 / 60);
 const ufo = createUfo(1);
-ufo.update({ t: 0.6, mood: 'alert', lit: 1, beam: 0 });
 ufo.root.rotation.x = UFO_TILT;
 ufo.root.rotation.z = 0.08;
 // 마스커블 아이콘은 런처가 가장자리를 잘라 내므로 가운데 80% 안에 들게 조금 작게
@@ -36,6 +35,9 @@ const widthPx = maskable ? 300 : 340;
 ufo.root.scale.setScalar(widthPx / 64 / (2 * ufo.halfWidth));
 ufo.root.position.copy(engine.toWorld(S / 2, maskable ? S * 0.44 : S * 0.42));
 engine.actors.add(ufo.root);
+ufo.root.updateMatrixWorld(true);
+// 피포가 웃으며 화면 밖(보는 사람)을 바라본다
+ufo.update({ t: 0.6, mood: 'idle', lit: 1, beam: 0, look: engine.camera.position.clone() });
 engine.render();
 
 const out = document.getElementById('icon');
