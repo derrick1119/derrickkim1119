@@ -1,5 +1,5 @@
 // 기체 8형태와 조종사. 원점은 기체 중심, 단위는 "설계 픽셀"(장면이 배율을 정한다).
-// 컨셉: 어두운 금속 접시 + 띠를 따라 박힌 알약 모양 청록 조명 + 아래쪽 발광부 + 유리 돔 속 회색 외계인.
+// 컨셉: 어두운 금속 접시 + 띠를 따라 박힌 알약 모양 청록 조명 + 아래쪽 발광부 + 유리 돔 속 조종사 피포.
 import { P, TAU, clamp, tone, edge, shade, ball, gloss, glow, withAlpha, rrect, ellipse, circle, cumulus } from './draw.js';
 
 /** 형태별 반폭(설계 픽셀). 장면이 화면 크기에 맞춰 배율을 구할 때 쓴다. */
@@ -9,51 +9,143 @@ export const UFO_BELLY = [19, 25, 28, 27, 34, 33, 42, 48];
 /** 형태별 꼭대기(말풍선·구름을 붙일 높이). */
 export const UFO_TOP = [-23, -29, -34, -29, -33, -30, -39, -50];
 
-const ALIEN = '#a4b3cc';
-const EYE = '#141a36';
 const AMBER = '#ffb347';
 const DIM = '#2c5966';
 
-// ───────── 조종사 ─────────
+// ───────── 조종사: 피포(3D 모델과 같은 얼굴을 2D 로) ─────────
+
+const SKIN_TOP = '#b468ff';
+const SKIN = '#dc84ff';
+const SKIN_LOW = '#f6c4ff';
+const LINE = '#2b1a5e';
+const INK = '#2a1660';
+const BULB = { idle: '#5ff0ff', happy: '#ffd23f', alert: '#ff9a3c', shock: '#ff4d5e', hide: '#5b4f8f' };
+
+/** 반짝이는 큰 눈 하나. (cx, cy) 중심, k = 크기 배율, pupil = 눈동자 크기. */
+function bigEye(ctx, cx, cy, r, k, pupil, lookX = 0) {
+  const rx = r * 0.3 * k;
+  const ry = r * 0.36 * k;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.07);
+  ctx.strokeStyle = LINE;
+  ctx.stroke();
+  // 눈동자: 위 남보라 → 아래 청록
+  const ir = Math.min(rx, ry) * 0.82 * pupil;
+  const ix = cx + lookX * rx * 0.25;
+  const iy = cy + ry * 0.08;
+  const g = ctx.createLinearGradient(ix, iy - ir, ix, iy + ir);
+  g.addColorStop(0, '#231a78');
+  g.addColorStop(0.45, '#3d4fe0');
+  g.addColorStop(0.85, '#3cc4ff');
+  g.addColorStop(1, '#9ff8ff');
+  circle(ctx, ix, iy, ir);
+  ctx.fillStyle = g;
+  ctx.fill();
+  circle(ctx, ix, iy - ir * 0.04, ir * 0.48);
+  ctx.fillStyle = '#120b3a';
+  ctx.fill();
+  // 반짝임 둘(큰 것 왼쪽 위, 작은 것 오른쪽 아래)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(cx - rx * 0.28, cy - ry * 0.3, rx * 0.26, ry * 0.24, -0.5, 0, TAU);
+  ctx.fill();
+  circle(ctx, cx + rx * 0.3, cy + ry * 0.3, rx * 0.12);
+  ctx.fill();
+}
 
 /**
- * 회색 외계인. (x, y) = 머리 중심.
+ * 피포. (x, y) = 머리 중심, r = 머리 반지름.
  * mood: idle | happy | alert | hide | shock
  */
 function alien(ctx, x, y, r, mood, t) {
-  const duck = mood === 'hide' ? r * 0.42 : mood === 'shock' ? -r * 0.16 : 0;
-  const bob = mood === 'happy' ? Math.abs(Math.sin(t * 9)) * r * 0.08 : 0;
+  const duck = mood === 'hide' ? r * 0.34 : mood === 'shock' ? -r * 0.14 : 0;
+  const bob = mood === 'happy' ? Math.abs(Math.sin(t * 9)) * r * 0.1 : Math.sin(t * 2.2) * r * 0.025;
   const hy = y + duck - bob;
+  const hw = r * 1.1; // 살짝 넓적한 찹쌀떡 머리
+  const hh = r * 0.94;
 
-  // 어깨
+  // 몸과 주황 목도리
   ctx.beginPath();
-  ctx.ellipse(x, hy + r * 1.25, r * 0.78, r * 0.55, 0, Math.PI, TAU);
+  ctx.ellipse(x, hy + hh * 1.45, r * 0.62, r * 0.6, 0, Math.PI, TAU);
   ctx.closePath();
-  shade(ctx, ALIEN, x - r, hy + r * 0.7, x + r, hy + r * 1.3, { lw: 1.4 });
+  shade(ctx, SKIN, x - r * 0.6, hy + hh * 0.9, x + r * 0.6, hy + hh * 1.5, { lw: 1.4, line: LINE });
+  ctx.beginPath();
+  ctx.ellipse(x, hy + hh * 0.98, r * 0.6, r * 0.16, 0, 0, TAU);
+  ctx.fillStyle = '#ff8a3c';
+  ctx.fill();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = LINE;
+  ctx.stroke();
 
-  // 머리: 위가 넓고 턱이 좁은 전구 모양
+  // 더듬이와 기분 전구
+  const tipX = x + r * 0.22;
+  const tipY = hy - hh - r * 0.62;
   ctx.beginPath();
-  ctx.moveTo(x - r, hy - r * 0.05);
-  ctx.bezierCurveTo(x - r, hy - r * 1.18, x + r, hy - r * 1.18, x + r, hy - r * 0.05);
-  ctx.bezierCurveTo(x + r, hy + r * 0.55, x + r * 0.38, hy + r * 0.95, x, hy + r * 0.95);
-  ctx.bezierCurveTo(x - r * 0.38, hy + r * 0.95, x - r, hy + r * 0.55, x - r, hy - r * 0.05);
-  ctx.closePath();
-  const g = ctx.createRadialGradient(x - r * 0.4, hy - r * 0.55, r * 0.1, x, hy, r * 1.25);
-  g.addColorStop(0, tone(ALIEN, 0.45));
-  g.addColorStop(0.55, ALIEN);
-  g.addColorStop(1, tone(ALIEN, -0.3));
+  ctx.moveTo(x, hy - hh * 0.9);
+  ctx.quadraticCurveTo(x + r * 0.02, tipY + r * 0.2, tipX, tipY);
+  ctx.lineWidth = Math.max(1.6, r * 0.13);
+  ctx.strokeStyle = LINE;
+  ctx.stroke();
+  ctx.lineWidth = Math.max(1, r * 0.08);
+  ctx.strokeStyle = SKIN;
+  ctx.stroke();
+  const bulb = BULB[mood] || BULB.idle;
+  glow(ctx, tipX, tipY, r * 0.5, bulb, 0.5);
+  circle(ctx, tipX, tipY, r * 0.16);
+  ctx.fillStyle = bulb;
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = LINE;
+  ctx.stroke();
+
+  // 머리: 위는 진한 보라, 볼 쪽은 분홍빛
+  ctx.beginPath();
+  ctx.ellipse(x, hy, hw, hh, 0, 0, TAU);
+  const g = ctx.createLinearGradient(x, hy - hh, x, hy + hh);
+  g.addColorStop(0, SKIN_TOP);
+  g.addColorStop(0.45, SKIN);
+  g.addColorStop(1, SKIN_LOW);
   ctx.fillStyle = g;
   ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = edge(ALIEN);
+  ctx.lineWidth = Math.max(1.4, r * 0.09);
+  ctx.strokeStyle = LINE;
   ctx.stroke();
-  gloss(ctx, x - r * 0.42, hy - r * 0.6, r * 0.26, r * 0.14, -0.6, 0.55);
+  // 연분홍 점박이와 광택
+  ctx.fillStyle = withAlpha('#f6b4ff', 0.9);
+  for (const [dx, dy, rr] of [[-0.62, -0.5, 0.13], [0.55, -0.62, 0.1], [0.8, -0.2, 0.08]]) {
+    circle(ctx, x + dx * r, hy + dy * r, rr * r);
+    ctx.fill();
+  }
+  gloss(ctx, x - hw * 0.45, hy - hh * 0.55, r * 0.3, r * 0.13, -0.5, 0.5);
+
+  // 이마에 올린 비행 고글
+  ctx.beginPath();
+  ctx.ellipse(x, hy - hh * 0.5, hw * 0.98, hh * 0.2, 0, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.lineWidth = Math.max(1.4, r * 0.1);
+  ctx.strokeStyle = '#8a5636';
+  ctx.stroke();
+  for (const s of [-1, 1]) {
+    const gx = x + s * r * 0.36;
+    const gy = hy - hh * 0.66;
+    circle(ctx, gx, gy, r * 0.21);
+    ctx.fillStyle = '#ffc444';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = LINE;
+    ctx.stroke();
+    circle(ctx, gx, gy, r * 0.13);
+    ctx.fillStyle = '#8ff6ff';
+    ctx.fill();
+  }
 
   // 볼
-  ctx.fillStyle = withAlpha(P.cheek, mood === 'hide' ? 0.55 : 0.35);
+  ctx.fillStyle = withAlpha('#ff7ab8', mood === 'hide' ? 0.55 : 0.4);
   for (const s of [-1, 1]) {
     ctx.beginPath();
-    ctx.ellipse(x + s * r * 0.62, hy + r * 0.36, r * 0.15, r * 0.09, 0, 0, TAU);
+    ctx.ellipse(x + s * r * 0.68, hy + r * 0.3, r * 0.17, r * 0.1, 0, 0, TAU);
     ctx.fill();
   }
 
@@ -62,92 +154,88 @@ function alien(ctx, x, y, r, mood, t) {
   const ey = hy + r * 0.02;
   const blink = mood === 'idle' && (t % 4.3 > 4.15 || (t + 1.9) % 6.7 > 6.58);
   ctx.lineCap = 'round';
-  if (mood === 'happy') {
-    ctx.strokeStyle = EYE;
-    ctx.lineWidth = r * 0.16;
+  if (mood === 'happy' || blink) {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = Math.max(1.2, r * 0.12);
     for (const s of [-1, 1]) {
       ctx.beginPath();
-      ctx.arc(x + s * ex, ey + r * 0.12, r * 0.2, Math.PI * 1.15, Math.PI * 1.85);
-      ctx.stroke();
-    }
-  } else if (mood === 'shock') {
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(x + s * ex, ey - r * 0.02, r * 0.31, r * 0.36, 0, 0, TAU);
-      ctx.fillStyle = P.white;
-      ctx.fill();
-      ctx.lineWidth = 1.3;
-      ctx.strokeStyle = EYE;
-      ctx.stroke();
-      circle(ctx, x + s * ex, ey, r * 0.09);
-      ctx.fillStyle = EYE;
-      ctx.fill();
-    }
-  } else if (blink) {
-    ctx.strokeStyle = EYE;
-    ctx.lineWidth = r * 0.12;
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(x + s * ex - r * 0.24, ey + r * 0.04 * s);
-      ctx.lineTo(x + s * ex + r * 0.24, ey - r * 0.04 * s);
+      if (mood === 'happy') ctx.arc(x + s * ex, ey + r * 0.1, r * 0.2, Math.PI * 1.15, Math.PI * 1.85);
+      else {
+        ctx.moveTo(x + s * ex - r * 0.22, ey + r * 0.04);
+        ctx.quadraticCurveTo(x + s * ex, ey + r * 0.14, x + s * ex + r * 0.22, ey + r * 0.04);
+      }
       ctx.stroke();
     }
   } else {
-    // 비스듬한 아몬드 눈. 숨을 때는 반쯤 감고, 긴장하면 커진다.
-    const k = mood === 'alert' ? 1.18 : 1;
-    const lid = mood === 'hide' ? 0.5 : 1;
-    const look = mood === 'alert' ? r * 0.05 : 0;
-    for (const s of [-1, 1]) {
-      const cx = x + s * ex;
-      ctx.save();
-      ctx.translate(cx, ey + (1 - lid) * r * 0.12);
-      ctx.rotate(-s * 0.42);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, r * 0.33 * k, r * 0.21 * k * lid, 0, 0, TAU);
-      const eg = ctx.createLinearGradient(0, -r * 0.2, 0, r * 0.2);
-      eg.addColorStop(0, '#2a3160');
-      eg.addColorStop(1, EYE);
-      ctx.fillStyle = eg;
-      ctx.fill();
-      ctx.restore();
-      if (lid > 0.6) {
-        circle(ctx, cx - r * 0.1 + look * s, ey - r * 0.07 + look, r * 0.075);
-        ctx.fillStyle = P.white;
-        ctx.fill();
-        circle(ctx, cx + r * 0.1, ey + r * 0.06, r * 0.035);
-        ctx.fill();
+    const k = mood === 'shock' ? 1.22 : mood === 'alert' ? 1.1 : 1;
+    const pupil = mood === 'shock' ? 0.4 : mood === 'alert' ? 0.75 : 1;
+    const look = mood === 'hide' ? Math.sin(t * 3) : 0;
+    for (const s of [-1, 1]) bigEye(ctx, x + s * ex, ey, r, k, pupil, look);
+    // 걱정 눈썹
+    if (mood === 'alert') {
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = Math.max(1, r * 0.08);
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(x + s * ex - s * r * 0.2, ey - r * 0.48);
+        ctx.lineTo(x + s * ex + s * r * 0.16, ey - r * 0.4);
+        ctx.stroke();
       }
     }
   }
 
   // 입
-  ctx.strokeStyle = tone(EYE, 0.2);
-  ctx.fillStyle = tone(EYE, 0.2);
-  ctx.lineWidth = r * 0.08;
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = INK;
+  ctx.lineWidth = Math.max(1, r * 0.08);
+  const my = hy + r * 0.5;
   if (mood === 'shock') {
     ctx.beginPath();
-    ctx.ellipse(x, hy + r * 0.62, r * 0.11, r * 0.15, 0, 0, TAU);
+    ctx.ellipse(x, my + r * 0.06, r * 0.1, r * 0.14, 0, 0, TAU);
     ctx.fill();
   } else if (mood === 'happy') {
     ctx.beginPath();
-    ctx.arc(x, hy + r * 0.44, r * 0.17, 0.12 * Math.PI, 0.88 * Math.PI);
+    ctx.arc(x, my - r * 0.06, r * 0.2, 0.1 * Math.PI, 0.9 * Math.PI);
     ctx.closePath();
     ctx.fill();
-  } else if (mood === 'alert') {
     ctx.beginPath();
-    ctx.moveTo(x - r * 0.1, hy + r * 0.58);
-    ctx.quadraticCurveTo(x, hy + r * 0.52, x + r * 0.1, hy + r * 0.58);
+    ctx.ellipse(x, my + r * 0.08, r * 0.09, r * 0.05, 0, 0, TAU);
+    ctx.fillStyle = '#ff7a9a';
+    ctx.fill();
+  } else if (mood === 'alert') {
+    rrect(ctx, x - r * 0.14, my - r * 0.04, r * 0.28, r * 0.1, r * 0.04);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.lineWidth = 1;
     ctx.stroke();
   } else if (mood !== 'hide') {
     ctx.beginPath();
-    ctx.arc(x, hy + r * 0.46, r * 0.11, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.arc(x, my - r * 0.08, r * 0.13, 0.15 * Math.PI, 0.85 * Math.PI);
     ctx.stroke();
   }
 
+  // 숨을 때: 안경·코·콧수염 변장
+  if (mood === 'hide') {
+    ctx.lineWidth = Math.max(1.2, r * 0.08);
+    ctx.strokeStyle = '#1b1240';
+    for (const s of [-1, 1]) {
+      circle(ctx, x + s * ex, ey, r * 0.3);
+      ctx.stroke();
+    }
+    circle(ctx, x, hy + r * 0.32, r * 0.14);
+    ctx.fillStyle = '#ff9fb8';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x - r * 0.14, hy + r * 0.48, r * 0.16, r * 0.07, 0.3, 0, TAU);
+    ctx.ellipse(x + r * 0.14, hy + r * 0.48, r * 0.16, r * 0.07, -0.3, 0, TAU);
+    ctx.fillStyle = '#4a2a1a';
+    ctx.fill();
+  }
+
   // 식은땀
-  if (mood === 'alert' || mood === 'hide') {
-    const sx = x + r * 0.98;
-    const sy = hy - r * 0.62;
+  if (mood === 'alert' || mood === 'shock') {
+    const sx = x + hw * 0.95;
+    const sy = hy - hh * 0.5;
     ctx.beginPath();
     ctx.moveTo(sx, sy - r * 0.3);
     ctx.quadraticCurveTo(sx + r * 0.22, sy, sx, sy + r * 0.08);
@@ -175,7 +263,7 @@ function dome(ctx, x, y, rx, ry, o, pilot = true) {
   inner.addColorStop(1, withAlpha('#6fd2ea', 0.45));
   ctx.fillStyle = inner;
   ctx.fillRect(x - rx, y - ry, rx * 2, ry);
-  if (pilot) alien(ctx, x, y - ry * 0.5, rx * 0.56, o.mood, o.t);
+  if (pilot) alien(ctx, x, y - ry * 0.42, rx * 0.5, o.mood, o.t);
   ctx.restore();
   // 유리
   path();
