@@ -1,10 +1,10 @@
 // 길 위의 장소들: 장터 · 주막 · 갈림길 · 보물 터. 버튼만 띄우는 대신 그 장소를 종이 인형극 무대처럼 통째로 그린다.
-// 정지한 그림(하늘·집·진열대·평상)은 한 번 굽고, 물건·인형·불빛·김만 매 장면 그린다
+// 정지한 그림(하늘·집·진열대·평상)은 한 번 굽고, 물건·인형·불빛·김만 매 장면 그린다. 그 장면을 걸개그림 삼아 단청 무대틀·막·구경꾼을 두른다 (stage.js)
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, poly, line, path, st, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, path, st, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { part, curve, P, R as RECT, E, dk, lt } from '../render/figures.js';
 import { THEMES, padPine, grassTuft, paperFlower } from '../render/terrain.js';
-import { button, icon, panel, stamp, seal, tapped, isDown, C, foil, goldText, shine, plaque, scroll, hangSign } from './ui.js';
+import { button, icon, panel, stamp, seal, tapped, isDown, C, foil, goldText, shine, plaque, scroll, hangSign, brushTitle } from './ui.js';
 export { plaque, scroll, hangSign };
 import { cardFace } from './cards.js';
 import { Overlay, RewardOverlay, COL, supplyArt, resultIcon, BAD, GOOD, setTag } from './overlays.js';
@@ -14,11 +14,18 @@ import { weaponIcon, portrait } from '../render/sprites.js';
 import { WEAPONS, setOf } from '../data/weapons.js';
 import { relicIcon, miscIcon } from '../render/icons.js';
 import { puppet } from './theater.js';
+import { stageFront, stageCurtain, stagePuppet, openOf } from './stage.js';
+import { drawChest, ChestFX } from './chest.js';
+import { RELICS } from '../data/relics.js';
 import { pal as PAL, mix as MIX, vgrad as VG, dab as DAB, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK, stroke as PSTROKE } from '../render/painted.js';
 import { sfx } from '../audio.js';
 import { juice, SPOT, goldRays } from './juice.js';
 
 const S = 1.5;
+// 무대 앞 구경꾼 자리 [x, 크기, 머리 꼴, 아래로 내림]: 장소마다 단추·이름판을 피해 앉는다
+const MARKET_SEATS = [[74, 1.55, 5, -6], [176, 1.45, 1, -8], [278, 1.5, 3, -6], [34, 1.9, 0, 16], [128, 2.0, 3, 14], [228, 1.85, 4, 20], [330, 1.95, 0, 16]];
+const TAVERN_SEATS = [[96, 1.5, 5, -8], [196, 1.42, 1, -10], [300, 1.55, 3, -8], [404, 1.45, 2, -10], [510, 1.55, 0, -8], [612, 1.4, 4, -12], [712, 1.5, 5, -8], [810, 1.46, 3, -10],
+  [52, 1.95, 0, 14], [150, 1.85, 3, 18], [250, 2.0, 2, 16], [352, 1.9, 0, 14], [456, 1.8, 1, 20], [556, 2.05, 3, 14], [660, 1.9, 5, 16], [760, 2.0, 0, 14], [856, 1.8, 4, 20]];
 const bakeScene = fn => { const c = makeCanvas(W * S, H * S), g = c.getContext('2d'); g.scale(S, S); fn(g); return c; };
 const fibers = (g, x, y, w, h, n, R, a = 0.1, cols = ['#a08860', '#ffffff']) => { for (let i = 0; i < n; i++) { const fx = x + R() * w, fy = y + R() * h, an = R() * TAU, l = 3 + R() * 9; g.globalAlpha = a; line(g, [fx, fy, fx + Math.cos(an) * l, fy + Math.sin(an) * l], cols[i % 2], 0.8); } g.globalAlpha = 1; };
 const ridgeFill = (g, f, col, y0, o = {}) => { g.save(); g.shadowColor = o.sh || 'rgba(70,50,30,0.35)'; g.shadowBlur = 14; g.shadowOffsetY = -4; g.beginPath(); g.moveTo(-10, H); for (let x = -10; x <= W + 10; x += 8) g.lineTo(x, f(x)); g.lineTo(W + 10, H); g.closePath(); g.fillStyle = col; g.fill(); g.restore(); g.beginPath(); for (let x = -10; x <= W + 10; x += 8) { if (x === -10) g.moveTo(x, f(x)); else g.lineTo(x, f(x)); } g.globalAlpha = o.rim || 0.6; st(g, o.rimCol || '#fbf3df', 1.6); g.globalAlpha = 1; };
@@ -169,7 +176,7 @@ export class MarketOverlay extends Overlay {
     for (let i = 0; i < 5; i++) { const sp = 18 + i * 5, dir = i % 2 ? 1 : -1, x = dir > 0 ? ((t * sp + i * 300) % 1500) - 110 : 1390 - ((t * sp + i * 300) % 1500), y = 348 + (i % 3) * 5; walker(g, x, y, 0.62 + (i % 3) * 0.05, t * 3 + i, dir, i % 3); }
     beams(g, 820, 150, 520, 2.1, 5, t, '255,236,190', 0.08);
     // 장사꾼: 진열대 왼쪽에서 손님을 부른다
-    g.save(); g.globalAlpha = 0.35; ell(g, 164, 602, 40, 8, '#2a1a10'); g.restore(); puppet(g, 'merchant', 160, 600, 1.75, t, { act: this.lineT < 1.4 ? 'talk' : 'idle', face: 1, noStick: true });
+    g.save(); g.globalAlpha = 0.35; ell(g, 164, 602, 40, 8, '#2a1a10'); g.restore(); stagePuppet(g, 'merchant', 160, 600, 1.75, t, { act: this.lineT < 1.4 ? 'talk' : 'idle', face: 1 });
     const sp = this.spots();
     for (const s of sp) {
       const it = this.items[s.i], d = describeReward(it), sel = this.sel === s.i, lift = sel ? -8 - Math.sin(t * 4) * 2 : 0, hw = s.row ? 70 : 54, top = s.row ? s.y - 104 : s.y - 160;
@@ -182,11 +189,10 @@ export class MarketOverlay extends Overlay {
     }
     motes(g, t, 240, 150, 980, 460, 26, '255,240,200', 0.5);
     for (const x of [320, 530, 750, 960]) glow(g, x, 48, 40 + Math.sin(t * 3 + x) * 3, '255,170,90', 0.25);
+    // 인형극 무대: 장터 그림은 걸개그림, 앞에는 구경꾼
+    stageFront(g, t, { open: openOf(t), seats: MARKET_SEATS, lamps: [300, 990] });
     // 장사꾼의 말
     { const k = clamp(this.lineT / 0.25, 0, 1); g.save(); g.globalAlpha = k; g.font = `400 18px ${FONT_B}`; const w = Math.min(330, g.measureText(this.line).width + 34), bx = 34, by = 352; rr(g, bx, by, w, 42, 12, '#fffaf0', INK, 2); poly(g, [bx + 70, by + 40, bx + 92, by + 40, bx + 76, by + 60], '#fffaf0'); line(g, [bx + 70, by + 41, bx + 76, by + 60, bx + 92, by + 41], INK, 2); text(g, this.line, bx + w / 2, by + 21, { size: 18, font: FONT_B, maxW: w - 20 }); g.restore(); }
-    // 엽전 주머니
-    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'mkdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
     // 고른 물건: 아래 한지 두루마리에 이름과 쓰임, 사기 단추
     const it = this.items[this.sel];
     if (it) {
@@ -200,6 +206,10 @@ export class MarketOverlay extends Overlay {
       else if (button(g, 'mkbuy', x + w - 210, y + 18, 190, 62, `사기 · 엽전 ${it.price}`, { style: ok ? 'red' : 'grey', size: 22 })) this.buy(it, d);
     } else { const bob = Math.sin(t * 3) * 2; scroll(g, 430, 628 + bob, 414, 52); text(g, '물건을 눌러 살펴보세요', 637, 655 + bob, { size: 22, font: FONT_B, fill: INK }); }
     if (!this.left && button(g, 'mkleave', 1004, 632, 262, 66, '장터를 떠난다', { size: 27 })) { this.left = true; this.say('또 오시오!'); sfx('click'); this.onDone(); }
+    stageCurtain(g, t, openOf(t));
+    // 엽전 주머니와 덱 단추는 막보다 위에
+    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
+    if (button(g, 'mkdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
   }
   buy(it, d) {
     const r = G.run, s = this.spots().find(q => q.i === this.items.indexOf(it)) || { x: 640, y: 400 };
@@ -382,12 +392,14 @@ export class TavernOverlay extends Overlay {
     for (let k = 0; k < 6; k++) { const q = ((t * 0.12 + k / 6) % 1), sx = 1266 + Math.sin(q * 6 + k) * 8 - q * 30, sy = 300 - q * 180; g.globalAlpha = 0.22 * (1 - q); ell(g, sx, sy, 10 + q * 30, 7 + q * 18, '#b8b4c8'); } g.globalAlpha = 1;
     // 주모와 영웅
     const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
-    puppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, noStick: true });
-    puppet(g, r.hero, 852, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
+    stagePuppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, rodSkip: [506, 552] });
+    stagePuppet(g, r.hero, 852, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1 });
     // 반딧불
     for (let i = 0; i < 12; i++) { const ph = i * 2.3, x = 60 + ((i * 113) % 1160) + Math.sin(t * 0.6 + ph) * 26, y = 330 + ((i * 47) % 160) + Math.sin(t * 1.1 + ph) * 12, a = clamp(Math.sin(t * 1.6 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.6, 1.6, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 8, '255,230,140', a * 0.35); }
     // 평상 위 살림살이 (고르지 않는다)
     tavernThing(g, 'supply', 190, 518, t, true); tavernThing(g, 'study', 360, 518, t, true);
+    // 인형극 무대: 달밤 주막 그림은 걸개그림, 앞에는 구경꾼
+    stageFront(g, t, { open: openOf(t), seats: TAVERN_SEATS, lamps: [120, 470, 860], hop: this.result ? clamp(1 - this.rt / 1.6, 0, 1) * 0.7 : 0 });
     // 고를 것: 오른쪽 아래에 옻칠 이름판 셋을 세로로 가지런히
     const order = ['rest', 'train', 'feast'], pw = 340, ph = 76, px = W - pw - 26;
     order.forEach((id, n) => {
@@ -423,6 +435,7 @@ export class TavernOverlay extends Overlay {
       if (!this.said) { this.said = true; sfx('star'); }
       if (!this.left && this.rt > 0.6 && button(g, 'tvgo', 490, y + h + 16, 300, 66, '길을 떠난다', { size: 30 })) { this.left = true; this.onDone(); }
     }
+    stageCurtain(g, t, openOf(t));
     panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
     if (button(g, 'tvdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
   }
@@ -489,29 +502,133 @@ function treasureBG() {
   });
   return TRBG;
 }
+// 보물 함 열기 (인형극 무대의 한 마당): 막이 걷힘 → 객석 불이 꺼지고 한 줄기 빛이 함에 떨어짐 → 북소리에 맞춰 함이 덜컹거리며
+// 자물쇠가 달아오르고 틈새로 빛이 샘 (점점 빨리) → 뚜껑이 터지듯 열리며 번쩍, 화면이 확 다가섬, 빛살·충격파·엽전·오방색 종이꽃·금빛 구름무늬
+// → 고를 것들이 빛나는 패가 되어 함에서 솟아 제자리로 퍼진다 (귀한 것일수록 더 밝게). 아무 데나 누르면 바로 연다. 고르는 규칙은 전리품과 같다
+const TR_HIT = [1.02, 1.38, 1.66, 1.88, 2.04, 2.16, 2.25, 2.32], TR_BURST = 2.42, TR_LEAD = 1.15;
+const TR_CH0 = [640, 566, 2.05], TR_CH1 = [640, 682, 0.9];   // 함 자리와 크기: 열기 전 (무대 한가운데) → 연 뒤 (무대 앞쪽)
+const TR_SEATS = [[58, 1.55, 5, -8], [156, 1.45, 1, -10], [258, 1.5, 3, -8], [1020, 1.5, 2, -8], [1122, 1.45, 4, -10], [1224, 1.55, 0, -8],
+  [100, 2.0, 0, 14], [204, 1.9, 3, 18], [314, 1.85, 5, 16], [966, 1.9, 1, 18], [1070, 2.05, 3, 14], [1178, 1.95, 0, 16]];
+// 귀한 정도: 전설 3 · 두목 2 · 축 보물 1.5 · 그 밖 1
+const tierOf = o => { const x = o.kind === 'relic' && RELICS[o.id]; return x ? (x.legend ? 3 : x.boss ? 2 : x.axis ? 1.5 : 1) : 1; };
+const TIER_RGB = { 1: '255,214,140', 1.5: '255,190,90', 2: '255,92,76', 3: '255,240,190' };   // 보물 · 축 보물 · 두목(붉은 빛) · 전설(오방색)
+// 오방색을 차례로 물들인다 (청 → 적 → 황 → 백 → 흑 대신 짙은 쪽빛)
+const OB_RGB = [[70, 130, 230], [230, 80, 60], [250, 210, 90], [255, 250, 235], [90, 200, 150]];
+const obangCycle = q => { const n = OB_RGB.length, i = Math.floor(((q % n) + n) % n), f = (((q % n) + n) % n) - i, a = OB_RGB[i], b = OB_RGB[(i + 1) % n]; return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`; };
 export class TreasureScene extends RewardOverlay {
-  constructor(o) { super(Object.assign({ kind: 'treasure' }, o)); this.ownChest = true; this.rise = true; this.scene = g => this.grove(g); }
+  constructor(o) { super(Object.assign({ kind: 'treasure' }, o)); this.ownChest = true; this.rise = true; this.scene = g => this.grove(g); this.ct = 0; this.bt = -1; this.rb = -1; this.hits = 0; this.fx = new ChestFX(); }
+  // 함의 지금 모습
+  chest() {
+    const ct = this.ct, bt = this.bt;
+    if (bt < 0) {
+      // 덜컹: 북소리마다 튀어 오르고 기우뚱, 뚜껑이 살짝 들려 빛이 샌다. 터지기 직전에는 움츠린다
+      let dy = 0, rot = 0, lid = 0, kick = 0;
+      TR_HIT.forEach((h, i) => { const q = (ct - h) / 0.17; if (q >= 0 && q < 1) { const k = Math.sin(Math.PI * q); dy = -k * (7 + i * 2.4); rot = k * (i % 2 ? 1 : -1) * (0.035 + i * 0.008); lid = k * (0.05 + i * 0.022); kick = 1 - q; } });
+      const heat = clamp((ct - 1.0) / 1.35, 0, 1), pre = clamp((ct - (TR_BURST - 0.1)) / 0.1, 0, 1);
+      return { x: TR_CH0[0], y: TR_CH0[1] + dy, s: TR_CH0[2], rot, lid, lock: heat, leak: clamp((ct - 1.15) / 1.1, 0, 1) * 0.5 + kick * (0.25 + 0.6 * heat), glow: 0, sx: 1 + 0.07 * pre, sy: 1 - 0.09 * pre, kick };
+    }
+    const pop = clamp(bt / 0.3, 0, 1), m = clamp((bt - 0.3) / 0.65, 0, 1), e = m * m * (3 - 2 * m), bounce = Math.sin(Math.PI * clamp(bt / 0.22, 0, 1));
+    const s = (TR_CH0[2] + (TR_CH1[2] - TR_CH0[2]) * e) * (1 + 0.1 * bounce), y = TR_CH0[1] + (TR_CH1[1] - TR_CH0[1]) * e;
+    return { x: TR_CH0[0], y, s, rot: 0, lid: 1.72 * easeOutBack(pop), lock: 0, leak: 0, glow: 1, sx: 1 - 0.05 * bounce, sy: 1 + 0.08 * bounce, lockOff: true, kick: 0 };
+  }
+  // 뚜껑을 터뜨린다 (처음 열 때) / 다시 뽑으면 함에서 새 보물이 다시 솟는다
+  pop(first) {
+    this.t = TR_LEAD;
+    if (first) {
+      this.ct = Math.max(this.ct, TR_BURST); this.bt = 0; this.hits = TR_HIT.length;
+      const mouth = TR_CH0[1] - 70 * TR_CH0[2];
+      this.fx.burst(640, mouth, 1); this.fx.lock(640, TR_CH0[1] - 52 * TR_CH0[2]);
+      sfx('boom'); sfx('bless'); sfx('star'); sfx('coin');
+    } else { const c = this.chest(); this.rb = 0; this.fx.burst(640, c.y - 70 * c.s, 0.4); sfx('star'); sfx('coin'); }
+  }
+  draw(g, dt) {
+    this.ct += dt;
+    if (this.bt < 0) {
+      this.t = 0;   // 함이 열릴 때까지 전리품 시간은 멈춰 둔다
+      while (this.hits < TR_HIT.length && this.ct >= TR_HIT[this.hits]) { this.hits++; sfx('thud'); if (this.hits > 3) sfx('clang'); }
+      if (this.ct >= TR_BURST || (this.ct > 0.15 && tapped('trskip', 0, 0, W, H))) this.pop(true);
+    } else { this.bt += dt; if (this.rb >= 0) this.rb += dt; if (this.t < TR_LEAD) this.pop(false); }
+    this.fx.update(dt);
+    if (this.bt < 0) {
+      this.grove(g);
+      stageCurtain(g, this.ct, openOf(this.ct));
+      brushTitle(g, 640, 34, 420, 62, '보물 상자', '#b8862a', 36); text(g, '무엇이 들었을까…', 640, 82, { size: 20, fill: C.cream });
+      if (this.ct > 0.9) { g.save(); g.globalAlpha = 0.55 + 0.25 * Math.sin(this.ct * 4); text(g, '눌러서 바로 열기', 640, 664, { size: 17, font: FONT_B, fill: '#f6e8c4', stroke: 'rgba(10,6,4,0.8)', lw: 4 }); g.restore(); }
+    } else {
+      super.draw(g, dt);
+      this.fx.drawFront(g);
+      // 번쩍: 터지는 순간 화면이 하얗게, 다시 뽑을 때는 살짝
+      if (this.bt < 0.42) { const q = this.bt / 0.42; g.fillStyle = `rgba(255,250,232,${0.92 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }
+      if (this.rb >= 0 && this.rb < 0.3) { const q = this.rb / 0.3; g.fillStyle = `rgba(255,246,220,${0.4 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }
+    }
+  }
   grove(g) {
-    const t = this.t, lead = 1.15, q = t / lead, pop = clamp((t - lead * 0.72) / 0.3, 0, 1), m = clamp((t - lead) / 0.55, 0, 1), e = m * m * (3 - 2 * m);
+    const t = this.ct, bt = this.bt, c = this.chest(), mouth = c.y - 70 * c.s;
+    // 카메라: 덜컹일 때 살짝 흔들리고, 터지는 순간 확 다가섰다가 돌아온다
+    let z = 1, sx = 0, sy = 0;
+    if (bt >= 0) { const k = (1 - clamp(bt / 0.55, 0, 1)) ** 2; z = 1 + 0.075 * k; sx = Math.sin(bt * 63) * 9 * k; sy = Math.cos(bt * 51) * 6 * k; }
+    else if (c.kick > 0) { sx = Math.sin(t * 80) * 2.4 * c.kick; sy = c.kick * 1.5; }
+    g.save(); g.translate(640 + sx, 430 + sy); g.scale(z, z); g.translate(-640, -430);
     g.drawImage(treasureBG(), 0, 0, W, H);
     // 반딧불
     for (let i = 0; i < 14; i++) { const ph = i * 2.1, x = 40 + ((i * 131) % 1200) + Math.sin(t * 0.5 + ph) * 30, y = 360 + ((i * 59) % 240) + Math.sin(t * 0.9 + ph) * 14, a = clamp(Math.sin(t * 1.4 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.7, 1.7, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 9, '255,230,140', a * 0.35); }
-    // 보물 함: 가운데에서 덜컹거리다 열리고, 구덩이로 내려앉아 빛기둥을 올린다
-    const cx = 640, cy = 470 + (676 - 470) * e, sc = 2.5 + (1.7 - 2.5) * e;
-    if (pop > 0) {
-      const pul = 0.85 + 0.15 * Math.sin(t * 2.4);
-      if (m > 0) { const bm = g.createLinearGradient(0, 80, 0, cy - 40); bm.addColorStop(0, 'rgba(255,230,150,0)'); bm.addColorStop(1, `rgba(255,230,150,${0.22 * e * pul})`); g.fillStyle = bm; g.beginPath(); g.moveTo(cx - 70, cy - 40); g.lineTo(cx - 300, 80); g.lineTo(cx + 300, 80); g.lineTo(cx + 70, cy - 40); g.closePath(); g.fill(); }
-      glow(g, cx, cy - 34 * sc / 2.5, 190 * (0.6 + 0.4 * pop), '255,220,120', 0.55 * pul); goldRays(g, cx, cy - 34 * sc / 2.5, t, pop * (1 - 0.5 * e), 190 - 60 * e);
-    }
-    const sh = q < 0.72 ? Math.sin(t * 38) * 0.05 * (0.3 + q) : 0;
-    g.save(); g.translate(cx, cy); g.rotate(sh); const ps = sc + 0.5 * easeOutBack(pop) * (1 - e), by = 40 * sc / 2.5, top = by - 37.4 * ps;
-    // 열린 뚜껑: 함 뒤로 젖혀 세운다
-    if (pop > 0) { const lk = Math.min(1, pop * 1.4); g.save(); g.translate(0, top + 2 * ps); g.scale(1, lk); rr(g, -31 * ps, -24 * ps, 62 * ps, 24 * ps, 4 * ps, '#7a4a2c', INK, 1.6); rr(g, -27 * ps, -20 * ps, 54 * ps, 16 * ps, 3 * ps, '#5a3420'); for (const x of [-15, 15]) rr(g, (x - 2.5) * ps, -24 * ps, 5 * ps, 24 * ps, 1.4 * ps, '#d6a640', INK, 0.9); g.restore(); }
-    drawSprite(g, stopSprite('treasure'), 0, by, ps, ps * (1 + (q < 0.72 ? 0.06 * Math.sin(t * 38) : 0)));
-    // 함 안에 가득한 엽전과 구슬
-    if (pop > 0) { g.globalAlpha = Math.min(1, pop * 2); ell(g, 0, top + 4 * ps, 29 * ps, 7 * ps, '#e9c04a', INK, 1.4); for (let i = 0; i < 9; i++) { const ax = (i - 4) * 6 * ps, ay = top + (1 - Math.abs(i - 4) / 4) * -4 * ps + 2 * ps; ell(g, ax, ay, 3.4 * ps, 2.2 * ps, i % 3 ? '#f0d264' : '#fff0a8', 'rgba(90,60,10,0.7)', 1); } ell(g, -8 * ps, top - 2 * ps, 3 * ps, 3 * ps, '#c8402f', INK, 1); ell(g, 10 * ps, top - 1 * ps, 2.6 * ps, 2.6 * ps, '#3d6fd6', INK, 1); g.globalAlpha = 1; }
+    // 무대 틀과 구경꾼: 함이 터지면 구경꾼들이 들썩인다
+    stageFront(g, t, { open: openOf(t), seats: TR_SEATS, lamps: [420, 860], hop: bt >= 0 ? clamp(1 - (bt - 0.1) / 1.8, 0, 1) : 0 });
+    // 객석 불이 꺼진다 (무대 틀까지 함께)
+    const dim = bt >= 0 ? 0.62 - 0.28 * clamp(bt / 1.0, 0, 1) : 0.62 * clamp((t - 0.45) / 0.45, 0, 1);
+    g.fillStyle = `rgba(4,4,14,${dim})`; g.fillRect(-80, -80, W + 160, H + 160);
+    // 위에서 떨어지는 한 줄기 빛
+    const spot = bt >= 0 ? 1 - 0.55 * clamp(bt / 0.7, 0, 1) : clamp((t - 0.72) / 0.28, 0, 1);
+    if (spot > 0) this.spot(g, c.x, c.y, spot, t);
+    // 터진 뒤: 함에서 솟는 빛기둥과 천천히 도는 빛살
+    if (bt >= 0) {
+      const a = 0.1 + 0.4 * (1 - clamp(bt / 1.2, 0, 1)) + (this.rb >= 0 ? 0.3 * clamp(1 - this.rb / 0.8, 0, 1) : 0), wide = 70 * c.s;   // 다시 뽑으면 빛살이 한 번 더 솟는다
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const col = g.createLinearGradient(0, 0, 0, mouth); col.addColorStop(0, 'rgba(255,236,170,0)'); col.addColorStop(1, `rgba(255,236,170,${a * 1.3})`);
+      g.fillStyle = col; g.beginPath(); g.moveTo(c.x - wide, mouth); g.lineTo(c.x - wide * 2.2, 0); g.lineTo(c.x + wide * 2.2, 0); g.lineTo(c.x + wide, mouth); g.closePath(); g.fill();
+      g.translate(c.x, mouth); g.rotate(t * 0.12);
+      for (let k = 0; k < 18; k++) { g.rotate(TAU / 18); const len = 760, w = k % 2 ? 26 : 52, gr = g.createLinearGradient(0, 0, 0, -len); gr.addColorStop(0, `rgba(255,${k % 2 ? 250 : 226},${k % 2 ? 230 : 150},${a * (k % 2 ? 0.55 : 0.8)})`); gr.addColorStop(1, 'rgba(255,226,150,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(-3, 0); g.lineTo(-w, -len); g.lineTo(w, -len); g.lineTo(3, 0); g.closePath(); g.fill(); }
+      g.restore();
+      glow(g, c.x, mouth, 230 * (0.7 + 0.3 * (1 - clamp(bt / 0.6, 0, 1))), '255,226,150', 0.5 + 0.3 * (1 - clamp(bt, 0, 1)));
+    } else if (c.lock > 0) glow(g, c.x, c.y - 40 * c.s, 120 + 90 * c.lock, '255,200,110', 0.25 * c.lock);
+    this.fx.drawBack(g);
+    drawChest(g, c.x, c.y, c.s, { lid: c.lid, glow: c.glow, lock: c.lock, lockOff: c.lockOff, leak: c.leak, rot: c.rot, sx: c.sx, sy: c.sy, t });
     g.restore();
-    if (!this.popped && pop > 0) { this.popped = true; sfx('star'); juice.burst(cx, cy - 40, '#f0d264', 16); }
+    if (bt >= 0) this.auras(g, c, mouth);
+  }
+  // 한 줄기 빛: 들보에서 함 쪽으로 퍼지는 원뿔과 바닥에 고인 빛, 그 속을 떠도는 먼지
+  spot(g, x, y, a, t) {
+    const top = 30, wt = 44, wb = 250;
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const [k, al] of [[1.25, 0.1], [1, 0.22]]) { const gr = g.createLinearGradient(0, top, 0, y); gr.addColorStop(0, `rgba(255,244,214,${al * 1.6 * a})`); gr.addColorStop(1, `rgba(255,236,190,${al * 0.5 * a})`); g.fillStyle = gr; g.beginPath(); g.moveTo(x - wt * k, top); g.lineTo(x + wt * k, top); g.lineTo(x + wb * k, y + 10); g.lineTo(x - wb * k, y + 10); g.closePath(); g.fill(); }
+    g.save(); g.translate(x, y + 4); g.scale(1, 0.2); const pr = g.createRadialGradient(0, 0, 10, 0, 0, wb * 1.1); pr.addColorStop(0, `rgba(255,240,200,${0.55 * a})`); pr.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = pr; g.fillRect(-wb * 1.2, -wb * 1.2, wb * 2.4, wb * 2.4); g.restore();
+    for (let i = 0; i < 26; i++) { const q = ((t * 0.05 + i * 0.137) % 1), yy = top + 20 + q * (y - top - 40), half = wt + (wb - wt) * (yy - top) / (y - top), xx = x + Math.sin(i * 2.7 + t * 0.4) * half * 0.85, al = Math.sin(q * Math.PI) * 0.7 * a; g.fillStyle = `rgba(255,246,220,${al})`; g.fillRect(xx, yy, 1.8, 1.8); }
+    g.restore();
+  }
+  // 고를 것들 뒤의 빛: 함에서 솟는 동안 빛 꼬리를 끌고, 자리에 앉으면 귀한 정도만큼 빛난다 (전설은 오색 빛살)
+  auras(g, c, mouth) {
+    const tc = this.t - TR_LEAD - 0.24, done = this.taken !== -1;
+    this.p.opts.forEach((o, n) => {
+      const q = tc - n * 0.1; if (q <= 0 || (done && this.taken !== n)) return;
+      const k = easeOutBack(clamp(q / 0.5, 0, 1)), cx = 528 + (n * 264 - 264) * Math.min(1, k) + 112, cy = 118 + (1 - k) * 420 + 158, tier = tierOf(o), rgb = TIER_RGB[tier];
+      g.save(); g.globalCompositeOperation = 'lighter';
+      if (q < 0.7) { const a = 0.5 * (1 - q / 0.7), gr = g.createLinearGradient(c.x, mouth, cx, cy); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.strokeStyle = gr; g.lineCap = 'round'; g.lineWidth = 60 * (1 - q / 0.7) + 6; g.beginPath(); g.moveTo(c.x, mouth); g.quadraticCurveTo((c.x + cx) / 2, (mouth + cy) / 2 + 60, cx, cy); g.stroke(); }
+      const in1 = clamp(q / 0.4, 0, 1), pul = 0.85 + 0.15 * Math.sin(this.ct * 3 + n * 1.7), r = 150 + 60 * tier, a = (0.1 + 0.1 * tier) * pul * in1;
+      // 패 둘레의 빛 테: 귀할수록 굵고 넓게 번진다. 전설은 오방색이 돌아가며 물든다
+      { const x = cx - 112, y = cy - 158, col = tier >= 3 ? obangCycle(this.ct * 0.8 + n) : `rgb(${rgb})`;
+        g.save(); g.shadowColor = col; g.shadowBlur = 16 + tier * 12; g.strokeStyle = col; g.globalAlpha = Math.min(1, (0.3 + 0.2 * tier) * pul * in1); g.lineWidth = 3 + tier * 2.2;
+        g.beginPath(); rrPath(g, x - 7, y - 7, 238, 330, 14); g.stroke(); g.stroke(); g.restore(); }
+      const gr = g.createRadialGradient(cx, cy, 30, cx, cy, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+      if (tier >= 2) {   // 두목·전설: 패 뒤에서 빛살이 돈다 (전설은 오방색)
+        g.save(); g.translate(cx, cy); g.rotate(this.ct * (tier >= 3 ? 0.35 : 0.2) + n); const m = tier >= 3 ? 15 : 10, len = r * (tier >= 3 ? 1.5 : 1.25), tw = tier >= 3 ? 30 : 22, al = tier >= 3 ? 0.55 : 0.4;
+        for (let j = 0; j < m; j++) { g.rotate(TAU / m); const col = tier >= 3 ? ['255,110,90', '110,160,255', '255,220,110', '255,255,240', '120,230,160'][j % 5] : rgb, rg = g.createLinearGradient(0, 0, 0, -len); rg.addColorStop(0, `rgba(${col},${al * in1 * pul})`); rg.addColorStop(0.45, `rgba(${col},${al * 0.6 * in1 * pul})`); rg.addColorStop(1, `rgba(${col},0)`); g.fillStyle = rg; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-tw, -len); g.lineTo(tw, -len); g.lineTo(6, 0); g.closePath(); g.fill(); }
+        g.restore();
+      }
+      // 반짝이: 패 둘레에서 별빛이 돋았다 진다
+      const ns = Math.round(3 + tier * 3);
+      for (let j = 0; j < ns; j++) { const ph = (this.ct * 0.9 + j / ns + n * 0.31) % 1, ang = j * 2.39 + n, sx = cx + Math.cos(ang) * (120 + (j % 3) * 14), sy = cy + Math.sin(ang) * (168 + (j % 2) * 12), sa = Math.sin(ph * Math.PI) * in1, sz = (5 + tier * 2) * sa; if (sz < 0.5) continue; g.fillStyle = `rgba(255,248,220,${sa})`; g.beginPath(); g.ellipse(sx, sy, sz, sz * 0.18, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(sx, sy, sz * 0.18, sz, 0, 0, TAU); g.fill(); }
+      g.restore();
+    });
   }
 }
 // ═════════════════════════ 대장간 ═════════════════════════
@@ -582,19 +699,18 @@ export class ForgeScene extends Overlay {
       for (let k = 0; k < 14; k++) { const q = ((t * 0.5 + k / 14) % 1), x = 230 + Math.sin(k * 3 + t) * 60 * q, y = 420 - q * 330; g.globalAlpha = 1 - q; ell(g, x, y, 1.6, 1.6, '#ffd070'); } g.globalAlpha = 1; }
     // 대장장이와 영웅
     const beat = (t % 0.9) / 0.9, hit = beat < 0.12;
-    puppet(g, 'berserk', 560, 548, 1.75, t, { act: hit ? 'shake' : 'idle', face: 1, noStick: true });
-    puppet(g, r.hero, 812, 552, 1.7, t, { act: this.strike > 0 ? 'hop' : 'idle', face: -1, noStick: true });
+    stagePuppet(g, 'berserk', 560, 548, 1.75, t, { act: hit ? 'shake' : 'idle', face: 1 });
+    stagePuppet(g, r.hero, 812, 552, 1.7, t, { act: this.strike > 0 ? 'hop' : 'idle', face: -1 });
     // 모루 위 달군 쇠와 불티
     { const heat = 0.6 + 0.4 * Math.sin(t * 3); rr(g, 640, 500, 46, 7, 3, `rgb(255,${140 + heat * 60},${60 + heat * 40})`, '#3a1a08', 1); glow(g, 662, 503, 40, '255,150,60', 0.5 * heat);
       const n = hit || this.strike > 0 ? 14 : 0; for (let k = 0; k < n; k++) { const a = -Math.PI * (0.15 + Math.random() * 0.7), d = 20 + Math.random() * 60; ell(g, 662 + Math.cos(a) * d, 500 + Math.sin(a) * d * 0.8, 1.8, 1.8, '#ffe080'); } if (hit) glow(g, 662, 500, 70, '255,220,140', 0.6); }
     // 물통의 김
     for (let k = 0; k < 4; k++) { const q = ((t * 0.3 + k / 4) % 1); g.globalAlpha = 0.2 * (1 - q); ell(g, 840 + Math.sin(q * 6 + k) * 10, 556 - q * 90, 14 + q * 26, 8 + q * 12, '#d8d4dc'); } g.globalAlpha = 1;
     motes(g, t, 0, 60, 900, 500, 20, '255,190,120', 0.45);
+    // 인형극 무대: 대장간 그림은 걸개그림, 앞에는 구경꾼
+    stageFront(g, t, { open: openOf(t), hop: this.strike > 0 ? Math.min(1, this.strike) * 0.6 : 0 });
     // 대장장이의 말
     { const k = clamp(this.lineT / 0.25, 0, 1); g.save(); g.globalAlpha = k; g.font = `400 18px ${FONT_B}`; const w = Math.min(420, g.measureText(this.line).width + 36), bx = 420, by = 352; rr(g, bx + 3, by + 4, w, 44, 12, 'rgba(0,0,0,0.4)'); rr(g, bx, by, w, 44, 12, '#fffaf0', INK, 2); poly(g, [bx + 110, by + 42, bx + 134, by + 42, bx + 128, by + 64], '#fffaf0'); line(g, [bx + 110, by + 43, bx + 128, by + 64, bx + 134, by + 43], INK, 2); text(g, this.line, bx + w / 2, by + 23, { size: 18, font: FONT_B, maxW: w - 24 }); g.restore(); }
-    hangSign(g, 640, 8, '대장간', { w: 240, h: 50, size: 26, rope: false });
-    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'fgdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
     // 고를 것: 오른쪽 아래 옻칠 이름판 셋
     const pw = 360, ph = 76, px = W - pw - 26;
     FORGE_ACT.forEach((a, n) => {
@@ -612,6 +728,11 @@ export class ForgeScene extends Overlay {
     if (!this.left && button(g, 'fgleave', 30, 640, 280, 62, '대장간을 떠난다', { size: 26 })) { this.left = true; sfx('click'); this.onDone(); }
     // 한 일의 결과: 위쪽 두루마리에 잠깐
     if (this.res) { this.resT += dt; const k = clamp(this.resT / 0.25, 0, 1) * clamp((2.6 - this.resT) / 0.4, 0, 1); if (this.resT > 2.6) this.res = null; else if (k > 0) { g.save(); g.globalAlpha = k; scroll(g, 410, 96, 460, 92); text(g, this.res[0], 640, 128, { size: 19, font: FONT_B, maxW: 420 }); text(g, this.res[1], 640, 160, { size: 17, fill: TEAL, maxW: 420 }); g.restore(); } }
+    stageCurtain(g, t, openOf(t));
+    // 현판·엽전·덱 단추는 막보다 위에
+    hangSign(g, 640, 8, '대장간', { w: 240, h: 50, size: 26, rope: false });
+    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
+    if (button(g, 'fgdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
   }
 }
 import { stopSprite } from '../render/terrain.js';

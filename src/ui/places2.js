@@ -1,5 +1,5 @@
 // 길 위의 새 장소들: 무당집 · 서당 · 투전판 · 의병 모집소 · 숨은 길.
-// 장터·주막·대장간처럼 그 장소를 붓으로 칠한 한 장면으로 통째로 그린다 (정지한 그림은 한 번 굽고, 불빛·천·연기·인형만 매 장면).
+// 장터·주막·대장간처럼 그 장소를 붓으로 칠한 한 장면으로 통째로 그린다 (정지한 그림은 한 번 굽고, 불빛·천·연기·인형만 매 장면). 장면은 인형극 무대의 걸개그림이 된다 (stage.js).
 // 고를 것은 오른쪽 아래 옻칠 이름판, 떠나는 단추는 왼쪽 아래, 한 일의 결과는 위쪽 두루마리에 잠깐 뜬다.
 import { W, H } from '../config.js';
 import { TAU, INK, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, poly, line, path, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
@@ -12,6 +12,7 @@ import { CARDS, cardName, isUnit } from '../data/cards.js';
 import { UNITS } from '../data/units.js';
 import { MAX_CAP } from '../sim/battle.js';
 import { puppet } from './theater.js';
+import { stageFront, stageCurtain, stagePuppet, stageRod, openOf, OPEN_T } from './stage.js';
 import { glow, motes, beams } from './places.js';
 import { pal as PAL, mix as MIX, vgrad as VG, dab as dab0, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK, stroke as stroke0 } from '../render/painted.js';
 import { symbol } from '../render/symbols.js';
@@ -146,17 +147,16 @@ class PlaceScene extends Overlay {
   constructor(o, cfg) { super(); this.onDone = o.onDone; this.cfg = cfg; this.done = {}; this.line = cfg.hello; this.lineT = 0; this.res = null; this.resT = 0; this.pick = null; this.joy = 0; }
   say(s) { this.line = s; this.lineT = 0; }
   show(head, lines) { this.res = [head].concat((lines || []).filter(Boolean)); this.resT = 0; this.joy = 1.2; save(); }
-  busy() { return this.left || this.sub || this.pick || this.deal; }
+  busy() { return this.left || this.sub || this.pick || this.deal || this.t < OPEN_T * 0.8; }   // 막이 걷히는 동안에는 누르지 않는다
   acts() { return []; }
   scene() {}
   draw(g, dt) {
     const r = G.run, t = this.t, cf = this.cfg; this.lineT += dt; if (this.joy > 0) this.joy -= dt;
     g.drawImage(cf.bg(), 0, 0, W, H);
     this.scene(g, t, dt);
+    // 인형극 무대: 장면은 걸개그림, 둘레엔 단청 틀과 막, 앞에는 구경꾼
+    stageFront(g, t, { open: openOf(t), seats: cf.seats, lamps: cf.lamps, hop: this.joy > 0 ? Math.min(1, this.joy) * 0.7 : 0 });   // 좋은 일이 생기면 구경꾼이 들썩인다
     if (this.line) bubble(g, this.line, cf.bub[0], cf.bub[1], cf.bub[2], this.lineT);
-    hangSign(g, 640, 8, cf.title, { w: Math.max(240, cf.title.length * 30 + 80), h: 50, size: 26, rope: false });
-    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (!this.pick && button(g, 'plDeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
     // 고를 것: 오른쪽 아래 옻칠 이름판 (아래쪽에 붙여 세운다)
     const list = this.acts(), pw = 360, ph = 76, px = W - pw - 26;
     list.forEach((a, n) => {
@@ -173,6 +173,11 @@ class PlaceScene extends Overlay {
     if (!this.busy() && button(g, 'plLeave', 30, 640, 280, 62, cf.leave || '길을 떠난다', { size: 26 })) { this.left = true; sfx('click'); this.onDone(); }
     // 한 일의 결과: 위쪽 두루마리에 잠깐
     if (this.res) { this.resT += dt; const n = this.res.length, life = 2.6 + n * 0.5, k = clamp(this.resT / 0.25, 0, 1) * clamp((life - this.resT) / 0.4, 0, 1); if (this.resT > life) this.res = null; else if (k > 0) { const h = 44 + n * 30; g.save(); g.globalAlpha = k; scroll(g, 380, 92, 520, h); this.res.forEach((s, i) => text(g, s, 640, 122 + i * 30, { size: i ? 17 : 19, font: FONT_B, fill: i ? (/잃|부정|-\d|잡념/.test(s) && !/씻겨|사라/.test(s) ? RED : TEAL) : INK, maxW: 480 })); g.restore(); } }
+    stageCurtain(g, t, openOf(t));
+    // 현판·엽전·덱 단추는 막보다 위에 (막이 걷히는 동안에도 보인다)
+    hangSign(g, 640, 8, cf.title, { w: Math.max(240, cf.title.length * 30 + 80), h: 50, size: 26, rope: false });
+    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
+    if (!this.pick && button(g, 'plDeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
     if (this.pick) this.drawPick(g, dt);
   }
   // 고르기 창: 패 고르기(cards) · 시험(quiz)
@@ -332,8 +337,8 @@ class ShamanScene extends PlaceScene {
       OBANG.forEach((c, k) => cloth(g, x + 4, top + 10 + k * 3, 74 + k * 12, c, t, k * 0.9, 1.4)); }
     // 무녀와 영웅: 굿을 하면 무녀가 빙글빙글 돈다
     const sp = this.spin > 0;
-    puppet(g, 'priest', 640, 576, 1.8, t, { act: 'dance', face: sp ? (Math.sin(t * 9) > 0 ? 1 : -1) : 1, noStick: true });
-    puppet(g, r.hero, 792, 590, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1, noStick: true });
+    stagePuppet(g, 'priest', 640, 576, 1.8, t, { act: 'dance', face: sp ? (Math.sin(t * 9) > 0 ? 1 : -1) : 1 });
+    stagePuppet(g, r.hero, 792, 590, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1 });
     if (sp) for (let k = 0; k < 12; k++) { const a = t * 3 + k * TAU / 12, x = 640 + Math.cos(a) * 100, y = 480 + Math.sin(a) * 26; glow(g, x, y, 14, '255,220,140', 0.5); ell(g, x, y, 3, 2, OBANG[k % 5]); }
     // 날리는 종이 꽃잎
     for (let i = 0; i < 18; i++) { const q = ((t * 0.07 + i * 0.137) % 1), x = 120 + ((i * 97) % 1000) + Math.sin(t + i) * 30, y = 120 + q * 520; g.globalAlpha = 0.7 * Math.sin(q * Math.PI); ell(g, x, y, 3, 1.6, OBANG[i % 5]); } g.globalAlpha = 1;
@@ -435,7 +440,7 @@ class SeodangScene extends PlaceScene {
     for (let i = 0; i < 4; i++) { const q = ((t * 0.3 + i * 0.25) % 1), x = 880 + i * 44 + q * 30, y = 262 - q * 70; g.globalAlpha = 0.5 * Math.sin(q * Math.PI); path(g, p => { p.moveTo(x - 10, y); p.quadraticCurveTo(x - 5, y - 6, x, y); p.quadraticCurveTo(x + 5, y + 6, x + 10, y); }, null, '#3a3a44', 1.6); } g.globalAlpha = 1;
     // 마당의 닭 두 마리
     for (const [x0, ph] of [[760, 0], [380, 2.4]]) { const wx = x0 + Math.sin(t * 0.25 + ph) * 60, face = Math.cos(t * 0.25 + ph) > 0 ? 1 : -1; hen(g, wx, 486 + ph * 6, t, ph, face); }
-    puppet(g, r.hero, 470, 612, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: 1, noStick: true });
+    stagePuppet(g, r.hero, 470, 612, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: 1 });
     // 은행잎이 팔랑팔랑
     for (let i = 0; i < 12; i++) { const q = ((t * 0.06 + i * 0.173) % 1), x = 80 + ((i * 131) % 380) + Math.sin(t * 1.3 + i) * 30, y = 140 + q * 520, a = t * 2 + i; g.save(); g.translate(x, y); g.rotate(a); g.globalAlpha = 0.85 * Math.sin(q * Math.PI); path(g, p => { p.moveTo(0, 4); p.lineTo(-5, -3); p.quadraticCurveTo(0, -6, 5, -3); p.closePath(); }, i % 3 ? '#b8c860' : '#e8d860', 'rgba(60,60,20,0.5)', 0.6); g.restore(); } g.globalAlpha = 1;
     motes(g, t, 380, 120, 860, 300, 14, '255,248,220', 0.35);
@@ -515,8 +520,8 @@ class GambleScene extends PlaceScene {
       for (let k = 0; k < 8; k++) { const q = ((t * 0.1 + k / 8) % 1), x = px + 34 + Math.sin(q * 6 + k) * 26 + q * 120, y = py - 10 - q * 300; g.globalAlpha = 0.16 * (1 - q); ell(g, x, y, 14 + q * 40, 8 + q * 18, '#c8bcd0'); } g.globalAlpha = 1; }
     // 도깨비 노름꾼과 영웅
     const dx = this.shake > 0 ? Math.sin(t * 50) * 3 : 0;
-    puppet(g, 'orc', 640 + dx, 546, 1.8, t, { act: this.deal ? 'talk' : this.shake > 0 ? 'shake' : 'idle', face: 1, noStick: true });
-    puppet(g, r.hero, 826, 600, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1, noStick: true });
+    stagePuppet(g, 'orc', 640 + dx, 546, 1.8, t, { act: this.deal ? 'talk' : this.shake > 0 ? 'shake' : 'idle', face: 1 });
+    stagePuppet(g, r.hero, 826, 600, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1 });
     // 투전 한 판: 도깨비와 내가 한 장씩 뽑아 뒤집는다
     if (this.deal) {
       const D = this.deal; D.t += dt; const lift = easeOutBack(clamp(D.t / 0.4, 0, 1)), flip = clamp((D.t - 0.6) / 0.35, 0, 1);
@@ -598,15 +603,16 @@ class MusterScene extends PlaceScene {
       for (const yy of [top + 13, top + 85]) path(g, p => { for (let i = 0; i <= 8; i++) { const q = i / 8, y = wv(q, yy) - (yy > top + 50 ? q * 6 : 0); if (i) p.lineTo(x + q * 124, y); else p.moveTo(x + 4, y); } }, null, RED, 3.2);
       symbol(g, 'muster', x + 66, wv(0.5, top + 49), 56, '#1e1a1c', { brush: true, rot: -0.06 }); }
     // 줄을 선 장정들 (의병)
-    MUSTER_LINE.forEach(([x, y], i) => puppet(g, i === 1 ? 'spear' : 'militia', x, y, 1.3, t + i, { act: 'idle', face: -1, noStick: true }));
+    MUSTER_LINE.forEach(([x, y], i) => stagePuppet(g, i === 1 ? 'spear' : 'militia', x, y, 1.3, t + i, { act: 'idle', face: -1 }));
     // 의병장 (책상 뒤): 갓 쓰고 칼을 찬 선비
+    stageRod(g, 470, 470, 1.2, t);
     seonbi(g, 470, 534, 1.2, t, { hold: 'sword', beard: 'black', talk: this.lineT < 2.2 });
     { const x = 420, y = 556; g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(x, y + 32, 124, 12, 0, 0, TAU); g.fill();
       part(g, RECT(x - 112, y - 14, 224, 14), '#8a5a34', RECT(x - 112, y - 6, 224, 6), { lw: 1.8 }); for (const sx of [-1, 1]) part(g, RECT(x + sx * 98 - 5, y, 10, 30), '#5a3820', null, { lw: 1.2 });
       part(g, P(x - 62, y - 16, x - 4, y - 22, x - 4, y - 14, x - 62, y - 8), '#f6efdc', null, { lw: 1.1 }); part(g, P(x + 4, y - 22, x + 62, y - 16, x + 62, y - 8, x + 4, y - 14), '#f6efdc', null, { lw: 1.1 });
       for (let k = 0; k < 5; k++) { line(g, [x - 54 + k * 10, y - 18, x - 54 + k * 10, y - 11], '#2a2420', 1.4); line(g, [x + 12 + k * 10, y - 20, x + 12 + k * 10, y - 12], '#2a2420', 1.4); }
       rr(g, x + 72, y - 22, 20, 12, 3, '#2a2a30', INK, 1); line(g, [x + 98, y - 20, x + 114, y - 36], '#8a6a3a', 2.4); }
-    puppet(g, r.hero, 720, 600, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1, noStick: true });
+    stagePuppet(g, r.hero, 720, 600, 1.7, t, { act: this.joy > 0 ? 'hop' : 'idle', face: -1 });
     // 날리는 느티나무 잎
     for (let i = 0; i < 10; i++) { const q = ((t * 0.05 + i * 0.19) % 1), x = 440 + ((i * 97) % 420) + Math.sin(t * 1.1 + i) * 30, y = 160 + q * 460; g.globalAlpha = 0.8 * Math.sin(q * Math.PI); ell(g, x, y, 3.4, 1.8, i % 2 ? '#6a8a44' : '#a8b860'); } g.globalAlpha = 1;
   }
@@ -684,7 +690,7 @@ class HiddenScene extends PlaceScene {
     geumjul(g, 124, 336, 560, 358, 28, t, 6);
     // 떠도는 안개
     for (let i = 0; i < 7; i++) { const x = ((t * 18 + i * 260) % (W + 400)) - 200, y = 470 + (i % 3) * 60; g.globalAlpha = 0.12; ell(g, x, y, 230, 26, '#a8c0c8'); } g.globalAlpha = 1;
-    puppet(g, r.hero, 660, 620, 1.7, t, { act: this.open ? 'tremble' : 'idle', face: Math.sin(t * 0.7) > 0 ? 1 : -1, noStick: true });
+    stagePuppet(g, r.hero, 660, 620, 1.7, t, { act: this.open ? 'tremble' : 'idle', face: Math.sin(t * 0.7) > 0 ? 1 : -1 });
     // 반딧불
     for (let i = 0; i < 14; i++) { const ph = i * 2.1, x = 80 + ((i * 113) % 1120) + Math.sin(t * 0.5 + ph) * 26, y = 380 + ((i * 53) % 240) + Math.sin(t * 0.9 + ph) * 14, a = clamp(Math.sin(t * 1.4 + ph), 0, 1); glow(g, x, y, 8, '200,255,160', a * 0.5); }
   }
