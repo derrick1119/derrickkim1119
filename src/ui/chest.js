@@ -159,13 +159,17 @@ export class ChestFX {
   constructor() { this.p = []; this.rings = []; this.clouds = []; }
   burst(x, y, k = 1) {
     const R = Math.random;
-    for (let i = 0; i < Math.round(30 * k); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.1, v = 420 + R() * 460; this.p.push({ kind: 'coin', x: x + (R() - 0.5) * 60, y, vx: Math.cos(a) * v * 0.85, vy: Math.sin(a) * v, g: 1250, spin: R() * TAU, sv: 7 + R() * 9, r: 8 + R() * 4, life: 1.5 + R() * 0.7, age: 0 }); }
-    for (let i = 0; i < Math.round(84 * k); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.5, v = 360 + R() * 560; this.p.push({ kind: 'paper', x: x + (R() - 0.5) * 70, y: y - 10, vx: Math.cos(a) * v, vy: Math.sin(a) * v, col: OBANG5[i % OBANG5.length], w: 5 + R() * 6, h: 9 + R() * 8, rot: R() * TAU, rv: (R() - 0.5) * 9, flip: R() * TAU, fv: 5 + R() * 8, sway: R() * TAU, life: 2.6 + R() * 1.4, age: 0 }); }
-    for (let i = 0; i < Math.round(46 * k); i++) { const a = R() * TAU, v = 260 + R() * 640; this.p.push({ kind: 'spark', x, y: y - 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.8 - 160, life: 0.5 + R() * 0.6, age: 0 }); }
-    this.rings.push({ x, y, age: 0, life: 0.62, r1: 680 * k, w: 26 }, { x, y: y - 50, age: -0.07, life: 0.55, r1: 380 * k, w: 12, round: true });
-    const n = Math.round(6 * k); for (let i = 0; i < n; i++) { const a = -Math.PI * (0.06 + 0.88 * i / Math.max(1, n - 1)) + (R() - 0.5) * 0.12; this.clouds.push({ x, y: y - 40, a, age: -i * 0.03, life: 1.5, d: 200 + R() * 140, s: 1.25 + R() * 0.5, dir: Math.cos(a) > 0 ? 1 : -1 }); }
+    // 엽전: 위로 부채꼴로 솟구쳐 화면 높이까지 오르고, 무겁게 떨어지며 사라진다
+    for (let i = 0; i < Math.round(46 * k); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.7, v = 540 + R() * 620; this.p.push({ kind: 'coin', x: x + (R() - 0.5) * 70, y, vx: Math.cos(a) * v * 0.95, vy: Math.sin(a) * v, g: 1350, spin: R() * TAU, sv: 7 + R() * 9, r: 8 + R() * 4, life: 1.35 + R() * 0.6, age: 0 }); }
+    // 무거운 엽전 꾸러미: 양옆으로 크게 휘어 무대 끝까지 날아간다
+    for (let i = 0; i < Math.round(8 * k); i++) { const sd = i % 2 ? 1 : -1, a = -Math.PI / 2 + sd * (0.75 + R() * 0.45), v = 820 + R() * 380; this.p.push({ kind: 'coin', x: x + sd * 20, y: y - 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 1100, spin: R() * TAU, sv: 4 + R() * 4, r: 12 + R() * 4, life: 1.6 + R() * 0.4, age: 0 }); }
+    // 오방색 종이꽃: 넓게 흩뿌려져 바람을 타고 천천히 내려앉는다
+    for (let i = 0; i < Math.round(130 * k); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 3.0, v = 520 + R() * 820; this.p.push({ kind: 'paper', x: x + (R() - 0.5) * 80, y: y - 10, vx: Math.cos(a) * v * 1.15, vy: Math.sin(a) * v, col: OBANG5[i % OBANG5.length], w: 5 + R() * 6, h: 9 + R() * 8, rot: R() * TAU, rv: (R() - 0.5) * 9, flip: R() * TAU, fv: 5 + R() * 8, sway: R() * TAU, life: 2.4 + R() * 1.2, age: 0 }); }
+    for (let i = 0; i < Math.round(56 * k); i++) { const a = R() * TAU, v = 320 + R() * 760; this.p.push({ kind: 'spark', x, y: y - 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.8 - 180, life: 0.5 + R() * 0.6, age: 0 }); }
+    this.rings.push({ x, y, age: 0, life: 0.7, r1: 760 * k, w: 28 }, { x, y: y - 50, age: -0.07, life: 0.6, r1: 430 * k, w: 13, round: true });
+    const n = Math.round(6 * k); for (let i = 0; i < n; i++) { const a = -Math.PI * (0.06 + 0.88 * i / Math.max(1, n - 1)) + (R() - 0.5) * 0.12; this.clouds.push({ x, y: y - 40, a, age: -i * 0.03, life: 1.5, d: 230 + R() * 150, s: 1.05 + R() * 0.4, dir: Math.cos(a) > 0 ? 1 : -1 }); }
   }
-  lock(x, y) { this.p.push({ kind: 'lock', x, y, vx: 220 + Math.random() * 80, vy: -560, g: 1500, spin: 0, sv: 14, life: 1.4, age: 0 }); }
+  lock(x, y) { this.p.push({ kind: 'lock', x, y, vx: 200 + Math.random() * 70, vy: -620, g: 1700, spin: 0, sv: 13, life: 1.05, age: 0 }); }
   update(dt) {
     for (const p of this.p) {
       p.age += dt;
@@ -173,7 +177,7 @@ export class ChestFX {
       else if (p.kind === 'spark') { p.vx *= Math.max(0, 1 - 2.6 * dt); p.vy = p.vy * Math.max(0, 1 - 2.6 * dt) + 420 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
       else { p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.spin += p.sv * dt; }
     }
-    this.p = this.p.filter(p => p.age < p.life && p.y < 900);
+    this.p = this.p.filter(p => p.age < p.life && p.y < 900 && (p.kind !== 'lock' || p.y < 620));
     for (const r of this.rings) r.age += dt; this.rings = this.rings.filter(r => r.age < r.life);
     for (const c of this.clouds) c.age += dt; this.clouds = this.clouds.filter(c => c.age < c.life);
   }
@@ -196,12 +200,13 @@ export class ChestFX {
       cloudScroll(g, draw); g.restore();
     }
   }
-  // 고를 것들 앞에 그린다: 엽전 · 종이꽃 · 불티 · 자물쇠
+  // 함 앞에 그린다 (고를 것들보다는 뒤): 엽전 · 종이꽃 · 불티 · 자물쇠
   drawFront(g) {
     for (const p of this.p) {
-      const fade = clamp((p.life - p.age) / 0.4, 0, 1);
-      if (p.kind === 'coin') coin(g, p.x, p.y, p.r, p.spin, fade);
-      else if (p.kind === 'lock') { g.save(); g.globalAlpha = fade; lockPiece(g, p.x, p.y, 2, p.spin); g.restore(); }
+      const fade = clamp((p.life - p.age) / 0.5, 0, 1);
+      if (p.kind === 'coin') coin(g, p.x, p.y, p.r * (0.7 + 0.3 * fade), p.spin, fade);
+      // 떨어져 나간 자물쇠: 빙글 돌며 떨어지고, 무대 앞판 높이(구경꾼 머리)에 닿기 전에 사라진다
+      else if (p.kind === 'lock') { const a = clamp((p.life - p.age) / 0.35, 0, 1) * clamp((600 - p.y) / 60, 0, 1); if (a > 0) { g.save(); g.globalAlpha = a; lockPiece(g, p.x, p.y, 1.6, p.spin); g.restore(); } }
       else if (p.kind === 'paper') {
         g.save(); g.globalAlpha = fade; g.translate(p.x, p.y); g.rotate(p.rot); const f = Math.cos(p.flip); g.scale(1, Math.abs(f) < 0.15 ? 0.15 * Math.sign(f || 1) : f);
         g.fillStyle = p.col; g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); g.fillStyle = f > 0 ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'; g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * 0.35); g.restore();
@@ -221,25 +226,26 @@ export function coin(g, x, y, r, spin, a = 1) {
   if (rx > 3) { const h = r * 0.34, hx = h * rx / r; g.fillStyle = '#3a2208'; g.fillRect(-hx, -h, hx * 2, h * 2); g.strokeStyle = 'rgba(255,240,190,0.6)'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(0, 0, rx * 0.72, r * 0.72, 0, 0, TAU); g.stroke(); }
   g.restore();
 }
-// 상서로운 구름무늬(운문): 붓으로 그은 꼬리가 S 자로 흐르다 안으로 말려 소용돌이가 되고, 꼬리 중간에서 작은 고리가 하나 돋는다.
-// 획은 가늘게 시작해 굵어졌다가 소용돌이 끝에서 다시 가늘어진다. draw = 그려진 정도(0~1)
+// 상서로운 구름무늬(운문): 구름머리는 세 송이가 겹쳐 안으로 말려 든 소용돌이(가운데가 가장 크다), 그 밑을 받치는 밑선,
+// 왼쪽 아래로 길게 흘러 나가며 가늘어지는 꼬리. 꼬리 → 밑선 → 세 송이 차례로 붓을 놀리듯 그려진다
 const CLOUD = (() => {
-  const main = [], hook = [];
-  for (let i = 0; i <= 64; i++) {
-    const u = i / 64;
-    if (u < 0.34) { const v = u / 0.34; main.push([-76 + 76 * v, 26 - 2 * v + Math.sin(v * Math.PI * 1.5) * 9]); }
-    else { const v = (u - 0.34) / 0.66, a = Math.PI / 2 - v * Math.PI * 2.3, r = 24 * (1 - 0.82 * v); main.push([Math.cos(a) * r, Math.sin(a) * r]); }
-  }
-  for (let i = 0; i <= 20; i++) { const v = i / 20, a = Math.PI * 0.5 + v * Math.PI * 1.8, r = 11 * (1 - 0.65 * v); hook.push([-44 + Math.cos(a) * r, 21 + Math.sin(a) * r - 11]); }
-  return { main, hook };
+  const curl = (cx, cy, R, a0, dir, turns, n = 26) => { const o = []; for (let i = 0; i <= n; i++) { const v = i / n, a = a0 + dir * v * turns * TAU, r = R * (1 - 0.78 * v); o.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return o; };
+  const tail = []; for (let i = 0; i <= 24; i++) { const v = i / 24; tail.push([-30 - 78 * v, 15 + 8 * v + Math.sin(v * Math.PI * 1.6) * 7]); }
+  tail.reverse();   // 꼬리 끝에서 구름머리 쪽으로 그어 온다
+  const base = []; for (let i = 0; i <= 16; i++) { const v = i / 16; base.push([-30 + 62 * v, 16 + Math.sin(v * Math.PI) * 4]); }
+  return [
+    { pts: tail, w: 5.2, from: 0, to: 0.3 },
+    { pts: base, w: 4.4, from: 0.18, to: 0.45 },
+    { pts: curl(-23, 3, 14, Math.PI * 0.55, 1, 1.15), w: 5.6, from: 0.3, to: 0.7 },
+    { pts: curl(1, -8, 18, Math.PI * 0.8, 1, 1.2), w: 6.4, from: 0.42, to: 0.85 },
+    { pts: curl(26, 4, 13, Math.PI * 0.45, -1, 1.15), w: 5.4, from: 0.55, to: 1 },
+  ];
 })();
 function brush(g, pts, n, wmax, col, extra) {
   g.strokeStyle = col; g.lineCap = 'round';
   for (let i = 0; i < n - 1; i++) { const u = i / (pts.length - 1), w = wmax * (0.22 + 0.78 * Math.sin(Math.PI * Math.min(1, u * 1.15))); g.lineWidth = w + extra; g.beginPath(); g.moveTo(pts[i][0], pts[i][1]); g.lineTo(pts[i + 1][0], pts[i + 1][1]); g.stroke(); }
 }
 function cloudScroll(g, draw) {
-  const { main, hook } = CLOUD, n = Math.max(2, Math.floor(main.length * draw)), m = Math.max(0, Math.floor(hook.length * clamp((draw - 0.3) / 0.5, 0, 1)));
-  brush(g, main, n, 7, 'rgba(80,44,8,0.8)', 3.4); if (m > 1) brush(g, hook, m, 4.4, 'rgba(80,44,8,0.8)', 3);
-  brush(g, main, n, 7, '#f3cf6a', 0); if (m > 1) brush(g, hook, m, 4.4, '#f3cf6a', 0);
-  brush(g, main, n, 2, 'rgba(255,252,226,0.95)', 0);
+  for (const pass of [['rgba(80,44,8,0.8)', 3.4, 1], ['#f3cf6a', 0, 1], ['rgba(255,252,226,0.95)', 0, 0.3]])
+    for (const st of CLOUD) { const k = clamp((draw - st.from) / (st.to - st.from), 0, 1), n = Math.floor(st.pts.length * k); if (n > 1) brush(g, st.pts, n, st.w * pass[2], pass[0], pass[1]); }
 }
