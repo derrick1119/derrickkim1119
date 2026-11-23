@@ -14,7 +14,7 @@ import { symbol } from '../render/symbols.js';
 import { sfx } from '../audio.js';
 import { juice } from './juice.js';
 
-const PX = [330, 800], PY = 120, PW = 440, PH = 520;
+const PX = [324, 806], PY = 120, PW = 430, PH = 520;   // 두 무대 사이를 넓혀 금 모서리 장식이 맞부딪치지 않게
 const BIG = { knight: 1.75, cannon: 1.75 };
 export class PromoOverlay extends Overlay {
   constructor(o) { super(); this.onDone = o.onDone; this.list = pendingPromos().map(c => c.uid); this.total = this.list.length; this.i = 0; this.picked = null; this.pt = 0; }

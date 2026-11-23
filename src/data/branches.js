@@ -19,7 +19,7 @@ export const BRANCHES = {
   ],
   spear: [
     { id: 'jangchang', name: '장창수', axis: 'wall', desc: '더 긴 창으로 막아선다', tip: '리치 +16, 거대 적 피해 2배, 정면 돌격을 받아치면 1.5초 기절', mod: d => { d.reach = (d.reach || 0) + 16; d.bigK = 2; d.braceStun = 1.5; } },
-    { id: 'nangseon', name: '낭선수', axis: 'wall', desc: '가지 달린 대창으로 묶는다', tip: '한 번에 2명 타격, 맞은 적 2초간 속도 -40%', mod: d => { d.cleave = Math.max(d.cleave || 0, 2); d.slowHit = { amt: 0.4, t: 2 }; } },
+    { id: 'nangseon', name: '낭선수', arm: 'bamboo', axis: 'wall', desc: '가지 달린 대창으로 묶는다', tip: '한 번에 2명 타격, 맞은 적 2초간 속도 -40%', mod: d => { d.cleave = Math.max(d.cleave || 0, 2); d.slowHit = { amt: 0.4, t: 2 }; } },
   ],
   knight: [
     { id: 'gichang', name: '기창 돌격대', axis: 'charge', desc: '짧게 달려도 들이받는다', tip: '돌격 피해 5배, 더 멀리 밀쳐 내고, 짧은 거리에서도 돌격', mod: d => { d.charge = { mult: 5, dist: 80, kb: 50 }; } },
