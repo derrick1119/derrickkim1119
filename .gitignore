@@ -25,3 +25,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Local working copies made by coding tools
+.claude/worktrees/
