@@ -230,6 +230,38 @@ function logo() {
   return LOGO;
 }
 
+// 글자 모양 가리개: 제호와 같은 자리에 같은 크기로 글자만 굽는다
+let MASK = null, SHN = null;
+function letterMask() {
+  if (MASK) return MASK;
+  MASK = bake(LW, LH, g => { g.font = `400 132px ${FONT_B}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText('열두 고개', LW / 2, 118); g.lineWidth = 3; g.strokeStyle = '#fff'; g.strokeText('열두 고개', LW / 2, 118); }, 1);
+  return MASK;
+}
+// 글자 위로만 지나가는 빛줄기와 금박의 반짝임
+function letterShine(g, lx, ly, t) {
+  const q = ((t - 2.4) % 5.2) / 1.4; if (!(q > 0 && q < 1)) return;
+  if (!SHN) SHN = makeCanvas(LW, LH); const c = SHN.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, LW, LH);
+  const sx = -80 + q * (LW + 160), gr = c.createLinearGradient(sx - 60, 0, sx + 60, 0); gr.addColorStop(0, 'rgba(255,250,235,0)'); gr.addColorStop(0.5, 'rgba(255,250,235,0.85)'); gr.addColorStop(1, 'rgba(255,250,235,0)');
+  c.fillStyle = gr; c.beginPath(); c.moveTo(sx - 40, LH); c.lineTo(sx + 20, 0); c.lineTo(sx + 80, 0); c.lineTo(sx + 20, LH); c.closePath(); c.fill();
+  c.globalCompositeOperation = 'destination-in'; c.drawImage(letterMask(), 0, 0, LW, LH);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.8; g.drawImage(SHN, lx, ly, LW, LH); g.restore();
+}
+// 금박 글자 위에 이따금 반짝이는 별빛
+const GLINTS = [[-190, -30], [-70, 26], [40, -40], [150, 10], [230, -28], [-130, 40], [96, 44]];
+function glints(g, lx, ly, t) {
+  GLINTS.forEach(([dx, dy], i) => { const ph = (t * 0.7 + i * 0.37) % 2.6; if (ph > 0.5) return; const k = Math.sin(ph / 0.5 * Math.PI), x = lx + LW / 2 + dx, y = ly + 118 + dy, r = 10 * k;
+    g.save(); g.globalCompositeOperation = 'lighter'; glow(g, x, y, 14 * k + 2, '255,240,200', 0.6 * k); g.globalAlpha = k; g.strokeStyle = '#fffbe8'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); g.lineWidth = 0.9; g.beginPath(); g.moveTo(x - r * 0.45, y - r * 0.45); g.lineTo(x + r * 0.45, y + r * 0.45); g.moveTo(x + r * 0.45, y - r * 0.45); g.lineTo(x - r * 0.45, y + r * 0.45); g.stroke(); g.restore(); });
+}
+// 달 앞을 지나는 학 (날갯짓하는 먹 실루엣)
+function crane(g, x, y, s, t) {
+  const f = Math.sin(t * 5), ink = '#05060c';
+  g.save(); g.translate(x, y); g.scale(s, s); g.fillStyle = ink; g.strokeStyle = ink;
+  g.beginPath(); g.ellipse(0, 0, 14, 3.4, -0.1, 0, TAU); g.fill();
+  g.lineWidth = 1.6; g.beginPath(); g.moveTo(12, -1); g.quadraticCurveTo(22, -4, 30, -2); g.stroke(); g.beginPath(); g.arc(30, -2, 2.2, 0, TAU); g.fill();
+  g.lineWidth = 1.2; g.beginPath(); g.moveTo(-12, 1); g.lineTo(-28, 4); g.stroke();
+  for (const side of [-1, 1]) { g.beginPath(); g.moveTo(-4, 0); g.quadraticCurveTo(-2, side * -2 - f * 14 * side, 6, -f * 20 - 6); g.quadraticCurveTo(10, -f * 10, 8, 0); g.closePath(); g.fill(); }
+  g.restore();
+}
 // 군사 행렬: 앞 들판에서 첫 고개로 오르는 길 위에
 const MARCH = Array.from({ length: 20 }, (_, k) => { const q = k / 19, x = 380 + q * 300, y = 606 - q * 70, s = 0.95 - q * 0.5; return { x, y, s, kind: k % 5 === 2 ? 1 : k % 7 === 4 ? 2 : 0, ph: k * 0.7, lamp: k % 4 === 1 }; });
 
@@ -243,6 +275,12 @@ export function drawKeyArt(g, t) {
   { const q = (t % 9) / 1.1; if (q < 1) { const x = 240 + q * 260, y = 60 + q * 70; stroke(g, [x - 60, y - 16, x, y], '#fffbe8', 1.4, (1 - q) * 0.7); } }
   // 달빛이 숨 쉬듯
   glow(g, mx, my, 260 + Math.sin(t * 0.8) * 10, '210,215,255', 0.16);
+  // 달에서 내리는 옅은 빛살 (천천히 돈다)
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(mx, my); g.rotate(Math.sin(t * 0.05) * 0.1);
+  for (let k = 0; k < 9; k++) { const a = 0.6 + k * 0.28, len = 620, gr = g.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len); gr.addColorStop(0, 'rgba(200,210,255,0.09)'); gr.addColorStop(1, 'rgba(200,210,255,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a - 0.04) * len, Math.sin(a - 0.04) * len); g.lineTo(Math.cos(a + 0.04) * len, Math.sin(a + 0.04) * len); g.closePath(); g.fill(); }
+  g.restore();
+  // 학 두 마리가 달 앞을 천천히 가로지른다
+  { const q = (t * 0.035) % 1, x0 = 1340 - q * 1100; crane(g, x0, 150 + Math.sin(q * 6) * 12, 0.9, t); crane(g, x0 + 70, 176 + Math.sin(q * 6 + 1) * 10, 0.7, t + 0.4); }
   // 달 앞을 지나는 띠구름
   { const [c1, c2] = clouds(); g.globalAlpha = 1; g.drawImage(c1, ((t * 6) % 1700) - 420 + 360, my + 30, c1.width / S, c1.height / S); g.drawImage(c2, 1500 - ((t * 4) % 1900), my - 90, c2.width / S, c2.height / S); }
   g.globalAlpha = 1; g.drawImage(ridges(), 0, 0, W, H);
@@ -274,8 +312,8 @@ export function drawKeyArt(g, t) {
     const L = logo(), lx = 470 - LW / 2, ly = 34;
     glow(g, 470, 150, 300, '255,196,110', 0.12 * lk);
     g.save(); g.beginPath(); g.rect(lx - 20, ly - 20, (LW + 40) * ease(lk), LH + 40); g.clip(); g.globalAlpha = Math.min(1, lk * 1.6); g.drawImage(L, lx, ly, LW, LH); g.restore();
-    // 금박 위를 지나는 빛줄기
-    const q = ((t - 2.4) % 5) / 1.2; if (q > 0 && q < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const sx = lx + 60 + q * (LW - 60); const gr = g.createLinearGradient(sx - 40, 0, sx + 40, 0); gr.addColorStop(0, 'rgba(255,240,200,0)'); gr.addColorStop(0.5, 'rgba(255,240,200,0.28)'); gr.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(sx - 60, ly + 200); g.lineTo(sx - 10, ly + 40); g.lineTo(sx + 50, ly + 40); g.lineTo(sx, ly + 200); g.closePath(); g.fill(); g.restore(); }
+    // 금박 글자 위로만 지나가는 빛줄기와 반짝임
+    if (lk >= 1) { letterShine(g, lx, ly, t); glints(g, lx, ly, t); }
     g.globalAlpha = clamp((t - 2.2) / 0.6, 0, 1); g.font = `400 21px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(4,6,14,0.7)'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 471, ly + 258); g.fillStyle = '#e8e2f6'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 470, ly + 256); g.globalAlpha = 1;
   }
   g.globalAlpha = 1;

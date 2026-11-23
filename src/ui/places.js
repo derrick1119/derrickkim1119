@@ -13,7 +13,7 @@ import { cardName, isUnit } from '../data/cards.js';
 import { weaponIcon, portrait } from '../render/sprites.js';
 import { relicIcon, miscIcon } from '../render/icons.js';
 import { puppet } from './theater.js';
-import { pal as PAL, mix as MIX, vgrad as VG, dab as DAB, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK } from '../render/painted.js';
+import { pal as PAL, mix as MIX, vgrad as VG, dab as DAB, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK, stroke as PSTROKE } from '../render/painted.js';
 import { sfx } from '../audio.js';
 import { juice, SPOT, goldRays } from './juice.js';
 
@@ -137,7 +137,8 @@ function good(g, it, d, x, y, row, t) {
   }
   if (d.relic) { ell(g, x + 3, y - 2, 46, 10, 'rgba(40,24,14,0.3)'); part(g, E(x, y - 14, 44, 16), '#a8322a', E(x + 6, y - 8, 40, 12), { lw: 1.4 }); for (const a of [0.8, 2.3, 3.9, 5.4]) ell(g, x + Math.cos(a) * 40, y - 14 + Math.sin(a) * 13, 3, 3, '#e0b23c', INK, 0.8); relicIcon(g, d.relic, x, y - 52, 1.45, Math.sin(t * 2 + x) * 0.04); if (it.kind === 'cleanse') stamp(g, x + 28, y - 30, 15, 'cleanse', TEAL, -0.1); return; }
   if (d.weapon) { for (const dx of [-34, 34]) { rr(g, x + dx - 4, y - 56, 8, 56, 2, '#6a4428', INK, 1.2); } rr(g, x - 44, y - 58, 88, 8, 3, '#8a5a30', INK, 1.2); g.save(); g.translate(x, y - 58); g.rotate(-0.95); weaponIcon(g, d.weapon, 0, 0, 0.92); g.restore(); return; }
-  if (d.misc === 'supply') { ell(g, x + 3, y - 2, 46, 10, 'rgba(40,24,14,0.3)'); part(g, p => { p.moveTo(x - 46, y - 4); p.quadraticCurveTo(x - 50, y - 50, x - 10, y - 58); p.lineTo(x + 10, y - 58); p.quadraticCurveTo(x + 50, y - 50, x + 46, y - 4); p.closePath(); }, '#2f4d7e', E(x + 18, y - 26, 26, 30), { lw: 1.4 }); for (let i = 0; i < 6; i++) ell(g, x - 30 + i * 12, y - 30 + (i % 2) * 10, 2.4, 2.4, '#efe4c8'); part(g, p => { p.moveTo(x - 10, y - 58); p.lineTo(x - 22, y - 76); p.lineTo(x - 4, y - 66); p.lineTo(x + 6, y - 80); p.lineTo(x + 10, y - 58); p.closePath(); }, '#2f4d7e', null, { lw: 1.2 }); for (const [dx, rot, col] of [[-12, -0.3, '#efe4c8'], [2, 0.05, '#f6eedb'], [15, 0.35, '#efe4c8']]) { g.save(); g.translate(x + dx, y - 56); g.rotate(rot); rr(g, -8, -22, 16, 22, 2, col, INK, 1); rr(g, -8, -22, 16, 5, 2, '#5a4a8a'); g.restore(); } return; }
+  // 보급: 조각보로 싼 꾸러미, 매듭 틈으로 전술 패 석 장이 삐져나온다
+  if (d.misc === 'supply') { bojagi(g, x, y, 1.05, rng(7), (gg, cx, cy) => { for (const [dx, rot, col] of [[-16, -0.35, '#efe4c8'], [0, 0.05, '#f6eedb'], [16, 0.4, '#efe4c8']]) { gg.save(); gg.translate(cx + dx, cy + 8); gg.rotate(rot); rr(gg, -9, -26, 18, 26, 2, col, INK, 1); rr(gg, -9, -26, 18, 6, 2, '#5a4a8a'); gg.restore(); } }); return; }
   // 조련장 (나무 기둥 그림) · 그 밖
   rr(g, x - 30, y - 10, 60, 10, 3, '#6a4428', INK, 1.2); miscIcon(g, d.misc === 'train' ? 'train' : d.misc || 'burn', x, y - 46, 1.6);
 }
@@ -220,62 +221,107 @@ export class MarketOverlay extends Overlay {
 let TBG = null;
 function tavernBG() {
   if (TBG) return TBG;
+  // 붓으로 칠한 달밤의 주막: 하늘·달·겹산 → 감나무와 싸리 울타리 → 초가(이엉 결·용마름·처마 짚 술) → 창호지 너머 술손님 그림자 → 마당의 평상·장독대·아궁이
   TBG = bakeScene(g => {
-    const R = rng(808);
-    const sky = g.createLinearGradient(0, 0, 0, 360); sky.addColorStop(0, '#11172f'); sky.addColorStop(0.7, '#2a2a52'); sky.addColorStop(1, '#4a3e62'); g.fillStyle = sky; g.fillRect(0, 0, W, 380);
-    for (let i = 0; i < 90; i++) { g.globalAlpha = 0.3 + R() * 0.6; const r = 0.5 + R() * 1.2; ell(g, R() * W, R() * 230, r, r, '#f6efdc'); } g.globalAlpha = 1;
-    { const mx = 1150, my = 86; const gr = g.createRadialGradient(mx, my, 30, mx, my, 170); gr.addColorStop(0, 'rgba(255,236,190,0.3)'); gr.addColorStop(1, 'rgba(255,236,190,0)'); g.fillStyle = gr; g.fillRect(mx - 170, my - 170, 340, 340); g.save(); g.shadowColor = 'rgba(255,230,170,0.8)'; g.shadowBlur = 24; ell(g, mx, my, 40, 40, '#fbf0cf'); g.restore(); }
-    ridgeFill(g, x => 300 - 60 * Math.exp(-(((x - 260) / 220) ** 2)) - 30 * Math.sin(x * 0.006 + 1), '#252c4a', 0, { sh: 'rgba(0,0,10,0.5)', rim: 0.3, rimCol: '#c9c6e0' });
-    // 땅: 밤의 마당
-    const gd = g.createLinearGradient(0, 380, 0, H); gd.addColorStop(0, '#3a3244'); gd.addColorStop(1, '#2a2430'); g.fillStyle = gd; g.fillRect(0, 380, W, H - 380);
-    fibers(g, 0, 384, W, H - 384, 700, R, 0.08, ['#8a7a90', '#000008']);
-    // 싸리 울타리 (왼쪽 뒤)
-    for (let x = 0; x < 470; x += 7) { const h = 58 + Math.sin(x * 0.3) * 6 + R() * 6; line(g, [x, 404, x + (R() - 0.5) * 3, 404 - h], R() < 0.5 ? '#4a3a30' : '#5a4636', 2.2); }
-    line(g, [0, 372, 470, 372], '#3a2c24', 3); line(g, [0, 392, 470, 392], '#3a2c24', 3);
-    // 감나무 (왼쪽): 굽은 줄기와 가지, 주홍빛 감
-    path(g, p => { p.moveTo(110, 410); p.quadraticCurveTo(96, 330, 130, 250); p.quadraticCurveTo(150, 200, 120, 150); p.lineTo(138, 148); p.quadraticCurveTo(170, 210, 150, 260); p.quadraticCurveTo(128, 330, 140, 410); p.closePath(); }, '#3a2a24', INK, 1.4);
-    for (const [x0, y0, x1, y1] of [[130, 250, 40, 190], [140, 210, 250, 150], [128, 170, 60, 110], [134, 160, 200, 90], [150, 260, 260, 236]]) { line(g, [x0, y0, x1, y1], INK, 6); line(g, [x0, y0, x1, y1], '#3a2a24', 4); }
-    for (let i = 0; i < 26; i++) { const x = 40 + R() * 230, y = 90 + R() * 160; ell(g, x, y, 7, 4, '#2a4038', null, 0, R() * 3); }
-    for (let i = 0; i < 14; i++) { const x = 50 + R() * 210, y = 100 + R() * 150; ell(g, x, y, 6.5, 6, '#e07a2a', INK, 1); ell(g, x - 2, y - 2, 2, 1.6, 'rgba(255,220,160,0.7)'); line(g, [x - 3, y - 6, x + 3, y - 6], '#2a4038', 2); }
+    const R = rng(808), S2 = PSTROKE;
+    // 하늘과 달
+    g.fillStyle = VG(g, 0, 420, [[0, '#0a0e22'], [0.55, '#1d2244'], [1, '#3a3558']]); g.fillRect(0, 0, W, 430);
+    for (let i = 0; i < 180; i++) DAB(g, R() * W, R() * 300, 0.5 + R() * 1.1, 0.5 + R() * 1.1, '#f4f0e0', 0.2 + R() * 0.6);
+    { const mx = 1150, my = 86; for (const [r, a] of [[260, 0.14], [150, 0.22]]) { const gr = g.createRadialGradient(mx, my, 36, mx, my, r); gr.addColorStop(0, `rgba(255,240,205,${a})`); gr.addColorStop(1, 'rgba(255,240,205,0)'); g.globalAlpha = 1; g.fillStyle = gr; g.fillRect(mx - r, my - r, r * 2, r * 2); }
+      const md = g.createRadialGradient(mx - 12, my - 14, 4, mx, my, 40); md.addColorStop(0, '#fffbea'); md.addColorStop(1, '#e8dab4'); g.fillStyle = md; g.beginPath(); g.arc(mx, my, 40, 0, TAU); g.fill();
+      for (const [dx, dy, rx] of [[-12, -6, 10], [8, 10, 12], [14, -14, 6]]) DAB(g, mx + dx, my + dy, rx, rx * 0.8, '#bfae86', 0.18); }
+    for (const [x, y, w] of [[300, 70, 300], [800, 46, 240], [1010, 160, 200]]) { for (let k = 0; k < 14; k++) DAB(g, x + (k - 7) * w * 0.07, y + Math.sin(k * 1.3) * 3, w * 0.14, w * 0.022, '#2e3460', 0.35); for (let k = 0; k < 10; k++) DAB(g, x + (k - 5) * w * 0.08, y + 4 + Math.sin(k) * 2, w * 0.1, w * 0.01, '#9a9cc8', 0.25); }
+    MOUNT(g, x => 300 - 70 * Math.exp(-(((x - 260) / 240) ** 2)) - 44 * Math.exp(-(((x - 900) / 260) ** 2)) - 8 * Math.sin(x * 0.02), W, 360, '#283052', '#3a3a62', R, { h: 120, n: 140, mist: 46 });
+    MOUNT(g, x => 350 - 30 * Math.exp(-(((x - 120) / 200) ** 2)) - 22 * Math.sin(x * 0.008 + 1), W, 392, '#1c2238', '#3a3558', R, { h: 60, n: 100, mist: 30 });
+    // 마당: 밟혀 다져진 흙, 따뜻한 빛이 고이는 자리
+    g.globalAlpha = 1; g.fillStyle = VG(g, 380, H, [[0, '#3e3340'], [1, '#221a24']]); g.fillRect(0, 382, W, H - 382);
+    for (let i = 0; i < 2200; i++) { const x = R() * W, y = 386 + R() * 334; DAB(g, x, y, 3 + R() * 12, 1 + R() * 3, R() < 0.5 ? '#54444e' : '#2a2028', 0.25); }
+    for (let i = 0; i < 160; i++) { const x = R() * W, y = 392 + R() * 320; DAB(g, x + 0.8, y + 1, 2.2, 1.2, '#140e14', 0.4); DAB(g, x, y, 1.8, 1.1, '#6a5c66', 0.7); }
+    for (let i = 0; i < 70; i++) { const x = R() < 0.5 ? R() * 120 : 1160 + R() * 120, y = 400 + R() * 300; PTUFT(g, x, y, 0.9 + R() * 0.8, { grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R); }
+    // 싸리 울타리 (왼쪽 뒤): 가는 싸리 가지에 달빛 테
+    for (let x = 0; x < 470; x += 6) { const h = 62 + Math.sin(x * 0.3) * 6 + R() * 8; S2(g, [x, 406, x + (R() - 0.5) * 4, 406 - h], R() < 0.5 ? '#3e3028' : '#4e3c30', 2); if (R() < 0.4) S2(g, [x + 1, 404 - h * 0.5, x + 1, 406 - h], '#a8a4c8', 0.8, 0.35); }
+    for (const y of [372, 394]) { S2(g, [0, y, 470, y + 2], '#2a1e18', 3.4); S2(g, [0, y - 1, 470, y + 1], '#6a5040', 1, 0.6); }
+    // 감나무: 굽은 줄기, 붓 자국 잎, 달빛을 받는 주홍 감
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 140, 410, [[0, '#2e2420'], [1, '#1a1412']]); g.beginPath(); g.moveTo(102, 412); g.quadraticCurveTo(90, 330, 126, 250); g.quadraticCurveTo(146, 200, 118, 150); g.lineTo(140, 148); g.quadraticCurveTo(172, 210, 152, 262); g.quadraticCurveTo(130, 330, 146, 412); g.closePath(); g.fill();
+      for (let k = 0; k < 10; k++) S2(g, [112 + k * 3, 400 - k * 20, 116 + k * 3, 380 - k * 20], '#0e0a08', 1, 0.5); S2(g, [140, 380, 148, 260, 140, 160], '#8a86a8', 1.2, 0.35);
+      for (const [x0, y0, x1, y1, w] of [[130, 250, 40, 190, 7], [140, 210, 250, 150, 6], [128, 170, 60, 110, 5], [134, 160, 200, 90, 5], [150, 262, 270, 232, 5], [60, 110, 30, 80, 3], [200, 90, 240, 66, 3]]) S2(g, [x0, y0, (x0 + x1) / 2 + 6, (y0 + y1) / 2 - 8, x1, y1], '#241c18', w);
+      for (let i = 0; i < 240; i++) { const a = R() * TAU, d = Math.sqrt(R()), x = 150 + Math.cos(a) * 120 * d, y = 170 + Math.sin(a) * 80 * d; DAB(g, x, y, 4 + R() * 6, 2 + R() * 3, R() < 0.6 ? '#1e3028' : '#2e4434', 0.75, R() * 3); }
+      for (let i = 0; i < 40; i++) { const a = -0.3 - R() * 2.4, x = 150 + Math.cos(a) * 110, y = 170 + Math.sin(a) * 70; DAB(g, x, y, 3 + R() * 4, 1.4 + R() * 2, '#5f7a6a', 0.5); }
+      for (let i = 0; i < 22; i++) { const x = 50 + R() * 210, y = 96 + R() * 150; DAB(g, x, y, 7, 6.4, '#d96a22', 1); DAB(g, x + 1.5, y + 1.5, 5, 4.4, '#a8461a', 0.6); DAB(g, x - 2.4, y - 2.2, 2.2, 1.6, '#ffd8a0', 0.85); S2(g, [x - 3, y - 6, x + 3, y - 6], '#1e3028', 2); } }
     // 초가 주막
     const bx0 = 486, bx1 = 1236, base = 384;
-    part(g, RECT(bx0 - 6, base, bx1 - bx0 + 12, 22), '#7c7468', RECT(bx0 - 6, base + 14, bx1 - bx0 + 12, 8), { lw: 1.4 }); for (let x = bx0 + 40; x < bx1; x += 60) line(g, [x, base + 2, x, base + 20], 'rgba(20,16,14,0.5)', 1.2);
-    // 벽과 기둥
-    part(g, RECT(bx0, 236, bx1 - bx0, base - 236), '#d9c399', RECT(bx0, 330, bx1 - bx0, base - 330), { shc: '#5a3c26', lw: 1.4 });
-    const pillars = [bx0 + 6, 680, 870, 1050, bx1 - 14];
-    // 창호지 창 둘 (불빛)과 문
-    for (const [x0, w] of [[700, 150], [884, 150]]) { rr(g, x0, 254, w, 70, 2, '#f6d68a', '#3a2418', 3); g.save(); g.globalAlpha = 0.55; for (let k = 1; k < 6; k++) line(g, [x0 + k * w / 6, 256, x0 + k * w / 6, 322], '#8a5a30', 1.4); for (let k = 1; k < 3; k++) line(g, [x0 + 2, 254 + k * 23, x0 + w - 2, 254 + k * 23], '#8a5a30', 1.4); g.restore(); }
-    rr(g, 520, 250, 140, 128, 2, '#6a4428', '#2a1a10', 2.4); g.save(); g.globalAlpha = 0.6; for (let k = 1; k < 4; k++) line(g, [520 + k * 35, 252, 520 + k * 35, 376], '#3a2414', 1.4); for (let k = 1; k < 5; k++) line(g, [522, 250 + k * 26, 658, 250 + k * 26], '#3a2414', 1.4); g.restore();
-    rr(g, 1070, 254, 146, 70, 2, '#4a3a30', '#2a1a10', 2.4);
-    for (const x of pillars) { rr(g, x, 232, 14, base - 232, 2, '#7a4a2c', INK, 1.4); g.fillStyle = 'rgba(255,220,170,0.2)'; g.fillRect(x + 3, 236, 3, base - 240); }
+    // 돌 기단
+    g.globalAlpha = 1; g.fillStyle = '#4a4248'; g.fillRect(bx0 - 8, base, bx1 - bx0 + 16, 24);
+    for (let x = bx0 - 4; x < bx1 + 4;) { const w = 26 + R() * 22; PROCK(g, x + w / 2, base + 22, w, 14 + R() * 8, { rock: ['#8a8290', '#4a4250'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R); x += w - 2; }
+    // 흙벽과 나무 뼈대
+    g.fillStyle = VG(g, 236, base, [[0, '#d8c093'], [1, '#a88a62']]); g.fillRect(bx0, 236, bx1 - bx0, base - 236);
+    for (let i = 0; i < 500; i++) { const x = bx0 + R() * (bx1 - bx0), y = 240 + R() * (base - 244); DAB(g, x, y, 2 + R() * 6, 1 + R() * 2, R() < 0.5 ? '#c4a878' : '#e8d4aa', 0.35); }
+    const post = (x, y0, y1, w = 14) => { g.globalAlpha = 1; g.fillStyle = VG(g, y0, y1, [[0, '#6e4428'], [1, '#3a2216']]); g.fillRect(x, y0, w, y1 - y0); S2(g, [x + w * 0.3, y0 + 4, x + w * 0.3, y1 - 4], '#9a6a44', 1.4, 0.5); for (let k = 0; k < 4; k++) S2(g, [x + 2 + R() * (w - 4), y0 + R() * (y1 - y0), x + 2 + R() * (w - 4), y0 + R() * (y1 - y0) + 20], '#2a1810', 0.8, 0.5); };
+    for (const x of [bx0 + 4, 676, 866, 1052, bx1 - 18]) post(x, 232, base);
+    for (const y of [236, 334]) { g.fillStyle = VG(g, y, y + 10, [[0, '#7a4c2e'], [1, '#3e2418']]); g.fillRect(bx0, y, bx1 - bx0, 10); S2(g, [bx0, y + 2, bx1, y + 2], '#a87850', 1, 0.5); }
+    // 창호지 창 둘: 따뜻한 등불빛과 띠살, 그 너머 술손님 그림자
+    for (const [x0, w, n] of [[700, 150, 0], [884, 150, 1]]) {
+      const wg = g.createRadialGradient(x0 + w / 2, 290, 10, x0 + w / 2, 290, 110); wg.addColorStop(0, '#ffeab4'); wg.addColorStop(1, '#e6b064'); g.globalAlpha = 1; g.fillStyle = wg; g.fillRect(x0, 252, w, 74);
+      // 그림자: 갓 쓴 손님이 잔을 들고, 맞은편 손님이 고개를 숙인다
+      g.fillStyle = 'rgba(90,50,24,0.55)'; const sx = x0 + (n ? 44 : 104);
+      g.beginPath(); g.ellipse(sx, 300, 12, 13, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(sx, 289, 20, 4, 0, 0, TAU); g.fill(); g.fillRect(sx - 6, 279, 12, 10); g.beginPath(); g.moveTo(sx - 22, 326); g.quadraticCurveTo(sx - 20, 306, sx, 304); g.quadraticCurveTo(sx + 20, 306, sx + 22, 326); g.fill();
+      if (n) { g.beginPath(); g.ellipse(sx + 22, 306, 4, 6, 0.4, 0, TAU); g.fill(); g.fillRect(sx + 14, 310, 10, 4); } else { g.beginPath(); g.ellipse(x0 + 42, 306, 11, 12, 0.3, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x0 + 20, 326); g.quadraticCurveTo(x0 + 26, 312, x0 + 46, 312); g.quadraticCurveTo(x0 + 62, 316, x0 + 64, 326); g.fill(); }
+      g.globalAlpha = 0.7; for (let k = 1; k < 10; k++) S2(g, [x0 + k * w / 10, 253, x0 + k * w / 10, 325], '#7a4a26', 1.1); for (const yy of [268, 290, 312]) { S2(g, [x0, yy, x0 + w, yy], '#7a4a26', 1.1); S2(g, [x0, yy + 4, x0 + w, yy + 4], '#7a4a26', 1.1); }
+      g.globalAlpha = 1; g.strokeStyle = '#3a2216'; g.lineWidth = 4; g.strokeRect(x0, 252, w, 74);
+    }
+    // 판자문: 반쯤 열려 안쪽 불빛이 새어 나온다
+    { g.globalAlpha = 1; const ig = g.createLinearGradient(520, 0, 660, 0); ig.addColorStop(0, '#ffd890'); ig.addColorStop(1, '#c88a40'); g.fillStyle = ig; g.fillRect(520, 250, 140, 128);
+      g.fillStyle = 'rgba(120,70,30,0.5)'; g.fillRect(560, 300, 60, 78); g.fillStyle = VG(g, 250, 378, [[0, '#6a4228'], [1, '#3e2416']]); g.fillRect(520, 250, 74, 128); for (let k = 1; k < 4; k++) S2(g, [520 + k * 18.5, 252, 520 + k * 18.5, 376], '#2a1810', 1.2, 0.7); S2(g, [524, 290, 590, 290], '#2a1810', 2); S2(g, [524, 340, 590, 340], '#2a1810', 2); DAB(g, 586, 314, 2.4, 2.4, '#c8a048', 1);
+      g.strokeStyle = '#2e1a10'; g.lineWidth = 5; g.strokeRect(518, 248, 144, 132); }
+    // 오른쪽 덧문 닫힌 방
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 254, 324, [[0, '#4a3628'], [1, '#2e2018']]); g.fillRect(1070, 254, 146, 70); for (let k = 1; k < 6; k++) S2(g, [1070 + k * 24, 256, 1070 + k * 24, 322], '#1a100a', 1.2, 0.7); g.strokeStyle = '#2e1a10'; g.lineWidth = 4; g.strokeRect(1070, 254, 146, 70); }
+    // 벽에 매단 마늘 타래와 시래기
+    for (let k = 0; k < 7; k++) { const y = 248 + k * 10; DAB(g, 1238 - 4, y, 6, 5, '#f0e6d0', 1); DAB(g, 1238 - 6, y - 1, 2, 2, '#ffffff', 0.7); } S2(g, [1234, 244, 1234, 318], '#8a7040', 1.6);
     // 툇마루
-    part(g, RECT(bx0 + 10, 350, bx1 - bx0 - 20, 12), '#9a6a3c', RECT(bx0 + 10, 358, bx1 - bx0 - 20, 4), { lw: 1.4 }); for (let x = bx0 + 60; x < bx1 - 40; x += 120) rr(g, x, 362, 10, 22, 1, '#6a4428', INK, 1);
-    // 초가지붕: 둥글게 부풀고 새끼줄을 그물처럼 얽었다
-    const roof = p => { p.moveTo(bx0 - 46, 246); p.quadraticCurveTo(bx0 - 30, 160, bx0 + 70, 140); p.lineTo(bx1 - 70, 140); p.quadraticCurveTo(bx1 + 30, 160, bx1 + 46, 246); p.quadraticCurveTo((bx0 + bx1) / 2, 268, bx0 - 46, 246); p.closePath(); };
-    part(g, roof, '#c9a66a', p => { p.moveTo(bx0 - 46, 246); p.quadraticCurveTo((bx0 + bx1) / 2, 268, bx1 + 46, 246); p.lineTo(bx1 + 40, 222); p.quadraticCurveTo((bx0 + bx1) / 2, 240, bx0 - 40, 222); p.closePath(); }, { hi: p => { p.moveTo(bx0 + 70, 142); p.lineTo(bx1 - 70, 142); p.lineTo(bx1 - 80, 158); p.lineTo(bx0 + 80, 158); p.closePath(); }, hk: 0.2, lw: 1.8 });
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 348, 364, [[0, '#a8743e'], [1, '#6e4628']]); g.fillRect(bx0 + 10, 348, bx1 - bx0 - 20, 14); for (let x = bx0 + 14; x < bx1 - 14; x += 38) S2(g, [x, 349, x, 361], '#4a2c18', 1, 0.7); S2(g, [bx0 + 10, 349, bx1 - 10, 349], '#e0b07a', 1.2, 0.6);
+      for (let x = bx0 + 60; x < bx1 - 40; x += 120) { g.fillStyle = '#4a2c18'; g.fillRect(x, 362, 10, 22); } }
+    // 초가지붕: 짚 결을 수없이 겹쳐 칠하고, 새끼줄 그물, 처마 끝 짚 술, 위의 용마름과 달빛 테
+    const roof = p => { p.moveTo(bx0 - 50, 246); p.quadraticCurveTo(bx0 - 32, 156, bx0 + 70, 136); p.lineTo(bx1 - 70, 136); p.quadraticCurveTo(bx1 + 32, 156, bx1 + 50, 246); p.quadraticCurveTo((bx0 + bx1) / 2, 270, bx0 - 50, 246); p.closePath(); };
+    g.globalAlpha = 1; g.beginPath(); roof(g); g.fillStyle = VG(g, 136, 270, [[0, '#d8b46c'], [0.6, '#b08a4a'], [1, '#6e5228']]); g.fill();
     g.save(); g.beginPath(); roof(g); g.clip();
-    for (let i = 0; i < 160; i++) { const x = bx0 - 40 + R() * (bx1 - bx0 + 80), y = 150 + R() * 110; line(g, [x, y, x + (R() - 0.5) * 6, y + 10 + R() * 10], 'rgba(120,90,40,0.4)', 1); }
-    for (let x = bx0 - 120; x < bx1 + 120; x += 46) { line(g, [x, 140, x + 120, 268], 'rgba(90,64,30,0.6)', 1.4); line(g, [x + 120, 140, x, 268], 'rgba(90,64,30,0.6)', 1.4); }
+    for (let i = 0; i < 2600; i++) { const x = bx0 - 50 + R() * (bx1 - bx0 + 100), y = 136 + R() * 134, l = 6 + R() * 12, c = R(); S2(g, [x, y, x + (x - (bx0 + bx1) / 2) * 0.01 + (R() - 0.5) * 3, y + l], c < 0.4 ? '#8a6830' : c < 0.75 ? '#e2c27e' : '#6a4c22', 0.9 + R() * 0.6, 0.45); }
+    for (let x = bx0 - 160; x < bx1 + 160; x += 44) { S2(g, [x, 136, x + 70, 200, x + 130, 270], '#5a4020', 1.6, 0.5); S2(g, [x + 130, 136, x + 60, 200, x, 270], '#5a4020', 1.6, 0.5); }
+    { const sh = g.createLinearGradient(0, 220, 0, 272); sh.addColorStop(0, 'rgba(40,24,10,0)'); sh.addColorStop(1, 'rgba(40,24,10,0.55)'); g.fillStyle = sh; g.fillRect(bx0 - 60, 220, bx1 - bx0 + 120, 60); }
     g.restore();
-    curve(g, p => { p.moveTo(bx0 - 46, 246); p.quadraticCurveTo((bx0 + bx1) / 2, 268, bx1 + 46, 246); }, '#8a6a3a', 2.4);
-    for (let x = bx0 - 40; x < bx1 + 40; x += 9) line(g, [x, 247 + Math.sin((x - bx0) / (bx1 - bx0) * Math.PI) * 18, x + 1, 256 + Math.sin((x - bx0) / (bx1 - bx0) * Math.PI) * 18], 'rgba(120,90,40,0.6)', 1.2);
-    // 창의 불빛이 마당에 고인다
-    for (const x of [775, 959]) { const gr = g.createRadialGradient(x, 420, 10, x, 420, 170); gr.addColorStop(0, 'rgba(255,200,120,0.28)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gr; g.fillRect(x - 170, 330, 340, 260); }
-    // 용수 간판: 대나무 장대 끝에 대로 엮은 용수와 붉은 헝겊을 매단다 (주막이라는 표시)
-    line(g, [458, 410, 452, 120], INK, 6); line(g, [458, 410, 452, 120], '#9a8a4a', 3.6); for (let y = 140; y < 400; y += 34) line(g, [449, y, 458, y], '#6a5a2a', 1.4);
-    line(g, [452, 124, 392, 132], INK, 4.4); line(g, [452, 124, 392, 132], '#9a8a4a', 2.4); line(g, [396, 132, 396, 146], '#5a4030', 1.6);
-    part(g, p => { p.moveTo(384, 146); p.lineTo(408, 146); p.lineTo(416, 232); p.quadraticCurveTo(396, 242, 376, 232); p.closePath(); }, '#c9a65a', RECT(398, 146, 20, 96), { lw: 1.4 }); for (let y = 156; y < 232; y += 9) line(g, [384 - (y - 146) * 0.09, y, 408 + (y - 146) * 0.09, y + 2], 'rgba(110,80,30,0.6)', 1); for (let k = 0; k < 4; k++) line(g, [389 + k * 5, 148, 383 + k * 9, 236], 'rgba(110,80,30,0.45)', 0.9);
-    path(g, P(404, 232, 412, 232, 418, 270, 408, 266), '#c8402f', INK, 1);
-    // 장독대 (오른쪽 앞)
-    part(g, RECT(1076, 436, 196, 18), '#7c7468', null, { lw: 1.4 });
-    for (const [x, s] of [[1110, 1.1], [1160, 1.3], [1216, 1.15], [1134, 0.7], [1246, 0.75]]) { const y = 438; part(g, p => { p.moveTo(x - 14 * s, y); p.quadraticCurveTo(x - 26 * s, y - 26 * s, x - 14 * s, y - 44 * s); p.lineTo(x + 14 * s, y - 44 * s); p.quadraticCurveTo(x + 26 * s, y - 26 * s, x + 14 * s, y); p.closePath(); }, '#5a3420', E(x + 10 * s, y - 22 * s, 12 * s, 22 * s), { hi: E(x - 9 * s, y - 28 * s, 3 * s, 9 * s), hk: 0.4, lw: 1.4 }); part(g, E(x, y - 46 * s, 15 * s, 5 * s), '#4a2a18', null, { lw: 1.2 }); }
-    // 아궁이 화덕과 가마솥 받침 (불과 김은 매 장면)
-    part(g, p => { p.moveTo(560, 452); p.lineTo(560, 418); p.quadraticCurveTo(600, 400, 640, 418); p.lineTo(640, 452); p.closePath(); }, '#7c7468', null, { lw: 1.4 }); for (const [x, y] of [[572, 428], [598, 418], [622, 428], [578, 444], [618, 444]]) ell(g, x, y, 9, 6, 'rgba(60,50,44,0.5)');
-    ell(g, 600, 446, 16, 8, '#1a0e08');
-    // 평상
-    part(g, P(70, 512, 740, 512, 760, 548, 50, 548), '#a2703e', null, { lw: 1.8 }); for (let x = 90; x < 740; x += 46) line(g, [x, 513, x - 8, 547], 'rgba(60,36,20,0.5)', 1.2);
-    part(g, RECT(50, 548, 710, 16), '#7a4a2c', null, { lw: 1.6 }); for (const x of [64, 400, 736]) rr(g, x - 7, 564, 14, 34, 2, '#5a3820', INK, 1.4);
-    g.save(); g.globalAlpha = 0.4; ell(g, 400, 604, 380, 14, '#0a0610'); g.restore();
+    // 용마름: 지붕 꼭대기를 덮은 엮은 짚
+    { g.globalAlpha = 1; g.fillStyle = '#c8a462'; g.fillRect(bx0 + 70, 130, bx1 - bx0 - 140, 12); for (let x = bx0 + 72; x < bx1 - 72; x += 8) { S2(g, [x, 131, x + 6, 141], '#7a5a2a', 1.4, 0.8); S2(g, [x + 6, 131, x, 141], '#e8cc8a', 0.9, 0.6); } }
+    // 처마 끝 짚 술과 달빛 테
+    for (let x = bx0 - 46; x < bx1 + 46; x += 4) { const yb = 246 + Math.sin(clamp((x - bx0 + 50) / (bx1 - bx0 + 100), 0, 1) * Math.PI) * 22; S2(g, [x, yb - 4, x + (R() - 0.5) * 2, yb + 6 + R() * 6], R() < 0.5 ? '#8a6a34' : '#b8925a', 1.2, 0.9); }
+    { g.beginPath(); for (let x = bx0 + 70; x <= bx1 + 20; x += 6) { const u = (x - (bx1 - 70)) / 100, y = x < bx1 - 70 ? 136 : 136 + Math.max(0, u) * Math.max(0, u) * 100; if (x === bx0 + 70) g.moveTo(x, y); else g.lineTo(x, y); } g.globalAlpha = 0.5; g.strokeStyle = '#d8dcff'; g.lineWidth = 1.6; g.stroke(); g.globalAlpha = 1; }
+    // 처마에 매단 붉은 고추 줄
+    for (const [cx, n] of [[640, 9], [1012, 7]]) { const top = 262; S2(g, [cx, top - 8, cx, top + n * 9], '#6a5030', 1.4); for (let k = 0; k < n; k++) { const y = top + k * 9; DAB(g, cx - 4, y, 6, 2.2, '#c02a1a', 1, 0.5); DAB(g, cx + 4, y + 4, 6, 2.2, '#a82014', 1, -0.5); DAB(g, cx - 5, y - 1, 2, 0.8, '#ff8a6a', 0.8, 0.5); } }
+    // 굴뚝 (오른쪽 끝, 돌과 흙)
+    for (let k = 0; k < 6; k++) PROCK(g, 1262 + (k % 2) * 3, 384 - k * 14, 26, 14, { rock: ['#7a7280', '#4a4250'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R);
+    // 창과 문의 불빛이 마당에 고인다
+    for (const [x, y, r, a] of [[775, 420, 190, 0.26], [959, 420, 190, 0.26], [590, 410, 160, 0.2]]) { const gr = g.createRadialGradient(x, y, 10, x, y, r); gr.addColorStop(0, `rgba(255,196,120,${a})`); gr.addColorStop(1, 'rgba(255,196,120,0)'); g.globalAlpha = 1; g.fillStyle = gr; g.fillRect(x - r, y - r * 0.6, r * 2, r * 1.6); }
+    // 용수 간판: 대나무 장대 끝에 대로 엮은 용수와 붉은 헝겊
+    { g.globalAlpha = 1; for (let y = 120; y < 410; y += 30) { g.fillStyle = VG(g, y, y + 30, [[0, '#a89a52'], [1, '#6a6028']]); g.fillRect(450, y, 8, 29); S2(g, [449, y + 29, 459, y + 29], '#3a3418', 1.6); } S2(g, [452, 124, 392, 132], '#6a6028', 3.4);
+      const yg = g.createLinearGradient(376, 0, 416, 0); yg.addColorStop(0, '#8a6a30'); yg.addColorStop(0.5, '#e0c072'); yg.addColorStop(1, '#8a6a30'); g.fillStyle = yg; g.beginPath(); g.moveTo(384, 146); g.lineTo(408, 146); g.lineTo(416, 232); g.quadraticCurveTo(396, 244, 376, 232); g.closePath(); g.fill();
+      for (let y = 152; y < 236; y += 7) S2(g, [382 - (y - 146) * 0.09, y, 410 + (y - 146) * 0.07, y + 2], '#6a4c20', 1, 0.8); for (let x = 382; x < 414; x += 6) S2(g, [x, 148, x + (x - 396) * 0.1, 236], '#5a3c18', 0.8, 0.5);
+      S2(g, [396, 132, 396, 146], '#3a2a18', 1.6); g.fillStyle = '#c8302a'; g.beginPath(); g.moveTo(404, 234); g.quadraticCurveTo(420, 252, 414, 276); g.lineTo(406, 270); g.quadraticCurveTo(410, 250, 398, 238); g.closePath(); g.fill(); }
+    // 장작더미 (아궁이 왼쪽)
+    for (let k = 0; k < 12; k++) { const row = Math.floor(k / 4), cx = 506 + (k % 4) * 15 + (row % 2) * 7, cy = 446 - row * 12; g.globalAlpha = 1; g.fillStyle = VG(g, cy - 6, cy + 6, [[0, '#5a3a22'], [1, '#2e1c10']]); g.fillRect(cx - 30, cy - 6, 30, 12); S2(g, [cx - 28, cy - 3, cx - 4, cy - 3], '#7a5434', 0.8, 0.7); DAB(g, cx, cy, 6.6, 6, '#3e2616', 1); DAB(g, cx, cy, 5.4, 5, '#d0a874', 1); g.beginPath(); g.arc(cx, cy, 3.2, 0, TAU); g.strokeStyle = '#a07a48'; g.lineWidth = 0.8; g.stroke(); DAB(g, cx, cy, 1, 1, '#7a5434', 1); }
+    // 아궁이: 둥근 돌로 쌓은 화덕 (불과 가마솥은 매 장면)
+    for (const [dx, dy, w] of [[-36, 4, 26], [36, 4, 26], [-30, -18, 24], [30, -18, 24], [-14, -30, 22], [14, -30, 22], [0, -34, 18]]) PROCK(g, 600 + dx, 452 + dy, w, w * 0.7, { rock: ['#7a7280', '#3e3640'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R);
+    DAB(g, 600, 446, 18, 9, '#140a08', 1);
+    // 장독대: 돌 단 위 옹기 (유약의 윤기)
+    { g.globalAlpha = 1; g.fillStyle = '#5a5258'; g.fillRect(1076, 436, 196, 18); for (let x = 1078; x < 1270; x += 24) PROCK(g, x + 12, 456, 24, 10, { rock: ['#8a8290', '#4a4250'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R);
+      for (const [x, s] of [[1110, 1.1], [1160, 1.3], [1216, 1.15], [1134, 0.7], [1246, 0.75]]) { const y = 438; DAB(g, x, y + 1, 18 * s, 4 * s, '#140e10', 0.6);
+        g.fillStyle = VG(g, y - 44 * s, y, [[0, '#6a3a22'], [0.6, '#4a2414'], [1, '#2a140c']]); g.beginPath(); g.moveTo(x - 12 * s, y); g.quadraticCurveTo(x - 26 * s, y - 24 * s, x - 13 * s, y - 42 * s); g.lineTo(x + 13 * s, y - 42 * s); g.quadraticCurveTo(x + 26 * s, y - 24 * s, x + 12 * s, y); g.closePath(); g.fill();
+        S2(g, [x - 12 * s, y - 34 * s, x - 16 * s, y - 14 * s], '#e8c8a0', 2 * s, 0.45); DAB(g, x, y - 43 * s, 15 * s, 4 * s, '#3a2014', 1); DAB(g, x - 3 * s, y - 45 * s, 8 * s, 1.6 * s, '#a87a5a', 0.6); } }
+    // 평상: 판자에 왕골 돗자리를 깔았다
+    { g.globalAlpha = 1; g.fillStyle = '#5a3820'; for (const x of [64, 400, 736]) g.fillRect(x - 7, 560, 14, 40); g.fillStyle = VG(g, 548, 566, [[0, '#8a5a30'], [1, '#5a3820']]); g.fillRect(50, 548, 710, 16); S2(g, [50, 549, 760, 549], '#c08a58', 1.2, 0.7);
+      g.beginPath(); g.moveTo(70, 512); g.lineTo(740, 512); g.lineTo(760, 548); g.lineTo(50, 548); g.closePath(); g.fillStyle = VG(g, 512, 548, [[0, '#d8bf82'], [1, '#b09656']]); g.fill();
+      g.save(); g.clip(); for (let x = 40; x < 780; x += 5) S2(g, [x, 512, x - 10, 548], '#9a7c44', 0.8, 0.5); for (let y = 515; y < 548; y += 4) S2(g, [40, y, 780, y], '#e8d098', 0.6, 0.35); g.restore();
+      g.strokeStyle = '#6a3a22'; g.lineWidth = 3; g.beginPath(); g.moveTo(70, 512); g.lineTo(740, 512); g.lineTo(760, 548); g.lineTo(50, 548); g.closePath(); g.stroke();
+      DAB(g, 405, 606, 380, 14, '#0a0610', 0.4); }
+    // 가장자리를 어둡게
+    g.globalAlpha = 1; const vg = g.createRadialGradient(W / 2, H * 0.55, 300, W / 2, H * 0.55, 820); vg.addColorStop(0, 'rgba(0,0,10,0)'); vg.addColorStop(1, 'rgba(0,0,10,0.5)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
   });
   return TBG;
 }
@@ -285,26 +331,63 @@ const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전
 // 고를 것은 셋: 평상 위 국밥(쉰다) · 마당의 목인(수련) · 술상(잔치). 보따리와 병법서는 평상 위의 살림살이로만 둔다
 const TAV_SPOT = { rest: [560, 518], train: [870, 592], feast: [1160, 598] };
 const PLAQUE_X = { rest: 560, train: 870, feast: 1160 };
+// 조각보 보따리: 여러 빛깔 천 조각을 이어 붙인 보자기로 싸서, 위에서 두 귀를 묶었다
+export function bojagi(g, x, y, s = 1, R = rng(31), peek = null) {
+  const cols = ['#b8322a', '#2f4d7e', '#e0b23c', '#3f6b5c', '#f3e6c4', '#c8587a', '#5a3a6a'];
+  DAB(g, x + 3 * s, y, 48 * s, 9 * s, '#0a0610', 0.4);
+  const body = p => { p.moveTo(x - 44 * s, y - 2 * s); p.quadraticCurveTo(x - 50 * s, y - 40 * s, x - 18 * s, y - 50 * s); p.lineTo(x + 18 * s, y - 50 * s); p.quadraticCurveTo(x + 50 * s, y - 40 * s, x + 44 * s, y - 2 * s); p.quadraticCurveTo(x, y + 6 * s, x - 44 * s, y - 2 * s); p.closePath(); };
+  if (peek) peek(g, x, y - 52 * s);   // 보자기 틈으로 삐져나온 것들 (장터의 패 묶음)
+  g.save(); g.beginPath(); body(g); g.clip();
+  const cw = 16 * s; for (let gx = x - 52 * s, i = 0; gx < x + 52 * s; gx += cw, i++) for (let gy = y - 56 * s, j = 0; gy < y + 8 * s; gy += cw * 0.8, j++) { g.globalAlpha = 1; g.fillStyle = cols[(i * 3 + j * 5) % cols.length]; g.fillRect(gx, gy, cw + 0.5, cw * 0.8 + 0.5); g.strokeStyle = 'rgba(250,240,220,0.55)'; g.lineWidth = 0.8; g.setLineDash([2, 2]); g.strokeRect(gx + 1, gy + 1, cw - 2, cw * 0.8 - 2); g.setLineDash([]); }
+  // 둥근 몸통의 그늘과 빛, 접힌 주름
+  const sh = g.createRadialGradient(x - 16 * s, y - 34 * s, 4 * s, x, y - 20 * s, 60 * s); sh.addColorStop(0, 'rgba(255,255,255,0.25)'); sh.addColorStop(0.6, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.45)'); g.fillStyle = sh; g.fillRect(x - 60 * s, y - 60 * s, 120 * s, 70 * s);
+  for (const [a, b] of [[-30, -46], [26, -46], [-4, -48]]) PSTROKE(g, [x + a * s, y + b * s, x + a * 0.6 * s, y - 14 * s], 'rgba(40,20,10,0.4)', 1.4 * s);
+  g.restore();
+  g.beginPath(); body(g); g.globalAlpha = 1; g.strokeStyle = '#2a1810'; g.lineWidth = 1.6; g.stroke();
+  // 묶은 매듭과 두 귀
+  g.fillStyle = '#b8322a'; g.beginPath(); g.moveTo(x - 6 * s, y - 50 * s); g.quadraticCurveTo(x - 30 * s, y - 70 * s, x - 22 * s, y - 80 * s); g.quadraticCurveTo(x - 10 * s, y - 70 * s, x, y - 54 * s); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#2f4d7e'; g.beginPath(); g.moveTo(x + 6 * s, y - 50 * s); g.quadraticCurveTo(x + 32 * s, y - 66 * s, x + 26 * s, y - 78 * s); g.quadraticCurveTo(x + 12 * s, y - 68 * s, x, y - 54 * s); g.closePath(); g.fill(); g.stroke();
+  DAB(g, x, y - 53 * s, 9 * s, 7 * s, '#e0b23c', 1); g.beginPath(); g.ellipse(x, y - 53 * s, 9 * s, 7 * s, 0, 0, TAU); g.stroke(); PSTROKE(g, [x - 5 * s, y - 55 * s, x + 4 * s, y - 51 * s], '#8a6a1c', 1.2 * s);
+  g.globalAlpha = 1;
+}
+// 고르는 물건들 (원점 = 바닥 가운데). 붓으로 칠한 결과 윤기
 function tavernThing(g, id, x, y, t, on) {
-  if (id === 'rest') { // 소반 위 국밥 한 그릇, 김이 오른다
-    rr(g, x - 6, y - 22, 12, 22, 2, '#6a4428', INK, 1.2); part(g, E(x, y - 26, 46, 11), '#8a5a30', null, { lw: 1.4 });
-    part(g, p => { p.moveTo(x - 26, y - 36); p.quadraticCurveTo(x - 24, y - 16, x, y - 16); p.quadraticCurveTo(x + 24, y - 16, x + 26, y - 36); p.closePath(); }, '#efe6cf', null, { lw: 1.4 }); ell(g, x, y - 36, 26, 7, '#c98a4a', INK, 1.2); ell(g, x - 8, y - 37, 5, 2, '#f3ecdd'); ell(g, x + 7, y - 36, 4, 2, '#7a9a5a');
-    for (let k = 0; k < 3; k++) { const ph = t * 1.4 + k * 2.1, a = 0.35 * (0.5 + 0.5 * Math.sin(ph)); g.globalAlpha = a; curve(g, p => { const sx = x - 10 + k * 10; p.moveTo(sx, y - 46); p.quadraticCurveTo(sx - 8 + Math.sin(ph) * 4, y - 62, sx + 2, y - 76); p.quadraticCurveTo(sx + 10, y - 88, sx + 2, y - 100); }, '#f6efe0', 2.4); } g.globalAlpha = 1;
-  } else if (id === 'supply') { // 주모가 싸 준 보따리
-    part(g, p => { p.moveTo(x - 40, y - 4); p.quadraticCurveTo(x - 44, y - 44, x - 8, y - 50); p.lineTo(x + 8, y - 50); p.quadraticCurveTo(x + 44, y - 44, x + 40, y - 4); p.closePath(); }, '#a8322a', E(x + 16, y - 24, 22, 26), { lw: 1.4 }); for (let i = 0; i < 6; i++) ell(g, x - 26 + i * 10, y - 26 + (i % 2) * 9, 2.2, 2.2, '#f3dca0');
-    part(g, p => { p.moveTo(x - 8, y - 50); p.lineTo(x - 20, y - 68); p.lineTo(x - 2, y - 58); p.lineTo(x + 8, y - 72); p.lineTo(x + 8, y - 50); p.closePath(); }, '#a8322a', null, { lw: 1.2 });
-  } else if (id === 'study') { // 등잔불 아래 병법서
-    for (let k = 0; k < 3; k++) rr(g, x - 34 + k * 2, y - 12 - k * 10, 50, 10, 2, ['#2f4d7e', '#8a2a26', '#3f6b5c'][k], INK, 1.2); rr(g, x - 30, y - 40, 44, 6, 1, '#efe6cf', INK, 0.8);
-    rr(g, x + 26, y - 8, 22, 8, 2, '#6a4428', INK, 1); line(g, [x + 37, y - 8, x + 37, y - 46], '#6a4428', 3); ell(g, x + 37, y - 48, 9, 4, '#8a6a4a', INK, 1); const f = 1 + Math.sin(t * 11) * 0.08; path(g, p => { p.moveTo(x + 37, y - 66 * f); p.quadraticCurveTo(x + 44, y - 54, x + 37, y - 50); p.quadraticCurveTo(x + 30, y - 54, x + 37, y - 66 * f); }, '#ffc85a', '#e0702a', 1); glow(g, x + 37, y - 58, 46, '255,200,120', 0.55);
-  } else if (id === 'train') { // 짚을 감은 목인
-    ell(g, x + 4, y + 2, 34, 8, 'rgba(10,6,16,0.4)'); rr(g, x - 9, y - 120, 18, 120, 3, '#8a5a30', INK, 1.4); rr(g, x - 40, y - 96, 80, 9, 3, '#6a4428', INK, 1.4); rr(g, x - 34, y - 64, 68, 8, 3, '#6a4428', INK, 1.4);
-    for (const yy of [y - 112, y - 82, y - 40]) { rr(g, x - 12, yy, 24, 14, 3, '#d9b24a', INK, 1.1); for (const dx of [-6, 0, 6]) line(g, [x + dx, yy + 2, x + dx + 1, yy + 12], 'rgba(110,80,30,0.6)', 0.8); }
-    g.save(); g.translate(x + 30, y - 10); g.rotate(-0.4); rr(g, -3, -70, 6, 70, 2, '#e2c48c', INK, 1.1); rr(g, -7, -2, 14, 4, 1, '#6a4428', INK, 0.9); g.restore();
-  } else if (id === 'feast') { // 술상: 호리병과 잔, 전 한 접시, 떡
-    ell(g, x + 4, y + 2, 66, 10, 'rgba(10,6,16,0.4)'); for (const dx of [-46, 46]) rr(g, x + dx - 5, y - 30, 10, 30, 2, '#5a3820', INK, 1.2); part(g, RECT(x - 62, y - 40, 124, 12), '#8a2a26', RECT(x - 62, y - 32, 124, 4), { lw: 1.4 });
-    part(g, p => { p.moveTo(x - 30, y - 40); p.quadraticCurveTo(x - 46, y - 56, x - 34, y - 70); p.quadraticCurveTo(x - 40, y - 82, x - 32, y - 92); p.lineTo(x - 26, y - 92); p.quadraticCurveTo(x - 18, y - 82, x - 24, y - 70); p.quadraticCurveTo(x - 12, y - 56, x - 28, y - 40); p.closePath(); }, '#efe6cf', null, { lw: 1.3 }); line(g, [x - 30, y - 74, x - 28, y - 74], '#2f4d7e', 3);
-    for (const dx of [-6, 8]) part(g, P(x + dx - 5, y - 52, x + dx + 5, y - 52, x + dx + 3, y - 40, x + dx - 3, y - 40), '#efe6cf', null, { lw: 1 });
-    part(g, E(x + 34, y - 44, 20, 6), '#efe6cf', null, { lw: 1.1 }); for (const [dx, dy] of [[-8, -2], [4, -3], [12, 0]]) ell(g, x + 34 + dx, y - 46 + dy, 6, 3, '#d9a04a', INK, 0.8);
+  const S2 = PSTROKE;
+  if (id === 'rest') { // 개다리소반 위 국밥 한 상: 백자 대접, 김치·나물 종지, 놋숟가락
+    DAB(g, x + 4, y - 1, 54, 7, '#0a0610', 0.4);
+    for (const dx of [-30, 30]) { g.globalAlpha = 1; g.strokeStyle = '#4a2a16'; g.lineWidth = 5; g.beginPath(); g.moveTo(x + dx * 0.8, y - 20); g.quadraticCurveTo(x + dx * 1.25, y - 12, x + dx * 1.05, y); g.stroke(); }
+    g.fillStyle = VG(g, y - 30, y - 18, [[0, '#8a3a22'], [1, '#4a1a10']]); g.beginPath(); g.ellipse(x, y - 24, 52, 12, 0, 0, TAU); g.fill(); g.strokeStyle = '#d8a944'; g.lineWidth = 1.6; g.stroke(); DAB(g, x - 18, y - 28, 20, 3, '#e8a080', 0.35);
+    // 종지 둘
+    for (const [dx, c] of [[-34, '#c8402a'], [34, '#5a8a3a']]) { DAB(g, x + dx, y - 27, 10, 4, '#f6f2e6', 1); DAB(g, x + dx, y - 29, 7, 2.6, c, 1); }
+    // 백자 대접과 국밥
+    g.fillStyle = VG(g, y - 46, y - 24, [[0, '#ffffff'], [1, '#d8dcd4']]); g.beginPath(); g.moveTo(x - 22, y - 44); g.quadraticCurveTo(x - 20, y - 24, x, y - 24); g.quadraticCurveTo(x + 20, y - 24, x + 22, y - 44); g.closePath(); g.fill(); g.strokeStyle = '#7a8a9a'; g.lineWidth = 1; g.stroke();
+    S2(g, [x - 19, y - 38, x + 19, y - 38], '#3a5aa8', 1.4, 0.8); DAB(g, x, y - 44, 22, 5, '#b8783a', 1); DAB(g, x - 4, y - 45, 12, 2.6, '#f4ecd8', 0.9); for (let k = 0; k < 6; k++) DAB(g, x - 12 + k * 5, y - 45 + (k % 2), 1.6, 1, '#5a9a3a', 1);
+    S2(g, [x + 26, y - 30, x + 46, y - 36], '#d8a944', 2.4); DAB(g, x + 26, y - 30, 4, 2.4, '#d8a944', 1); S2(g, [x + 20, y - 26, x + 48, y - 30], '#6a4a2a', 1.4); S2(g, [x + 22, y - 24, x + 50, y - 27], '#6a4a2a', 1.4);
+    for (let k = 0; k < 3; k++) { const ph = t * 1.4 + k * 2.1, a = 0.35 * (0.5 + 0.5 * Math.sin(ph)); g.globalAlpha = a; curve(g, p => { const sx = x - 10 + k * 10; p.moveTo(sx, y - 52); p.quadraticCurveTo(sx - 8 + Math.sin(ph) * 4, y - 70, sx + 2, y - 88 - k * 4); }, '#e8e4f0', 2.4); } g.globalAlpha = 1;
+  } else if (id === 'supply') bojagi(g, x, y, 0.9);
+  else if (id === 'study') { // 실로 맨 병법서 묶음과 등잔
+    for (let k = 0; k < 3; k++) { const by = y - 10 - k * 11, c = ['#2f4d7e', '#8a2a26', '#3f6b5c'][k]; g.globalAlpha = 1; g.fillStyle = '#efe6cf'; g.fillRect(x - 32 + k * 2, by - 1, 52, 11); g.fillStyle = c; g.fillRect(x - 34 + k * 2, by, 52, 9); for (let q = 0; q < 4; q++) S2(g, [x - 30 + k * 2 + q * 4, by, x - 30 + k * 2 + q * 4, by + 9], '#f3e6c4', 0.8); }
+    g.fillStyle = '#efe6cf'; g.fillRect(x - 26, y - 44, 40, 5); S2(g, [x - 20, y - 42, x + 8, y - 42], '#2a2a30', 0.8, 0.6);
+    g.fillStyle = '#5a3820'; g.fillRect(x + 28, y - 8, 20, 8); S2(g, [x + 38, y - 8, x + 38, y - 46], '#5a3820', 3); DAB(g, x + 38, y - 48, 9, 3.4, '#8a6a4a', 1);
+    const f = 1 + Math.sin(t * 11) * 0.08; glow(g, x + 38, y - 58, 28, '255,200,110', 0.5); DAB(g, x + 38, y - 56 * f, 3.4, 7 * f, '#ffb040', 1); DAB(g, x + 38, y - 54, 1.6, 3.6, '#fff4c0', 1);
+  } else if (id === 'train') { // 짚을 감은 목인: 팔 둘, 가슴에 붉은 과녁, 기대 놓은 목검
+    DAB(g, x + 4, y + 2, 38, 8, '#0a0610', 0.45);
+    for (const s2 of [-1, 1]) S2(g, [x, y - 6, x + s2 * 24, y + 2], '#4a2c18', 6);
+    g.globalAlpha = 1; g.fillStyle = VG(g, y - 124, y, [[0, '#8a5a34'], [1, '#4a2c18']]); g.fillRect(x - 10, y - 124, 20, 124); S2(g, [x - 4, y - 120, x - 4, y - 4], '#b88a5a', 1.6, 0.6);
+    for (const [yy, w] of [[y - 98, 86], [y - 66, 72]]) { g.fillStyle = VG(g, yy, yy + 10, [[0, '#7a4c2c'], [1, '#3e2414']]); g.fillRect(x - w / 2, yy, w, 10); DAB(g, x - w / 2, yy + 5, 4, 6, '#3e2414', 1); DAB(g, x + w / 2, yy + 5, 4, 6, '#3e2414', 1); }
+    for (const yy of [y - 116, y - 84, y - 44]) { g.fillStyle = VG(g, yy, yy + 16, [[0, '#e8c868'], [1, '#a8842e']]); g.fillRect(x - 13, yy, 26, 16); for (let q = 0; q < 6; q++) S2(g, [x - 12 + q * 4.6, yy + 1, x - 10 + q * 4.6, yy + 15], '#7a5a1e', 0.9, 0.7); }
+    DAB(g, x, y - 58, 9, 9, '#f3e6c4', 1); DAB(g, x, y - 58, 6, 6, '#c8302a', 1); DAB(g, x, y - 58, 2.4, 2.4, '#f3e6c4', 1);
+    g.save(); g.translate(x + 32, y - 6); g.rotate(-0.38); g.fillStyle = VG(g, -74, 0, [[0, '#e6c890'], [1, '#a07a48']]); g.fillRect(-3, -74, 6, 70); g.fillStyle = '#4a2c18'; g.fillRect(-8, -6, 16, 4); g.fillRect(-2.6, -4, 5.2, 12); g.restore();
+  } else if (id === 'feast') { // 붉은 옻칠 술상: 청화 백자 호리병, 잔 둘, 전 한 접시, 떡
+    DAB(g, x + 4, y + 2, 70, 10, '#0a0610', 0.45);
+    for (const dx of [-50, 50]) { g.globalAlpha = 1; g.fillStyle = '#4a1a10'; g.fillRect(x + dx - 5, y - 30, 10, 30); }
+    g.fillStyle = VG(g, y - 42, y - 28, [[0, '#b83a28'], [1, '#6a1a10']]); g.fillRect(x - 66, y - 42, 132, 12); g.fillStyle = '#d8a944'; g.fillRect(x - 66, y - 30, 132, 2); S2(g, [x - 64, y - 41, x + 64, y - 41], '#ff9a80', 1, 0.5);
+    // 호리병
+    g.fillStyle = VG(g, y - 96, y - 42, [[0, '#ffffff'], [1, '#d6dad4']]); g.beginPath(); g.moveTo(x - 32, y - 42); g.quadraticCurveTo(x - 50, y - 58, x - 36, y - 72); g.quadraticCurveTo(x - 42, y - 84, x - 34, y - 94); g.lineTo(x - 26, y - 94); g.quadraticCurveTo(x - 18, y - 84, x - 24, y - 72); g.quadraticCurveTo(x - 10, y - 58, x - 28, y - 42); g.closePath(); g.fill(); g.strokeStyle = '#7a8a9a'; g.lineWidth = 1; g.stroke();
+    for (const [dx, dy] of [[-34, -58], [-30, -64], [-36, -64]]) DAB(g, x + dx, y + dy, 3, 2, '#2f5aa8', 0.85); S2(g, [x - 40, y - 52, x - 22, y - 52], '#2f5aa8', 1, 0.7); DAB(g, x - 30, y - 96, 5, 2, '#8a2a26', 1); DAB(g, x - 38, y - 66, 2, 6, '#ffffff', 0.8);
+    for (const dx of [-4, 12]) { DAB(g, x + dx, y - 44, 6, 2, '#d6dad4', 1); g.fillStyle = '#f6f6f0'; g.beginPath(); g.moveTo(x + dx - 6, y - 52); g.lineTo(x + dx + 6, y - 52); g.lineTo(x + dx + 4, y - 44); g.lineTo(x + dx - 4, y - 44); g.closePath(); g.fill(); DAB(g, x + dx, y - 52, 6, 1.6, '#e8c890', 1); }
+    DAB(g, x + 38, y - 46, 22, 6, '#f6f2e6', 1); for (const [dx, dy] of [[-10, -2], [2, -4], [12, -1]]) { DAB(g, x + 38 + dx, y - 48 + dy, 7, 3.4, '#d89a3a', 1); DAB(g, x + 37 + dx, y - 49 + dy, 3, 1.2, '#ffe0a0', 0.8); DAB(g, x + 39 + dx, y - 48 + dy, 1.2, 1, '#3a7a2a', 1); }
+    for (let k = 0; k < 3; k++) DAB(g, x + 18 + k * 7, y - 58 - (k % 2) * 4, 4, 3, k % 2 ? '#f0c0c8' : '#f6f2e6', 1);
   }
   if (!on) { g.save(); g.globalAlpha = 0.5; ell(g, x, y - 40, 50, 46, 'rgba(20,16,24,0.5)'); g.restore(); }
 }
@@ -325,6 +408,9 @@ export class TavernOverlay extends Overlay {
     { const f = 0.8 + 0.2 * Math.sin(t * 13) * Math.sin(t * 7.1); glow(g, 600, 446, 50, '255,140,60', 0.7 * f); for (let k = 0; k < 3; k++) path(g, p => { const x = 590 + k * 10, h = (16 + k * 4) * (0.8 + 0.3 * Math.sin(t * 9 + k)); p.moveTo(x - 6, 452); p.quadraticCurveTo(x - 4, 452 - h * 0.6, x, 452 - h); p.quadraticCurveTo(x + 4, 452 - h * 0.6, x + 6, 452); p.closePath(); }, ['#ff9a2e', '#ffc85a', '#ff7a2e'][k]);
       part(g, p => { p.moveTo(566, 418); p.quadraticCurveTo(568, 446, 600, 448); p.quadraticCurveTo(632, 446, 634, 418); p.closePath(); }, '#1e1c22', null, { lw: 1.6 }); part(g, E(600, 416, 38, 9), '#2a2830', null, { lw: 1.4 }); ell(g, 600, 408, 8, 4, '#3a3840', INK, 1);
       for (let k = 0; k < 4; k++) { const ph = t * 0.8 + k * 1.6, yy = 400 - ((t * 22 + k * 30) % 120), a = 0.3 * (1 - (400 - yy) / 120); g.globalAlpha = Math.max(0, a); ell(g, 594 + k * 6 + Math.sin(ph) * 10, yy, 12 + (400 - yy) * 0.12, 7 + (400 - yy) * 0.06, '#d9d6e6'); } g.globalAlpha = 1; }
+    // 처마에 매단 청사초롱과 굴뚝 연기
+    for (const [lx, ly] of [[868, 262], [1150, 258]]) { glow(g, lx, ly + 22, 46 + Math.sin(t * 3 + lx) * 3, '255,170,90', 0.4); line(g, [lx, ly - 8, lx, ly], '#2a1a10', 1.2); chorong(g, lx, ly, 2); }
+    for (let k = 0; k < 6; k++) { const q = ((t * 0.12 + k / 6) % 1), sx = 1266 + Math.sin(q * 6 + k) * 8 - q * 30, sy = 300 - q * 180; g.globalAlpha = 0.22 * (1 - q); ell(g, sx, sy, 10 + q * 30, 7 + q * 18, '#b8b4c8'); } g.globalAlpha = 1;
     // 주모와 영웅
     const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
     puppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, noStick: true });
@@ -353,11 +439,12 @@ export class TavernOverlay extends Overlay {
     }
     // 주모의 옛이야기: 말풍선 한 마디씩
     if (tl && !this.result) {
-      const x = 470, y = 24, w = 580, h = 126;
-      rr(g, x + 3, y + 5, w, h, 16, 'rgba(10,6,16,0.4)'); rr(g, x, y, w, h, 16, '#fffaf0', INK, 2.2); poly(g, [x + 190, y + h - 2, x + 222, y + h - 2, x + 214, y + h + 26], '#fffaf0'); line(g, [x + 190, y + h - 1, x + 214, y + h + 26, x + 222, y + h - 1], INK, 2.2);
+      // 주모 머리 바로 위에 뜨는 말풍선 (꼬리가 주모를 가리킨다)
+      const x = 120, y = 250, w = 500, h = 112;
+      rr(g, x + 3, y + 5, w, h, 16, 'rgba(10,6,16,0.45)'); poly(g, [x + w - 70, y + h - 2, x + w - 36, y + h - 2, 656, 352], '#fffaf0'); line(g, [x + w - 70, y + h - 1, 656, 352, x + w - 36, y + h - 1], INK, 2.2); rr(g, x, y, w, h, 16, '#fffaf0', INK, 2.2); rr(g, x + 4, y + 4, w - 8, h - 8, 13, null, 'rgba(201,150,46,0.6)', 1.2); g.fillStyle = '#fffaf0'; g.fillRect(x + w - 68, y + h - 4, 30, 5);
       rr(g, x + 18, y + 14, 210, 26, 6, '#2f6f5c'); text(g, `옛이야기 〈${tl.title}〉`, x + 123, y + 27.5, { size: 15, fill: C.cream, maxW: 200 });
       if (this.tale.fresh) { rr(g, x + w - 148, y + 14, 130, 26, 6, '#b8742a'); text(g, `이야기책 ${this.tale.n}/${this.tale.of}`, x + w - 83, y + 27.5, { size: 13.5, fill: C.cream }); }
-      g.globalAlpha = clamp((t % 3.6) / 0.3, 0, 1); textBlock(g, tl.lines[li], x + w / 2, y + 62, w - 50, 26, { size: 18.5, font: FONT_B }); g.globalAlpha = 1;
+      g.globalAlpha = clamp((t % 3.6) / 0.3, 0, 1); textBlock(g, tl.lines[li], x + w / 2, y + 60, w - 50, 26, { size: 19, font: FONT_B }); g.globalAlpha = 1;
       for (let m = 0; m < tl.lines.length; m++) ell(g, x + w / 2 + (m - (tl.lines.length - 1) / 2) * 16, y + h - 12, 4, 4, m === li ? '#2f6f5c' : 'rgba(38,42,54,0.22)');
     }
     // 고른 뒤: 한지 두루마리에 결과
