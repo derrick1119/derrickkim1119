@@ -69,16 +69,15 @@
         { id: 'rosa', style: F.styles.rosa, s: 138, at: 'leo', dx: -74, lean: 0.06, face: { mouth: 'smile' } },
         { id: 'leo', style: F.leoAt(0), at: 'leo', face: { mouth: 'smile' } },
       ] });
+      await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
       wh.pass({ from: 0.1, dur: 46 });
       await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
       T.announce('해 질 녘, 언덕 끝. 구름바다 저편에서 커다란 구름 고래가 새끼를 데리고 천천히 헤엄쳐 온다. 낮고 길게 노래한다.');
       let guide = X.actor('rosa', { x: PL.HX - 120, style: F.styles.rosa, s: 138, lean: 0.06 });   /* back on the hill, she is with him */
       leo.pose = null;
-      await X.wait(1.2);
-      await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
-      await X.wait(2.4);
+      await X.wait(3.6);
       await TALK.say('rosa', '십 년에 한 번 지나가는 고래야.\n난 여기서 일곱 번째 보네.');
-      await TALK.say('rosa', '네 엄마는 저거 세 번 보고서야\n네가 왔다더라.');
+      await TALK.say('rosa', '네 엄마는 저걸 세 번 보면서\n널 기다렸어.');
       X.tween(wh.sun, 'k', 0.45, 7);
       await X.wait(4.5);
       await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
@@ -247,7 +246,8 @@
         rosa0 = X.actor('rosa', { x: PORCH - 30, style: F.styles.rosa, s: 138, sit: 1 });
         X.cam(PORCH, W.groundAt(PORCH) - 180, 1.15); X.camSnap();
       });
-      await TALK.say('rosa', '그 애 담요 줄무늬, 기억나?\n난 자꾸 순서가 헷갈려.');
+      await TALK.say('rosa', '그때 호수에서 같이 본 줄무늬, 기억나?\n난 몇 해째 자꾸 틀려.');
+      await TALK.say('leo', '네. 다 기억해요.');
       T.announce('로사의 담요 뜨기. 호수에서 본 옛 담요의 줄무늬가 잠깐 보였다가 사라진다. 기억한 차례대로 실을 골라 뜬다.');
       await X.play(T.puzzle.knit({ at: () => { const q = W.toScreen(PORCH, W.groundAt(PORCH) - 120); return [q[0], q[1] + 60, S.cam.z * 0.85]; }, rounds: [[0, 1, 2, 1], [2, 0, 3, 1, 0, 2]], show: 3 }));
       await TALK.say('rosa', '됐다. 이제 그 애만 오면 돼.');
@@ -326,6 +326,7 @@
       bram.flip = true;
       await TALK.say('wife', '…손이 다 거칠어졌네요.');
       await TALK.say('bram', '약속했잖아.\n내 배 생기면 제일 먼저 태워 준다고.');
+      await TALK.say('wife', '나도 약속했잖아요.\n당신 배, 제일 먼저 타 주겠다고.');
       await X.wait(0.8);
       /* his boat goes into the water for the first time, with her in it */
       await X.dip(async () => {
@@ -361,7 +362,7 @@
       cloud.pose = (q) => { q.headTilt = -0.06; };
       X.cam(150, 470, 1.3, 0.8);
       await X.wait(2.4);
-      await TALK.say('cloud', '나도 누굴 지켜야 할 것 같은데…\n누군지 몰라.', { slow: true });
+      await TALK.say('cloud', '다들 기다리던 사람이 오네.\n…나는 누굴 기다리지?', { slow: true });
       await X.walk(leo, cloud.x + 46, 60);
       leo.flip = true;
       leo.pose = (q) => { q.armF = { hand: F.local(q, cloud.x + 6, PIER - 70) }; q.headTilt = 0.12; };   /* a hand on her head, and nothing said */
@@ -400,7 +401,7 @@
       await TALK.say('rosa', '우리 아기.', { slow: true });
       await TALK.say('son', '…엄마?');
       T.announce('로사가 다 뜬 담요를 늙은 아들의 어깨에 둘러 준다.');
-      await TALK.say('rosa', '이제야 다 떴다.', { slow: true });
+      await TALK.say('rosa', '이제야 덮어 준다.', { slow: true });
       await X.wait(0.8);
 
       /* ---- that night ---- */

@@ -242,6 +242,7 @@
       /* a few days on: the two of them walk back up the hill together, to the timber he sawed, dry now */
       await X.dip(async () => { leo.pose = null; leo.x = PL.HX - 520; leo.flip = false; bram.x = PL.HX - 580; bram.flip = false; X.cam(PL.HX - 260, py, 1); X.camSnap(); });
       T.announce('며칠 뒤. 레오와 브램이 함께 언덕을 올라온다. 레오가 켜 둔 나무가 볕에 말라 있다.');
+      X.age('며칠 뒤');
       X.walk(bram, PL.HX - 250, 72);
       await X.walk(leo, PL.HX - 120, 72);
       X.cam(px, py, 1, 1.2);
@@ -342,7 +343,7 @@
       S.mood = 'broken'; X.tween(S, 'cry', 1, 2.4);
       X.cam(PL.HX + 130, W.y3(PL.HX + 160) - 70, 2.1, 0.7);
       await X.wait(3.6);
-      await TALK.say('leo', '…삼 년을 지은 건데.', { slow: true });
+      await TALK.say('leo', '…겨우 세운 건데.', { slow: true });
       await X.wait(1.2);
       await TALK.say('leo', '아나 오면,\n비라도 안 맞게 하려고….', { slow: true });
       await X.wait(2);
@@ -382,7 +383,7 @@
       await X.wait(2.4);
       crew.forEach((a) => { a.pose = null; });
       await TALK.say('leo', '…고맙습니다.');
-      await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n오늘은 혼자 보기가 좀 그래서.');
+      await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n밤새 바람 소리에 그 애 우는 소리가 섞여서.');
       await TALK.say('kid', '그럼 밤엔 나랑 가.\n소원들이 어디 사는지 나 알아.');
 
       /* ---- Rosa's son ---- */
@@ -462,8 +463,9 @@
       grove.letGo();
       await X.gift('light', grove.heldAt());
       await X.wait(0.6);
-      await TALK.say('kid', '아저씨, 이제 셋 다 모였다.\n냄새, 소리, 빛.');
-      await TALK.say('leo', '…아나 꿈에, 갈 수 있겠네.', { slow: true });
+      await TALK.say('leo', '스튜 김, 자장가, 이 빛….\n셋 다 모였네.', { slow: true });
+      await TALK.say('kid', '그게 뭔데?');
+      await TALK.say('leo', '아나 꿈에 가는 길.');
       await TALK.say('kid', '호수 가 보자.\n밤에는 더 잘 보여.');
       await X.wait(0.6);
 
@@ -479,7 +481,7 @@
       S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
       await TALK.say('kid', '아줌마, 엄청 피곤해 보여….');
       await TALK.say('leo', '오늘 가야겠다.\n꿈에서라도 좀 쉬게.', { slow: true });
-      await TALK.say('kid', '쓰고 나면 또 모으면 돼.\n나도 같이 모아 줄게.');
+      await TALK.say('kid', '다 쓰면, 또 모으면 되지?\n나도 같이 모아 줄게.');
       S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
       const dreamt = lake2.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {

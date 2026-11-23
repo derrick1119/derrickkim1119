@@ -223,6 +223,8 @@
       await X.wait(1.4);
       await X.walk(leo, ana.x - 54, 30);
       leo.wet = 0.5;
+      await TALK.say('ana', '둘이 쓰라고 똑같이 두 개 떴었어.\n하나는… 당신 몰래 서랍에 넣어 두고.');
+      await TALK.say('leo', '…릴리 모자랑 똑같다고만 생각했는데.', { slow: true });
       await TALK.say('leo', '…호수에서 릴리 옆에 있던 게,\n너였구나.', { slow: true });
       await X.wait(0.6);
       await TALK.say('ana', '릴리, 잘 컸어.\n무서울 땐 누가 손 잡아 준다고 했지.');
@@ -362,7 +364,7 @@
       await TALK.say('leo', '45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.');
       T.announce('이야기 담요. 아나가 처음부터 들려 달라고 한다. 그 일이 있었던 차례대로 실을 골라 한 줄씩 뜬다.');
       await X.play(T.puzzle.story({
-        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '피피가 준 빛', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
+        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '당신 소원', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
           { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
         order: [3, 0, 5, 1, 6, 2, 4],
       }));
@@ -378,7 +380,9 @@
       ana.look = false;
       await TALK.say('leo', '…나도 당신한테 그랬지.', { slow: true });
       await TALK.say('leo', '그럼 같이 지키자.\n릴리 올 때까지.');
+      await TALK.say('leo', '방 하나 비워 뒀어.\n당신이 정하라고.');
       ana.look = true;
+      await TALK.say('ana', '그럼 거긴 우리 둘째 방.');
       await TALK.say('ana', '릴리 방도 만들어야겠다.');
       ana.look = false;
       X.cam(PL.ROOM_X + 50, py + 50, 1.4, 0.9);

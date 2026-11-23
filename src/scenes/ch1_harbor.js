@@ -557,7 +557,7 @@
     S.mom.flip = false;
     await k.wait(0.6);
     await TALK.say('mom', '넓은 집 지어 놓고,\n따뜻한 밥 해 먹이고.');
-    await TALK.say('mom', '네 자리까지 보여 줬으니….\n이제 다 지켰구나.', { slow: true });
+    await TALK.say('mom', '이제 다 지켰구나.\n네 자리까지 봐 뒀으니, 마음 놓인다.', { slow: true });
     await k.wait(0.6);
     T.announce('엄마의 몸에서 빛이 번지기 시작한다. 지킨 약속이 건너갈 길이 된다.');
     A.promise();
@@ -566,8 +566,8 @@
     await k.wait(1.4);
     k.tween(S.rest, 'k', 0, 1.1, T.ease.io);
     await TALK.say('leo', '…엄마?');
-    await TALK.say('mom', '약속 다 지킨 사람은\n저 너머로 건너가는 거란다.');
-    await TALK.say('mom', '네 아빠, 거기서\n여태 혼자 기다렸잖니.');
+    await TALK.say('mom', '약속 다 지키면,\n저 너머로 건너갈 수 있단다.');
+    await TALK.say('mom', '네 아빠, 거기서 여태\n혼자 기다렸잖니. 이번엔 엄마가 가야지.');
     await TALK.say('leo', '이제 겨우 다시 만났는데….', { slow: true });
     await k.tween(S.fare, 'touch', 1, 1.2, T.ease.io);
     await TALK.say('mom', '엄마는 또 먼저 가 있을게.\n아빠랑, 맛있는 거 해 놓고.');

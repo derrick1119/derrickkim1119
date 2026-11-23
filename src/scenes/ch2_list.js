@@ -21,7 +21,8 @@
       leo.pose = (o, a, t) => { if (a.sit > 0.5) o.headTilt = -0.1 + Math.sin(t * 0.6) * 0.06; };
       X.title();
       await X.wait(4.4);
-      await X.years(0, 1, { age: 37 });
+      X.age('며칠 뒤');
+      await X.wait(3.2);
 
       /* the list */
       await X.tap(() => [leo.x, W.groundAt(leo.x) - 50, 60]);
@@ -48,9 +49,9 @@
 
       /* Captain Bram, with a handcart: no one carries stone up this hill alone */
       const bram = X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.12 });
-      bram.cart = { stones: 3 };   /* round stones off the beach, already in the cart */
+      bram.cart = { stones: 4 };   /* round stones off the beach, already in the cart */
       bram.pose = (o, a) => { const hx = a.x + (a.flip ? -30 : 30); o.armF = { hand: F.local(o, hx, W.groundAt(hx) - 52) }; o.armB = { hand: F.local(o, hx - (a.flip ? -6 : 6), W.groundAt(hx) - 48) }; o.lean = 0.16; };
-      bram.prop = (g, j, o, a) => { if (!a.cart) return; const d = a.flip ? -1 : 1, cx = a.x + d * 70, gy = W.groundAt(cx); P.line(g, a.x + d * 30, gy - 50, cx - d * 20, gy - 34, 4, '#6f4a34'); P.fill(g, P.rr(cx - 34, gy - 50, 68, 28, 5), '#8a5a3b'); P.fill(g, P.circle(cx, gy - 12, 12), '#5a3d28'); P.fill(g, P.circle(cx, gy - 12, 4), '#c9a070'); for (let i = 0; i < a.cart.stones; i++) P.fill(g, P.ellipse(cx - 18 + i * 18, gy - 54, 12, 9), '#b3ada4'); };
+      bram.prop = (g, j, o, a) => { if (!a.cart) return; const d = a.flip ? -1 : 1, cx = a.x + d * 70, gy = W.groundAt(cx); P.line(g, a.x + d * 30, gy - 50, cx - d * 20, gy - 34, 4, '#6f4a34'); P.fill(g, P.rr(cx - 34, gy - 50, 68, 28, 5), '#8a5a3b'); P.fill(g, P.circle(cx, gy - 12, 12), '#5a3d28'); P.fill(g, P.circle(cx, gy - 12, 4), '#c9a070'); for (let i = 0; i < a.cart.stones; i++) P.fill(g, P.ellipse(cx - 21 + i * 14, gy - 54 - (i % 2) * 3, 11, 9), '#b3ada4'); };
       leo.flip = true;
       T.announce('브램 선장이 둥근 돌을 실은 수레를 끌고 언덕을 올라온다.');
       await X.walk(bram, PL.HX - 250, 70);
@@ -60,7 +61,7 @@
       await X.TALK.say('bram', '여기서 집 지은 사람 치고\n돌을 혼자 올린 사람은 없네.');
       /* the stones come off the cart onto the plot */
       await X.dip(async () => {
-        bram.pose = null; bram.prop = null; if (bram.cart) bram.cart.stones = 3;
+        bram.pose = null; bram.prop = null; if (bram.cart) bram.cart.stones = 0;
         A.sfx('knock', 0.2); A.sfx('knock', 0.6);
       }, { out: 0.8, in: 1 });
       T.announce('둥근 돌 네 개가 집터에 내려졌다. 둘이 돌에 걸터앉아 숨을 고른다.');
@@ -143,7 +144,9 @@
       await X.TALK.say('leo', '…아나도 봤을까.', { slow: true });
       /* the children go home to bed; the year goes round */
       await X.dip(async () => { ps.night = 0; leo.sit = 0; ps.seats = null; S.actors = S.actors.filter((a) => a !== pipi && a !== cloud); }, { color: '#141b36', out: 0.8, in: 1.2 });
-      await X.wait(1.4);
+      await X.wait(0.8);
+      await X.years(0, 1, { age: 37 });
+      await X.wait(0.6);
 
       /* a year to the day. Bram comes up with a lamp: his mother asked him to, before she went */
       bram.hidden = false; bram.x = C.PLOT - 470; bram.lamp = true; bram.lampHand = 'F'; bram.pose = null; bram.prop = null; bram.cart = null; bram.sit = 0;
@@ -153,7 +156,9 @@
       await X.wait(0.6);
       await X.TALK.say('bram', '오늘로 꼭 일 년이지?');
       await X.TALK.say('leo', '…어떻게 아셨어요?');
-      await X.TALK.say('bram', '자네 어머니가 부탁하고 갔네.\n일 년 되는 날, 호수에 데려가 달라고.');
+      await X.TALK.say('bram', '자네 어머니가 부탁해 뒀네.\n일 년 되는 날, 호수에 데려가 달라고.');
+      await X.TALK.say('leo', '…엄마가요? 언제요?');
+      await X.TALK.say('bram', '자네 오기 전부터. 아들 오면\n자긴 오래 못 있을 거라고.');
       await X.TALK.say('bram', '첫해엔 보는 게 더 아플 거라고.\n…따라오게.');
       X.walk(bram, C.PLOT + 420, 80);
       await X.wait(0.5);
@@ -235,6 +240,7 @@
       await X.view(null, { color: '#1b2a40' });
       X.bed(4, 0.13, 'walk');
       T.announce('이튿날 아침, 언덕. 브램이 올려다 둔 둥근 돌 네 개가 집터 옆에 놓여 있다.');
+      X.age('이튿날 아침');
       await X.wait(0.8);
       await X.TALK.say('leo', '아나가 그 부엌에 혼자 있는 걸 보니까….');
       await X.TALK.say('leo', '빨리 짓고 싶어요.\n아나 오면 바로 들어올 집.');
