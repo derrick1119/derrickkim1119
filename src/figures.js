@@ -319,6 +319,19 @@
       g.fillStyle = T.rgba('#bfe0f2', face.tear);
       g.beginPath(); g.ellipse(ex + 0.6, ey + 3.2 + (face.tearY || 0), 0.9, 1.5, 0, 0, TAU); g.fill();
     }
+    if (st.hairStyle === 'beanie' && st.hair) {
+      /* short hair under the hat, cropped close at the back down to the nape. It stays inside the line
+         of the head, so nothing sticks out behind the beanie */
+      g.save();
+      g.beginPath(); g.arc(0, 0, R + 0.4, 0, TAU); g.clip();
+      g.fillStyle = st.hair;
+      g.beginPath();
+      g.moveTo(-R * 1.3, -R * 0.2); g.lineTo(-R * 0.3, -R * 0.36); g.lineTo(-R * 0.38, R * 0.0);
+      g.quadraticCurveTo(-R * 0.46, R * 0.5, -R * 0.66, R * 0.66);
+      g.quadraticCurveTo(-R * 0.86, R * 0.74, -R * 1.3, R * 0.6);
+      g.closePath(); g.fill();
+      g.restore();
+    }
     g.fillStyle = st.hairStyle === 'beanie' ? st.beanie : st.hair;
     hairPath(g, st.hairStyle, R, st);
     g.fill();
@@ -342,8 +355,6 @@
       g.strokeStyle = T.shade(st.beanie, 0.16); g.lineWidth = 3.6; g.lineCap = 'round';
       const d = Math.PI / 180, r1 = R + 1.5;
       g.beginPath(); g.moveTo(Math.cos(-34 * d) * r1, Math.sin(-34 * d) * r1); g.lineTo(Math.cos(176 * d) * r1, Math.sin(176 * d) * r1); g.stroke();
-      g.fillStyle = st.hair; /* a little hair at the nape */
-      g.beginPath(); g.ellipse(-R * 0.72, R * 0.42, 2.2, 3.2, 0.5, 0, TAU); g.fill();
     }
     g.restore();
     if (!skip.armF) drawArm(af, st.top);

@@ -102,7 +102,13 @@
     if (key === ' ' || key === 'Enter') S.next1(); else if (key === 'r' || key === 'R') S.replay(); else return false;
   };
 
-  S.update = function (dt) { if (S.sea.a > 0) S.boat.x += dt * 9; };
+  S.update = function (dt) {
+    if (S.sea.a <= 0) return;
+    S.boat.x += dt * 9;
+    /* left waiting on this screen, he sails out past the right edge and comes round again from the left */
+    const edge = T.view.W / 2 + 150;
+    if (S.boat.x > edge) S.boat.x = -edge;
+  };
 
   function bankPath(list, ox, bob) {
     const p = new Path2D();

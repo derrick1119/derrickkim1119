@@ -806,7 +806,7 @@
     const shake = Math.sin(t * 17) * 1.6 * cry + Math.sin(t * 11) * 1.4 * joy * (0.5 + 0.5 * Math.sin(t * 1.7));
     const ana = {
       x: ANA.x + shake * 0.5, y: ANA.y, s: ANA.s, style: F.styles.ana, sit: true,
-      lean: 0.06 + cry * 0.2 - joy * 0.03, headTilt: 0.02 + cry * 0.5 - joy * 0.16,
+      lean: 0.06 + cry * 0.16 - joy * 0.03, headTilt: 0.02 + cry * 0.62 - joy * 0.16,
       face: { eye: cry > 0.3 ? 'closed' : joy > 0.5 ? 'happy' : 'open', mouth: joy > 0.4 ? 'smile' : cry > 0.3 ? 'line' : null, tear: Math.max(cry, joy * 0.7) * 0.9, tearY: (t * 3) % 3, blush: 0.2 + joy * 0.2 },
       skip: { armF: true },
     };
@@ -821,15 +821,19 @@
     lily.armF = { hand: F.local(lily, LILY_HAND[0], LILY_HAND[1]), bend: -1 };
     g.save();
     g.globalAlpha = a;
-    const aj = F.person(g, ana);
-    F.person(g, lily);
-    /* her arm around the sleeping child; when she cries the hand comes up to her face */
-    const hold = [LILY.x + 4, LILY.y - 26];
-    const face = [aj.head[0] + 26, aj.head[1] + 16];
-    const k = T.ease.io(cry);
-    ana.only = 'armF'; ana.skip = null;
-    ana.armF = { hand: F.local(ana, T.lerp(hold[0], face[0], k), T.lerp(hold[1], face[1], k)), bend: k > 0.5 ? -1 : 1 };
     F.person(g, ana);
+    const lj = F.person(g, lily);
+    /* her arm round the sleeping child, passing under the child's head rather than across it; when she cries
+       she does not let go: she holds on a little tighter and bows her head down onto Lily's */
+    const k = T.ease.io(cry);
+    const hold = [T.lerp(LILY.x + 4, LILY.x + 14, k), T.lerp(LILY.y - 26, LILY.y - 40, k)];
+    ana.only = 'armF'; ana.skip = null;
+    ana.armF = { hand: F.local(ana, hold[0], hold[1]), bend: 1 };
+    g.save();
+    g.beginPath(); g.rect(-4000, -4000, 8000, 8000); g.arc(lj.head[0], lj.head[1], lj.R * 1.3, 0, TAU);
+    g.clip('evenodd');
+    F.person(g, ana);
+    g.restore();
     g.restore();
   }
   function drawLeoArm(g) {
