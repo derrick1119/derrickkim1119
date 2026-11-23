@@ -29,6 +29,7 @@
   const FLAT = [];
   MELODY.forEach((bar, bi) => bar.forEach((n) => FLAT.push({ m: n[0], bar: bi })));
   A.melodyLength = FLAT.length;
+  A.tune = { melody: MELODY, chords: CHORDS };   /* for things done in time with it, bar by bar (the dance on the quay) */
 
   try { A.muted = window.localStorage.getItem('tyt-muted') === '1'; } catch (_) { /* storage may be unavailable */ }
 

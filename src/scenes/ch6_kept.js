@@ -143,11 +143,16 @@
       /* what he owed her: the dance at a wedding too poor for music */
       await TALK.say('son', '춤 한 곡 빚졌잖아.\n결혼식 날 못 춘 거.');
       await TALK.say('dil', '…그걸 여태 기억해요?');
-      son.pose = (o, a2, t) => { T.embrace(o, son, dil, son.hug.k, true); o.x += Math.sin(t * 1.1) * 7; o.lean += Math.sin(t * 1.1) * 0.05; };
-      dil.pose = (o, a2, t) => { T.embrace(o, dil, son, son.hug.k); o.x += Math.sin(t * 1.1) * 7; o.lean -= Math.sin(t * 1.1) * 0.04; };
+      /* the small box he learned on these boards in chapter 5: the two of them go the same way at once */
+      const box = (o, t, lead) => { const b = T.dance.sway(t, { beat: 0.95 }); o.x += b[0]; o.y += b[1]; o[lead] = { foot: [2 + b[2] * 3, 49.5 - b[2] * 4] }; return b; };
+      son.pose = (o, a2, t) => { T.embrace(o, son, dil, son.hug.k, true); const b = box(o, t, 'legF'); o.lean += b[0] * 0.006; };
+      dil.pose = (o, a2, t) => { T.embrace(o, dil, son, son.hug.k); const b = box(o, t, 'legB'); o.lean -= b[0] * 0.005; };
       A.motif({ voice: 'felt', vel: 0.26, beat: 1.1 });
-      T.announce('둘이 끌어안은 채 천천히 몸을 흔든다. 음악도 없이.');
-      await X.wait(3.2);
+      T.announce('둘이 끌어안은 채, 부두에서 익힌 걸음으로 천천히 발을 옮긴다. 음악도 없이.');
+      await X.wait(2.6);
+      await TALK.say('dil', '…발도 안 보고 추네요.');
+      await TALK.say('son', '당신 봐야지.');
+      await X.wait(1.2);
       await TALK.say('rosa', '이제 다 왔다.\n우리도 건너가자.');
       await X.wait(0.8);
       son.pose = null; dil.pose = null;

@@ -1,4 +1,6 @@
 /* Chapter 5 「꽃길」 — years fifteen to twenty-five. The roof goes up, on the whole town's count.
+   Two years on, at dusk on the quay, Rosa's son is practising the dance he never danced with his wife at their
+   wedding; Rosa hums, Leo counts, and his feet learn the steps (he dances it with her in chapter 6).
    Years later a magpie fetches him to the post office of the wind, where Lily's letter (she is getting
    married) has come in and will not settle until he catches it. He goes into her dream, promises to
    walk beside her empty arm, and sits her on the swing he once promised her and pushes it. At the
@@ -238,7 +240,79 @@
       await X.wait(1);
       folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
       await X.wait(2.4);
-      await X.wait(1.2);
+
+      /* ---- two years on, at dusk on the quay: the dance Rosa's son owes his wife ----
+         At their wedding there was nothing to pay for music; she said she would hum it herself and asked for one
+         dance, and with everyone looking his feet would not leave the ground. He has chalked the steps on the boards.
+         Rosa hums, Leo counts, the player keeps his feet on the beat (dance.js). In chapter 6 he dances it with her. */
+      let son, rosa, qleo, qbean, solo;
+      await X.dip(async () => {
+        S.actors = []; S.boats = [];
+        X.cam(196, 506, 1.5); X.camSnap();
+        X.cloudKid({ look: true });
+        rosa = X.actor('rosa', { x: 356, style: F.styles.rosa, s: 138, flip: true });
+        son = X.actor('son', { x: 132, style: F.styles.rosaSon, s: 144, lean: 0.08, flip: true, face: { old: true } });
+        solo = T.dance.dancer(son, { start: [1, 1], look: 0.24 });
+        son.pose = solo.pose;
+        qleo = X.actor('leo', { x: 760, style: F.leoAt(2), flip: true, lean: 0.06 });
+        qbean = X.actor('bean', { dog: true, s: 220, x: 810, flip: true, wag: 0.5 });
+      });
+      X.bed(1, 0.12, 'sea');
+      await X.years(20, 22, { age: 58 });
+      T.announce('해 질 녘, 부두. 로사의 아들이 빈 팔을 둥글게 든 채, 판자에 분필로 그려 둔 발자국을 따라 발을 옮긴다. 로사가 지켜본다.');
+      X.walk(qleo, 244, 66); X.walk(qbean, 300, 80).then(() => { qbean.sit = 1; qbean.flip = true; });
+      solo.step(0, 1.0); A.sfx('step');
+      await TALK.say('son', '하나, 둘, 셋….', { auto: 0.8 });
+      solo.step(1, 1.0); A.sfx('step');
+      await X.wait(1.1);
+      solo.stumble(); A.sfx('knock', 0.25);
+      await X.wait(1.3);
+      await X.walk(qleo, 244, 66);
+      qleo.flip = true;
+      await TALK.say('leo', '…춤 연습이에요?');
+      /* caught at it: his arms come down and he turns round */
+      X.tween(solo, 'hold', 0, 0.6); solo.look = 0.06; son.flip = false;
+      await TALK.say('son', '아이고, 보셨어요?');
+      solo.step(2, 1.1); X.wait(1.8).then(() => solo.step(3, 1.1));   /* back to his mark */
+      await TALK.say('son', '집사람이랑 춤 한 번을 못 춰 봤어요.');
+      await TALK.say('son', '결혼식 날, 악사 부를 돈이 없었어요.\n그 사람이, 노래는 자기가 할 테니 한 곡만 추재요.');
+      await TALK.say('son', '근데 다들 보고 있으니까\n발이 땅에 붙어서 안 떨어지더라고요.');
+      solo.look = 0.2;
+      await TALK.say('son', '다음에 추자, 그랬죠.\n…그 다음이, 살아서는 안 오더라고요.', { slow: true });
+      solo.look = 0.06;
+      rosa.pose = (o) => { o.face.eye = 'happy'; o.headTilt = -0.08; };
+      await TALK.say('rosa', '그래서 여기 와서도 몇 해째 저래.\n발이 꼭 나무토막이야.');
+      rosa.pose = null;
+      await TALK.say('son', '어머니도 참.');
+      await TALK.say('son', '레오 씨, 박자 좀 세 주실래요?');
+      await TALK.say('rosa', '노래는 내가 하고.');
+      await TALK.say('son', '…웃지만 마세요, 어머니.');
+      son.flip = true; X.tween(solo, 'hold', 1, 0.8); solo.look = 0.24;
+      await TALK.say('leo', '그럼 제가 셀게요.\n「하나」에 한 발씩이에요.');
+      T.announce('춤 연습. 위에서 내려다본 판자에 분필 발자국이 있다. 왼쪽 끝, 그 사람이 설 자리를 보고 선다. 레오가 세는 「하나」에 맞춰, 빛나는 발자국 쪽으로 방향키나 발자국을 눌러 한 발씩 옮긴다. 판마다 걸음이 늘어난다.');
+      await X.play(T.puzzle.dance({ dancer: solo, count: qleo, hum: rosa, rounds: [
+        { path: [0, 1, 2, 3], beat: 0.92, arrow: true },
+        { path: [0, 1, 2, 2, 3, 0], beat: 0.86 },
+      ] }));
+      qleo.pose = null; rosa.pose = null;
+      await TALK.say('rosa', '어머, 발이 박자를 아네.');
+      await TALK.say('son', '이제 이건 지울게요.');
+      await TALK.say('son', '그 사람 앞에서\n바닥만 보고 출 순 없잖아요.');
+      await TALK.say('leo', '그럼 끝까지 셀게요.\n앞만 보세요.');
+      solo.look = -0.06;
+      T.announce('로사의 아들이 구두 끝으로 분필 발자국을 문질러 지운다. 이번에는 발자국 없이, 아까 그 걸음대로.');
+      await X.play(T.puzzle.dance({ dancer: solo, count: qleo, hum: rosa, rounds: [{ path: [0, 1, 2, 2, 3, 0], beat: 0.86, blind: true, rub: true }] }));
+      qleo.pose = null;
+      /* his mother, who left before he was a hundred days old */
+      rosa.pose = (o, a, t) => { o.armF = { hand: [10, -12] }; o.armB = { hand: [8, -8] }; o.face.eye = 'happy'; o.face.tear = 0.7; o.face.tearY = (t * 2) % 3; o.headTilt = 0.1; };
+      await X.wait(1);
+      await TALK.say('rosa', '…걸음마 떼는 것도 못 보고 왔는데.', { slow: true });
+      await TALK.say('rosa', '이제야 보네.\n우리 아기 발 떼는 거.', { slow: true });
+      X.tween(solo, 'hold', 0, 1.2); solo.look = -0.1;
+      await X.wait(1);
+      await TALK.say('son', '이제 됐어요.\n그 사람, 언제 와도 돼요.');
+      A.motif({ voice: 'felt', vel: 0.3, beat: 0.8 });
+      await X.wait(2.6);
 
       /* ---- years on: a magpie from the post office of the wind, come to fetch him ---- */
       let pie;
@@ -251,7 +325,7 @@
         S.pie = pie;
       });
       X.bed(4, 0.13, 'walk');
-      await X.years(20, 25, { age: 61 });
+      await X.years(22, 25, { age: 61 });
       A.sfx('star', 0.8);
       T.announce('까치 한 마리가 언덕으로 날아와 팻말에 앉는다. 바람 우체국의 까치다.');
       const perch = [PL.BOARD_X + 6, W.y3(PL.BOARD_X) - 98];
