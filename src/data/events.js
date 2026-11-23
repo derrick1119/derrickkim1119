@@ -1,9 +1,9 @@
 // 고갯길에서 만나는 사건. pick() 은 [이야기, 결과...] 를 돌려준다.
-import { G, act } from '../state.js';
+import { G, act, runRnd } from '../state.js';
 import { UNITS } from './units.js';
 
-const chance = p => Math.random() < p;
-const pick = a => a[(Math.random() * a.length) | 0];
+const chance = p => runRnd() < p;   // 원정의 씨앗을 따른다 (state.js 의 runRnd)
+const pick = a => a[(runRnd() * a.length) | 0];
 // 다음 고개에서 이어지는 사건의 표시 (state.js 의 EVENT_NEED)
 const flag = k => { const r = G.run; (r.flags || (r.flags = [])).push(k); };
 const melee = d => !d.range && !d.heal;

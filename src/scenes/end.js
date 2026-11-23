@@ -4,7 +4,7 @@ import { W, H } from '../config.js';
 import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr, ell } from '../render/draw.js';
 import { button, panel, brushTitle, C, foil } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD } from '../state.js';
+import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD, goEndless, seedCode } from '../state.js';
 import { UNITS } from '../data/units.js';
 import { chapterOf } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
@@ -17,6 +17,7 @@ import { portrait } from '../render/sprites.js';
 import { relicIcon } from '../render/icons.js';
 import { cardFace } from '../ui/cards.js';
 import { inkMark } from '../render/symbols.js';
+import { saveScroll } from '../ui/scroll.js';
 
 export class EndScene {
   constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed();
@@ -30,13 +31,13 @@ export class EndScene {
     if (win) { g.save(); g.globalCompositeOperation = 'lighter'; const sp = g.createRadialGradient(250, 520, 20, 250, 520, 420); sp.addColorStop(0, 'rgba(255,210,140,0.3)'); sp.addColorStop(1, 'rgba(255,210,140,0)'); g.fillStyle = sp; g.fillRect(0, 100, 700, 620); g.restore(); }
     if (win) for (const c of this.conf) { c.y += c.v * dt; if (c.y > H) { c.y = -20; c.x = Math.random() * W; } if (c.y > 92 && c.y < 190 && c.x > 300 && c.x < 980) continue;   // 이야기 글 위로는 지나가지 않는다
       g.save(); g.translate(c.x + Math.sin(t * 2 + c.p) * 20, c.y); g.rotate(t * 3 + c.p); rr(g, -7, -4, 14, 8, 1, c.c, INK, 1); g.restore(); }
-    const te = win && r && r.trueEnd; brushTitle(g, 640, 54, te ? 600 : 520, 76, te ? '열세 번째 고개를 넘었다' : win ? '고개를 넘었다' : '도깨비에 홀린 밤', te ? '#8a5a10' : win ? INDIGO : '#5a5346', te ? 40 : 44);
+    const te = win && r && r.trueEnd, en = r && r.endless; brushTitle(g, 640, 54, te ? 600 : 520, 76, en ? '끝없는 고개' : te ? '열세 번째 고개를 넘었다' : win ? '고개를 넘었다' : '도깨비에 홀린 밤', en ? '#6a2a4a' : te ? '#8a5a10' : win ? INDIGO : '#5a5346', te ? 40 : 44);
     // 원정의 끝을 알리는 그림: 이기면 높이 세운 깃발, 지면 부러진 깃발
     // 금테 두른 옻칠 메달 위에 원정의 끝 그림
     { const mk = Math.min(1, Math.max(0, (t - 0.15) / 0.4)); g.save(); g.globalAlpha = mk; ell(g, 312, 68, 58, 58, 'rgba(0,0,0,0.4)'); ell(g, 310, 64, 56, 56, foil(g, 254, 366), INK, 2); ell(g, 310, 64, 49, 49, win ? '#2b3b60' : '#3a2a30', 'rgba(40,20,8,0.8)', 1.2); ell(g, 310, 64, 44, 44, null, 'rgba(243,210,124,0.5)', 1); g.restore(); }
     inkMark(g, win ? 'win' : 'lose', 310, 64, 70, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
-    const tale = te ? '주막의 여우가 건넨 등불을 들고 내려왔습니다.\n이제 마을에서는 밤마다 열두 고개 이야기를 들려줍니다.' : win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
+    const tale = en ? `열두 고개 너머로 고개 ${r.endlessN || 0}개를 더 넘었습니다.${(r.endlessN || 0) > (r.endlessBest || 0) ? ' 가장 멀리 갔습니다!' : ` (가장 멀리 ${r.endlessBest || 0})`}\n${chapterOf(r.ch).name}에서 긴 밤이 다시 내려앉았습니다.` : te ? '주막의 여우가 건넨 등불을 들고 내려왔습니다.\n이제 마을에서는 밤마다 열두 고개 이야기를 들려줍니다.' : win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: 'rgba(8,8,20,0.75)', lw: 5, fill: '#f3e6c4' });
     if (r) { portrait(g, r.hero, 250, 596 - (win ? Math.abs(Math.sin(t * 4)) * 10 : 0), 3.0, t); if (win) { portrait(g, 'sword', 110, 620, 1.9, t, true); portrait(g, 'priest', 410, 620, 1.9, t, true); } else portrait(g, 'treant', 420, 620, 1.5, 0); }
     // 왼쪽 위: 영웅 숙련, 새로 열린 것, 오늘의 원정 점수
@@ -52,6 +53,8 @@ export class EndScene {
       if (r.lvTo >= 5 && !up) text(g, '숙련 최고 단계', 300, 229, { size: 15, fill: '#f6d27a' }); else { rr(g, 200, 223, 190, 11, 5, 'rgba(0,0,0,0.55)'); rr(g, 200, 223, 190 * (r.lvTo >= 5 ? 1 : Math.min(1, pk * k)), 11, 5, '#e0b050'); }
       rows.forEach(([s2, col], n) => text(g, s2, 66, 258 + n * 26, { size: 16, align: 'left', fill: col, maxW: 410 }));
       g.restore(); }
+    // 원정 두루마리: 이번 원정을 그림 한 장으로 내려받는다 (씨앗 글자가 함께 적힌다)
+    if (r && t > 0.8) { if (button(g, 'scroll', 1060, 150, 176, 42, '두루마리 저장', { style: 'wood', size: 17 })) { this.saved = saveScroll(r, win) ? 2.4 : -2.4; } if (r.seed != null) text(g, `씨앗 ${seedCode(r.seed)}`, 1050, 171, { size: 14, align: 'right', fill: '#e6d2a6' }); if (this.saved) { this.saved += this.saved > 0 ? -1 / 60 : 1 / 60; text(g, this.saved > 0 ? '내려받았습니다' : '저장하지 못했습니다', 1148, 206, { size: 13, fill: this.saved > 0 ? '#9fe0c8' : '#f3b9a6' }); if (Math.abs(this.saved) < 0.05) this.saved = 0; } }
     panel(g, 520, 198, 720, 364);
     panel(g, 540, 214, 250, 46, 'navy'); text(g, `공적 +${this.gain} · 쌓인 공적 ${meta.merit}`, 665, 238, { size: 19, fill: '#f0d99a', maxW: 226 });
     if (r) {
@@ -71,7 +74,10 @@ export class EndScene {
     const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];
     if (this.fresh.length) { text(g, `새로 맺은 인연 · ${this.fresh.map(b => UNITS[b.id].name).join(' · ')}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, '다음 원정부터 전리품과 장터에 나옵니다', 880, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 340 }); }
     else if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, `${nb.how}  (${Math.min(nb.need, deedCount(nb))} / ${nb.need})`, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
-    if (t > 0.8 && button(g, 'home', 560, 586, 310, 90, '처음으로', { style: 'paper', size: 34 })) { G.run = null; save(); nav.go('title'); }
-    if (t > 0.8 && button(g, 'meta', 890, 586, 310, 90, '공적 장부', { size: 34 })) { G.run = null; save(); nav.go('meta'); }
+    // 평정한 밤에는 끝없는 고개로 그대로 이어 갈 수 있다 (오늘의 원정은 빼고)
+    const endless = win && r && r.done && !r.daily && !r.endless, bw = endless ? 214 : 310;
+    if (endless && t > 0.8 && button(g, 'endless', 548, 586, 214, 90, '끝없는 고개로', { style: 'red', size: 25 })) { if (goEndless()) nav.go('run'); return; }
+    if (t > 0.8 && button(g, 'home', endless ? 774 : 560, 586, bw, 90, '처음으로', { style: 'paper', size: endless ? 28 : 34 })) { G.run = null; save(); nav.go('title'); }
+    if (t > 0.8 && button(g, 'meta', endless ? 1000 : 890, 586, endless ? 222 : 310, 90, '공적 장부', { size: endless ? 28 : 34 })) { G.run = null; save(); nav.go('meta'); }
   }
 }

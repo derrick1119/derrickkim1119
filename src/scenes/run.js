@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
@@ -341,7 +341,7 @@ export class RunScene {
     text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
-    text(g, chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
+    text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: 150 });
     line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
     line(g, [x0, cy, Math.max(x0, mx), cy], C.gilt, 2.8);

@@ -25,6 +25,18 @@ export const UNLOCK_PACE = [
   { at: 6, relics: ['f_hakik'] },
 ];
 export const paceAt = (kind, id) => { for (const p of UNLOCK_PACE) if ((p[kind] || []).includes(id)) return p.at; return 0; };
+// ── 서약(변칙 원정): 떠나기 전에 스스로 짐을 지면 공적을 더 받는다 (평정을 한 번 하면 열린다) ──
+export const VOWS = {
+  bare: { name: '빈손 출정', desc: '전술 패 없이 떠난다', bonus: 15 },
+  pouch: { name: '좁은 주머니', desc: '전술 패 주머니 -3', bonus: 10 },
+  norest: { name: '쉬지 않는 길', desc: '주막 대신 싸움이 기다린다', bonus: 20 },
+  noshop: { name: '장 없는 길', desc: '장터 대신 사건이 기다린다', bonus: 10 },
+  elite: { name: '강적의 길', desc: '모든 요괴 무리에 강적의 특성이 붙는다', bonus: 25 },
+  norelic: { name: '맨손', desc: '보물을 얻지 못한다 (엽전으로 받는다)', bonus: 30 },
+  onearm: { name: '한 병종', desc: '새 병력 패를 얻지 못한다', bonus: 20 },
+  chase: { name: '짧은 밤', desc: '본대가 20초 일찍 따라붙는다', bonus: 15 },
+};
+export const vowBonus = vs => (vs || []).reduce((a, k) => a + (VOWS[k] ? VOWS[k].bonus : 0), 0);
 // ── 오늘의 원정: 날짜로 정해지는 영웅 하나와 규칙 둘 ──
 export const DAILY_RULES = {
   market: { name: '큰 장날', desc: '장터 값 -30%' },

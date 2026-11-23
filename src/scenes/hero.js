@@ -1,10 +1,10 @@
 // 영웅 고르기 (가로): 위에는 영웅 일곱의 얼굴, 아래에는 고른 영웅의 고유기와 전용 패
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
-import { button, panel, brushTitle, seal, C, tapped, foil, goldText, shine } from '../ui/ui.js';
+import { button, panel, brushTitle, seal, C, tapped, foil, goldText, shine, ui } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { newRun, heroOpen, UNLOCKS, meta, HARD, save } from '../state.js';
-import { HERO_TRAIT2, MASTERY_XP, MASTERY_GIFT, masteryLv } from '../data/progress.js';
+import { newRun, heroOpen, UNLOCKS, meta, HARD, save, parseSeed, seedCode } from '../state.js';
+import { HERO_TRAIT2, MASTERY_XP, MASTERY_GIFT, masteryLv, VOWS, vowBonus } from '../data/progress.js';
 import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
 import { MEOK } from '../render/ink.js';
 import { inkGlyph } from '../render/symbols.js';
@@ -20,8 +20,11 @@ export class HeroScene {
   constructor() { this.t = 0; this.sel = 0; }
   frame(g, dt) {
     bgm('title');
-    this.t += dt; dimBackdrop(g);
+    this.t += dt; dimBackdrop(g); ui.top = this.vowOpen ? 1 : 0;   // 서약 판이 떠 있으면 아래 단추는 눌리지 않는다
     brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
+    // 씨앗: 두루마리에 적힌 글자를 넣으면 그 원정과 같은 길을 걷는다
+    if (button(g, 'seed', 1096, 16, 150, 44, this.seed != null ? `씨앗 ${seedCode(this.seed)}` : '씨앗 넣기', { style: this.seed != null ? 'red' : 'wood', size: this.seed != null ? 15 : 18 })) {
+      if (this.seed != null) this.seed = null; else { const s = typeof prompt === 'function' ? prompt('두루마리에 적힌 씨앗 글자를 넣으세요 (예: 222-2E3T)') : null, n = parseSeed(s); if (n != null) { this.seed = n; sfx('star'); } else if (s) sfx('deny'); } }
     // 영웅 일곱
     HEROES.forEach((id, i) => {
       const d = UNITS[id], x = 44 + i * 172, y = 74, w = 160, h = 158, on = this.sel === i, locked = !heroOpen(id);
@@ -79,19 +82,41 @@ export class HeroScene {
     });
     cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
-    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52, style: 'red' })) nav.go('prologue', { hero: id });
+    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52, style: 'red' })) nav.go('prologue', { hero: id, seed: this.seed });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
     // 험로를 한 번이라도 열었으면 여기서 바로 고른다 (평정할 때마다 한 단계씩 열린다). 아직이면 길잡이 글
     if (meta.hardMax > 0) {
-      const lv = Math.min(meta.hard || 0, meta.hardMax), hd = HARD[lv];
-      rr(g, 262, 600, 556, 78, 9, '#d9cdb0', INK, 2); rr(g, 262, 596, 556, 78, 9, '#fbf3df', INK, 2); rr(g, 262, 596, 8, 78, 4, lv ? RED : '#3f6b5c');
-      if (button(g, 'h-', 282, 608, 54, 52, '◀', { style: 'paper', size: 22, disabled: lv <= 0 })) { meta.hard = Math.max(0, lv - 1); save(); sfx('card'); }
-      if (button(g, 'h+', 752, 608, 54, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
-      text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', 544, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: 390 });
-      text(g, lv ? `${hd.desc}${lv > 1 ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
+      // 평정을 한 번 하면 오른쪽에 서약 단추가 선다 (험로 판은 그만큼 좁아진다)
+      const lv = Math.min(meta.hard || 0, meta.hardMax), hd = HARD[lv], vw = meta.clears > 0, pw = vw ? 430 : 556, cx = 262 + pw / 2;
+      rr(g, 262, 600, pw, 78, 9, '#d9cdb0', INK, 2); rr(g, 262, 596, pw, 78, 9, '#fbf3df', INK, 2); rr(g, 262, 596, 8, 78, 4, lv ? RED : '#3f6b5c');
+      if (button(g, 'h-', 280, 608, 50, 52, '◀', { style: 'paper', size: 22, disabled: lv <= 0 })) { meta.hard = Math.max(0, lv - 1); save(); sfx('card'); }
+      if (button(g, 'h+', 262 + pw - 68, 608, 50, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
+      if (vw) { const sel = Object.keys(meta.vowSel || {}).filter(k => meta.vowSel[k] && VOWS[k]), b = vowBonus(sel); if (button(g, 'vow', 704, 596, 124, 78, sel.length ? `서약 ${sel.length}` : '서약', { style: sel.length ? 'red' : 'wood', size: 22 })) { this.vowOpen = true; sfx('card'); } if (b) text(g, `공적 +${b}%`, 766, 688, { size: 13, fill: '#f0d99a' }); }
+      text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', cx, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: pw - 160 });
+      text(g, lv ? `${hd.desc}${lv > 1 ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, cx, 652, { size: 14.5, fill: SUB, weight: 400, maxW: pw - 150 });
     } else {
       text(g, '전술 패는 쓰면 사라집니다. 길에서 다시 채우세요.', 540, 626, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
       text(g, '영웅마다 병법이 다릅니다.', 540, 650, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
     }
+    if (this.vowOpen) { ui.layer = 1; this.drawVows(g); ui.layer = 0; }
+  }
+  // 서약: 스스로 지는 짐. 고른 만큼 공적을 더 받는다 (오늘의 원정에는 걸리지 않는다)
+  drawVows(g) {
+    const sel = meta.vowSel || (meta.vowSel = {}), keys = Object.keys(VOWS);
+    g.fillStyle = 'rgba(8,6,14,0.82)'; g.fillRect(0, 0, W, H);
+    panel(g, 200, 70, 880, 580); goldText(g, '서약', 640, 116, { size: 40 });
+    text(g, '스스로 짐을 지고 떠나면 공적을 더 받습니다. 여러 개를 함께 걸 수 있습니다', 640, 154, { size: 16, fill: SUB, weight: 400 });
+    keys.forEach((k, n) => {
+      const V = VOWS[k], x = 236 + (n % 2) * 410, y = 182 + Math.floor(n / 2) * 92, on = !!sel[k];
+      if (tapped('vw' + k, x, y, 396, 80)) { sel[k] = !on; save(); sfx(on ? 'card' : 'star'); }
+      rr(g, x + 2, y + 4, 396, 80, 9, 'rgba(0,0,0,0.3)'); rr(g, x, y, 396, 80, 9, on ? '#f6dccf' : '#fbf3df', on ? '#8a2a26' : INK, on ? 2.6 : 1.6); rr(g, x, y, 8, 80, 4, on ? '#8a2a26' : '#b8a888');
+      ell(g, x + 34, y + 40, 15, 15, on ? '#8a2a26' : '#efe4c9', INK, 1.6); if (on) text(g, '✓', x + 34, y + 41, { size: 18, font: FONT_B, fill: C.cream });
+      text(g, V.name, x + 60, y + 28, { size: 21, font: FONT_B, align: 'left', fill: on ? '#8a2a26' : INK }); text(g, V.desc, x + 60, y + 56, { size: 15, align: 'left', fill: '#4a4034', weight: 400, maxW: 250 });
+      text(g, `+${V.bonus}%`, x + 380, y + 28, { size: 20, font: FONT_B, align: 'right', fill: '#8a5a10' });
+    });
+    const b = vowBonus(keys.filter(k => sel[k]));
+    text(g, b ? `서약으로 공적 +${b}%` : '서약 없이 떠납니다', 640, 610, { size: 22, font: FONT_B, fill: b ? '#8a2a26' : SUB });
+    if (button(g, 'vwclear', 236, 584, 170, 54, '모두 풀기', { style: 'paper', size: 20, disabled: !b })) { meta.vowSel = {}; save(); }
+    if (button(g, 'vwok', 846, 580, 200, 60, '정했다', { style: 'red', size: 28 })) { this.vowOpen = false; sfx('card'); }
   }
 }

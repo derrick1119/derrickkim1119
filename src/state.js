@@ -1,7 +1,7 @@
 // 원정(런) 상태: 덱(병력·영웅·전술 패), 노정(길 위에서 차례로 만나는 것들), 전리품, 장터, 공적(원정 사이 성장), 저장
 import { UNITS, HEROES, lvlMult, squadN, BEAST_TYPES } from './data/units.js';
 import { RELICS, CURSES } from './data/relics.js';
-import { genEncounter } from './data/encounters.js';
+import { genEncounter, AFFIX } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
 import { CARDS, MAX_LV, starterDeck, cardName, isUnit, packN } from './data/cards.js';
 import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
@@ -9,13 +9,20 @@ import { branchOf, canBranch } from './data/branches.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
 import { N_CH } from './data/stages.js';
-import { masteryLv, paceAt, UNLOCK_PACE, DAILY_RULES, dayRng, today } from './data/progress.js';
+import { masteryLv, paceAt, UNLOCK_PACE, DAILY_RULES, dayRng, today, VOWS, vowBonus } from './data/progress.js';
 import { FORM_ORDER } from './data/formations.js';
 
 const KEY = 'gogae.save.v4';
 export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [], deeds: {}, heroXp: {}, alt: {}, daily: {}, codex: { foe: {}, relic: {}, card: {} } };
 export const G = { run: null };
-const rnd = () => Math.random();
+// 원정의 씨앗: 길·전리품·사건·장터가 씨앗(r.seed)을 따라 정해진다. 상태(r.rs)를 저장하므로 이어 해도 같은 길이 이어진다
+// 오늘의 원정은 날짜로 씨앗을 정해 모두가 같은 길을 걷고, 끝 화면의 씨앗 글자를 영웅 고르기에 넣으면 그 길을 다시 걷는다
+const rnd = () => { const r = G.run; if (!r || r.rs == null) return Math.random(); let t = (r.rs = (r.rs + 0x6D2B79F5) >>> 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+export const runRnd = rnd;
+const SEED_ABC = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // 헷갈리는 0·1·I·O 는 뺀다
+export const seedCode = n => { let s = ''; n = n >>> 0; for (let i = 0; i < 7; i++) { s = SEED_ABC[n % 32] + s; n = Math.floor(n / 32); } return s.slice(0, 3) + '-' + s.slice(3); };
+export const parseSeed = code => { const s = String(code || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); if (s.length !== 7) return null; let n = 0; for (const ch of s) { const v = SEED_ABC.indexOf(ch); if (v < 0) return null; n = n * 32 + v; } return n >>> 0; };
+const hashStr = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 const pick = arr => arr[(rnd() * arr.length) | 0];
 
 export function load() {
@@ -38,7 +45,7 @@ export function save() { noteCodex(); try { localStorage.setItem(KEY, JSON.strin
 // ───────── 주막의 옛이야기: 아직 못 들은 것부터, 지금 고개의 이야기를 먼저 ─────────
 export function hearTale(ch) {
   // 주막에서는 그 고개의 옛이야기를 듣는다 (두목의 수를 귀띔해 준다)
-  const got = meta.tales || (meta.tales = []), t = TALES.find(x => x.ch === ch && !got.includes(x.id));
+  ch = ch % N_CH; const got = meta.tales || (meta.tales = []), t = TALES.find(x => x.ch === ch && !got.includes(x.id));
   if (t) { got.push(t.id); save(); return { id: t.id, fresh: true }; }
   const pool = TALES.filter(x => x.ch === ch); return { id: (pool[(rnd() * pool.length) | 0] || TALES[0]).id, fresh: false };
 }
@@ -122,9 +129,11 @@ export function newRun(hero, o = {}) {
   const day = o.daily ? dailyOf(o.daily) : null; if (day) hero = day.hero;
   const lv = day ? 1 : masteryLv((meta.heroXp || {})[hero]), alt = !day && lv >= 2 && !!(meta.alt || {})[hero], hard = day ? 0 : Math.min(meta.hard || 0, meta.hardMax || 0), h = hardOf(hard), perk = id => !day && has(id);
   const capK = hero === 'commander' ? 1 : !alt && (hero === 'blade' || hero === 'archmage') ? -1 : 0;   // 장군은 어느 병법이든 +1, 검객·신선의 -1 은 첫 병법의 몫
-  const r = G.run = { hero, alt, lv, ch: 0, gold: (perk('p_gold') ? 60 : 0) + (lv >= 3 ? 40 : 0), deck: [], nextId: 1, items: [], relics: [], cap: Math.max(2, 3 + (perk('p_cap') ? 1 : 0) + capK + h.cap), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard, road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
+  const seed = (o.seed != null ? o.seed : day ? hashStr('gogae:' + day.date) : (Math.random() * 4294967296)) >>> 0;
+  const r = G.run = { hero, alt, lv, seed, rs: seed, ch: 0, gold: (perk('p_gold') ? 60 : 0) + (lv >= 3 ? 40 : 0), deck: [], nextId: 1, items: [], relics: [], cap: Math.max(2, 3 + (perk('p_cap') ? 1 : 0) + capK + h.cap), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard, road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
   if (day) r.daily = { date: day.date, rules: day.rules };
-  for (const c of starterDeck(hero)) r.deck.push(Object.assign({ uid: r.nextId++ }, c, CARDS[c.id].kind === 'lead' && lv >= 4 ? { lv: 2 } : {}));
+  r.vows = day ? [] : (o.vows || (meta.clears ? Object.keys(meta.vowSel || {}).filter(k => meta.vowSel[k] && VOWS[k]) : []));
+  for (const c of starterDeck(hero).filter(c => !(r.vows.includes('bare') && !isUnit(c)))) r.deck.push(Object.assign({ uid: r.nextId++ }, c, CARDS[c.id].kind === 'lead' && lv >= 4 ? { lv: 2 } : {}));
   // 두 번째 병법·오늘의 규칙이 쥐여 주는 시작 패
   const give = (id, n, up) => { for (let k = 0; k < n; k++) r.deck.push({ uid: r.nextId++, id, up: !!up, lv: 1 }); };
   if (alt && hero === 'hunter') give('caltrop', 2, true);
@@ -167,6 +176,7 @@ export function mods() {
   const tr = r.alt ? TRAIT2 : TRAIT; if (tr[r.hero]) tr[r.hero](m);
   if (r.daily) for (const k of r.daily.rules) if (DAILY_MOD[k]) DAILY_MOD[k](m);
   if ((r.lv || 1) >= 5) { m.heroHp *= 1.1; m.heroAtk *= 1.1; }   // 명장
+  if ((r.vows || []).includes('pouch')) m.pouch -= 3;
   m.pouch = Math.max(4, m.pouch + h.pouch); m.rangeMul *= h.range; m.drawRate *= h.draw; m.moraleRate *= h.morale;
   return m;
 }
@@ -203,10 +213,11 @@ export const STOP = {
 };
 const FORK_DESC = { forge: '대장간 연기가 오르는 길 — 무기를 벼린다', battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
 export function genRoad(ch) {
-  const side = () => pick(['event', 'event', 'shop', 'treasure'].concat(paced('stops', 'forge') ? ['forge'] : [])), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
-  const [a, b] = two(), [c, d] = two(), safe = pick(['event', 'shop', 'treasure']);
+  const vw = (G.run && G.run.vows) || [], ns = t => vw.includes('noshop') && t === 'shop' ? 'event' : t;
+  const side = () => ns(pick(['event', 'event', 'shop', 'treasure'].concat(paced('stops', 'forge') ? ['forge'] : []))), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
+  const [a, b] = two().map(ns), [c, d] = two().map(ns), safe = ns(pick(['event', 'shop', 'treasure']));
   // 고개 하나는 여섯 칸: 싸움 · 갈림길 · 싸움 · 갈림길(강적이냐 쉬운 길이냐) · 주막(그 고개의 옛이야기를 듣는다) · 두목
-  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'rest' }, { type: 'boss' }];
+  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: vw.includes('norest') ? 'battle' : 'rest' }, { type: 'boss' }];
   return { ch, stops, i: 0, state: 'march' };
 }
 export const forkDesc = t => FORK_DESC[t] || '';
@@ -222,7 +233,7 @@ export function advance() {
   const r = G.run, rd = r.road, st = rd.stops[rd.i]; r.pending = null;
   meta.best = Math.max(meta.best, r.ch * 6 + rd.i + 1); meta.bestCh = Math.max(meta.bestCh || 0, r.ch + (st.type === 'boss' ? 1 : 0));
   if (st.type === 'boss') {
-    r.bosses++; r.ch++; if (r.ch >= N_CH) { r.done = true; save(); return true; }
+    r.bosses++; r.ch++; if (r.ch >= N_CH && !r.endless) { r.done = true; save(); return true; }
     // 고개를 넘으면: 부대 한도가 늘고, 모든 병력·영웅 패가 한 단계 단련된다
     r.cap = Math.min(MAX_CAP, r.cap + 1); for (const c of r.deck) if (isUnit(c) && (c.lv || 1) < MAX_LV) c.lv = (c.lv || 1) + 1;
     r.road = genRoad(r.ch);
@@ -244,8 +255,10 @@ export function battleSetup(seed) { const r = G.run, m = mods(); return { mods: 
 export function waveSetup(enc) {
   const r = G.run, h = hardOf(r.hard || 0), foe = Object.assign({}, enc.foe || {});
   const c = chN(enc.ch); foe.nMul = ENEMY_N[c] * (h.crowd || 1); foe.bossK = BOSS_K[c];
-  foe.hp = (foe.hp || 1) * h.hp * CH_HP[c] * (enc.boss ? h.boss * BOSS_HP[c] : 1) * (enc.kind === 'elite' ? h.eliteHp : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk * CH_ATK[c] * (r.daily && r.daily.rules.includes('bloodmoon') ? 1.15 : 1);
-  return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && h.chase ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase) }) : enc.chase };
+  const vw = r.vows || [], ed = Math.max(0, enc.ch - (N_CH - 1)), ek = 1 + 0.12 * ed;   // 끝없는 고개: 열둘째 고개 너머로 갈수록 세진다
+  if (vw.includes('elite') && !enc.affix && !enc.boss) { const ks = Object.keys(AFFIX), ak = ks[(enc.ch * 7 + enc.row * 3 + 1) % ks.length]; Object.assign(foe, AFFIX[ak].foe); }
+  foe.hp = (foe.hp || 1) * ek * h.hp * CH_HP[c] * (enc.boss ? h.boss * BOSS_HP[c] : 1) * (enc.kind === 'elite' ? h.eliteHp : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * (1 + 0.06 * ed) * h.atk * CH_ATK[c] * (r.daily && r.daily.rules.includes('bloodmoon') ? 1.15 : 1);
+  return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && (h.chase || vw.includes('chase')) ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase + (vw.includes('chase') ? -20 : 0)) }) : enc.chase };
 }
 export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * hardOf(G.run.hard || 0).gold + m.goldFlat); }
 
@@ -304,7 +317,8 @@ export function describeReward(o) {
   return { title: '군량 수레', name: '부대 한도 +1', desc: `부대 한도 ${G.run.cap} → ${G.run.cap + 1}`, col: 'gold', misc: 'cap' };
 }
 function makeReward(kind, keys) {
-  const r = G.run, types = unitPool(), owned = ownedTypes();
+  const r = G.run, types = unitPool(), owned = ownedTypes(), vw = r.vows || [];
+  if ((vw.includes('norelic') && (kind === 'relic' || kind === 'bossRelic')) || (vw.includes('onearm') && kind === 'unit')) return null;
   if (kind === 'unit') { const fresh = types.filter(t => !owned.includes(t)); const t = fresh.length && rnd() < 0.6 ? pick(fresh) : pick(types); return { kind: 'card', id: 'u_' + t, lv: 1 + Math.floor(r.ch * 0.8), key: 'cd' + 'u_' + t }; }
   if (kind === 'lead') { const hs = HEROES.filter(h => !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
   if (kind === 'tactic') { const o = rollCards(keys.kind || 'battle', 1, keys)[0]; return o ? { kind: 'card', id: o.id, up: o.up, n: packN(o.id), key: 'cd' + o.id } : null; }
@@ -374,13 +388,13 @@ export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.i
 const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
-  relic(id) { const r = G.run; if (!id || r.relics.includes(id)) id = pick(relicPool()); if (!id) return act.gold(60); r.relics.push(id); return `보물 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
+  relic(id) { const r = G.run; if ((r.vows || []).includes('norelic')) return act.gold(60); if (!id || r.relics.includes(id)) id = pick(relicPool()); if (!id) return act.gold(60); r.relics.push(id); return `보물 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
   curse() { const r = G.run, pool = CURSES.filter(id => !r.relics.includes(id)); if (!pool.length) return act.gold(-20); const id = pick(pool); r.relics.push(id); return `부정 [${RELICS[id].name}] — ${RELICS[id].desc}`; },
   cleanse() { const r = G.run, id = r.relics.find(x => RELICS[x].curse); if (!id) return null; r.relics = r.relics.filter(x => x !== id); return `부정 [${RELICS[id].name}] 이 씻겨 나갔습니다`; },
   train(filter) { const c = unitCards().filter(c => CARDS[c.id].kind === 'unit' && (c.lv || 1) < MAX_LV && (!filter || filter(UNITS[CARDS[c.id].unit]))); if (!c.length) return act.hero(); return lvUp(pick(c)); },
   // 영물 패: 영물의 인연 사건으로만 얻는다 (up = 한 단 높여서)
   beast(id, up) { addCard('u_' + id, { lv: up ? 2 : 1 }); return `영물 패 [${UNITS[id].name}]${up ? ' +1단' : ''}`; },
-  recruit() { const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
+  recruit() { if ((G.run.vows || []).includes('onearm')) return act.gold(40); const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
   hero() { const c = G.run.deck.filter(c => CARDS[c.id].kind === 'lead' && (c.lv || 1) < MAX_LV); if (!c.length) return act.gold(40); return lvUp(c[0]); },
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },
   morale(n) { G.run.nextMorale = n; return `다음 싸움을 사기 +${n} 로 시작`; },
@@ -393,10 +407,15 @@ export const act = {
 };
 
 // ───────── 원정 끝: 공적 정산 ─────────
+// 끝없는 고개: 평정한 원정을 그대로 이어 열두 고개를 다시 돈다 (고개마다 요괴가 더 세진다)
+export function goEndless() { const r = G.run; if (!r || !r.done || r.daily || r.endless) return false; r.done = false; r.endless = true; r.gainPrev = r.gain || 0; r.settled = false; r.cap = Math.min(MAX_CAP, r.cap + 1); for (const c of r.deck) if (isUnit(c) && (c.lv || 1) < MAX_LV) c.lv = (c.lv || 1) + 1; r.road = genRoad(r.ch); r.pending = null; save(); return true; }
+export const chName = r => r.ch >= N_CH ? `끝없는 고개 ${r.ch - N_CH + 1}` : null;
 export function settleRun(win) {
   const r = G.run; if (!r || r.settled) return r ? r.gain || 0 : 0;
-  const gain = Math.round((r.merit * 0.6 + r.bosses * 4 + (win ? 40 : 0)) * (1 + 0.2 * r.hard));
+  // 서약을 지면 공적을 더 받는다. 끝없는 고개는 평정 때 받은 몫을 빼고 더 넘은 만큼만 받는다
+  const total = Math.round((r.merit * 0.6 + r.bosses * 4 + (win || r.endless ? 40 : 0)) * (1 + 0.2 * r.hard) * (1 + vowBonus(r.vows) / 100)), gain = Math.max(0, total - (r.gainPrev || 0));
   meta.merit += gain; r.settled = true; r.gain = gain;
+  if (r.endless) { const n = r.ch - N_CH; r.endlessN = n; r.endlessBest = meta.endlessBest || 0; meta.endlessBest = Math.max(meta.endlessBest || 0, n); save(); return gain; }
   // 평정하면 다음 험로가 열리고, 그 영웅이 넘은 가장 험한 길이 기록된다
   if (win) { meta.clears++; const was = meta.hardMax || 0; meta.hardMax = Math.min(HARD_MAX, Math.max(was, r.hard + 1)); r.newHard = meta.hardMax > was ? meta.hardMax : 0; if (!meta.heroBest) meta.heroBest = {}; meta.heroBest[r.hero] = Math.max(meta.heroBest[r.hero] === undefined ? -1 : meta.heroBest[r.hero], r.hard); }
   // 끝낸 원정 수 → 새 것이 열린다 / 영웅 숙련이 쌓인다 / 오늘의 원정 점수

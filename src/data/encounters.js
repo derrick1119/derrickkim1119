@@ -95,7 +95,7 @@ export function budgetFor(ch, row, kind, eliteMul = 1) { const c = CURVE[Math.mi
 const sky = (C, R) => { const x = R(); return x < C.sky[0] ? 'day' : x < C.sky[0] + C.sky[1] ? 'night' : 'rain'; };
 export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다
-  const C = CHAPTERS[Math.min(N_CH - 1, ch)], lvl = ch + 1, late = Math.min(ch, 4);
+  const C = CHAPTERS[ch % N_CH], lvl = ch + 1, late = Math.min(ch, 4);
   const chase = { at: 0, every: 11, types: C.chase };
   if (kind === 'boss') { const b = BOSSES[C.boss], pk = b.packs[(R() * b.packs.length) | 0], vk = ch < 2 ? 'plain' : Object.keys(BOSS_VAR)[(R() * Object.keys(BOSS_VAR).length) | 0], V = BOSS_VAR[vk]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: Object.assign({}, V.foe), bossVar: vk, terrain: 'arena', sky: C.bossSky, chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with, lvl }); }
   const pool = { w: C.pool };

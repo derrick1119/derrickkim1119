@@ -31,4 +31,4 @@ export const CHAPTERS = [
 export const N_CH = CHAPTERS.length;
 CHAPTERS.forEach((c, i) => { c.n = i; c.short = ORD[i] + ' 고개'; c.name = `${ORD[i]} 고개 · ${c.place}`; });
 // 고개 번호가 범위를 벗어나도(원정을 다 마친 뒤) 마지막 고개를 돌려준다
-export const chapterOf = ch => CHAPTERS[Math.max(0, Math.min(N_CH - 1, ch | 0))];
+export const chapterOf = ch => CHAPTERS[Math.max(0, ch | 0) % N_CH];   // 끝없는 고개에서는 열두 고개가 다시 돈다
