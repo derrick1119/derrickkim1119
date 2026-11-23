@@ -17,7 +17,7 @@
     S.enter = function (args) {
       S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
       S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
-      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false; S.vow = null;
+      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false;
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
       Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
@@ -264,49 +264,6 @@
     };
     X.spendDream = function () { T.state.dream = {}; };
 
-    /* ---------- the promises he makes here, in his notebook ----------
-       Not the ones to Ana on the board: the ones to the neighbours. Written down when made, struck through when kept. */
-    const VOWS = ['브램 선장의 배 띄우는 것 돕기', '피피랑 같이 기다리기', '로사의 새 담요 같이 뜨기', '아나의 스튜 똑같이 끓이기', '피피랑 토마토 키우기', '릴리 결혼식에 같이 걷기', '로사네 건너갈 때 종에 대답하기'];
-    const pad = (a) => VOWS.map((_, i) => (a && a[i]) || 0);
-    X.vowsAt = function (written, kept, notes) { T.state.vows = { w: pad(written), k: pad(kept), n: VOWS.map((_, i) => (notes ? notes[i] : T.state.vows && T.state.vows.n && T.state.vows.n[i]) || '') }; };
-    /* how: 'write' a new line · 'keep' strike it through · 'note' only a little line in the margin under it */
-    X.vow = async function (i, how, note) {
-      const k = S.clock, v = T.state.vows = T.state.vows || { w: pad(), k: pad(), n: VOWS.map(() => '') };
-      v.n = v.n || VOWS.map(() => '');
-      S.vow = { a: 0, i, how, p: 0, note: note || '' };
-      T.audio.sfx('page');
-      await k.tween(S.vow, 'a', 1, 0.6, T.ease.out3);
-      T.audio.sfx('crayon');
-      T.announce((how === 'keep' ? '수첩: 지킨 약속. ' : how === 'note' ? '수첩: ' : '수첩: 새 약속. ') + VOWS[i] + (note ? '. ' + note : ''));
-      await k.tween(S.vow, 'p', 1, how === 'keep' ? 0.9 : 1.4, T.ease.lin);
-      if (how === 'keep') v.k[i] = 1; else if (how === 'write') v.w[i] = 1;
-      if (note) v.n[i] = note;
-      X.note();
-      await k.wait(note ? 2.4 : 1.6);
-      await k.tween(S.vow, 'a', 0, 0.6);
-      S.vow = null;
-    };
-    X.vowNote = (i, note) => X.vow(i, 'note', note);
-    function drawVow(g) {
-      const c = S.vow, V = T.view;
-      if (!c || c.a < 0.01) return;
-      const v = T.state.vows || { w: [], k: [], n: [] }, a = T.ease.out3(c.a), RH = 46, H = 62 + VOWS.length * RH, BW = 330;
-      g.save(); g.globalAlpha = c.a; g.translate(V.W / 2 - 340, 92 + (1 - a) * -30);
-      g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
-      P.fill(g, P.rr(-20, 0, BW, H, 10), '#fbf4e2'); g.shadowColor = 'transparent';
-      P.fill(g, P.rr(-20, 0, 16, H, 6), '#d7a23c');
-      P.text(g, '여기서 한 약속', BW / 2 - 12, 30, { size: 30, color: '#b54a36', seed: 2, fit: BW - 50 });
-      VOWS.forEach((s, i) => {
-        const y = 66 + i * RH, writing = c.i === i && c.how === 'write', shown = (v.w && v.w[i]) || writing;
-        if (!shown) { g.fillStyle = 'rgba(51,64,92,0.15)'; g.fillRect(20, y - 2, BW - 70, 1.2); return; }
-        P.text(g, s, BW / 2 - 12, y, { size: 21, color: '#33405c', k: writing ? c.p : 1, seed: 6 + i, fit: BW - 56 });
-        const struck = v.k && v.k[i] ? 1 : c.i === i && c.how === 'keep' ? c.p : 0;
-        if (struck > 0) P.line(g, 10, y - 4, 10 + (BW - 60) * struck, y - 6, 2.4, '#c9573f');
-        const note = c.i === i && c.note ? c.note : v.n && v.n[i];
-        if (note) P.text(g, note, BW / 2 - 6, y + 20, { size: 15, color: '#8a5a50', k: c.i === i && c.note ? T.clamp(c.p * 1.4) : 1, seed: 20 + i, fit: BW - 64 });
-      });
-      g.restore();
-    }
     function trayIcon(g, name, x, y, a, t) {
       g.save(); g.globalAlpha *= a; g.translate(x, y);
       if (name === 'scent') { P.fill(g, P.rr(-11, -6, 22, 22, 6), 'rgba(226,240,236,0.9)'); P.fill(g, P.rr(-9, -12, 18, 7, 3), '#b98a5a'); for (let i = 0; i < 3; i++) { const life = (t * 0.6 + i / 3) % 1; P.glow(g, Math.sin(t * 2 + i) * 4, -14 - life * 20, 5 + life * 6, '#fff3dc', Math.sin(life * Math.PI) * 0.8); } }
@@ -522,7 +479,7 @@
         g.fillStyle = T.rgba(dark ? '#f1e8d6' : '#3d3a5c', 0.5 * a); g.fillRect(x + 2, 812, 150 * T.ease.out(a), 1.4);
       }
       if (S.cardO) { S.cardO.draw(g, S.cardO.c); if (S.cardO.c.ready) T.continueDot(g, 0, 866, '#f3ead8'); }
-      drawTray(g, t); drawVow(g);
+      drawTray(g, t);
       if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
       TALK.draw(g);
       if (S.cards.end.a > 0.01) {

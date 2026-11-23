@@ -1,6 +1,8 @@
-/* Chapter 5 「꽃길」 — years twenty to twenty-five. Two entrances: a letter at the harbour,
-   and Lily at her wedding, where he walks the flower road beside the arm she has left empty.
-   Afterwards he looks at the swing he built for a child, and makes it wide enough for two. */
+/* Chapter 5 「꽃길」 — years fifteen to twenty-five. The roof goes up; his mother, whose white boat has
+   waited at the quay every evening since he first ate at her table, goes on to his father at last.
+   Years later a magpie brings Lily's letter: she is getting married. He goes into her dream, promises to
+   walk beside her empty arm, and sits her on the swing he once promised her and pushes it. At the
+   wedding he walks the flower road beside her; afterwards he makes the swing wide enough for two. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -155,7 +157,7 @@
 
   T.stage('ch5', {
     chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「다 지킨 약속」'], next: 'ch6', pad: 3,
-    plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 1, garden: 0.4, patch: 2, fruit: 1 },
+    plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 0, garden: 0.4, patch: 2, fruit: 1 },   /* the swing is built during the first years card */
     flags: { bramGone: true },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * 0.5; },
     onHill(g, h, S) {
@@ -182,14 +184,14 @@
       const [px, py] = X.place.plot();
       X.cam(px, py, 1); X.camSnap();
       S.swinging = false;
-      X.vowsAt([1, 1, 1, 1, 1], [1, 0, 1, 0], ['', '', '', '', '두 번째: 빈이 고랑을 다 파헤침']);
       T.state.dream = {};
       const TALK = X.TALK;
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(2), flip: true, lean: 0.06 });
       let bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 190, sit: 1, wag: 0.5 });
       X.title();
       await X.wait(4.2);
-      await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); } });
+      await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); X.wait(d * 0.4).then(() => { A.sfx('knock', 0.3); X.tween(ps, 'swing', 1, d * 0.4); }); } });
+      T.announce('사과나무가 자라고, 가지에 작은 그네가 걸렸다. 릴리에게 만들어 주겠다던 그네.');
 
       /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */
       const folk = [
@@ -227,7 +229,6 @@
       await X.TALK.say('rosa', '레오, 하나만 부탁하자.');
       await X.TALK.say('rosa', '며느리까지 오면, 우리 셋은 건너갈 거야.\n그때 종이 물으면, 네가 대답해 줘.');
       await X.TALK.say('leo', '…네. 제가 대답할게요.');
-      await X.vow(6, 'write');
       await X.wait(1);
       folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
       await X.wait(2.4);
@@ -248,11 +249,11 @@
       });
       X.bed(1, 0.12, 'sea');
       T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
-      await X.TALK.say('mom', '이제 나도 건너가야겠다.');
-      await X.TALK.say('leo', '…벌써요?');
-      await X.TALK.say('mom', '넌 이제 혼자서도 기다릴 수 있잖니.\n로사도, 빈도, 그 집도 있고.');
-      await X.TALK.say('leo', '조금만 더 있다 가면 안 돼요?');
-      await X.TALK.say('mom', '나도 네 아빠한테 그렇게 말했지.\n그래도 먼저 갔어. 가서 집 짓고 기다린다고.');
+      /* the boat that takes people on has been coming for her since her promise was kept */
+      await X.TALK.say('mom', '저 배, 네가 내 밥 먹은 날부터\n저녁마다 와 있었단다.');
+      await X.TALK.say('mom', '네 아빠, 평생 기다리게만 했는데.\n…이제 가 줘야지.', { slow: true });
+      await X.TALK.say('leo', '…가요, 엄마.', { slow: true });
+      await X.TALK.say('leo', '기다리는 게 어떤 건지,\n이제 저도 알아요.');
       await X.walk(mom2, 60, 50);
       await X.board(mom2, far, -10);
       mom2.flip = true;
@@ -268,7 +269,11 @@
       X.sail(far, -1500, 34);
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(7);
+      await X.wait(5);
+      /* SLOT: shooting star — ch5, evening quay: when Mom's white boat has gone beyond, a star falls down through the clouds into the living world */
+      T.announce('배가 보이지 않게 되자, 별 하나가 구름 아래로 떨어진다.');
+      A.sfx('star', 0.7);
+      await X.wait(2.6);
       leo.pose = null;
 
       /* ---- years on: a magpie with a letter in its beak ---- */
@@ -294,7 +299,7 @@
       await X.tap(() => [perch[0], perch[1] - 8, 50]);
       pie.letter = false;
       await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
-      await X.TALK.say('leo', '…릴리가 나한테 편지를 썼어.');
+      await X.TALK.say('leo', '…우리 릴리가.', { slow: true });
       await X.TALK.say('leo', '보러 와 줄 거지, 래.');
       pie.land = 0; A.sfx('whoosh');
       X.tween(pie, 'x', PL.HX + 900, 3, T.ease.in); X.tween(pie, 'y', perch[1] - 380, 3, T.ease.in).then(() => { S.pie = null; });
@@ -307,7 +312,7 @@
       await TALK.say('kid', '까치가 뭐 물고 왔어?');
       await TALK.say('leo', '릴리 편지. 결혼한대.\n…대답을 해 주고 싶은데.');
       await TALK.say('kid', '꿈으로 가면 되잖아!\n냄새, 소리, 빛. 그 언니가 아는 걸로.');
-      await TALK.say('leo', '빛은… 이 편지면 되겠다.\n그 애 손으로 쓴 거니까, 그 애한테 가는 길을 알 거야.');
+      await TALK.say('leo', '빛은… 이 편지면 되겠다.\n그 애 손으로 쓴 거니까, 길을 알 거야.');
       await X.gift('light', W.toScreen(leo.x - 20, W.y3(leo.x) - 110));
       pipi.pose = (o) => { o.armF = { a: 1.5, b: 0.2 }; o.face.eye = 'happy'; };
       await TALK.say('kid', '냄새는 내 크레파스!\n언니도 어릴 때 크레파스로 그림 많이 그렸다며.');
@@ -316,7 +321,7 @@
       await TALK.say('leo', '소리는….');
       await X.walk(leo, PL.TREE_X + 10, 90);
       leo.flip = false;
-      T.announce('그네를 밀어 본다. 릴리가 어릴 때 타던 그네와 같은 소리가 날까.');
+      T.announce('레오가 빈 그네를 밀어 본다. 릴리에게 만들어 주겠다던 그네.');
       const seat0 = () => { const q = PL.swingSeat(ps); return [q[0] + q[2] / 2, q[1] - 6, 46]; };
       await X.tap(seat0);
       leo.pose = (o) => { o.armF = { a: 1.4, b: 0.3 }; o.lean = 0.14; };
@@ -325,7 +330,7 @@
       const sq = PL.swingSeat(ps);
       await X.gift('sound', W.toScreen(sq[0] + sq[2] / 2, sq[1]));
       await X.wait(0.6); A.sfx('creak');
-      await TALK.say('leo', '삐걱. 릴리가 제일 좋아하던 소리.');
+      await TALK.say('leo', '삐걱.\n그 애가 그림으로만 타 본 그네.');
       S.swinging = false; X.tween(ps, 'swingA', 0, 1);
       X.walk(pipi, PL.HX - 640, 120).then(() => { pipi.hidden = true; });
 
@@ -367,8 +372,20 @@
       await TALK.say('lily', '…약속.', { slow: true });
       await TALK.say('leo', '약속.', { slow: true });
       A.motif({ voice: 'felt', vel: 0.4, beat: 0.8 });
-      await X.vow(5, 'write');
       await X.wait(1.2);
+      /* the promise he made her when she was six: in her dream, the swing he built on the hill */
+      /* SLOT: dream swing visuals — the dream room opens onto the hilltop and the apple tree; Lily (as she is now, 31) sits on the swing Leo built, he pushes, it swings higher; the room's dreamy light stays */
+      await TALK.say('leo', '그리고… 이거.');
+      T.announce('꿈속, 언덕 위 사과나무에 레오가 만든 그네가 걸려 있다.');
+      await X.wait(1.2);
+      await TALK.say('lily', '…그네네.', { slow: true });
+      await TALK.say('leo', '아빠가 만들어 준다고 했잖아.\n…많이 늦었지.');
+      T.announce('릴리가 그네에 앉는다. 레오가 등을 민다.');
+      A.sfx('creak'); await X.wait(1.3); A.sfx('creak');
+      await TALK.say('lily', '더 높이!');
+      A.sfx('creak');
+      await TALK.say('leo', '그래. 더 높이.', { slow: true });
+      A.sfx('creak'); await X.wait(1.6);
       await X.view(null, { color: '#fff6e6', out: 1.6, in: 1.2 });
       X.bed(4, 0.13, 'walk');
       /* the whole town weaves the road she will not walk on */
@@ -385,9 +402,7 @@
       await X.tween(V.hug, 'k', 1, 1.2);
       X.tween(V.bow, 'k', 1, 1.4);
       A.theme({ voice: 'box', vel: 0.34, beat: 0.6, left: false });
-      await X.wait(3.5);
-      await X.vow(5, 'keep', '릴리 왼팔 옆에서, 끝까지');
-      await X.wait(1);
+      await X.wait(4.5);
 
       /* ---- the swing ---- */
       leo.x = PL.TREE_X - 40; leo.flip = false; bean.x = PL.TREE_X - 26; bean.flip = false;
@@ -403,7 +418,7 @@
       /* it was made for a six-year-old */
       let stepN = 0;
       leo.pose = (o, a, t) => { o.armF = { a: 1.2, b: 0.5 }; o.lean = 0.16; };
-      await X.TALK.say('leo', '릴리 타라고 만든 건데…\n이젠 둘이 앉게 넓혀야겠다.');
+      await X.TALK.say('leo', '릴리는 태워 줬으니까….\n이젠 둘이 앉게 넓혀야겠다.');
       await X.drag({
         axis: 'x', sign: 1, dist: 240,
         on: (p) => { ps.swingW = p; const n = Math.floor(p * 5); if (n > stepN) { stepN = n; X.note(); A.sfx('knock', n / 5); } },

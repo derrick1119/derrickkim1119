@@ -1,8 +1,9 @@
 /* Chapter 4 「이웃들」 — years five to fifteen. Bean comes, not by boat but down the rainbow bridge,
-   and the lake shows the girl he left with his collar in her lap. Bean finds what Leo loses. Bram
-   asks Leo to look with him at the wife he left at thirty-two; a year later she comes, and his boat
-   goes into the water for the first time. Rosa's baby arrives with white hair, and she knows him at
-   once. That night the lake shows Ana her first grey hair, and his own face beside it. */
+   and the lake shows the girl he left: walking home from school in the rain with his collar, then on the
+   back step. Pipi meets Bean, and Bean meets the tomatoes. Bram asks Leo to look with him at the wife he
+   left at thirty-two; a year later she comes, he takes her out on his own boat as he promised, and the two
+   of them cross. Rosa's baby arrives with white hair, and she wraps him in the blanket she has finished.
+   That night the lake shows Ana her first grey hair, and his own face beside it. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -49,14 +50,12 @@
       const PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
       S.rb = { a: 0, run: 0 }; RB[2][1] = C.PIER_Y - 2;
-      X.vowsAt([1, 1, 1, 1, 1], [0, 0, 0, 0], []);
       X.cam(px, py, 1); X.camSnap();
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
       X.title();
       await X.wait(4.2);
       await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
-      await X.vowNote(4, '첫 농사: 까치가 다 쪼아 먹음');
 
       /* ---- a rainbow over the cloud sea ---- */
       let mom = X.actor('mom', { x: PL.HX - 120, style: F.styles.mom, s: C.MOM_S, lean: 0.1 });
@@ -114,7 +113,7 @@
       await TALK.say('leo', '빈… 너 왜 이렇게 늙었어.');
       await TALK.say('mom', '빈도 두고 온 사람이 있지.\n가 보자.');
 
-      /* ---- Bean's lake: Lily on the back step with his collar ---- */
+      /* ---- Bean's lake: Lily walking home from school in the rain, then on the back step with his collar ---- */
       const lakeB = T.lake({
         paint: T.vig.lilyBean, leo: F.leoAt(0), mom: true, shore: true,
         rhText: '빈은 릴리 옆 늘 앉던 계단에, 공은 풀밭에, 등불은 꺼진 현관 등에. 좌우로 끌어 점선에 맞춰 보세요',
@@ -128,7 +127,12 @@
       });
       await X.view(lakeB, { color: '#1b2a40' });
       X.age('릴리, 11');
-      T.announce('거울 호수. 뒷마당 계단에 앉은 릴리가 빈의 목걸이를 끌어안고 울고 있다. 밥그릇은 아직 그대로다.');
+      T.announce('거울 호수. 비 오는 하굣길, 릴리가 빈의 목걸이를 손에 감고 혼자 걷는다.');
+      await TALK.say('leo', '빈이 날마다\n마중 나가던 길이야.');
+      /* SLOT: lake-help puzzle — Lily walking home in the rain; Bean's reflection walks beside her */
+      await TALK.say('leo', '…오늘도 데려다주는구나, 빈.', { slow: true });
+      await X.wait(0.8);
+      T.announce('집에 온 릴리가 뒷마당 계단에 주저앉아 목걸이를 끌어안는다. 밥그릇은 아직 그대로다.');
       T.announce('물그림자 맞추기. 빈은 릴리 옆에, 공은 풀밭에, 등불은 현관 등에.');
       await lakeB.rhyme();
       await X.wait(1.2);
@@ -149,43 +153,26 @@
       T.announce('릴리가 눈물을 닦으며 웃는다. 목걸이를 꼭 쥔다.');
       X.notes(3, { voice: 'felt', vel: 0.3 });
       await X.wait(2.2);
-      await TALK.say('leo', '들었지? 빈이 대답한 거야.');
-      await TALK.say('mom', '닿지는 않아도,\n뭔가는 건너가나 보다.');
+      await TALK.say('leo', '…옆에 있는 거, 알았나 봐.', { slow: true });
       await X.wait(0.6);
 
-      /* ---- back up the hill: Bean finds what Leo loses ---- */
+      /* ---- back up the hill: Pipi meets Bean ---- */
       S.actors = [];
       leo = X.actor('leo', { x: PL.HX + 90, style: F.leoAt(0), flip: true });
       bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 150, sit: 1, wag: 0.6, flip: true });
       X.cam(px, py, 1); X.camSnap();
       await X.view(null, { color: '#1b2a40' });
       X.bed(3, 0.13, 'walk');
-      leo.pose = (o, a, t) => { o.headTilt = 0.2 + Math.sin(t * 1.4) * 0.1; o.armF = { a: 0.6, b: 1.2 }; };
-      const pipi = X.actor('kid', { x: PL.HX - 250, style: F.styles.kidA, s: 100 });
+      const pipi = X.actor('kid', { x: PL.HX - 640, style: F.styles.kidA, s: 100 });
+      await X.walk(pipi, PL.HX - 250, 130);
       pipi.pose = (o, a, t) => { o.lean = 0.2; o.face.eye = 'happy'; o.armF = { a: 2.6, b: 2.4 }; o.y += Math.sin(t * 9) * 1.5; };
-      await TALK.say('leo', '망치를 어디 뒀더라….');
-      await TALK.say('leo', '모자는 또 어디 갔지?');
-      await TALK.say('kid', '히히. 찾아봐!\n풀숲 어딘가에 숨겼지롱.');
       bean.sit = 0; A.sfx('bark');
-      T.announce('빈의 냄새 찾기. 풀숲을 눌러 빈을 보낸다. 가까울수록 꼬리를 세게 흔든다.');
-      X.cam(PL.HX + 40, py + 20, 0.92);
-      await X.play(T.puzzle.sniff({
-        bean, walk: X.walk,
-        spots: [{ x: PL.BOARD_X - 60 }, { x: PL.HX - 150 }, { x: PL.HX - 20 }, { x: PL.LAMP_X + 26 }, { x: PL.TABLE_X - 4 }, { x: PL.TREE_X - 10 }, { x: PL.TREE_X + 110 }],
-        finds: [
-          { at: 0, thing: '망치', clue: '망치는 팻말 바로 밑 풀숲에 숨겼어.' },
-          { at: 4, thing: '모자', clue: '모자는 등불이랑 나무 사이. 아저씨가 밥 먹는 데 밑.' },
-          { at: 6, thing: '세 번째 보물', clue: '나무 밑은 아니야. 나무보다 바다 쪽으로 한 발짝 더.' },
-        ],
-      }));
-      X.cam(px, py, 1);
-      leo.pose = null;
-      T.announce('빈이 망치와 모자를 물어 온다. 뼈다귀도 하나.');
-      await TALK.say('kid', '빈 반칙이야!\n코로 찾는 건 반칙이라고!');
-      await TALK.say('leo', '…그럼 뼈다귀는 누구 거야?');
-      await TALK.say('kid', '그건 빈 선물.\n오늘 우리 편 해 줬으니까.');
+      await TALK.say('kid', '강아지다!\n아저씨 강아지야?');
+      await TALK.say('leo', '빈이야.\n우리 릴리 강아지.');
+      await X.walk(bean, PL.HX - 196, 150);   /* he goes to her */
       pipi.pose = (o, a, t) => { o.armF = { hand: F.local(o, bean.x, W.groundAt(bean.x) - 30) }; o.lean = 0.3; o.face.eye = 'happy'; };
       bean.sit = 1; bean.wag = 1; bean.wagRate = 16;
+      T.announce('피피가 빈을 쓰다듬는다. 빈이 꼬리를 세차게 흔든다.');
       await X.wait(1.4);
 
       /* ---- the second garden: a bed more, and a dog who has never met wet earth ---- */
@@ -208,7 +195,6 @@
       ps.fruit = 0.15;
       await TALK.say('kid', '빈! 그거 내 토마토야!');
       await TALK.say('leo', '…내년엔 울타리부터 치자.');
-      await X.vowNote(4, '두 번째: 빈이 고랑을 다 파헤침');
       await X.dip(async () => { leo.x = PL.HX + 90; bean.x = PL.HX + 150; bean.sit = 1; pipi.x = PL.HX - 250; X.cam(px, py, 1); X.camSnap(); });
       /* walls, year after year, with a dog under his feet */
       await X.years(5, 9, { age: 45, during: (d) => { X.tween(ps, 'tree', 0.4, d); X.wait(d * 0.5).then(() => { ps.stage = 3; A.sfx('knock', 0.5); }); } });
@@ -268,8 +254,8 @@
       X.notes(3, { voice: 'felt', vel: 0.3 });
       await X.wait(2.4);
       await TALK.say('bram', '…곧 오겠구먼.');
-      await TALK.say('bram', '그 사람 오면,\n그 약속 잊지 말게.');
-      await TALK.say('leo', '그럼요. 수첩에도 적어 뒀어요.');
+      await TALK.say('bram', '이번엔 내 배로\n태워 줘야지.', { slow: true });
+      await TALK.say('leo', '밧줄은 제가 풀게요.');
 
       /* ---- a year on: Captain Bram's wife, and she is in no hurry now either ---- */
       let wife;
@@ -284,7 +270,7 @@
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
-      await TALK.say('mom', '누가 오는구나.\n이번엔 네가 등불로 대답해 주렴.');
+      await TALK.say('mom', '누가 오는구나.\n네가 대답해 주렴. 길 잃지 않게.');
       const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 3, 0, 1]] });
       X.sail(S.b1, -74, 30);
       await pressed;
@@ -298,7 +284,8 @@
       bram.flip = false;
       await TALK.say('bram', '그 사람은 원래 뭐든 천천히 했어.');
       bram.flip = true;
-      await TALK.say('wife', '칠십 년 동안\n배만 지었다면서요.');
+      await TALK.say('wife', '…손이 다 거칠어졌네요.');
+      await TALK.say('bram', '약속했잖아.\n내 배 생기면 제일 먼저 태워 준다고.');
       await X.wait(0.8);
       /* his boat goes into the water for the first time, with her in it */
       await X.dip(async () => {
@@ -311,20 +298,25 @@
         S.rope = { boat: big }; S.big = big; W.S.hook.flags.clearPier = true;
         X.cam(60, 452, 1);
       }, { out: 0.8, in: 1 });
-      T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다. 둘은 구름바다 너머로 건너간다.');
+      T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 마르타가 타고 있다.');
       await X.tap(() => [16, PIER - 30, 50]);
       T.announce('밧줄 풀기. 말뚝 셋에 감긴 밧줄을, 감긴 차례의 거꾸로 푼다.');
       await X.play(T.puzzle.rope({ order: [0, 2, 1, 0, 2] }));
       S.rope = null;
-      X.vow(0, 'keep');
-      await TALK.say('bram', '나는 이제 건너가네.\n기다릴 사람이 더는 없으니.');
+      await TALK.say('wife', '바다가 이렇게 넓었네요.', { slow: true });
+      await TALK.say('bram', '고맙네, 레오.\n이제 둘이 건너가네.');
+      T.announce('브램과 마르타가 구름바다 너머로 건너간다.');
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
       [leo, mom].concat(crowd).forEach((a) => { a.pose = wave; });
       bram.pose = wave; wife.pose = (o, a, t) => { o.armF = { a: 2.0 + Math.sin(t * 5) * 0.2, b: 0.3 }; };
       for (let i = 0; i < 4; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); await X.wait(0.5); }
       X.cam(-240, 452, 1, 0.5);
-      await X.wait(5);
+      await X.wait(3.6);
+      /* SLOT: shooting star — ch4, as Bram and Marta's boat goes beyond the cloud sea, a star falls down through the clouds into the living world */
+      T.announce('배가 구름바다 너머로 사라지고, 별 하나가 구름 아래로 떨어진다.');
+      A.sfx('star', 0.8);
+      await X.wait(2.4);
 
       /* ---- Rosa's baby ---- */
       let rosa, son;
@@ -358,8 +350,8 @@
       await X.wait(1.4);
       await TALK.say('rosa', '우리 아기.', { slow: true });
       await TALK.say('son', '…엄마?');
-      T.announce('로사가 같이 뜬 새 담요를 늙은 아들의 어깨에 둘러 준다.');
-      await X.vow(2, 'keep');
+      T.announce('로사가 다 뜬 담요를 늙은 아들의 어깨에 둘러 준다.');
+      await TALK.say('rosa', '이제야 다 떴다.', { slow: true });
       await X.wait(0.8);
 
       /* ---- that night ---- */

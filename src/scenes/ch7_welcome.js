@@ -1,6 +1,8 @@
 /* The last chapter 「마중」, and the epilogue. The lake shows her saying it to Lily; the bell
    rings; he walks down to the harbour, old, and she steps off the boat. They walk home past
-   everything he built, he cooks, and at night they set the first stone of one more room. */
+   everything he built and cross off growing old together; he cooks; at night, under the aurora, they
+   cross off the last line. All of his promises are kept, but she has brought one of her own, to Lily,
+   so they stay to keep it together, and set the first stone of one more room. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -44,7 +46,7 @@
 
   T.stage('ch7', {
     chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
-    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 1, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1 },
+    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 0, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1 },
     flags: { bramGone: true },
     build() { T.scenes.kitchen.build(); T.scenes.room.build(); T.scenes.stew.build(); },
     exit() { T.scenes.stew.plain = false; T.scenes.stew.cast = null; },
@@ -191,20 +193,24 @@
       await TALK.say('leo', '피피라는 아이랑 같이 키웠어.\n당신 오면 제일 먼저 얘기해 주기로 했거든.');
       await TALK.say('ana', '그럼 오늘 밤에 다 들려줘.\n천천히.');
       ana.pose = null;
-      /* one line was left on the list */
+      /* two lines were left on the list, the two he could not keep alone */
       leo.hand = ana.hand = false; leo.flip = true;
       await X.tap(() => [PL.BOARD_X, W.y3(PL.BOARD_X) - 74, 44]);
       await X.card(PL.boardCard, {
-        init: { w: 5, cross: [1, 1, 1, 1, 0], glow: 0.9 }, max: 12,
+        init: { w: 5, cross: [1, 1, 0, 1, 0], glow: 0.9 }, max: 12,
         run: async (c) => {
+          T.announce('약속 목록. 세 줄이 지워져 있고, 오로라 보러 가기와 같이 늙기가 남았다.');
           await X.wait(0.6);
+          await TALK.say('ana', '…이걸 다 지켰어?');
+          await TALK.say('leo', '두 줄은\n혼자선 못 지우겠더라.');
           c.ready = true; await X.any(); c.ready = false;
           A.sfx('crayon'); X.tween(c, 'glow', 0, 1.2);
           await X.tween(c.cross, 4, 1, 1.1, T.ease.lin);
           ps.cross[4] = 1;
-          T.announce('마지막 줄, 같이 늙기에 줄을 긋는다.');
+          T.announce('같이 늙기에 줄을 긋는다.');
           A.promise();
           await X.wait(0.8);
+          await TALK.say('leo', '하나는 밤에 보여 줄게.');
         },
       });
       X.bed(4, 0.13, 'walk');
@@ -255,6 +261,19 @@
       await TALK.say('ana', '…오로라네.');
       ana.look = false;
       await TALK.say('leo', '같이 보자고 했잖아.');
+      await X.card(PL.boardCard, {
+        init: { w: 5, cross: [1, 1, 0, 1, 1] }, max: 10,
+        run: async (c) => {
+          await X.wait(0.6);
+          c.ready = true; await X.any(); c.ready = false;
+          A.sfx('crayon');
+          await X.tween(c.cross, 2, 1, 1.1, T.ease.lin);
+          ps.cross[2] = 1;
+          T.announce('오로라 보러 가기에 줄을 긋는다. 다섯 줄이 다 지워졌다.');
+          A.promise();
+          await X.wait(0.8);
+        },
+      });
       /* Rosa's yarn: a stripe for every story, in the order it happened */
       await TALK.say('leo', '이거, 로사라는 이웃이 남긴 실이야.\n당신 오면 같이 뜨라고.');
       ana.look = true;
@@ -263,7 +282,7 @@
       await TALK.say('leo', '45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.');
       T.announce('이야기 담요. 아나가 처음부터 들려 달라고 한다. 그 일이 있었던 차례대로 실을 골라 한 줄씩 뜬다.');
       await X.play(T.puzzle.story({
-        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '반딧불', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
+        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '피피가 준 빛', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
           { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
         order: [3, 0, 5, 1, 6, 2, 4],
       }));
@@ -272,8 +291,15 @@
       ana.look = false;
       await TALK.say('leo', '괜찮아.\n이제 시간 많잖아.');
       await X.wait(0.8);
+      /* what she brought with her: the promise she made Lily an hour ago, the one he once made her */
       ana.look = true;
-      await TALK.say('ana', '릴리 방도 만들어야지.');
+      await TALK.say('ana', '레오.\n나도 릴리한테 약속하고 왔어.', { slow: true });
+      await TALK.say('ana', '먼저 가서, 아빠랑\n맛있는 거 해 놓겠다고.');
+      ana.look = false;
+      await TALK.say('leo', '…나도 당신한테 그랬지.', { slow: true });
+      await TALK.say('leo', '그럼 같이 지키자.\n릴리 올 때까지.');
+      ana.look = true;
+      await TALK.say('ana', '릴리 방도 만들어야겠다.');
       ana.look = false;
       X.cam(PL.ROOM_X + 50, py + 50, 1.4, 0.9);
       await X.tap(() => [PL.ROOM_X, W.y3(PL.ROOM_X) - 10, 44]);

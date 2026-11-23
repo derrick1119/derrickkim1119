@@ -343,10 +343,10 @@
     /* what she told a seven-year-old so that he would not cry: she had not known either */
     await TALK.say('leo', '엄마… 그 말, 진짜였어?\n나 울지 말라고 한 말인 줄 알았는데.');
     await TALK.say('mom', '나도 그런 줄 알았지.\n와 보니 정말 있더구나.');
-    await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
-    await TALK.say('mom', '아까 종이 물을 때, 네가 등불로 대답했지?\n그래야 배가 안개 속에서 길을 찾는단다.');
-    await TALK.say('leo', '…아나한테도 똑같이 말하고 왔는데.');
-    await TALK.say('mom', '그럼 이제 지키면 되지.');
+    /* who comes here: the ones who left a promise unkept. She is one of them; she does not say to whom */
+    await TALK.say('mom', '여긴 마중 나루란다.\n못 지킨 약속이 있는 사람이 오는 데야.');
+    await TALK.say('leo', '…나도 아나한테 똑같이 말하고 왔어.\n먼저 가서 다 해 놓겠다고.');
+    await TALK.say('mom', '그럼 여기서 지키면 되지.\n엄마처럼.');
     await k.wait(0.9);
     await k.tween(S.cup, 'k', 0, 0.9, T.ease.io);
     S.lampDown = false; n.flip = false;
@@ -400,14 +400,14 @@
     }
     /* neighbours */
     const near = Math.abs(S.wx - 930) < 150;
-    if (near && !S.bram.near) { S.bram.near = true; TALK.say('mom', '브램 선장은 배를 짓는단다.\n아내가 오면 태우려고, 육십 년째.', { auto: 3.2 }); S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
+    if (near && !S.bram.near) { S.bram.near = true; TALK.say('mom', '브램 선장은 배를 짓는단다.\n아내 태워 주마 했던 배를, 육십 년째.', { auto: 3.2 }); S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
     if (!S.post.on && !S.post.done && S.wx > 1010) S.post.on = true;
     if (S.post.on) {
       S.post.x -= 170 * dt;
       if (!S.post.rang && S.post.x - S.wx < 300) { S.post.rang = true; A.sfx('bike'); }
       if (S.post.x < 420) { S.post.on = false; S.post.done = true; }
     }
-    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; TALK.say('mom', '로사는 아들 줄 담요를 뜨지.\n다들 누군가를 기다리며 무언가를 만든단다.', { auto: 2.4 }); S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
+    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; TALK.say('mom', '로사는 아들 담요를 뜬단다.\n다 못 뜨고 온 걸, 처음부터 다시.', { auto: 2.4 }); S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
     if (!S.kidWave.done && S.wx > 2230) { S.kidWave.done = true; S.clock.tween(S.kidWave, 'k', 1, 0.5).then(() => S.clock.wait(2)).then(() => S.clock.tween(S.kidWave, 'k', 0, 0.6)); note(); }
     if (S.ph === 'walk' && S.join2 && S.wx >= DOOR - 52.5 && !S.nmoving) goHome();
     if (S.ph === 'climb' && S.wx >= STOP - 54.5 && !S.nmoving) pointOut();
@@ -440,6 +440,13 @@
     notes(4, { vel: 0.3 });
     await k.wait(5.2);
     await k.tween(S.ghost, 'a', 0, 1.6, T.ease.io);
+    /* her promise, kept at her own table; and his father, who kept all of his and so never came here */
+    await TALK.say('mom', '먼저 가서 해 놓는다고 했잖니.', { slow: true });
+    await TALK.say('leo', '…아빠가 끓여 주던 맛이야.');
+    await TALK.say('mom', '알지. 소금은 늘 많이 넣더라.');
+    await TALK.say('mom', '네 아빠는 여기 안 왔단다.\n너한테 한 약속, 다 지켰거든.');
+    await TALK.say('mom', '그래서 곧장 저 너머로 갔지.\n거기서 엄마 기다릴 거야.');
+    await TALK.say('leo', '…아빠답다.', { slow: true });
     await tap('stairs');
     /* up the ladder */
     S.st = 'up'; S.sitting = false; k.tween(S.eat, 'k', 0, 0.4);
@@ -528,11 +535,7 @@
     await k.tween(S.point, 'k', 1, 0.9, T.ease.out);
     await k.wait(0.6);
     await TALK.say('mom', '저기가 네 자리야.\n네 사람 오면 같이 살 데.', { slow: true });
-    await TALK.say('leo', '…아빠는?');
-    await TALK.say('mom', '네 아빠는 먼저 건너갔지.\n구름바다 너머로. 거기서 집 짓고 기다린다더라.');
-    await TALK.say('mom', '여긴 기다릴 사람이 있는 동안만 머무는 데란다.\n다 맞이하고 나면, 건너가는 거야.');
-    await TALK.say('leo', '…그럼 엄마도?');
-    await TALK.say('mom', '나는 네 집에 지붕 올라가는 건\n보고 갈란다.');
+    await TALK.say('leo', '…마당은 저쪽으로 내야겠다.');
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }
