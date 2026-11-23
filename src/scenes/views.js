@@ -538,11 +538,12 @@
     /* at the end she turns to the place on the counter he used to watch her from, and smiles at it */
     const turn = b >= 2;
     const a = { x: -132, y: FLOORY - F.hipHeight(st, 350), s: 350, style: st, flip: turn, lean: turn ? 0.04 : 0.14, headTilt: turn ? -0.06 : 0.04, face: { eye: 'happy', mouth: 'smile', blush: 0.22, old: true, tear: turn ? 0.5 : 0, tearY: (t * 2) % 3 }, skip: { armF: true } };
-    const tip = [24 + Math.cos(t * 1.8) * 44, 552 + Math.sin(t * 1.8) * 6];
+    /* the ladle goes round in her hand, never further than her arm reaches; when she turns, it stays standing in the pot */
+    const tip = turn ? [44, 556] : [-4 + Math.cos(t * 1.8) * 28, 553 + Math.sin(t * 1.8) * 5];
     a.armB = { hand: F.local(a, -60, 590) };
     F.person(g, a);
-    P.line(g, tip[0] - 66, tip[1] - 66, tip[0], tip[1], 6, '#b98a5a');
-    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: turn ? { a: 0.5, b: 0.6 } : { hand: F.local(a, tip[0] - 60, tip[1] - 56) } }));
+    P.line(g, tip[0] - 70, tip[1] - 18, tip[0], tip[1], 6, '#b98a5a');
+    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: turn ? { a: 0.5, b: 0.6 } : { hand: F.local(a, tip[0] - 58, tip[1] - 15) } }));
     night(g, '#f3e2c6', '#fff8e6');
   };
   /* the last one: the same hospital room, the other way round */

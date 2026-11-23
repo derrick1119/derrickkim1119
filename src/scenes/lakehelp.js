@@ -14,6 +14,9 @@
      o.who                        her look: an age (F.lilyAt), a style, or { style, s }; o.name for the captions (릴리); o.bag (a child's school bag)
      o.helpers  [{ kind: 'lantern'|'cloud'|'plank'|'bean', x }]   o.obstacles [{ x, need: kind | [kind, kind], w }] (street x, she starts at 120)
      o.len                        street length (home is at len - 150); o.caption the opening line; o.home: false (no one at the door) or a style
+     o.homeS                      the size of the one at the door (a grown-up walker's own size; 188 when a child walks home)
+     o.arrive                     the line when she gets there (릴리가 집에 왔어요)
+     o.carry: 'basket'            a market basket in her hand instead of Bean's collar
      o.leo / o.leoAge             who walks the bank above her; o.speed her pace (1)
      o.friend                     a small one who walks the bank too, a little behind him: a style, or { style, s, beside }.
                                   When the walker stops afraid (in the dark, in the rain) she goes and stands over her, and a
@@ -144,6 +147,8 @@
     const BAG = o.bag == null ? !!wst.kid : !!o.bag;
     const L = (V.lily = { x: o.startX || 120, ph: 0, v: 66, moving: false, wait: 0, mood: 'walk', relief: 0, home: 0, hop: 0, style: wst, s: ws });
     const homeWho = o.home === false ? null : o.home && o.home.skin ? o.home : F.anaAt(41);
+    /* the one at the door is drawn to the same scale as the one coming home: a child comes up to her chest */
+    const homeS = o.homeS || (wst.kid ? 188 : ws), ARRIVE = o.arrive || named('릴리가 집에 왔어요'), CARRY = o.carry || null;
     const leo = { x: L.x - 110, ph: 0, moving: false, style: o.leo || F.leoAt(o.leoAge == null ? 1 : o.leoAge) };
     const fo = o.friend, fr = (V.friend = fo ? { x: L.x - 190, ph: 0, moving: false, flip: false, near: 0, come: false, style: fo.skin ? fo : fo.style, s: (!fo.skin && fo.s) || 104, beside: fo.skin ? true : fo.beside !== false } : null);
     V.fright = function (on) { L.hold = !!on; };
@@ -364,7 +369,7 @@
       if (L.x >= HOME - 46.5) {
         V.finished = true; V.rh = null; sel = -1; held = -1;
         if (T.audio) T.audio.promise();
-        T.announce(named('릴리가 집에 왔어요'));
+        T.announce(ARRIVE);
         setTimeoutClock(2.6, () => V.res());
       }
       for (let i = V.spark.length - 1; i >= 0; i--) { const s = V.spark[i]; s.k += dt / 1.1; if (s.k >= 1) V.spark.splice(i, 1); }
@@ -561,10 +566,11 @@
         g.save(); g.translate(x + 112, GROUND + 10); g.scale(1, 0.2); P.glow(g, 0, 0, 220, '#ffd98a', 0.6 * lit); g.restore();
         P.fill(g, P.rr(x + 70, GROUND - 4, 84, 6, 2), '#b9a58e');
         if (homeWho) {   /* someone at the door, watching for her */
-          const near = T.clamp((L.x - (HOME - 500)) / 400), hug = T.ease.io(L.home);
-          const a = { x: x + 156 - hug * 30, y: GROUND - F.hipHeight(homeWho, 188), s: 188, style: homeWho, flip: true, lean: 0.04 + near * 0.06, headTilt: 0.14 - near * 0.1,
+          const near = T.clamp((L.x - (HOME - 500)) / 400), hug = T.ease.io(L.home), hk = homeS / 188;
+          const a = { x: x + 112 + 44 * hk - hug * 30 * hk, y: GROUND - F.hipHeight(homeWho, homeS), s: homeS, style: homeWho, flip: true, lean: 0.04 + near * 0.06, headTilt: 0.14 - near * 0.1,
             face: { eye: hug > 0.3 ? 'happy' : 'open', mouth: near > 0.5 ? 'smile' : 'line', blush: 0.2 } };
-          if (hug > 0.02) { a.armF = { a: 1.2 + hug * 0.6, b: 0.3 }; a.armB = { a: 1.0 + hug * 0.5, b: 0.4 }; }
+          /* arms open for a child; for a grown-up of her own height, hands out to take hers */
+          if (hug > 0.02) { a.armF = { a: hk < 1 ? 0.8 + hug * 0.4 : 1.2 + hug * 0.6, b: 0.3 }; a.armB = { a: hk < 1 ? 0.7 + hug * 0.35 : 1.0 + hug * 0.5, b: 0.4 }; }
           F.person(g, a);
         }
       }
@@ -748,7 +754,8 @@
         if (m === 'relief') { const k = L.relief, sp = 9 + 5 * k; g.strokeStyle = T.rgba('#fff6dc', k); g.lineWidth = 1.8; g.beginPath(); g.moveTo(hx + 22 - sp, hy - 26); g.lineTo(hx + 22 + sp, hy - 26); g.moveTo(hx + 22, hy - 26 - sp); g.lineTo(hx + 22, hy - 26 + sp); g.stroke(); }
         g.restore();
       }
-      if (j && j.handF && !V.finished) {
+      if (j && j.handF && CARRY === 'basket') basket(g, j.handF[0], j.handF[1], u);
+      else if (j && j.handF && !V.finished) {
         const hx = j.handF[0], hy = j.handF[1] + 4;
         g.strokeStyle = '#c4523f'; g.lineWidth = 3.2; g.beginPath(); g.ellipse(hx + 2, hy + 6, 8, 5.5, 0.4, 0, TAU); g.stroke();
         P.fill(g, P.circle(hx + 8, hy + 11, 2.4), '#e3b64f');
@@ -759,6 +766,21 @@
         F.dog(g, { x: bx, y: GROUND + 2, s: 180, walk: L.moving ? b.ph : null, sit: L.moving ? 0 : 1, wag: Math.sin(t * 12) * 0.9, headTilt: -0.15, flatLook: true });
         g.restore();
       }
+    }
+    /* a market basket hanging from her hand: tomatoes, and green tops showing (o.carry) */
+    function basket(g, x, y, u) {
+      const by = y + 9 * u, w = 17 * u, h = 10 * u;
+      g.save(); g.lineCap = 'round';
+      g.strokeStyle = '#7a5636'; g.lineWidth = 1.7 * u; g.beginPath(); g.ellipse(x, by, w * 0.42, 8.6 * u, 0, Math.PI, TAU); g.stroke();
+      P.line(g, x + 3 * u, by + 1 * u, x + 9 * u, by - 9 * u, 2.4 * u, '#7fb36c'); P.line(g, x + 5 * u, by + 1 * u, x + 13 * u, by - 6 * u, 2 * u, '#9fc77e');
+      P.fill(g, P.circle(x - 4.5 * u, by - 0.5 * u, 3.6 * u), '#d9584a'); P.fill(g, P.circle(x + 1.5 * u, by - 1.5 * u, 3.3 * u), '#c94a3c');
+      P.fill(g, P.circle(x - 5.5 * u, by - 1.6 * u, 1 * u), 'rgba(255,255,255,0.4)');
+      P.fill(g, P.poly([[x - w / 2, by], [x + w / 2, by], [x + w / 2 - 2 * u, by + h], [x - w / 2 + 2 * u, by + h]]), '#b48658');
+      g.strokeStyle = 'rgba(90,60,34,0.45)'; g.lineWidth = 0.8 * u; g.beginPath();
+      for (let k = 1; k < 3; k++) { g.moveTo(x - w / 2 + 1 * u, by + k * h / 3); g.lineTo(x + w / 2 - 1 * u, by + k * h / 3); }
+      g.stroke();
+      P.fill(g, P.rr(x - w / 2 - 0.6 * u, by - 0.8 * u, w + 1.2 * u, 2.2 * u, 1 * u), '#8a6440');
+      g.restore();
     }
     function D_clock(g, x, y) { P.fill(g, P.circle(x, y, 20), '#efe6d6'); P.line(g, x, y, x, y - 13, 2.4, '#3d3a5c'); P.line(g, x, y, x + 9, y + 3, 2.4, '#3d3a5c'); }
 
@@ -826,7 +848,7 @@
       } else if (V.finished) {
         const a = T.clamp(L.home * 2);
         T.band(g, a);
-        P.text(g, named('릴리가 집에 왔어요'), 0, 866, { font: 'serif', size: 28, color: '#f3ead8', alpha: 0.95 * a, glow: 'rgba(8,12,22,0.9)' });
+        P.text(g, ARRIVE, 0, 866, { font: 'serif', size: 28, color: '#f3ead8', alpha: 0.95 * a, glow: 'rgba(8,12,22,0.9)' });
       }
     };
     V.LEVELS = LEVELS;
