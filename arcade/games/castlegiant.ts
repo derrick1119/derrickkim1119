@@ -126,7 +126,7 @@ export const PART_DEX: PK[] = ['tower', 'mill', 'wheel', 'cannon', 'wall', 'flag
 /** 땅마다 나오는 것(바라는 부품을 고를 때 이 판에서 구할 수 있는 것만) */
 const ZRES: Partial<Record<ZK, Res[]>> = { forest: ['wood'], field: ['food'], river: ['food'], den: ['gold'], mine: ['stone'], swamp: ['food'], ice: ['food', 'stone'], volcano: ['stone', 'gold'], cloud: ['food'], lair: ['gold'] };
 
-type StarK = 'thud' | 'pop' | 'squash' | 'slam' | 'parts' | 'join' | 'floors' | 'gold' | 'drops' | 'boss';
+type StarK = 'thud' | 'pop' | 'squash' | 'slam' | 'parts' | 'join' | 'floors' | 'gold' | 'drops' | 'boss' | 'hand';
 interface StageDef { key: string; ch: number; name: string; news: string; zones: ZK[]; storm: number; star: [StarK, number]; boss?: MK; newZ?: ZK; newP?: PK }
 export const CHAPTERS = ['풀빛 골짜기', '바위 고개', '구름 너머'];
 /**
@@ -134,7 +134,7 @@ export const CHAPTERS = ['풀빛 골짜기', '바위 고개', '구름 너머'];
  * 별 셋째(솜씨)는 판마다 다르다 — 버릇 하나로는 안 되게(바로 앞 땅만 · 오래 머물기만).
  */
 export const STAGES: StageDef[] = [
-  { key: 'forest', ch: 0, name: '숲과 밀밭', news: '쿵! 하면 통나무가 우수수 — 나무꾼이 우르르', zones: ['forest', 'field', 'forest', 'field', 'forest', 'field', 'forest'], storm: 0.0009, star: ['thud', 8], newZ: 'forest' },
+  { key: 'forest', ch: 0, name: '숲과 밀밭', news: '쿵! 하면 통나무가 우수수 — 나무꾼이 우르르', zones: ['forest', 'field', 'forest', 'field', 'forest', 'field', 'forest'], storm: 0.0009, star: ['hand', 6], newZ: 'forest' },
   { key: 'river', ch: 0, name: '물고기 강', news: '강가에 쿵 — 물고기 펄떡! 먹을 것은 새 식구', zones: ['field', 'river', 'forest', 'river', 'field', 'forest', 'river', 'field'], storm: 0.001, star: ['pop', 16], newZ: 'river' },
   { key: 'den', ch: 0, name: '몬스터 소굴', news: '몬스터 바로 위에 쿵 — 찌부! 보물이 와르르', zones: ['forest', 'den', 'field', 'river', 'den', 'forest', 'den', 'field'], storm: 0.00105, star: ['squash', 2], newZ: 'den' },
   { key: 'troll', ch: 0, name: '거대 트롤 산', news: '길을 막은 산 트롤 — 성으로 쿵! 쿵!', zones: ['forest', 'field', 'den', 'river', 'forest', 'lair'], storm: 0.0008, star: ['boss', 15], boss: 'troll' },
@@ -142,8 +142,8 @@ export const STAGES: StageDef[] = [
   { key: 'village', ch: 1, name: '떠돌이 마을', news: '떠돌이 곁에 쿵 — "성이다!" 우르르 식구가 돼요', zones: ['village', 'mine', 'forest', 'village', 'den', 'field', 'village', 'river', 'mine'], storm: 0.00115, star: ['join', 4], newZ: 'village' },
   { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['drops', 7], newZ: 'swamp' },
   { key: 'yeti', ch: 1, name: '얼음 고개', news: '얼음 호수에 쿵 — 쩍! 끝엔 얼음 털보', zones: ['ice', 'mine', 'forest', 'ice', 'den', 'village', 'lair'], storm: 0.001, star: ['boss', 15], boss: 'yeti', newZ: 'ice' },
-  { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['thud', 22], newZ: 'volcano' },
-  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 21], newZ: 'cloud' },
+  { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['hand', 8], newZ: 'volcano' },
+  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 26], newZ: 'cloud' },
   { key: 'gold', ch: 2, name: '보물 언덕', news: '소굴이 셋! 황금 지붕을 올려 봐요', zones: ['den', 'field', 'den', 'mine', 'cloud', 'den', 'volcano', 'village'], storm: 0.00135, star: ['squash', 3], newP: 'roof' },
   { key: 'drake', ch: 2, name: '천둥 용 봉우리', news: '마지막 대장 천둥 용 — 성으로 쿵! 쿵! 쿵!', zones: ['cloud', 'volcano', 'den', 'village', 'mine', 'cloud', 'lair'], storm: 0.0011, star: ['boss', 15], boss: 'drake' },
 ];
@@ -206,7 +206,7 @@ export interface GiantState {
   /** 큰 이름표 카드(한 번에 하나 — 별 셋째 · 새 부품 처음 완성 · 대장 순간만). pic: 'p:부품' · 'star' · 'm:대장' */
   big: { text: string; t: number; n: number; star: boolean; sub?: string; pic: string } | null;
   /** 마지막 쿵 틱(성문 쪽 살짝 당기기) · 거인 손(한 움큼 퍼 올리기) · 다음 손을 쓸 수 있는 틱 · 퍼 올린 횟수 */
-  landT: number; hand: { x: number; y: number; t: number; items: Item[]; got: boolean; n: number } | null; handCD: number; scoops: number;
+  landT: number; hand: { x: number; y: number; t: number; items: Item[]; got: boolean; n: number } | null; handCD: number; scoops: number; handBest: number;
   star3At: number;
 }
 
@@ -357,6 +357,7 @@ function newStage(s: GiantState) {
   s.geyT = 0;
   s.star3At = -1;
   s.hand = null;
+  s.handBest = 0;
   s.landT = -99;
   s.newDex = [];
   s.big = null;
@@ -480,6 +481,7 @@ function star3(s: GiantState): boolean {
     case 'gold': return s.goldStage >= n;
     case 'drops': return s.phase === 'result' && s.drops <= n;
     case 'boss': return s.bossKO >= 0 && s.bossKO - s.boss0 <= n * 60;
+    case 'hand': return s.handBest >= n;
   }
 }
 /** 별 셋째를 판 중에 처음 딴 순간: 띠 + 반짝 */
@@ -503,12 +505,13 @@ export const starWord = (st: [StarK, number]) => {
     case 'gold': return `금 ${n}개`;
     case 'drops': return `쿵 ${n}번 안에 새 땅`;
     case 'boss': return `대장을 ${n}초 안에`;
+    case 'hand': return `손으로 한 번에 ${n}개`;
   }
 };
 export const starProg = (s: GiantState): [number, number] => {
   const [k, n] = STAGES[s.stage].star;
   if (k === 'boss') return [s.boss0 >= 0 ? Math.min(n, Math.floor(((s.bossKO >= 0 ? s.bossKO : s.t) - s.boss0) / 60)) : 0, n];
-  const v = k === 'thud' ? s.bestThud : k === 'pop' ? pop(s) : k === 'squash' ? s.squash : k === 'slam' ? s.slam : k === 'parts' ? s.partsStage : k === 'join' ? s.joinBest : k === 'floors' ? floors(s) : k === 'drops' ? s.drops : s.goldStage;
+  const v = k === 'hand' ? s.handBest : k === 'thud' ? s.bestThud : k === 'pop' ? pop(s) : k === 'squash' ? s.squash : k === 'slam' ? s.slam : k === 'parts' ? s.partsStage : k === 'join' ? s.joinBest : k === 'floors' ? floors(s) : k === 'drops' ? s.drops : s.goldStage;
   return [k === 'drops' ? v : Math.min(v, n), n];
 };
 
@@ -602,7 +605,9 @@ function grab(s: GiantState, h: NonNullable<GiantState['hand']>) {
   }
   h.got = true;
   h.n = n;
+  if (n > s.handBest) s.handBest = n;
   ev(s, 'grab2', h.x, h.y, n);
+  checkStar3(s);
 }
 function handStep(s: GiantState) {
   const h = s.hand;
@@ -1257,7 +1262,7 @@ const game: GameDef<GiantState> & { wows(s: GiantState): number } = {
       sx: 0.03, awake: false, swait: 0, hits: 0, lost: 0, goalX: 3,
       drops: 0, bestThud: 0, squash: 0, slam: 0, joinBest: 0, partsStage: 0, goldStage: 0, stageT: 0, arrive: 0, boss0: -1, bossKO: -1, route: [],
       firstTap: -1, firstBig: -1, wowN: 0, freeze: 0, down: false, seen: new Set<string>(), events: [], banner: null, spot: null, big: null, star3At: -1,
-      landT: -99, hand: null, handCD: 0, scoops: 0,
+      landT: -99, hand: null, handCD: 0, scoops: 0, handBest: 0,
     } as GiantState;
     for (let i = 0; i < POP0; i++) newPerson(s, 0.25, FEET, P_IN);
     newStage(s);
@@ -1439,6 +1444,8 @@ function bestScoop(s: GiantState): { x: number; y: number } | null {
         items += k;
       }
     }
+    const [sk, sn] = STAGES[s.stage].star;
+    if (sk === 'hand' && s.star3At < 0 && items >= sn) v += 20;
     if (v > bv) (bv = v), (best = { x: c.x, y: c.y });
   }
   if (best) lastScoop.set(s, best);
@@ -4150,7 +4157,7 @@ function drawHandArm(ctx: C2, s: GiantState, sc2: number, X: XF, Y: XF, R: XF) {
   }
   // 팔 (소매 + 손목)
   const cx = (sx + hx) / 2, cy = Math.min(sy, hy) - R(0.12);
-  for (const [lw, col] of [[R(0.06) * gs, OUT], [R(0.045) * gs, '#4fb3ae']] as [number, string][]) {
+  for (const [lw, col] of [[R(0.075) * gs, OUT], [R(0.058) * gs, '#4fb3ae'], [R(0.02) * gs, 'rgba(255,255,255,.25)']] as [number, string][]) {
     ctx.strokeStyle = col;
     ctx.lineWidth = lw;
     ctx.beginPath();
@@ -4158,11 +4165,11 @@ function drawHandArm(ctx: C2, s: GiantState, sc2: number, X: XF, Y: XF, R: XF) {
     ctx.quadraticCurveTo(cx, cy, hx, hy);
     ctx.stroke();
   }
-  const hu = R(0.045) * gs;
-  if (fist && h.items.length) for (let i = 0; i < Math.min(4, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2)), IF, hx + (i - 1.5) * hu * 0.5, hy - hu * 0.75 - (i % 2) * hu * 0.2, R(ITEM_S) * gs * 1.1);
-  put(ctx, bigHandSpr(fist, R(0.045) * DMAX * sc2), HF, hx, hy, hu);
+  const hu = R(0.072) * gs, iu = R(ITEM_S) * gs * 1.5;
+  if (fist && h.items.length) for (let i = 0; i < Math.min(5, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2) * 1.3), IF, hx + (i - 2) * hu * 0.38, hy - hu * 0.7 - (i % 2) * hu * 0.25, iu);
+  put(ctx, bigHandSpr(fist, R(0.072) * DMAX * sc2), HF, hx, hy, hu);
   if (!fist && h.t >= HAND_POUR - 6)
-    for (let i = 0; i < Math.min(5, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2)), IF, hx + (i - 2) * hu * 0.35, hy + hu * (0.6 + ((h.t - HAND_POUR + 6) / 6) * 1.2), R(ITEM_S) * gs);
+    for (let i = 0; i < Math.min(6, h.items.length); i++) put(ctx, itemSpr(h.items[i], IQ(R, sc2) * 1.3), IF, hx + (i - 2.5) * hu * 0.32, hy + hu * (0.5 + ((h.t - HAND_POUR + 6) / 6) * 1.4 + (i % 2) * 0.3), iu);
 }
 /** 거인 (+ 등에 진 성 · 들어 올리는 성) */
 function drawGiant(ctx: C2, s: GiantState, w: number, sc2: number, X: XF, Y: XF, R: XF) {
@@ -4261,7 +4268,7 @@ function hintScoop(s: GiantState): { x: number; y: number } | null {
   const top = castleTop(s), ds = dscale(s.cy);
   for (const c of s.objs) {
     if (c.dead || Math.abs(c.x - s.cx) > workR(s) - 0.02 || (Math.abs(c.x - s.cx) < 0.15 * ds && c.y > top - 0.06 && c.y < s.cy + 0.04)) continue;
-    const v = scoopables(s, c.x, c.y).reduce((a, o) => a + (o.amt || 1), 0);
+    const v = scoopables(s, c.x, c.y).reduce((a, o) => a + (o.amt || 1), 0) + (c.x > s.cx + 0.12 ? 2 : 0);
     if (v > bv) (bv = v), (best = { x: c.x, y: c.y });
   }
   return best;
@@ -4527,7 +4534,7 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
     if (s.big.pic === 'star') {
       starPath(ctx, pic, 0, chh * 0.32);
       ink(ctx, '#ffc93c', 2, '#a06a12');
-    } else if (s.big.pic.startsWith('p:')) put(ctx, ghostSpr(s.big.pic.slice(2) as PK, R(0.2) * sc2), ghostFr, pic, chh * 0.07, R(0.2));
+    } else if (s.big.pic.startsWith('p:')) put(ctx, ghostSpr(s.big.pic.slice(2) as PK, R(0.12) * sc2), ghostFr, pic, chh * 0.12, R(0.12));
     else {
       const mk = s.big.pic.slice(2) as MK;
       put(ctx, monSpr(mk, 0, R(0.035) * DMAX * sc2), MF, pic, chh * 0.36, R(0.035));
