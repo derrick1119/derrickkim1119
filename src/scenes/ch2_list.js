@@ -57,14 +57,26 @@
       await X.TALK.say('bram', '바닷가 둥근 돌이야.\n주춧돌로는 그만이지.');
       await X.TALK.say('leo', '…이걸 혼자 끌고 오셨어요?');
       await X.TALK.say('bram', '여기서 집 지은 사람 치고\n돌을 혼자 올린 사람은 없네.');
-      /* the stones come off the cart onto the plot; then they sit a while */
+      /* the stones come off the cart onto the plot */
       await X.dip(async () => {
-        bram.pose = null; bram.prop = null; leo.flip = true;
-        leo.sit = 1; bram.sit = 1;
+        bram.pose = null; bram.prop = null; if (bram.cart) bram.cart.stones = 3;
         A.sfx('knock', 0.2); A.sfx('knock', 0.6);
       }, { out: 0.8, in: 1 });
-      T.announce('둥근 돌 네 개가 집터에 내려졌다. 둘이 나란히 앉아 숨을 고른다.');
-      await X.wait(0.6);
+      T.announce('둥근 돌 네 개가 집터에 내려졌다. 둘이 돌에 걸터앉아 숨을 고른다.');
+      /* sitting on the stones they brought up: two of them, set down on the flat by the stakes a talking distance apart */
+      const SEAT = [PL.HX - 84, PL.HX + 48];
+      const onStone = (o, a) => {
+        if (a.sit < 0.02) return;
+        const u = a.s / 100, k = a.sit, hip = T.lerp(F.hipHeight(a.style, a.s), 30 * a.s / 150, k);
+        o.y = W.groundAt(a.x) - hip;
+        o.legF = { foot: [T.lerp(1, 19, k), hip / u - 3.2] }; o.legB = { foot: [T.lerp(-1, 14, k), hip / u - 2.8] };
+        o.lean = 0.08 + 0.08 * k; o.armF = { a: 0.8 * k, b: 0.95 * k }; o.armB = { a: 0.65 * k, b: 0.9 * k };   /* forearms on his knees */
+      };
+      ps.seats = SEAT.slice();
+      await Promise.all([X.walk(bram, SEAT[0], 80), X.walk(leo, SEAT[1], 80)]);
+      bram.flip = false; leo.flip = true; bram.pose = onStone; leo.pose = onStone;
+      X.tween(leo, 'sit', 1, 0.8); bram.sit = 0; X.tween(bram, 'sit', 1, 0.8);
+      await X.wait(1);
       await X.TALK.say('leo', '배는 다 돼 가요?');
       await X.TALK.say('bram', '다 돼도 못 띄우지.\n마르타가 와야 띄우는 배라.');
       await X.TALK.say('bram', '약속했거든. 내 배 생기면\n제일 먼저 태워 주겠다고.');
@@ -107,7 +119,7 @@
       await X.TALK.say('kid', '별똥별이다.\n누가 건너갔나 봐.');
       await X.TALK.say('kid', '저 아래서 저거 보고 소원 빌면,\n여기 바다에 작은 빛으로 떨어진대.');
       await X.TALK.say('leo', '…아나도 봤을까.', { slow: true });
-      await X.dip(async () => { ps.night = 0; leo.sit = 0; }, { color: '#141b36', out: 0.8, in: 1.2 });
+      await X.dip(async () => { ps.night = 0; leo.sit = 0; ps.seats = null; }, { color: '#141b36', out: 0.8, in: 1.2 });
       pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
       await X.wait(1.4);
 

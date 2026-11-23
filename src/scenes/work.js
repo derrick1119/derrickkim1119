@@ -64,15 +64,31 @@
   };
 
   /* ---------- sawing timber, beside the plot ----------
-     o: { leo, at (world x), logs, strokes }. Push and pull: the two sides, turn about. */
+     o: { leo, at (world x of the cut), logs, strokes }. Push and pull: the two sides, turn about.
+     He stands at the downhill end of the log with the saw in his hand: the handle goes where his hand goes, and his
+     arm and shoulders go with every stroke. The log is set level at his height; each trestle stands on its own
+     bit of the slope, and uphill the log simply rests on the bank. */
   Z.saw = function (o) {
     const G = make({ logs: o.logs || 2, strokes: o.strokes || 9, i: 0, n: 0, side: 0, x: -1, rest: 0 });
-    const leo = o.leo, X0 = o.at, base = () => W().groundAt(X0);
+    const leo = o.leo, X0 = o.at, XL = X0 - 118;
+    const gAt = (x) => W().groundAt(x);
+    const base = () => gAt(XL), logTop = () => base() - 96, logBot = () => logTop() + 28;   /* about his belt: a working height */
+    const cutK = () => (G.rest > 0 ? 1 : G.n / G.strokes);
+    /* the off-cut runs uphill until the bank comes up to meet it */
+    const rightLen = () => { let L = 40; while (L < 140 && gAt(X0 + L + 10) > logBot() + 2) L += 10; return L; };
+    /* where the handle should be: stroke along the log, the blade sloping down into the kerf, steeper as it goes deeper */
+    const SLOPE = (c) => 0.2 - 0.1 * c;
+    const handTarget = () => { const c = cutK(), hx = X0 - 84 + G.x * 24, cy = logTop() + 28 * c; return [hx, Math.min(logTop() - 10, cy - 6 - (X0 - hx) * Math.tan(SLOPE(c)))]; };
     G.start = function () {
-      leo.go = null; leo.x = X0 - 150; leo.flip = false;
-      leo.pose = (oo) => { const s2 = sawAt(); oo.lean = 0.1 + G.x * 0.06; oo.armF = { hand: F.local(oo, s2[0] - 110, s2[1] - 6) }; oo.armB = { hand: F.local(oo, s2[0] - 104, s2[1] + 2) }; };
+      leo.go = null; leo.moving = false; leo.x = XL; leo.flip = false;
+      leo.pose = (oo) => {
+        const push = (G.x + 1) / 2, h = handTarget();
+        oo.x += G.x * 7; oo.lean = 0.1 + cutK() * 0.34 + push * 0.12; oo.headTilt = 0.16;   /* bending over it as the cut goes deeper */
+        oo.legF = { foot: [9 + push * 2, 48.6] }; oo.legB = { foot: [-9 + push * 3, 48.8] };
+        oo.armF = { hand: F.local(oo, h[0], h[1]), bend: 1 };
+        oo.armB = { hand: F.local(oo, XL + 24 + G.x * 7, logTop() + 3), bend: 1 };   /* the other hand steadies the log */
+      };
     };
-    const sawAt = () => [X0 + G.x * 50, base() - 74];
     G.keyOf = (key) => (key === 'ArrowLeft' || key === '1' ? 0 : key === 'ArrowRight' || key === '2' ? 1 : -1);
     G.hit = (x) => (x < 0 ? 0 : 1);
     G.tap = function (n) {
@@ -86,28 +102,44 @@
     const up = G.update;
     G.update = function (dt) {
       up(dt);
-      G.x += ((G.side ? -1 : 1) * -1 - G.x) * Math.min(1, dt * 12);
+      G.x += ((G.side ? -1 : 1) * -1 - G.x) * Math.min(1, dt * 7);   /* a stroke takes a moment: the arm carries it through */
       if (G.rest > 0 && !G.done) { G.rest -= dt; if (G.rest <= 0) G.n = 0; }
     };
     G.next = () => (G.done || G.rest > 0 ? null : G.side ? 'ArrowRight' : 'ArrowLeft');
     G.hintAt = () => [G.side ? 330 : -330, 470];
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
-      const z = zoom(), gy = base(), o0 = scr(X0, gy);
+      const z = zoom(), yb = base(), o0 = scr(X0, yb), top = logTop() - yb, bot = top + 28, RL = rightLen();
       g.save(); g.globalAlpha = G.a; g.translate(o0[0], o0[1]); g.scale(z, z);
-      [-90, 90].forEach((x) => { P.line(g, x - 22, 0, x, -60, 6, '#8a6442'); P.line(g, x + 22, 0, x, -60, 6, '#8a6442'); });
-      const cut = G.rest > 0 ? 1 : G.n / G.strokes, drop = G.rest > 0 ? (1 - G.rest) * 30 : 0;
-      P.fill(g, P.rr(-150, -86, 150, 28, 14), '#b98a5a'); P.fill(g, P.ellipse(-150, -72, 7, 14), '#d9b384');
-      g.save(); g.translate(0, drop); g.rotate(drop * 0.006); P.fill(g, P.rr(0, -86, 140, 28, 14), '#b98a5a'); P.fill(g, P.ellipse(140, -72, 7, 14), '#c9a070'); g.restore();
-      P.fill(g, P.rr(-2, -87, 4, 29 * cut, 1), '#5a3d28');
-      for (let i = 0; i < Math.round(cut * 9); i++) P.fill(g, P.circle(T.noise(i, 3) * 14, -2 - (i % 3) * 2, 2.4), '#e6c79a');
-      if (G.rest <= 0 || G.done) {
-        g.save(); g.translate(G.x * 50, -90 + 29 * cut); g.rotate(-0.08);
-        P.fill(g, P.poly([[-80, -16], [80, -10], [80, 0], [-80, 0]]), '#cfd6da');
-        P.fill(g, P.rr(-106, -24, 28, 28, 7), '#8a5a3b');
+      /* local: x from the cut, y from the ground where he stands */
+      const trestle = (x) => { const gy = gAt(X0 + x) - yb; if (gy - bot < 14) return; const h = gy - bot; P.line(g, x - 10 - h * 0.28, gy, x, bot - 2, 6, '#8a6442'); P.line(g, x + 10 + h * 0.28, gy, x, bot - 2, 6, '#8a6442'); P.line(g, x - 6 - h * 0.14, (gy + bot) / 2, x + 6 + h * 0.14, (gy + bot) / 2, 3.4, '#7a5838'); };
+      trestle(-80); trestle(Math.min(70, RL - 26));
+      const cut = cutK(), drop = G.rest > 0 ? (1 - G.rest) * 30 : 0;
+      /* the saw, in his hand the whole time: the blade first, so that where it has gone down into the kerf the wood hides it */
+      const hw = leo.j && leo.j.handF ? leo.j.handF : handTarget(), hl = [hw[0] - X0, hw[1] - yb];
+      const ky = top + 28 * cut, ang = Math.atan2(ky - 6 - hl[1], -hl[0]), blade = Math.hypot(hl[0], ky - 6 - hl[1]) + 36 - 22 * cut;
+      {
+        g.save(); g.translate(hl[0], hl[1]); g.rotate(ang);
+        P.fill(g, P.poly([[9, -8], [blade, -3], [blade, 6], [9, 7]]), '#cfd6da');
+        g.strokeStyle = '#9aa3a8'; g.lineWidth = 1; g.beginPath();
+        for (let x = 12; x < blade - 3; x += 6) { g.moveTo(x, 6.6); g.lineTo(x + 3, 9); g.lineTo(x + 6, 6.4); }
+        g.stroke();
         g.restore();
       }
-      for (let i = 0; i < G.logs; i++) P.fill(g, P.rr(-60 + i * 44, -150, 36, 12, 6), i < G.i ? '#d9b384' : 'rgba(243,234,216,0.45)');
+      P.fill(g, P.rr(-150, top, 150, 28, 14), '#b98a5a'); P.fill(g, P.ellipse(-150, top + 14, 7, 14), '#d9b384');
+      g.save(); g.translate(0, drop); g.rotate(drop * 0.006); P.fill(g, P.rr(0, top, RL, 28, 14), '#b98a5a'); P.fill(g, P.ellipse(RL, top + 14, 7, 14), '#c9a070'); g.restore();
+      P.fill(g, P.rr(-2, top - 1, 4, 29 * cut, 1), '#5a3d28');
+      const gc = gAt(X0) - yb;
+      for (let i = 0; i < Math.round(cut * 9); i++) P.fill(g, P.circle(T.noise(i, 3) * 14, gc - 2 - (i % 3) * 2, 2.4), '#e6c79a');
+      {   /* the grip sits in his fist */
+        g.save(); g.translate(hl[0], hl[1]); g.rotate(ang);
+        P.fill(g, P.rr(-10, -10, 20, 20, 6), '#8a5a3b'); P.fill(g, P.rr(-4.5, -5, 9, 9, 3), 'rgba(40,28,20,0.5)');
+        const skin = leo.style && leo.style.skin ? leo.style.skin : '#e7b793';
+        g.fillStyle = skin; g.beginPath(); g.ellipse(0.5, 1.5, 5.6, 4.4, 0, 0, Math.PI * 2); g.fill();   /* his fingers round it */
+        g.fillStyle = T.shade(skin, -0.12); g.beginPath(); g.ellipse(3.2, 3.2, 2.2, 1.6, 0.4, 0, Math.PI * 2); g.fill();
+        g.restore();
+      }
+      for (let i = 0; i < G.logs; i++) P.fill(g, P.rr(-60 + i * 44, top - 64, 36, 12, 6), i < G.i ? '#d9b384' : 'rgba(243,234,216,0.45)');
       g.restore();
       /* which way now */
       for (const d of [0, 1]) {
