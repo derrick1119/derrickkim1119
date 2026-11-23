@@ -247,7 +247,10 @@
     }
   }
 
-  function walkers(g, layer) {
+  /* the leash joins Leo's hand to Bean's collar even when Bean has already
+     stepped onto the next hill: each end is kept in stage space, and the cord
+     is drawn with whichever of the two is painted last */
+  function walkers(g, layer, ox) {
     const t = T.time, sit = T.ease.io(S.sit.k), moving = S.moving;
     const arrived = S.phase !== 'walk';
     const who = [
@@ -305,7 +308,13 @@
         if (w.id === 'leo') leoHand = j.handF;
       }
     }
-    if (leoHand && collar) F.leash(g, leoHand, collar, arrived ? 10 : moving ? 12 : 22, 2.4);
+    const lk = S.lk;
+    if (leoHand) lk.hand = [leoHand[0] + ox, leoHand[1]];
+    if (collar) lk.collar = [collar[0] + ox, collar[1]];
+    if ((leoHand || collar) && lk.hand && lk.collar && !lk.drawn) {
+      lk.drawn = true;
+      F.leash(g, [lk.hand[0] - ox, lk.hand[1]], [lk.collar[0] - ox, lk.collar[1]], arrived ? 10 : moving ? 12 : 22, 2.4);
+    }
     if (onLayer && S.night.k > 0.01) P.glow(g, who[1].x, groundAt(who[1].x) - 50, 150, '#1b2452', 0.42 * S.night.k, 'multiply');
     return onLayer;
   }
@@ -357,13 +366,14 @@
 
     /* the three hills, far to near, with whoever is standing on each */
     const o3 = px * 0.5, o2 = px * 0.8, o1 = px * 1.1;
+    S.lk = { hand: null, collar: null, drawn: false };
 
     g.save(); g.translate(o3, 0);
     g.fillStyle = tint('#7a6a9c'); hillPath(g, y3, x0 - o3, x1 - o3, 0); g.fill();
     tufts(g, y3, 5, tint('#5f5383'), x0 - o3, x1 - o3, 0, 60, 9);
     for (const tr of S.trees) if (tr.hill === 3) tree(g, tr.x, y3(tr.x), tr.s, tint(tr.c, 0.5), tint('#4a3d63'));
     bigTree(g, TREE, y3(TREE), n);
-    walkers(g, 3);
+    walkers(g, 3, o3);
     g.restore();
     /* air between the hills */
     if (painted()) { const hz = g.createLinearGradient(0, 380, 0, 720); hz.addColorStop(0, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0)); hz.addColorStop(0.6, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0.28)); hz.addColorStop(1, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0)); g.fillStyle = hz; g.fillRect(x0, 380, x1 - x0, 340); }
@@ -372,13 +382,13 @@
     g.fillStyle = tint('#9d6d88'); hillPath(g, y2, x0 - o2, x1 - o2, 0); g.fill();
     tufts(g, y2, 6, tint('#7e5471'), x0 - o2, x1 - o2, 0, 70, 11);
     for (const tr of S.trees) if (tr.hill === 2 && (tr.x < J1 - 60 || tr.x > J2 + 60)) tree(g, tr.x, y2(tr.x), tr.s, tint(tr.c, 0.5), tint('#5a3d56'));
-    walkers(g, 2);
+    walkers(g, 2, o2);
     g.restore();
 
     g.save(); g.translate(o1, 0);
     g.fillStyle = tint('#c4775c'); hillPath(g, y1, x0 - o1, x1 - o1, 0); g.fill();
     tufts(g, y1, 7, tint('#9d5646'), x0 - o1, x1 - o1, 0, 90, 14);
-    walkers(g, 1);
+    walkers(g, 1, o1);
     g.restore();
 
     if (S.snap.k > 0.01) P.glow(g, S.snap.x + px * 0.8, S.snap.y, 40 + (1 - S.snap.k) * 110, '#fff0c0', S.snap.k * 0.8);
