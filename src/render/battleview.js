@@ -488,6 +488,14 @@ export class BattleView {
           else if (id === 'torch') { fx.flash = 0.35; fx.flashCol = '#ffd9a0'; fx.txt(640, 330, '횃불을 밝혀라!', '#d9702a', 30, 1.1); sfx('magic'); }
           else if (id === 'stakes') { fx.puff(x, y - 10, 8, '#e8dcc0', 11); fx.txt(x, y - 74, '목책!', '#7a4a2c', 24, 0.9); sfx('place'); }
           else if (id === 'doubt') { fx.txt(640, 520, '잡념을 떨쳤다', '#5a4a7a', 24, 1); sfx('card'); }
+          // 데이터로 적은 패(fx): 하는 일에 맞춰 그린다 — 피해는 먹 폭발, 강화는 빛 고리, 부름은 연기, 사기는 금빛 글
+          else if (e.fx) { const d = CARDS[id], col = e.col || (d.kind === 'attack' ? RED : d.kind === 'support' ? TEAL : d.kind === 'hero' ? (HERO_COL[d.hero] || OCHRE) : INDIGO), has = k => e.fx.includes(k);
+            if (has('aoe') || has('heroJump')) { fx.ring(x, y, (e.r || 60) * 1.15, INK, 0.35, 6); fx.burst(x, y - 10, 12, col, 210, 4); fx.splat(x, y - 6, 1.1, MEOK, 0.35); fx.shake = Math.max(fx.shake, 6); sfx('boom'); }
+            if (has('buff') || has('heroBuff') || has('cleanse')) { fx.ring(x, y, Math.max(50, (e.r || 90) * 1.2), col, 0.55, 7); for (let q = 0; q < 6; q++) fx.add({ k: 'plus', x: x + (Math.random() - 0.5) * 90, y: y - 10 - Math.random() * 30, vy: -50, life: 0.7, size: 5, col }); sfx('bless'); }
+            if (has('summon')) { fx.puff(x, y - 10, 10, '#e8dcc0', 13); sfx('place'); }
+            if (has('zone') || has('mark') || has('weaken') || has('pull')) { fx.ring(x, y, (e.r || 80) * 1.2, col, 0.45, 5); sfx('clang'); }
+            if (has('morale') || has('draw') || has('free') || has('expose') || has('bench')) sfx('star');
+            fx.txt(x, y - 64, d.name, col, 22, 0.9); }
           break;
         }
       }

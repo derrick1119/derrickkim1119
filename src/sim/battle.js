@@ -258,7 +258,7 @@ export class Battle {
     if (this.over) return;
     this.time += dt; if (this.waveOn) this.waveT += dt;
     this.morale = Math.min(this.moraleMax, this.morale + dt * (this.waveOn ? MORALE_RATE : MARCH_RATE) * this.mods.moraleRate);
-    if (this.torch > 0) this.torch -= dt; if (this.gutT > 0) this.gutT -= dt;
+    if (this.torch > 0) this.torch -= dt; if (this.gutT > 0) this.gutT -= dt; if (this.exposeT > 0) this.exposeT -= dt;
     for (let i = 0; i < HAND; i++) if (!this.hand[i] && (this.slotT[i] -= dt) <= 0) { const c = this.drawCard(); if (c) { this.hand[i] = c; this.ev('draw', { slot: i }); } }
     this.hash(); this.centroids();
     for (const u of this.units) u.eng = 0;
@@ -511,10 +511,52 @@ export class Battle {
     else if (id === 'deong') { for (const e of this.units) { if (e.dead || e.team !== 1 || e.x > VIEW.x1 + 6) continue; if (e.def.boss) { e.slow = Math.max(e.slow, v.stun + 1.5); e.slowAmt = 0.3; } else e.stun = Math.max(e.stun, v.stun); } for (const a of this.units) if (!a.dead && a.team === 0 && !a.def.structure) a.haste = Math.max(a.haste, v.dur); x = h.x; y = h.y; r = 300; }
     else if (id === 'bulwark') { h.guard = Math.max(h.guard, v.dur); h.guardAmt = v.guard / 100; h.taunt = 260; h.tauntT = v.dur; x = h.x; y = h.y; r = 130; }
     else if (id === 'raid') this.summon('berserk', x, y, v.n, v.life, P);
+    else if (s.fx) { const o = this.runFx(s, v, x, y, r, P, h, hm); x = o.x; y = o.y; r = o.r; ex = o.ex; }
     this.ev('cast', Object.assign({ id, x, y, r, up: c.up, slot: i }, ex));
     return true;
   }
 
+  // ───────── 패 효과 엔진: 데이터로 적은 패(CARDS[id].fx)를 차례로 실행한다 ─────────
+  // 값은 숫자이거나 v 의 이름('dmg' 처럼). 대상 who: area(범위 안 아군) · all · ranged · melee · charge · mounted · heal · hero · inf(보병)
+  // op: aoe · tele · rain · zone · buff · summon · morale · draw · free · mark · weaken · cleanse · heroJump · heroBuff · expose · pull · bench
+  runFx(s, v, x, y, r, P, h, hm) {
+    const val = q => typeof q === 'string' ? (v[q] !== undefined ? v[q] : 0) : (q || 0), out = { x, y, r, ex: null };
+    const pick = who => { const all = this.units.filter(u => !u.dead && u.team === 0 && !u.def.structure && !u.def.banner); switch (who) {
+      case 'all': return all; case 'ranged': return all.filter(u => u.def.range > 0 && !u.def.heal); case 'melee': return all.filter(u => !(u.def.range > 0)); case 'charge': return all.filter(u => u.def.charge);
+      case 'mounted': return all.filter(u => u.def.mounted); case 'heal': return all.filter(u => u.def.heal); case 'hero': return h ? [h] : []; case 'inf': return all.filter(u => !(u.def.range > 0) && !u.def.mounted && !u.def.hero);
+      case 'temp': return all.filter(u => u.temp); default: return all.filter(u => hyp(u.x - out.x, u.y - out.y) <= out.r + u.r); } };
+    for (const f of s.fx) {
+      const at = f.at === 'hero' && h ? [h.x, h.y] : [out.x, out.y], rr = f.r ? val(f.r) : out.r, src = f.hero ? h : null, k = f.hero ? hm * this.mods.heroAtk : P;
+      if (f.at === 'hero' && h) { out.x = h.x; out.y = h.y; if (f.r) out.r = rr; }
+      switch (f.op) {
+        case 'aoe': this.aoe(at[0], at[1], rr, val(f.dmg) * k, 1, src, { stun: val(f.stun), root: val(f.root), kb: val(f.kb), weaken: val(f.weaken), slow: f.slow ? val(f.slow) / 100 : 0, slowT: val(f.slowT) || 2, burn: f.burn ? 3 : 0, burnDmg: val(f.burn) * P }); break;
+        case 'tele': this.zones.push({ kind: 'tele', style: f.style || 'volley', ally: true, x: at[0], y: at[1], r: rr, t: 0, delay: val(f.delay) || 1.2, hits: 1, dmg: val(f.dmg) * k, stun: val(f.stun), burn: f.burn ? val(f.burn) * P : 0 }); break;
+        case 'rain': this.zones.push({ kind: 'rain', fire: !!f.fire, x: at[0], y: at[1], r: rr, t: 0, dur: val(f.dur) || 2.0, acc: 0.25, dmg: val(f.tick) * k * this.mods.rainDmg, burn: f.fire ? 1 : this.mods.rainBurn }); break;
+        case 'zone': this.zones.push({ kind: 'caltrop', x: at[0], y: at[1], r: rr, t: 0, dur: val(f.dur), acc: 0.4, slow: val(f.slow) / 100, dmg: val(f.dps) * P }); break;
+        case 'buff': for (const u of pick(f.who)) { const d = val(f.dur);
+          if (f.haste) u.haste = Math.max(u.haste, d); if (f.dmgUp) { u.dmgUp = Math.max(u.dmgUp, d); u.dmgUpAmt = Math.max(u.dmgUpAmt, val(f.dmgUp) / 100); }
+          if (f.guard) { u.guard = Math.max(u.guard, d); u.guardAmt = Math.max(u.guardAmt, val(f.guard) / 100); } if (f.barrier) { u.barrier = Math.max(u.barrier || 0, val(f.barrier) * k); u.barrierT = Math.max(u.barrierT || 0, d || 7); }
+          if (f.heal) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * val(f.heal) / 100); if (f.regen) { u.regen = Math.max(u.regen, d); u.regenAmt = Math.max(u.regenAmt, val(f.regen) / 100); }
+          if (f.fire) { u.fireT = Math.max(u.fireT || 0, d); u.fireDmg = Math.max(u.fireDmg || 0, val(f.fire) * P); } if (f.thorn) { u.thornT = Math.max(u.thornT || 0, d); u.thorn = Math.max(u.thorn || 0, val(f.thorn) / 100); }
+          if (f.ready) { if (u.def.charge) u.run = 999; u.cd = 0; } if (f.cleanse) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; } if (f.life && u.temp) u.life += val(f.life); }
+          break;
+        case 'summon': this.summon(f.type, at[0], at[1], val(f.n), val(f.life), P); break;
+        case 'morale': this.gain(val(f.n), at[0], at[1] - 40); break;
+        case 'draw': for (let q = 0; q < HAND; q++) if (!this.hand[q]) this.slotT[q] = Math.min(this.slotT[q], 0.05); break;
+        case 'free': this.free = (this.free || 0) + val(f.n); break;
+        case 'mark': for (const e of this.foesIn(at[0], at[1], rr)) { e.mark = Math.max(e.mark, val(f.dur)); e.markAmt = Math.max(e.markAmt, val(f.amt) / 100); } break;
+        case 'weaken': for (const e of this.foesIn(at[0], at[1], rr)) e.weaken = Math.max(e.weaken, val(f.dur)); break;
+        case 'pull': for (const e of this.foesIn(at[0], at[1], rr + 60)) { if (e.def.boss || e.def.structure) continue; const d = hyp(e.x - at[0], e.y - at[1]) || 1, q = Math.min(d - 8, val(f.dist) || 60); e.x -= (e.x - at[0]) / d * q; e.y -= (e.y - at[1]) / d * q; } break;
+        case 'expose': this.expose = Math.max(this.expose || 0, val(f.amt) / 100); this.exposeT = Math.max(this.exposeT || 0, val(f.dur) || 8); break;
+        case 'cleanse': for (const u of pick(f.who || 'all')) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; } break;
+        case 'heroJump': if (h) { h.jump = { sx: h.x, sy: h.y, tx: at[0], ty: at[1], t: 0, dur: 0.42, dmg: val(f.dmg) * hm * this.mods.heroAtk, r: rr, stun: val(f.stun) }; h.swing = 0.3; } break;
+        case 'heroBuff': if (h) { const d = val(f.dur); if (f.guard) { h.guard = Math.max(h.guard, d); h.guardAmt = Math.max(h.guardAmt, val(f.guard) / 100); } if (f.haste) h.haste = Math.max(h.haste, d); if (f.dmgUp) { h.dmgUp = Math.max(h.dmgUp, d); h.dmgUpAmt = Math.max(h.dmgUpAmt, val(f.dmgUp) / 100); } if (f.taunt) { h.taunt = val(f.taunt); h.tauntT = d; } if (f.heal) h.hp = Math.min(h.maxHp, h.hp + h.maxHp * val(f.heal) / 100); if (f.gauge) h.gauge = Math.min(1, (h.gauge || 0) + val(f.gauge) / 100); } break;
+        case 'bench': for (let q = 0; q < val(f.n) && this.bench.length; q++) { const back = this.bench.shift(), slot = this.hand.findIndex(z => !z); if (slot >= 0) this.hand[slot] = back; else this.drawPile.unshift(back); } break;
+      }
+    }
+    out.ex = { fx: s.fx.map(f => f.op), col: s.col || null };
+    return out;
+  }
   // ───────── 영웅의 고유기 (자동) ─────────
   // 선분 위에서 너비 w 안에 든 적
   foesOnLine(x0, y0, x1, y1, w) { const dx = x1 - x0, dy = y1 - y0, L2 = dx * dx + dy * dy || 1, out = []; for (const e of this.units) { if (e.dead || e.team !== 1 || e.hidden > 0 || e.jump || e.x > VIEW.x1 + 6) continue; const t = clamp(((e.x - x0) * dx + (e.y - y0) * dy) / L2, 0, 1); if (hyp(e.x - x0 - dx * t, e.y - y0 - dy * t) <= w + e.r) out.push(e); } return out; }
@@ -820,7 +862,7 @@ export class Battle {
     if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 0.85;
     if (t.team === 0 && this.form && this.form.fx.guard) d *= 1 - this.form.fx.guard;
     if (t.team === 1 && this.foe.projGuard && kind === 'proj' && !t.def.boss) d *= 1 - this.foe.projGuard;
-    if (t.team === 1 && this.expose && this.waveT < 8) d *= 1 + this.expose;
+    if (t.team === 1 && this.expose && (this.waveT < 8 || this.exposeT > 0)) d *= 1 + this.expose;
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
