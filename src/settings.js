@@ -50,9 +50,6 @@
   }
   slider('음악', 'music');
   slider('효과음과 주변 소리', 'fx');
-  const tip = el('p', 'margin:12px 0 0;font-size:13px;line-height:1.5;color:#6b6258');
-  say(tip, '기다리는 장면에서는 화면을 길게 누르거나 톡톡 두드리면 빨리 지나가요');
-  box.appendChild(tip);
   const btn = (text, fn, quiet) => {
     const b = el('button', 'display:block;width:100%;margin:10px 0 0;padding:11px 12px;border:0;border-radius:10px;cursor:pointer;font:inherit;' + (quiet ? 'background:transparent;color:#8a5a50;text-decoration:underline' : 'background:#33405c;color:#fff6e4'));
     say(b, text);

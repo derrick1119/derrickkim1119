@@ -191,8 +191,8 @@
         }
       }
       if (this.cur) {
-        /* the story runs a little brisker than the wall clock, and a good deal brisker while the player is hurrying it */
-        const d = dt * T.pace * (1 + 2.4 * T.rush);
+        /* the story runs a little brisker than the wall clock */
+        const d = dt * T.pace;
         this.cur.clock.update(d);
         if (this.cur.update) this.cur.update(d);
       }
@@ -298,8 +298,7 @@
   }
   canvas.addEventListener('pointerdown', (e) => {
     if (ptr.id !== null && ptr.id !== e.pointerId) return;
-    ptr.id = e.pointerId; ptr.down = true; ptr.t0 = performance.now();
-    hurry.tap = waiting();   /* a tap while nothing is being asked hurries the scene along for a moment */
+    ptr.id = e.pointerId; ptr.down = true;
     try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* fine */ }
     if (T.audio) T.audio.unlock();
     send('down', e);
@@ -319,11 +318,7 @@
   canvas.addEventListener('pointercancel', lift);
   canvas.addEventListener('click', () => { if (T.audio) T.audio.unlock(); });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  window.addEventListener('keyup', (e) => { if (e.key === 'Shift') hurry.shift = false; });
-  window.addEventListener('blur', () => { hurry.shift = false; });
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Shift') { hurry.shift = true; return; }
-    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) hurry.tap = waiting();
     if (e.target && e.target.id === 'mute') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (T.audio) T.audio.unlock();
@@ -356,14 +351,6 @@
 
   /* ---------- pace ---------- */
   T.pace = 1.3;
-  T.rush = 0;
-  const hurry = { shift: false, tap: false, left: 0 };
-  /* true while the scene on stage is waiting for nothing from the player */
-  function waiting() {
-    const s = D.cur;
-    if (!s || !s.want || D.trans || T.paused || s.game) return false;
-    try { return !s.want(); } catch (_) { return false; }
-  }
 
   /* ---------- main loop ---------- */
   T.time = 0;
@@ -374,12 +361,6 @@
     /* a slow device gets the painted look without its per-frame effects (the brushwork baked into layers stays) */
     if (raw > 0 && T.artOn && T.artOn()) { T.frameAvg = (T.frameAvg || 1 / 60) * 0.97 + raw * 0.03; T.artSlow = (T.artSlow || 0) + (T.frameAvg > 1 / 40 ? raw : -raw); T.artSlow = Math.max(0, Math.min(4, T.artSlow)); if (T.artSlow >= 3 && T.artAuto !== false) T.artLite = true; }
     const dt = raw * T.speed;
-    /* hurrying: hold the screen down (or Shift), or tap, while the scene is only passing time */
-    const idle = waiting();
-    const on = idle && ((ptr.down && now - ptr.t0 > 280) || hurry.shift || hurry.tap || T.forceRush /* test hook */);
-    if (hurry.tap) { hurry.left = (hurry.left || 0.9) - raw; if (hurry.left <= 0 || !idle) { hurry.tap = false; hurry.left = 0; } }
-    T.rush += ((on ? 1 : 0) - T.rush) * Math.min(1, raw * 9);
-    if (T.rush < 0.004) T.rush = 0;
     if (++saveTick % 90 === 0) autosave();
     last = now;
     try { T.step(dt); } catch (err) {
@@ -409,11 +390,6 @@
     ctx.setTransform(V.ps, 0, 0, V.ps, (V.W / 2) * V.ps, 0);
     D.draw(ctx);
     if (T.P && T.P.grade && T.artOn()) { try { T.P.grade(ctx); } catch (err) { T.report(err, 'grade'); } }
-    if (T.rush > 0.02) {   /* two small arrows in the corner: the scene is being hurried */
-      ctx.save(); ctx.globalAlpha = 0.7 * T.rush; ctx.fillStyle = '#fff6e4';
-      for (let i = 0; i < 2; i++) { const x = -V.W / 2 + 44 + i * 20, y = 46; ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x + 15, y); ctx.lineTo(x, y + 11); ctx.closePath(); ctx.fill(); }
-      ctx.restore();
-    }
     if (T.P && T.P.finish) T.P.finish(ctx);
   };
   T.run = function (first, args) {

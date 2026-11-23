@@ -12,6 +12,11 @@
   /* the rainbow bridge, from out of the sky to the end of the pier; Bean runs down it */
   const RB = [[-760, -40], [-560, 160], [-40, 420]];   /* start, control, landing (world, on the quay's hill) */
   const rbAt = (u) => { const a = RB[0], c = RB[1], b = RB[2], v = 1 - u; return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]]; };
+  /* distance along the bridge → the curve's parameter, so that he runs at an even pace all the way down */
+  let rbTab = null;
+  const rbMeasure = () => { const tab = [0]; let L = 0, p = rbAt(0); for (let i = 1; i <= 240; i++) { const q = rbAt(i / 240); L += Math.hypot(q[0] - p[0], q[1] - p[1]); tab.push(L); p = q; } rbTab = tab; return L; };
+  const rbU = (d) => { const tab = rbTab; let lo = 0, hi = tab.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tab[m] < d) lo = m; else hi = m; } const k = T.clamp((d - tab[lo]) / ((tab[hi] - tab[lo]) || 1)); return (lo + k) / (tab.length - 1); };
+  const STRIDE = 18.5;   /* distance per half-stride of his run: one bound every 2πx this */
   function rainbow(g, S) {
     const r = S.rb;
     if (!r || r.a < 0.01) return;
@@ -25,10 +30,12 @@
     });
     g.restore();
     P.glow(g, RB[2][0], RB[2][1], 90, '#fff6e0', 0.5 * r.a);
-    if (r.run > 0 && r.run < 1) {
-      const u = r.run, q = rbAt(u), q2 = rbAt(Math.min(1, u + 0.02)), rot = Math.atan2(q2[1] - q[1], q2[0] - q[0]);
-      for (let i = 0; i < 6; i++) P.glow(g, q[0] - Math.cos(rot) * i * 18, q[1] - Math.sin(rot) * i * 18 - 10, 14 - i * 2, '#fff6e0', 0.6 - i * 0.09);
-      F.dog(g, { x: q[0], y: q[1] - 4, s: 220, walk: t * 18, rot: rot * 0.8, wag: Math.sin(t * 20), flip: false });
+    if (rbTab && r.d > 0 && r.d < r.L) {
+      /* he runs it, bounding, with the bridge's own slope under his feet, levelling out as he reaches the pier */
+      const u = rbU(r.d), q = rbAt(u), q2 = rbAt(Math.min(1, u + 0.01)), q0 = rbAt(Math.max(0, u - 0.01));
+      const slope = Math.atan2(q2[1] - q0[1], q2[0] - q0[0]), rot = slope * 0.85 * T.clamp((r.L - r.d) / 60);
+      for (let i = 0; i < 6; i++) P.glow(g, q[0] - Math.cos(slope) * (i * 18 + 10), q[1] - Math.sin(slope) * (i * 18 + 10) - 10, 14 - i * 2, '#fff6e0', 0.5 - i * 0.075);
+      F.dog(g, { x: q[0], y: q[1] - 2, s: 220, walk: r.d / STRIDE, run: 1, rot, wag: Math.sin(t * 16) * 0.6, flip: false });
     }
     g.restore();
   }
@@ -48,7 +55,7 @@
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
-      S.rb = { a: 0, run: 0 }; RB[2][1] = C.PIER_Y - 2;
+      S.rb = { a: 0, d: 0, L: 1 }; RB[2][1] = C.PIER_Y - 2; S.rb.L = rbMeasure();
       X.vowsAt([1, 1, 1, 1, 1], [0, 0, 0, 0], []);
       X.cam(px, py, 1); X.camSnap();
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
@@ -87,13 +94,14 @@
       });
       X.walk(leo, 200, 110);
       await X.wait(1.2);
-      /* down he comes */
+      /* down he comes: running, not sliding, a bound at a time all the way down the curve of it */
       A.sfx('whoosh');
-      await X.tween(S.rb, 'run', 1, 3.2, T.ease.in);
-      bean = X.actor('bean', { dog: true, s: 220, x: RB[2][0] + 20, wag: 1, wagRate: 18 });
+      await X.tween(S.rb, 'd', S.rb.L, S.rb.L / 150, T.ease.lin);
+      bean = X.actor('bean', { dog: true, s: 220, x: RB[2][0], wag: 1, wagRate: 18, run: 1, stride: STRIDE, ph: S.rb.L / STRIDE });
+      S.rb.d = 0;
       A.sfx('bark'); X.tween(S.rb, 'a', 0, 3);
       T.announce('무지개를 타고 늙은 강아지 한 마리가 달려 내려온다. 빈이다.');
-      await X.walk(bean, 30, 260);
+      await X.walk(bean, 70, 150);   /* and on along the pier */
       bean.flip = false;
       await X.wait(0.4);
       /* he looks back up the hill at his bare frame */
@@ -109,6 +117,7 @@
       await X.walk(bean, leo.x - 46, 150);
       X.notes(4); A.sfx('bark', 0.5);
       for (let i = 0; i < 5; i++) { await X.tween(bean, 'jump', 14, 0.16, T.ease.out); await X.tween(bean, 'jump', 0, 0.16, T.ease.in); }
+      bean.run = 0; bean.stride = null;   /* an old dog's trot from here on */
       T.announce('빈이 달려와 레오 품에 안긴다.');
       await X.wait(1.6);
       await TALK.say('leo', '빈… 너 왜 이렇게 늙었어.');

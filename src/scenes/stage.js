@@ -66,7 +66,7 @@
         if (a.boat) { const p = riderPos(a); x = p.x; gy = p.y; }
         g.save(); if (a.alpha < 1) g.globalAlpha = a.alpha;
         const slope = a.boat ? 0 : Math.atan2(W_.groundAt(x + 14) - W_.groundAt(x - 14), 28);
-        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: a.rot != null ? a.rot : slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: a.headTilt || 0 });
+        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: a.rot != null ? a.rot : slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, run: a.run || 0, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: a.headTilt || 0 });
         g.restore();
         return null;
       }
@@ -468,7 +468,7 @@
         const slope = a.boat ? 0 : Math.abs(W_.groundAt(a.x + 8) - W_.groundAt(a.x - 8)) / 16;
         const st = Math.sign(d) * Math.min(Math.abs(d), (a.go.v / (1 + slope * 0.9)) * dt);
         a.x += st; if (!a.keepFlip) a.flip = d < 0;
-        a.ph += Math.abs(st) / (a.dog ? 5 : 10 * (a.s / 150)); a.moving = true;
+        a.ph += Math.abs(st) / (a.stride || (a.dog ? 5 : 10 * (a.s / 150))); a.moving = true;
         if (a.id === 'leo' && !S.view) { const n = Math.floor(a.ph / Math.PI); if (n !== a.stepN) { a.stepN = n; if (n % 2 === 0) T.audio.sfx('step'); } }
         if (Math.abs(a.go.x - a.x) < 0.5) { a.x = a.go.x; a.moving = false; const r = a.go.res; a.go = null; r(); }
       }

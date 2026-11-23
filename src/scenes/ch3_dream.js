@@ -17,15 +17,160 @@
     });
     g.restore();
   }
-  /* rain across the screen, and lightning */
+  /* ---------- the storm ----------
+     S.wind (0..1) comes first, then S.dark (cloud cover), then S.storm (rain: a drizzle at 0.15, a downpour at 1).
+     S.gust wanders on its own; S.flash and S.bolt are the lightning; S.impact the spray when the frame hits the grass. */
+  const hash = (i, k) => { const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return v - Math.floor(v); };
+  const wrap = (x, a, b) => a + ((((x - a) % (b - a)) + (b - a)) % (b - a));
+  /* storm cloud across the sky, behind the hills (screen space) */
+  function clouds(g, S) {
+    const d = S.dark || 0, V = T.view, W = V.W;
+    if (d < 0.01) return;
+    g.save();
+    g.fillStyle = T.rgba('#2c3348', 0.5 * d); g.fillRect(-W / 2, 0, W, 900);
+    for (let i = 0; i < 14; i++) {
+      const depth = 0.4 + hash(i, 1) * 0.6, w = 260 + hash(i, 2) * 320, h = 80 + hash(i, 3) * 90;
+      const x = wrap(-W / 2 + hash(i, 4) * (W + 900) - (S.cloudDX || 0) * depth, -W / 2 - 450, W / 2 + 450), y = 30 + hash(i, 5) * 300;
+      const col = T.mix('#323a52', '#5e6684', hash(i, 6) * 0.7 + (S.flash || 0) * 0.3);
+      for (let k = 0; k < 4; k++) {
+        const cx = x + (k - 1.5) * w * 0.26, cy = y + Math.sin(k * 2.1 + i) * h * 0.18, r = h * (0.62 + 0.3 * hash(i, 7 + k));
+        const gr = g.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+        gr.addColorStop(0, T.rgba(col, 0.85 * d * (0.55 + 0.45 * depth))); gr.addColorStop(1, T.rgba(col, 0));
+        g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+      }
+    }
+    g.restore();
+  }
+  /* rain in three depths, slanting with the wind; leaves first; splashes where it lands; lightning (screen space) */
+  const LAYERS = [
+    { n: 300, len: 13, w: 1, a: 0.26, v: 640, par: 0.55, c: '#aebbd2' },
+    { n: 220, len: 26, w: 1.4, a: 0.38, v: 980, par: 0.85, c: '#c3cde0' },
+    { n: 80, len: 50, w: 2.1, a: 0.46, v: 1400, par: 1.2, c: '#d6deec' },
+  ];
   function storm(g, S) {
-    const s = S.storm || 0, V = T.view, W = V.W, t = T.time;
+    const s = S.storm || 0, wind = S.wind || 0, gust = S.gust || 0, V = T.view, W = V.W, t = T.time, Wd = T.world;
+    /* the whole scene goes dim, grey and blue under the cloud; the evening glow low in the sky is put out */
+    if ((S.dark || 0) > 0.01) {
+      const d = S.dark, c = Wd.S.cam, zd = 1 + (c.z - 1) * 0.05;
+      const gx = (430 - c.x * 0.05) * zd, gy = 450 + (110 - (c.y - 450) * 0.05) * zd, gr = 640 * zd;   /* where the backdrop paints its glow */
+      g.save();
+      g.globalCompositeOperation = 'saturation'; g.fillStyle = T.rgba('#808080', 0.45 * d); g.fillRect(-W / 2, 0, W, 900);
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = T.mix('#ffffff', '#66708f', 0.6 * d); g.fillRect(-W / 2, 0, W, 900);
+      const sun = g.createRadialGradient(gx, gy, 20, gx, gy, gr);
+      sun.addColorStop(0, T.mix('#ffffff', '#5f6886', 0.7 * d)); sun.addColorStop(1, '#ffffff');
+      g.fillStyle = sun; g.fillRect(-W / 2, 0, W, 900);
+      g.restore();
+      const top = g.createLinearGradient(0, 0, 0, 520); top.addColorStop(0, T.rgba('#161b2a', 0.45 * S.dark)); top.addColorStop(1, T.rgba('#161b2a', 0));
+      g.fillStyle = top; g.fillRect(-W / 2, 0, W, 520);
+    }
+    /* leaves and bits of grass, torn off and carried across */
+    if (wind > 0.02) {
+      for (let i = 0; i < 30; i++) {
+        if (i / 30 > wind) break;
+        const sp = 0.6 + hash(i, 11) * 0.8, x = wrap(W / 2 - hash(i, 12) * (W + 200) - (S.leafDX || 0) * sp, -W / 2 - 60, W / 2 + 60);
+        const y = 140 + hash(i, 13) * 620 + Math.sin(t * (1.2 + sp) + i) * 40 + Math.sin(x * 0.01 + i) * 24, rot = t * (3 + 4 * sp) * (i % 2 ? 1 : -1) + i;
+        g.save(); g.globalAlpha = 0.85 * Math.min(1, wind * 1.6);
+        g.translate(x, y); g.rotate(rot); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * (2 + sp) + i)));   /* tumbling */
+        g.fillStyle = ['#c98a4b', '#e0a94a', '#8a9a5b', '#b9532f', '#6b8f5a'][i % 5];
+        g.beginPath(); g.ellipse(0, 0, 6 + sp * 3, 2.6 + sp, 0, 0, Math.PI * 2); g.fill();
+        g.restore();
+      }
+    }
     if (s > 0.01) {
-      g.save(); g.globalAlpha = s; g.strokeStyle = 'rgba(200,214,236,0.55)'; g.lineWidth = 1.8; g.beginPath();
-      for (let i = 0; i < 160; i++) { const x = -W / 2 + ((i * 97 + t * 260) % (W + 200)) - 100, y = ((i * 211 + t * 900) % 1000) - 50; g.moveTo(x, y); g.lineTo(x - 14, y + 34); }
-      g.stroke(); g.restore();
+      const slant = 0.16 + 0.34 * wind * (0.55 + 0.6 * gust);   /* sideways per unit of fall */
+      const fade = Math.min(1, s * 2.2), many = Math.pow(s, 0.75);
+      g.save(); g.lineCap = 'round';
+      for (const L of LAYERS) {
+        const n = Math.floor(L.n * many), len = L.len * (0.45 + 0.55 * s);
+        const dl = Math.hypot(slant, 1), ux = -slant / dl, uy = 1 / dl;
+        g.strokeStyle = L.c; g.lineWidth = L.w;
+        for (let i = 0; i < n; i++) {
+          const r1 = hash(i, L.n), r2 = hash(i, L.n + 1), r3 = hash(i, L.n + 2), r4 = hash(i, L.n + 3);
+          const v = L.v * (0.85 + 0.3 * r3), y = ((r2 * 1100 + t * v) % 1100) - 100;
+          const x = wrap(-W / 2 + r1 * (W + 400) - (S.rainDX || 0) * L.par - y * slant, -W / 2 - 200, W / 2 + 200);
+          const sheet = 0.65 + 0.35 * Math.sin(x * 0.0045 + t * 1.6 + L.par * 3);   /* the rain comes in sheets */
+          g.globalAlpha = L.a * fade * sheet * (0.6 + 0.4 * r4);
+          const l = len * (0.7 + 0.6 * r4);
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x + ux * l, y + uy * l); g.stroke();
+        }
+      }
+      /* where it lands: little crowns and rings along the ground, and a haze of spray low down */
+      const nS = Math.floor(70 * many);
+      g.strokeStyle = '#dfe6f2'; g.fillStyle = '#e6ecf6';
+      for (let j = 0; j < nS; j++) {
+        const per = 0.32 + hash(j, 21) * 0.3, tt = t + hash(j, 22) * per, cyc = Math.floor(tt / per), age = (tt % per) / per;
+        const sx = -W / 2 + hash(j, cyc + 30) * W, wx = Wd.toWorld(sx, 450)[0], sy = Wd.toScreen(wx, Wd.groundAt(wx))[1] + 3 + hash(j, cyc + 31) * 26;
+        if (sy > 900 || sy < 0) continue;
+        g.globalAlpha = (1 - age) * 0.55 * fade;
+        g.lineWidth = 1.2;
+        g.beginPath(); g.ellipse(sx, sy, 2 + age * 11, 0.8 + age * 2.6, 0, 0, Math.PI * 2); g.stroke();
+        if (age < 0.5) { const h = Math.sin(age * 2 * Math.PI) * 7; g.fillRect(sx - 2 - age * 9, sy - h - 1, 1.6, 1.6); g.fillRect(sx + 1 + age * 9, sy - h * 0.8 - 1, 1.6, 1.6); }
+      }
+      g.globalAlpha = 1;
+      const haze = g.createLinearGradient(0, 560, 0, 900); haze.addColorStop(0, 'rgba(190,200,222,0)'); haze.addColorStop(1, T.rgba('#bec8de', 0.18 * s));
+      g.fillStyle = haze; g.fillRect(-W / 2, 560, W, 340);
+      g.restore();
+    }
+    /* the frame hitting the wet grass */
+    if ((S.impact || 0) > 0.01) {
+      const k = 1 - S.impact, PL = T.plot, z = Wd.S.cam.z;
+      g.save(); g.fillStyle = '#e6ecf6';
+      for (let i = 0; i < 26; i++) {
+        const wx = PL.HX - 150 + hash(i, 41) * 300, base = Wd.toScreen(wx, Wd.y3(wx));
+        const vx = (hash(i, 42) - 0.5) * 60, vy = 40 + hash(i, 43) * 50;
+        g.globalAlpha = S.impact * 0.8;
+        g.fillRect(base[0] + vx * k * z, base[1] - (vy * k - 90 * k * k) * z, 2.2, 2.2);
+      }
+      g.restore();
     }
     if (S.flash > 0.01) { g.fillStyle = T.rgba('#f4f6ff', S.flash * 0.85); g.fillRect(-W / 2, 0, W, 900); }
+    /* lightning: a crooked line from the cloud down toward the hill, and drawn over the white of it */
+    const b = S.bolt;
+    if (b && b.k > 0.01) {
+      const x0 = Wd.toScreen(b.wx, 0)[0], r = T.rng(b.seed);
+      const pts = [[x0 + (r() - 0.5) * 120, -10]];
+      for (let i = 1; i <= 11; i++) pts.push([pts[i - 1][0] + (r() - 0.5) * 70, -10 + i * (b.to || 470) / 11]);
+      g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+      const path = (w, c, a) => { g.strokeStyle = c; g.lineWidth = w; g.globalAlpha = a; g.beginPath(); pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.stroke(); };
+      path(14, '#a9b8ff', 0.25 * b.k); path(5, '#e8ecff', 0.7 * b.k); path(2, '#ffffff', b.k);
+      const br = pts[4]; g.globalAlpha = 0.6 * b.k; g.strokeStyle = '#f0f2ff'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(br[0], br[1]); g.lineTo(br[0] + 40, br[1] + 50); g.lineTo(br[0] + 30, br[1] + 96); g.stroke();
+      g.restore();
+    }
+  }
+  /* Leo through the storm. S.mood: look (the sky) · brace (in the rain) · flinch · stare · broken */
+  function stormPose(S) {
+    return (o, a, t) => {
+      const m = S.mood, gust = S.gust || 0, u = a.s / 100, f = a.flip ? -1 : 1;
+      if (m === 'broken' && a.sit > 0.3) {
+        /* sunk down by what is left of it: knees up, arms round them, head down on them, crying */
+        const cry = S.cry || 0, sob = Math.pow(Math.max(0, Math.sin(t * 4.2)), 2) * cry;
+        o.lean = 0.44 + sob * 0.05; o.headTilt = 0.58 + sob * 0.06; o.headDy = 1.2;
+        o.armF = { hand: [23, -2 + sob * 1.5] }; o.armB = { hand: [21, 1 + sob] };
+        o.face.eye = sob > 0.8 ? 'closed' : 'sad'; o.face.mouth = 'frown'; o.face.blush = 0.3;
+        o.face.tear = 0.95 * cry; o.face.tearY = (t * 1.7) % 3.6;
+        return;
+      }
+      if (a.moving && m !== 'stare' && m !== 'broken') { o.headTilt = -0.14; return; }   /* walking out, an eye on the sky */
+      if (m === 'stare' || m === 'broken') {
+        o.headTilt = 0.16; o.lean = a.moving ? 0.08 : 0.03;
+        if (!a.moving) { o.armF = { a: 0.08, b: 0.12 }; o.armB = { a: 0.04, b: 0.12 }; }
+        o.face.eye = 'sad'; o.face.mouth = 'line'; o.face.tear = 0.3 * (S.cry || 0);
+        return;
+      }
+      if (m === 'flinch') { o.lean = -0.14; o.headTilt = -0.08; o.armF = { a: 2.2, b: 1.0 }; o.armB = { a: 1.9, b: 0.9 }; o.face.eye = 'open'; o.face.mouth = 'open'; return; }
+      if (m === 'brace') {
+        /* head down into it, an arm up against the rain, the other hand holding his collar shut */
+        o.lean = 0.14 + gust * 0.08; o.headTilt = 0.2 + gust * 0.05;
+        o.armF = { hand: F.local(o, o.x + f * u * 13, o.y - u * 45), bend: 1 };
+        o.armB = { hand: F.local(o, o.x + f * u * 7, o.y - u * 28) };
+        o.face.eye = 'closed'; o.face.mouth = 'line';
+        return;
+      }
+      /* look: the wind getting up, his hand on his hat, watching the sky */
+      o.lean = 0.02 + gust * 0.05 * (S.wind || 0); o.headTilt = -0.24 + Math.sin(t * 0.9) * 0.04;
+      o.armF = { hand: F.local(o, o.x + f * u * 4, o.y - u * 50), bend: 1 }; o.armB = { a: 0.3, b: 0.4 };
+      o.face.mouth = null;
+    };
   }
 
   T.stage('ch3', {
@@ -33,8 +178,22 @@
     plot: { stage: 1, stones: 4, board: true, table: true },
     build() { T.scenes.kitchen.build(); T.scenes.home.build(); },
     onHill(g, h, S) { if (h === T.world.hillOf(T.plot.HX)) fallen(g, S); },
+    sky(g, S) { clouds(g, S); },
     after(g, S) { storm(g, S); },
-    update(dt, S) { S.flash = Math.max(0, (S.flash || 0) - dt * 2.4); },
+    update(dt, S) {
+      S.flash = Math.max(0, (S.flash || 0) - dt * 2.4);
+      if (S.bolt) S.bolt.k = Math.max(0, S.bolt.k - dt * 3.2);
+      const w = S.wind || 0, t = T.time;
+      S.gust = T.clamp(0.5 + 0.5 * T.noise(t * 0.45, 7) + 0.25 * T.noise(t * 1.7, 9));
+      S.rainDX = (S.rainDX || 0) + dt * 260 * w * (0.5 + S.gust);
+      S.leafDX = (S.leafDX || 0) + dt * (160 + 420 * S.gust) * w;
+      S.cloudDX = (S.cloudDX || 0) + dt * (14 + 46 * w);
+      const ps = S.ps;
+      if (ps) {
+        ps.overcast = S.dark || 0;
+        if (!S.collapse && ps.stage === 2) ps.sway = w > 0.01 ? w * (0.012 + 0.03 * S.gust) * Math.sin(t * 3.3) + w * w * 0.012 * S.gust : 0;
+      }
+    },
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const [px, py] = X.place.plot();
@@ -56,8 +215,12 @@
       await TALK.say('bram', '기둥 될 나무는 바다에서 건져 왔네.');
       await TALK.say('bram', '배 짓는 거나 집 짓는 거나, 나무 켜는 건 똑같아.\n밀 때 힘 주고, 당길 땐 쉬고.');
       T.announce('나무 켜기. 왼쪽과 오른쪽을 번갈아 눌러 통나무를 켠다.');
-      X.cam(PL.HX - 260, py + 30, 1.25);
-      await X.play(T.puzzle.saw({ logs: 2, strokes: 8, leo, at: PL.HX - 260 }));
+      /* the sawing place is down the slope from the plot: he walks over to the log, and Bram turns to watch */
+      const SAW = PL.HX - 340;
+      X.cam(SAW - 30, W.groundAt(SAW) - 190, 1.25);
+      await X.walk(leo, SAW - 118, 120);
+      leo.flip = false; bram.flip = true;
+      await X.play(T.puzzle.saw({ logs: 2, strokes: 8, leo, at: SAW }));
       X.cam(px, py, 1);
       await TALK.say('bram', '손이 제법이야.');
       /* and in return, a hand with his boat */
@@ -111,32 +274,61 @@
       await TALK.say('leo', '여름 한 번 지나면.\n…기다리는 건 우리가 잘하잖아.');
       await X.dip(async () => { leo.x = PL.HX + 30; leo.flip = false; kid0.hidden = true; X.cam(px, py, 1); X.camSnap(); });
 
-      /* ---- that night, the storm ---- */
+      /* ---- that night, the storm ----
+         it comes on the way storms do: the wind first, then the cloud and the dark, a few drops, the rain,
+         thunder a long way off, and then the one that is not far off at all */
       X.bed(null);
       T.announce('그날 밤, 폭풍이 몰려온다.');
-      X.tween(ps, 'night', 0.9, 3); X.tween(S, 'storm', 1, 3);
-      A.ambience(0.5, 1, 0.4); A.sfx('wind');
-      leo.x = PL.HX + 140; leo.flip = true;
-      leo.pose = (o, a, t) => { o.headTilt = -0.2; o.lean = 0.2 + Math.sin(t * 3) * 0.04; o.armB = { a: 2.4, b: 0.6 }; };
-      await X.wait(3.2);
-      A.sfx('wind'); S.flash = 0.7; A.sfx('thunder');
-      await X.wait(2.4);
+      S.mood = 'look'; S.cry = 0; S.wind = 0; S.dark = 0; S.storm = 0;
+      S.gradeK = () => 1 - 0.8 * (S.dark || 0);   /* no warm evening light or drifting motes under storm cloud */
+      leo.pose = stormPose(S);
+      X.tween(ps, 'night', 0.45, 5); X.tween(S, 'wind', 0.45, 4);
+      A.ambience(0.34, 0.6, 0.08); A.sfx('wind');
+      await X.walk(leo, PL.HX + 260, 70);
+      leo.flip = true;
+      await X.wait(2.2);
       A.sfx('wind');
-      await X.wait(1.2);
-      S.flash = 1; A.sfx('thunder'); A.sfx('knock', 0); A.sfx('knock', 0.2);
-      ps.stage = 1; S.fallen = 1;
+      X.tween(S, 'dark', 1, 6); X.tween(ps, 'night', 0.82, 6); X.tween(S, 'wind', 0.7, 5);
+      await X.wait(3);
+      X.tween(S, 'storm', 0.16, 3, T.ease.lin);   /* the first drops */
+      await X.wait(3.4);
+      A.ambience(0.5, 1, 0.4); A.sfx('wind');
+      X.tween(S, 'storm', 0.55, 3.5); X.tween(S, 'wind', 0.85, 3);
+      S.mood = 'brace';
+      await X.wait(2.8);
+      S.flash = 0.3; S.bolt = { k: 0.6, wx: PL.HX - 900, seed: 3, to: 330 };   /* far off */
+      X.wait(0.9).then(() => A.sfx('thunder'));
+      X.tween(S, 'storm', 1, 3); X.tween(S, 'wind', 1, 3);
+      await X.wait(3.4);
+      A.sfx('wind');
+      await X.wait(1.8);
+      /* the strike, close: the frame goes over */
+      S.bolt = { k: 1, wx: PL.HX - 40, seed: 9, to: 470 }; S.flash = 0.8; A.sfx('thunder');
+      await X.wait(0.25);
+      A.sfx('knock', 0); A.sfx('knock', 0.2);
+      S.mood = 'flinch'; S.collapse = true; ps.stage = 1; ps.raise = 1;
       T.announce('번개가 친다. 집의 뼈대가 무너져 풀밭에 쓰러진다.');
+      X.tween(ps, 'sway', 0.9, 1.1, T.ease.in);
+      X.wait(0.75).then(() => X.tween(S, 'fallen', 1, 0.35));
+      await X.tween(ps, 'raise', 0, 1.1, T.ease.in);
+      ps.sway = 0; S.collapse = false; S.impact = 1; X.tween(S, 'impact', 0, 0.8, T.ease.lin); A.sfx('knock', 0.4);
+      await X.wait(1.1);
+      S.mood = 'stare';
+      /* past its worst: the rain eases a little and the cloud thins enough to see him by his own lantern */
+      X.tween(S, 'storm', 0.72, 4); X.tween(S, 'wind', 0.6, 4); X.tween(S, 'dark', 0.55, 6); X.tween(ps, 'night', 0.66, 6);
       await X.wait(1.6);
-      leo.pose = null;
-      await X.walk(leo, PL.HX + 40, 40);
-      X.tween(leo, 'sit', 1, 1.2);
-      leo.pose = (o) => { o.headTilt = 0.4; o.face.eye = 'closed'; };
-      await X.wait(1.6);
+      await X.walk(leo, PL.HX + 160, 34);
+      ps.spot = [PL.HX + 160];
+      /* he sits down where he is, and it comes out of him */
+      X.tween(leo, 'sit', 1, 1.6);
+      S.mood = 'broken'; X.tween(S, 'cry', 1, 2.4);
+      X.cam(PL.HX + 130, W.y3(PL.HX + 160) - 70, 2.1, 0.7);
+      await X.wait(3.6);
       await TALK.say('leo', '…삼 년을 지은 건데.', { slow: true });
-      await X.wait(1.2);
+      await X.wait(2.4);
 
       /* ---- morning: everyone, with a rope ---- */
-      await X.dip(async () => { ps.night = 0; S.storm = 0; A.ambience(0.3, 0.3, 0.15); }, { color: '#fff6e6', out: 1.6, in: 1.6 });
+      await X.dip(async () => { ps.night = 0; S.storm = 0; S.wind = 0; S.dark = 0; S.cry = 0.2; S.bolt = null; ps.sway = 0; ps.overcast = 0; ps.spot = null; X.cam(px, py, 1, 2); X.camSnap(); A.ambience(0.3, 0.3, 0.15); }, { color: '#fff6e6', out: 1.6, in: 1.6 });
       X.bed(0, 0.13, 'walk');
       T.announce('아침. 비가 그쳤다. 언덕 아래에서 사람들이 올라온다.');
       const crew = [
@@ -183,7 +375,7 @@
         rhText: '로사는 요람 옆 빈 걸상에, 실바구니는 요람 발치에, 등불은 어두운 창에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'lamp', id: 'lamp', x: 60, at: [-410, 300] },
-          { kind: 'who', id: 'rosa', style: F.styles.rosa, x: 330, at: [-265, 748], flip: false, lockFlip: false, ps: 340,
+          { kind: 'who', id: 'rosa', style: F.styles.rosa, x: 330, at: [-265, 748], flip: false, lockFlip: false, turn: false, ps: 340,
             prop: (g, j, lo, t, L) => { if (L.lit.rosa < 0.5) return; const k = L.hum || 0, a = Math.sin(t * (k > 0 ? 9 : 3)) * 0.2; g.save(); g.translate(j.handF[0], j.handF[1]); P.line(g, -14, -14 - a * 10, 14, 10, 2.4, '#c9c3ba'); P.line(g, 14, -14 + a * 10, -14, 10, 2.4, '#c9c3ba'); P.fill(g, P.rr(-12, 4, 24, 12, 3), '#e9c45a'); g.restore(); } },
           { kind: 'yarn', id: 'yarn', x: -300, at: [-36, 804],
             bank: (g, x) => { P.fill(g, P.rr(x - 26, 196, 52, 32, 8), '#a57d58'); for (let i = 0; i < 3; i++) P.fill(g, P.circle(x - 14 + i * 14, 194 - (i % 2) * 6, 11), ['#e9c45a', '#c9573f', '#7fb0c9'][i]); },

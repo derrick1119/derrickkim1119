@@ -22,6 +22,10 @@
     const things = () => L.things || [];
     const idOf = (q) => q.id || q.kind;
     const person = (q) => q.kind === 'leo' || q.kind === 'who';
+    /* a thing with turn: false keeps the way it faces whichever way it is slid (its picture only works that way round) */
+    const turns = (q) => q.turn !== false;
+    /* the way it faces once it has found its place, which is the way its picture is drawn */
+    const restFlip = (q) => (person(q) ? (q.lockFlip == null ? true : q.lockFlip) : !!q.lockFlip);
     (L.things || []).forEach((q) => {
       if (q.at) { q.to = q.at[0] * SC; q.depth = TOP + q.at[1] * SC; }
       if (q.depth == null) q.depth = DEPTH[q.kind] || TOP + 400 * SC;
@@ -62,7 +66,7 @@
     function settle(q) {
       const R = L.rh;
       if (!R || q.lock || Math.abs(q.x - q.to) >= 30) return;
-      q.lock = true; q.x = q.to; q.go = null; R.n++; R.idle = 0; if (R.sel >= 0 && things()[R.sel] === q) R.sel = -1;
+      q.lock = true; q.x = q.to; q.go = null; if (person(q) || q.kind === 'dog') q.flip = restFlip(q); R.n++; R.idle = 0; if (R.sel >= 0 && things()[R.sel] === q) R.sel = -1;
       T.audio.sfx('join'); T.audio.step(R.n * 2 + 1, { voice: 'glass', vel: 0.36 });
       if (things().every((w) => w.lock)) { R.solved = true; R.t = 1.8; L.amp = 0; T.audio.promise(); }
     }
@@ -82,7 +86,7 @@
           if (i >= 0) { R.held = i; R.sel = i; R.dx = Q[i].x - x; R.moved = false; R.idle = 0; Q[i].go = null; T.audio.sfx('step'); }
           else if (R.sel >= 0 && !Q[R.sel].lock && y > 236) { Q[R.sel].go = clampX(x); R.idle = 0; }   /* picked up with one tap, sent with the next */
         } else if (type === 'move') {
-          if (R.held >= 0) { const q = Q[R.held], nx = clampX(x + R.dx); q.ph = (q.ph || 0) + Math.abs(nx - q.x) / 9; if (nx !== q.x) q.flip = nx < q.x; q.x = nx; R.moved = true; R.idle = 0; }
+          if (R.held >= 0) { const q = Q[R.held], nx = clampX(x + R.dx); q.ph = (q.ph || 0) + (turns(q) ? Math.abs(nx - q.x) : nx - q.x) / 9; if (nx !== q.x && turns(q)) q.flip = nx < q.x; q.x = nx; R.moved = true; R.idle = 0; }
           T.cursor(R.held >= 0 ? 'grabbing' : thingAt(x, y) >= 0 ? 'grab' : 'default');
         } else if (type === 'up' && R.held >= 0) { const q = Q[R.held]; R.held = -1; if (R.moved) settle(q); }
         return true;
@@ -102,7 +106,7 @@
       if (L.rh && !L.rh.solved) {
         const R = L.rh, Q = things();
         if (key >= '1' && key <= String(Q.length)) { if (!Q[+key - 1].lock) { R.sel = +key - 1; R.idle = 0; T.audio.sfx('step'); } return true; }
-        if ((key === 'ArrowLeft' || key === 'ArrowRight') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel]; q.go = null; q.flip = key === 'ArrowLeft'; q.x = clampX(q.x + (q.flip ? -16 : 16)); q.ph = (q.ph || 0) + 1.8; R.idle = 0; settle(q); return true; }
+        if ((key === 'ArrowLeft' || key === 'ArrowRight') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel], left = key === 'ArrowLeft'; q.go = null; if (turns(q)) q.flip = left; q.x = clampX(q.x + (left ? -16 : 16)); q.ph = (q.ph || 0) + (left && !turns(q) ? -1.8 : 1.8); R.idle = 0; settle(q); return true; }
         return false;
       }
       if (L.ring && !L.ring.solved) { if (key >= '1' && key <= String(L.ring.n)) { turn(+key - 1); return true; } return false; }
@@ -113,7 +117,7 @@
       const H = L.rh;
       if (H) {
         H.idle += dt;
-        for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + Math.abs(st) / 9; if (st) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
+        for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + (turns(q) ? Math.abs(st) : st) / 9; if (st && turns(q)) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
         if (H.solved) { H.t -= dt; if (H.t <= 0) { L.rh = null; H.res(); } } else L.amp = Math.max(L.amp, 0.2);
       }
       for (const q of things()) { const id = idOf(q); L.lit[id] += ((q.lock ? 1 : 0) - L.lit[id]) * Math.min(1, dt * 1.8); }
@@ -215,8 +219,8 @@
 
       if (L.shore) drawShore(g, t, W);
       if (L.wisp) for (let k = 0; k < 6; k++) { const life = (t * 0.35 + k / 6) % 1; P.glow(g, 17 + Math.sin(t * 1.3 + k * 2) * 18, 240 - life * 200, 14 + life * 26, '#fff3dc', Math.sin(life * Math.PI) * 0.7); }
-      else {
-        /* the near bank, and whoever has come to look */
+      else if (!L.shore) {
+        /* the near bank, and whoever has come to look (with a far bank, they stand over there instead: drawShore) */
         const bx = -W / 2 + 250;
         P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 190, 226], [bx + 110, 252], [-W / 2 + 60, 300], [-W / 2 - 40, 330]]), '#3f6058');
         P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 188, 224], [bx + 60, 206], [-W / 2 - 40, 196]]), '#58806c');
@@ -253,10 +257,10 @@
         g.save();
         g.globalAlpha = 0.16 + 0.12 * pulse + 0.25 * near;
         if (person(q)) {
-          const fo = { x, y, s: (q.ps || 372) * SC, flip: q.flip == null ? true : q.flip, sit: true, lean: 0.14, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: {} };
+          const fo = { x, y, s: (q.ps || 372) * SC, flip: restFlip(q), sit: true, lean: 0.14, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: {} };
           if (q.pose) q.pose(fo, t, L, true);
           F.person(g, Object.assign({}, fo, { style: flat(q.style || ls, '#fff3d6'), flatLook: true }));
-        } else if (q.kind === 'dog') F.dog(g, { x, y, s: (q.ps || 300) * SC, sit: 1, flip: q.flip, tintAll: '#fff3d6' });
+        } else if (q.kind === 'dog') F.dog(g, { x, y, s: (q.ps || 300) * SC, sit: 1, flip: restFlip(q), tintAll: '#fff3d6' });
         g.globalAlpha = 0.4 + 0.25 * pulse + 0.35 * near;
         g.setLineDash([7, 7]); g.lineDashOffset = -t * 18; g.lineWidth = 2.4; g.strokeStyle = T.mix('#fff3d6', '#ffd98a', near);
         g.beginPath();
@@ -300,10 +304,20 @@
       const edge = (y, amp, seed) => { const pts = []; for (let x = -W / 2 - 60; x <= W / 2 + 60; x += 90) pts.push([x, y + T.noise(x * 0.012, seed) * amp]); return pts; };
       P.fill(g, P.soft(edge(206, 5, 1).concat(edge(256, 6, 2).reverse())), '#3f6058');
       P.fill(g, P.soft(edge(204, 5, 1).concat(edge(238, 5, 3).reverse())), '#58806c');
+      /* who has come to look: his mother with her lamp, and Leo himself when he is not one of the things to slide.
+         They stand at the far end of the bank, each drawn once, at the same scale as the things beside them. */
+      const mx = -W * SC / 2 + 22;
       if (L.mom) {
-        const mx = -W * SC / 2 + 22, ms = F.styles.mom;
-        const j = F.person(g, { x: mx, y: BANK - F.hipHeight(ms, 132), s: 132, style: ms, lean: 0.08, headTilt: 0.12, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } });
-        P.glow(g, j.handF[0], j.handF[1] + 18, 54, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 5, j.handF[1] + 7, 10, 14, 3), '#fff0b8');
+        const ms = F.styles.mom, sm = 150;
+        const j = F.person(g, { x: mx, y: BANK - F.hipHeight(ms, sm), s: sm, style: ms, lean: 0.08, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } });
+        P.glow(g, j.handF[0], j.handF[1] + 20, 58, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 5, j.handF[1] + 8, 11, 15, 3), '#fff0b8');
+      }
+      if (!Q.some((q) => q.kind === 'leo')) {
+        const reach = T.ease.io(L.reach.k), lx = mx + (L.mom ? 66 : 8);
+        const lo = { x: lx, y: BANK - F.hipHeight(ls, 172), s: 172, style: ls, lean: 0.06 + reach * 0.2, headTilt: 0.2 + reach * 0.1, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+        lo.armF = reach > 0.02 ? { a: 0.5 + reach * 0.6, b: 0.2 } : { a: 0.25, b: 0.4 };
+        lo.armB = { a: 0.15, b: 0.35 };
+        F.person(g, lo);
       }
       const order = Q.map((q, i) => i).sort((a2, b2) => (R && R.held === a2 ? 1 : 0) - (R && R.held === b2 ? 1 : 0));
       for (const i of order) {
@@ -573,18 +587,26 @@
       H.paintStill(g, D.chalk.k);
       const near = T.ease.io(D.near.k), lift = T.ease.io(D.lift.k), ln = T.ease.io(D.lean.k);
       const ana = { x: G.ROOM.x + 290, y: G.FLOOR - 55, s: 190, style: F.anaAt(39, { top: '#e9dcc3', bottom: '#9fb0c4', skirt: 30 }), flip: true, sit: true, lean: 0.3 - lift * 0.22 + ln * 0.16, headTilt: 0.5 - lift * 0.5 + ln * 0.12, face: { eye: lift > 0.5 ? (ln > 0.5 ? 'closed' : 'open') : 'closed', mouth: lift > 0.7 ? 'smile' : 'line', blush: 0.2, tear: lift < 0.5 ? 0.8 : 0.3, tearY: (t * 2) % 3 } };
-      ana.armF = { hand: F.local(ana, ana.x - 30, ana.y - 20 + lift * 14) }; ana.armB = { a: 0.5, b: 0.9 };
-      const lx = T.lerp(G.ROOM.x + 40, G.ROOM.x + 238, near);
-      const leo = { x: lx, y: G.FLOOR - F.hipHeight(F.styles.leoHome, 200) * (1 - near * 0.3) - near * 4, s: 200, style: F.styles.leoHome, lean: 0.06, headTilt: 0.1, face: { blush: 0.14, mouth: 'smile' } };
-      if (near < 0.98 && near > 0.02) leo.walk = near * 14;
-      else if (near >= 0.98) { leo.sit = true; leo.y = G.FLOOR - 55; leo.armF = { hand: F.local(leo, ana.x - 32, ana.y - 22 + lift * 14) }; leo.headTilt = 0.14; }
+      /* her hand, held out into the space between them; his comes to meet it there */
+      const meet = [ana.x - 44, ana.y - 22 + lift * 14];
+      ana.armF = { hand: F.local(ana, meet[0] + 4, meet[1] + 2) }; ana.armB = { a: 0.5, b: 0.9 };
+      /* he walks over and sits down on the box across from her: close enough to take her hand, not on top of her */
+      const SEAT = G.ROOM.x + 196, hh = F.hipHeight(F.styles.leoHome, 200), wk = T.clamp(near / 0.8), sk = T.smooth(T.clamp((near - 0.8) / 0.2));
+      const lx = T.lerp(G.ROOM.x + 40, SEAT, T.ease.io(wk));
+      const leo = { x: lx, y: T.lerp(G.FLOOR - hh, G.FLOOR - 55, sk), s: 200, style: F.styles.leoHome, lean: 0.06, headTilt: 0.1, face: { blush: 0.14, mouth: 'smile' } };
+      if (near > 0.02 && near < 0.8) leo.walk = wk * 11;
+      else if (near >= 0.8 && near < 0.98) { leo.legF = { foot: [T.lerp(1, 26, sk), T.lerp(48.8, 26.5, sk)] }; leo.legB = { foot: [T.lerp(-1, 22, sk), T.lerp(48.8, 27, sk)] }; leo.lean = 0.06 + sk * 0.1; }
+      else if (near >= 0.98) { leo.sit = true; leo.y = G.FLOOR - 55; leo.lean = 0.16 + ln * 0.04; leo.armF = { hand: F.local(leo, meet[0] - 4, meet[1] - 1), bend: 1 }; leo.headTilt = 0.12 + ln * 0.08; }
+      /* the things of the flat: back in their places they are part of the room, behind the two of them;
+         still loose in the air, they drift in front */
+      const things = (home) => { if (D.items) for (const it of D.items) { if ((it.k >= 1) !== home) continue; const q = itemAt(it, t); if (it.k < 1) P.glow(g, q[0], q[1], 46, '#fff6e0', 0.35 * (1 - it.k)); item(g, it.name, q[0], q[1], q[2], 1); } };
+      things(true);
       g.save(); g.globalAlpha = T.clamp(D.near.k * 6 + (D.enterA || 0));
       P.glow(g, leo.x, leo.y - 30, 110, '#fff0c8', 0.3);
       F.person(g, leo);
       g.restore();
       F.person(g, ana);
-      /* the things of the flat, loose in the air until they are put back */
-      if (D.items) for (const it of D.items) { const q = itemAt(it, t); if (it.k < 1) P.glow(g, q[0], q[1], 46, '#fff6e0', 0.35 * (1 - it.k)); item(g, it.name, q[0], q[1], q[2], 1); }
+      things(false);
       void W;
     }
     D.draw = function (g, t) {

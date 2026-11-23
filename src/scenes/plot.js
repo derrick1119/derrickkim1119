@@ -37,6 +37,7 @@
       stage: 0, stones: 0, raise: 0, board: false, cross: [0, 0, 0, 0, 0], table: false,
       food: { show: false, drop: 1, fill: 1, color: '#b9532f', burnt: false, herb: false, glow: 0 },
       tree: 0, swing: 0, swingW: 0, swingA: 0, lantern: 1, night: 0, aurora: [], room2: 0, garden: 0, patch: 0, fruit: 1,
+      sway: 0, overcast: 0, seats: null,
     }, o || {});
   };
 
@@ -62,6 +63,12 @@
       g.beginPath(); g.moveTo(gx, y); g.quadraticCurveTo(gx + sw * 0.4, y - h * 0.6, gx + sw, y - h); g.stroke();
       if (i % 8 === 0) P.fill(g, P.circle(gx + sw, y - h, 3.4), ['#f6f0e0', '#f1c04a', '#e58aa0'][i % 3]);
     }
+    /* round stones from the beach set down to sit on: ps.seats = [x, …] */
+    if (ps.seats) ps.seats.forEach((x, i) => {
+      const y = y3(x) + 3;
+      P.fill(g, P.soft([[x - 21, y + 2], [x - 20, y - 14], [x - 8, y - 25], [x + 10, y - 24], [x + 21, y - 12], [x + 22, y + 2]]), i % 2 ? '#b3ada4' : '#c2bcb2');
+      P.fill(g, P.soft([[x - 13, y - 17], [x - 4, y - 23], [x + 9, y - 21], [x - 2, y - 16]]), 'rgba(255,255,255,0.28)');
+    });
     /* foundation stones */
     const SX = [HX - 104, HX - 36, HX + 36, HX + 104];
     for (let i = 0; i < Math.min(4, ps.stones); i++) {
@@ -71,7 +78,10 @@
     }
     /* the house */
     const gy = y3(HX) + 3;
-    if (ps.stage === 1 && ps.raise > 0.01) { g.save(); g.translate(HX, gy); g.scale(1, ps.raise); T.blit(g, PL.spr.frame, 0, 0); g.restore(); }
+    /* ps.sway leans the frame over from its foot (a gust; or, with raise going to 0, falling down) */
+    const sway = ps.sway || 0;
+    if (ps.stage === 1 && ps.raise > 0.01) { g.save(); g.translate(HX, gy); if (sway) g.transform(1, 0, sway, 1, 0, 0); g.scale(1, ps.raise); T.blit(g, PL.spr.frame, 0, 0); g.restore(); }
+    else if (ps.stage === 2 && sway) { g.save(); g.translate(HX, gy); g.transform(1, 0, sway, 1, 0, 0); T.blit(g, PL.spr.frame, 0, 0); g.restore(); }
     else if (ps.stage === 2) T.blit(g, PL.spr.frame, HX, gy);
     else if (ps.stage === 3) T.blit(g, PL.spr.half, HX, gy);
     else if (ps.stage >= 4) {
@@ -182,9 +192,10 @@
     if (n < 0.02) return;
     const r = T.rng(23);
     g.fillStyle = '#f6f3ff';
+    const clear = 1 - T.clamp(ps.overcast || 0);   /* none through storm cloud */
     for (let i = 0; i < 70; i++) {
       const x = (r() - 0.5) * V.W, y = 20 + r() * 330, s = 0.8 + r() * 1.6;
-      g.globalAlpha = n * (0.45 + 0.55 * Math.sin(t * 1.3 + i * 2.1));
+      g.globalAlpha = n * clear * (0.45 + 0.55 * Math.sin(t * 1.3 + i * 2.1));
       g.beginPath(); g.arc(x, y, s, 0, TAU); g.fill();
     }
     g.globalAlpha = 1;

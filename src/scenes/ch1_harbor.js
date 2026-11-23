@@ -209,7 +209,7 @@
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
-    s.momHome = false; s.plotGo = false; s.running = false; s.sitting = false; s.climbing = false; s.nClimb = false;
+    s.momHome = false; s.plotGo = false; s.running = false; s.sitting = false; s.climbing = false; s.nClimb = false; s.lDown = false; s.nDown = false;
     s.inWalk = null; s.flash = 0; s.wait = null; s.post.done = false; s.kidWave.done = false; s.lastStep = null;
     TALK.clear();
   }
@@ -488,15 +488,22 @@
     k.tween(S.clap, 'k', 1, 0.4);
     await k.wait(2.4);
     k.tween(S.clap, 'k', 0, 0.4);
-    /* down and out again */
+    /* down and out again: down the stairs the way they came up, facing the way they go, a tread at a time; Mom first */
     S.st = 'leave';
-    S.inWalk = { l: HOUSE - 116, n: HOUSE - 116 };
+    S.inWalk = { l: HOUSE - 84, n: HOUSE - 136 };
+    await k.wait(1.5);
+    S.inWalk.n = null; N.x = HOUSE - 136; N.flip = false; S.nDown = true; S.nClimb = true;
+    k.tween(N, 'x', HOUSE - 16, 3.8, T.ease.lin);
+    k.tween(N, 'y', HG(), 3.8, T.ease.lin).then(() => { S.nClimb = false; S.nDown = false; if (S.inWalk) S.inWalk.n = HOUSE + 54; });
     await k.wait(1.3);
-    S.nClimb = true; k.tween(N, 'y', HG(), 1.4, T.ease.io);
-    await k.wait(0.8);
-    S.climbing = true; await k.tween(L, 'y', HG(), 1.6, T.ease.io);
-    S.climbing = false; S.nClimb = false;
-    S.inWalk = { l: DOOR + 30, n: DOOR + 96 };
+    S.inWalk.l = HOUSE - 136;
+    await k.wait(1.0);
+    S.inWalk.l = null; L.x = HOUSE - 136; L.flip = false; S.lDown = true; S.climbing = true;
+    k.tween(L, 'x', HOUSE - 16, 3.6, T.ease.lin);
+    await k.tween(L, 'y', HG(), 3.6, T.ease.lin);
+    S.climbing = false; S.lDown = false;
+    S.inWalk.l = HOUSE - 10;
+    await k.wait(0.5);
     k.tween(S.home, 'open', 0, 1.8, T.ease.io);
     A.sfx('door');
     await k.wait(1.9);
@@ -515,7 +522,7 @@
       S[ph] += dt * 7;
       return true;
     };
-    S.moving = go(L, w.l, 66, 'wph');
+    S.moving = w.l == null ? false : go(L, w.l, 66, 'wph');
     S.nmoving = w.n == null ? false : go(N, w.n, 60, 'nph');
   }
 
@@ -833,7 +840,7 @@
       for (let i = 0; i < 3; i++) { const life = (t * 0.25 + i * 0.33) % 1; P.glow(g, HOUSE + 116 + Math.sin(t + i * 2) * 6, hg - 110 - life * 46, 10 + life * 14, '#fff3dc', Math.sin(life * Math.PI) * 0.3); }
       const ld = S.ladle.k;
       if (ld > 0.5) {
-        [[-22, '#f2ead8'], [34, '#f2ead8']].forEach((b, i) => { const bx = HOUSE + b[0], by = hg - 68; P.fill(g, P.poly([[bx - 12, by - 9], [bx + 12, by - 9], [bx + 8, by], [bx - 8, by]]), b[1]); P.fill(g, P.ellipse(bx, by - 9, 11, 3), '#e9cf8a'); P.glow(g, bx, by - 22 - ((t * 9 + i * 7) % 14), 9, '#fff3dc', 0.22); });
+        [[-32, '#f2ead8'], [34, '#f2ead8']].forEach((b, i) => { const bx = HOUSE + b[0], by = hg - 68; P.fill(g, P.poly([[bx - 12, by - 9], [bx + 12, by - 9], [bx + 8, by], [bx - 8, by]]), b[1]); P.fill(g, P.ellipse(bx, by - 9, 11, 3), '#e9cf8a'); P.glow(g, bx, by - 22 - ((t * 9 + i * 7) % 14), 9, '#fff3dc', 0.22); });
         P.fill(g, P.ellipse(HOUSE + 6, hg - 74, 15, 8), '#c98a4b'); P.fill(g, P.ellipse(HOUSE + 4, hg - 77, 9, 3), '#e0a86a');
       }
       /* height marks on the post */
@@ -873,7 +880,7 @@
     /* onto the step-stool: a foot up first, then her weight after it */
     const sk = S.stool.k, up1 = T.ease.io(T.clamp(sk / 0.4)), up2 = T.ease.io(T.clamp((sk - 0.4) / 0.6)), su = 2000 / MOM_S;
     const no = { x: N.x, y: N.y - nh - up2 * 20, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' } };
-    if (S.nClimb) ladderPose(no, N.y, hg, MOM_S);
+    if (S.nClimb) stairPose(no, N.y, hg, MOM_S, S.nDown ? -1 : 1);
     else if (S.nmoving) no.walk = S.nph;
     else if (st === 'table' || st === 'enter') { no.flip = true; no.armF = { a: 1.25 + Math.sin(t * 2.4) * 0.12, b: 0.5 }; no.lean = 0.14; }   /* stirring the pot */
     else if (st === 'eat' || st === 'stairs') {
@@ -894,45 +901,88 @@
     /* Leo */
     const ls = L.style, lh = F.hipHeight(ls, LEO_S);
     const lo = { x: L.x, y: L.y - lh, s: LEO_S, style: ls, flip: L.flip, face: { blush: 0.14, mouth: 'smile' } };
+    const cyc = spoonCycle(t);
+    let spoon = null;
     if (S.sitting) {
-      const e = S.eat.k, bite = Math.max(0, Math.sin(t * 2.6));
-      lo.x = HOUSE - 70; lo.y = hg - 54; lo.flip = false; lo.sit = true; lo.lean = 0.12;
-      lo.armF = { hand: F.local(lo, T.lerp(HOUSE - 28, HOUSE - 52, bite * e), T.lerp(hg - 78, hg - 128, bite * e)), bend: -1 };
-      lo.armB = { hand: F.local(lo, HOUSE - 34, hg - 72) };
-      lo.face.eye = bite > 0.8 ? 'closed' : 'open';
-    } else if (S.climbing) ladderPose(lo, L.y, hg, LEO_S);
+      const e = S.eat.k;
+      lo.x = HOUSE - 70; lo.y = hg - 54; lo.flip = false; lo.sit = true;
+      spoon = eatPose(lo, cyc.lift * e, cyc.dip * e, [HOUSE - 31, hg - 73], 13);
+      lo.face.eye = cyc.chew && e > 0.5 ? 'closed' : 'open';
+    } else if (S.climbing) stairPose(lo, L.y, hg, LEO_S, S.lDown ? -1 : 1);
     else if (S.moving) lo.walk = S.wph;
     else if (st === 'marks' && lUp) { lo.flip = false; lo.lean = -0.02; lo.headTilt = -0.04; }
     else if (st === 'wear') { lo.armF = { a: 1.2 + S.sweater.lift * 0.5, b: 0.9 }; }
     else if (st === 'table' || st === 'enter') { lo.headTilt = -0.12 + Math.sin(t * 0.7) * 0.06; }
     else if (lUp) { lo.headTilt = -0.16 + Math.sin(t * 0.6) * 0.08; }
     const boy = S.sitting ? T.ease.io(S.ghost.a) : 0;
-    const man = () => { if (boy > 0.99) return; g.save(); g.globalAlpha = 1 - boy; F.person(g, lo); g.restore(); };
+    const man = () => { if (boy > 0.99) return; g.save(); g.globalAlpha = 1 - boy; const j = F.person(g, lo); if (spoon) drawSpoon(g, j, spoon); g.restore(); };
     if (N.x < L.x) { F.person(g, no); man(); } else { man(); F.person(g, no); }
     if (S.flash > 0.01) P.glow(g, L.x, L.y - 90, 120, '#ffe6a0', S.flash * 0.8);
     /* the boy he was, on the same stool, legs not reaching the floor */
     if (boy > 0.01) {
-      const ks = F.styles.leoKid, bite = Math.max(0, Math.sin(t * 2.6));
-      const ko = { x: HOUSE - 70, y: hg - 56, s: 118, style: ks, sit: true, lean: 0.14,
+      const ks = F.styles.leoKid;
+      const ko = { x: HOUSE - 70, y: hg - 56, s: 118, style: ks, sit: true,
         legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 4) * 0.35 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * 4 + Math.PI) * 0.35 },
-        face: { eye: bite > 0.8 ? 'happy' : 'open', mouth: 'smile', blush: 0.3 } };
-      ko.armF = { hand: F.local(ko, T.lerp(HOUSE - 28, HOUSE - 50, bite), T.lerp(hg - 78, hg - 112, bite)), bend: -1 };
-      ko.armB = { hand: F.local(ko, HOUSE - 36, hg - 72) };
+        face: { eye: cyc.chew ? 'happy' : 'open', mouth: 'smile', blush: 0.3 } };
+      const ksp = eatPose(ko, cyc.lift, cyc.dip, [HOUSE - 38, hg - 73], 10);
       g.save(); g.globalAlpha = boy;
       P.glow(g, ko.x + 4, ko.y - 34, 96, '#fff0c8', 0.42 * Math.sin(T.clamp(S.ghost.a) * Math.PI) + 0.12);
-      F.person(g, ko);
+      drawSpoon(g, F.person(g, ko), ksp);
       g.restore();
     }
   }
-  /* up the stairs: a step at a time, leaning into it, a hand on the rail */
-  function ladderPose(o, footY, hg, s) {
-    const step = (hg - footY) / 20.8, ph = step * Math.PI, a = Math.sin(ph), u = 2000 / s;
-    o.flip = true; o.lean = 0.2; o.walk = null; o.headTilt = -0.12;
-    o.y -= Math.abs(a) * 2;
-    o.legF = { foot: [-4 - 6 * Math.max(0, a), 49 - u * 0.6 * Math.max(0, a)] };
-    o.legB = { foot: [2 - 6 * Math.max(0, -a), 49 - u * 0.6 * Math.max(0, -a)] };
-    o.armF = { hand: F.local(o, o.x - 18, o.y - 34 * (s / 150)) };
-    o.armB = { a: 0.5 + a * 0.25, b: 0.5 };
+  /* at the table: a spoonful every few seconds. lift 0 in the bowl … 1 at the lips; dip is the scoop; chew while it is in */
+  function spoonCycle(t) {
+    const u = (t / 2.9) % 1;
+    const lift = u < 0.18 ? 0 : u < 0.45 ? T.smooth((u - 0.18) / 0.27) : u < 0.62 ? 1 : u < 0.86 ? 1 - T.smooth((u - 0.62) / 0.24) : 0;
+    return { lift, dip: u < 0.18 ? Math.sin((u / 0.18) * Math.PI) : 0, chew: u > 0.47 && u < 0.62 };
+  }
+  /* the elbow stays down at his side and the forearm brings the spoon up; he leans to the bowl and sits up to eat.
+     bowl: where the spoon goes in (world); sl: the spoon's length. Returns what drawSpoon needs. */
+  function eatPose(o, lift, dip, bowl, sl) {
+    const l = T.smooth(lift), arc = Math.sin(l * Math.PI);
+    o.lean = T.lerp(0.24, 0.1, l); o.headTilt = T.lerp(0.14, 0.05, l);
+    const m = F.mouth(o);
+    let dx = T.lerp(0.62, -0.4, l), dy = T.lerp(0.78, -0.92, l);   /* tipped into the bowl … turned up to the lips */
+    const n = Math.hypot(dx, dy); dx /= n; dy /= n;
+    const tip = [T.lerp(bowl[0] + dip * 5, m[0] + 1, l) + arc * 7, T.lerp(bowl[1] + dip * 2.5, m[1] + 0.5, l) - arc * 4];
+    o.armF = { hand: F.local(o, tip[0] - dx * sl, tip[1] - dy * sl), bend: 1 };
+    o.armB = { hand: F.local(o, bowl[0] - 11 * (o.s / 150), bowl[1] - 1) };   /* the other hand steadies the bowl */
+    return { dir: [dx, dy], sl };
+  }
+  function drawSpoon(g, j, sp) {
+    const h = j.handF, d = sp.dir, L = sp.sl, k = L / 13;
+    P.line(g, h[0] - d[0] * L * 0.28, h[1] - d[1] * L * 0.28, h[0] + d[0] * L * 0.8, h[1] + d[1] * L * 0.8, 1.9 * k, '#b98a5a');
+    P.fill(g, P.ellipse(h[0] + d[0] * L, h[1] + d[1] * L, 3.4 * k, 2.1 * k, Math.atan2(d[1], d[0])), '#c99a68');
+  }
+  /* on the attic stairs, a tread at a time. The body glides along the flight; each foot is set down on a tread and
+     lifted over the next one; a hand slides along the rail. dir 1 going up (facing the top, to the left),
+     -1 coming down (facing the way he goes, down and to the right). */
+  const TREAD = 20.8, RUN = 13.4, NSTEP = 186 / 20.8;
+  function stairPose(o, footY, hg, s, dir) {
+    const u = s / 100, p = (hg - footY) / TREAD, face = dir > 0 ? -1 : 1;
+    const ends = T.smooth(T.clamp(Math.min(p, NSTEP - p) / 0.8));   /* 0 on the floor at either end, 1 on the flight */
+    const TX = (n) => HOUSE - 13 - T.clamp(n, -1, 9.6) * RUN, TY = (n) => hg - T.clamp(n * TREAD, 0, 186);
+    o.walk = null; o.flip = dir > 0;
+    o.lean = T.lerp(0.06, dir > 0 ? 0.17 : -0.03, ends); o.headTilt = T.lerp(0, dir > 0 ? -0.1 : 0.2, ends);
+    o.y = footY - (F.hipHeight(o.style, s) - 7.5 * u * ends) - Math.abs(Math.sin(p * Math.PI)) * 1.2 * u * ends;
+    /* foot k steps on every other tread: k = 0 the even ones, k = 1 the odd ones */
+    const foot = (k) => {
+      const z = (p + 0.5 - k) / 2, n0 = Math.floor(z) * 2 + k, f = (z - Math.floor(z)) * 2;
+      let x, y;
+      if (f < 1) { x = TX(n0); y = TY(n0); }
+      else {
+        const e = T.smooth(T.clamp((f - 1.1) / 0.8));
+        x = T.lerp(TX(n0), TX(n0 + 2), e); y = T.lerp(TY(n0), TY(n0 + 2), e) - Math.sin(e * Math.PI) * TREAD * 0.7;
+      }
+      const st = F.local(o, x, y - 3.2 * u);
+      return [T.lerp(k ? -1 : 1, st[0], ends), T.lerp(48.8, st[1], ends)];
+    };
+    o.legF = { foot: foot(0) }; o.legB = { foot: foot(1) };
+    const hx = o.x + face * 12 * u / 1.5, railY = hg - 40 + (hx - HOUSE - 4) * (188 / 126);
+    const rest = F.local(o, o.x + face * 6 * u, o.y + 14 * u), rail = F.local(o, hx, railY);
+    o.armF = { hand: [T.lerp(rest[0], rail[0], ends), T.lerp(rest[1], rail[1], ends)], bend: 1 };
+    o.armB = { a: 0.2 + 0.18 * Math.sin(p * Math.PI), b: 0.45 };
   }
 
   /* ---------- drawing: people on the road ---------- */
