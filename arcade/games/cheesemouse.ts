@@ -3444,6 +3444,7 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
   // 결과·선물·끝 화면이 뜨면 떠 있던 짧은 글자는 걷는다 (카드 위에 겹치지 않게)
   if (s.phase !== 'play' && fx.memo.clr !== s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)) (fx.memo.clr = s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)), (fx.popups.length = 0);
   pumpBudget = s.phase === 'play' ? 5 : 12;
+  barBudget = 1;
   wantStage(s.stage, Math.round(w), Math.round(h), sc);
   if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, Math.round(w), Math.round(h), sc);
   idlePump();
@@ -4021,11 +4022,14 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
 // ───────────────────────────── 띠 · 결과 · 선물 ─────────────────────────────
 /** 글자 띠는 내용이 바뀔 때만 다시 그려 두고, 프레임마다는 그 한 장을 찍는다 (느린 폰) */
 const BARS = new Map<string, { c: HTMLCanvasElement; key: string }>();
+/** 한 프레임에 다시 그리는 띠는 하나까지 (판이 바뀌는 프레임에 띠 넷이 한꺼번에 글자를 잡지 않게 — 나머지는 한두 프레임 늦게) */
+let barBudget = 1;
 function bar(id: string, w: number, hpx: number, sc: number, key: string, paint: (g: C2) => void): HTMLCanvasElement {
   const slot = `${id}:${Math.round(w)}:${sc}`;
   let b = BARS.get(slot);
   if (!b) BARS.set(slot, (b = { c: document.createElement('canvas'), key: '' }));
-  if (b.key !== key) {
+  if (b.key !== key && (barBudget > 0 || !b.key)) {
+    barBudget--;
     b.key = key;
     const cv = b.c, cw = Math.ceil(w * sc), chh = Math.ceil(hpx * sc);
     if (cv.width !== cw || cv.height !== chh) (cv.width = cw), (cv.height = chh);
