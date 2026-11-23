@@ -96,15 +96,15 @@
       await X.wait(6.5);
       await X.TALK.say('leo', '벌써 세 번째 고래야, 빈.', { slow: true });
       await X.wait(0.8);
-      await X.TALK.say('leo', '…엄마도 세 번 봤댔는데.', { slow: true });
+      await X.TALK.say('leo', '…엄마도 이걸 세 번 보면서\n날 기다렸대.', { slow: true });
       await X.wait(1.6);
       X.tween(wh.sun, 'k', 0.6, 8);
       await X.years(25, 30, { age: 66 });
       await X.wait(0.6);
       await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
       T.announce('해마다 레오의 기일이면, 아나는 레오의 스튜를 끓인다. 레오는 호수에서 보며 똑같이 따라 끓인다. 처음엔 차례만 지키면 된다.');
-      await X.TALK.say('leo', '해마다 내 기일이면,\n아나는 이 스튜를 끓여.');
-      await X.TALK.say('leo', '그래서 나도 같이 끓여.\n아나가 넣는 차례 그대로.');
+      await X.TALK.say('leo', '오늘이네, 빈.\n아나도 지금쯤 냄비 올렸겠다.');
+      await X.TALK.say('leo', '…같이 끓이자.\n아나 하는 대로.');
       await cookYear({ steps: ['potato', 'carrot', 'onion', 'tomato'], caption: '아나가 넣던 차례대로 재료를 눌러 넣으세요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
@@ -132,6 +132,7 @@
       await X.sail(S.b1, -74, 70);
       A.sfx('door');
       await X.land(dil, 40);
+      X.sail(S.b1, -1500, 34);   /* the boat that brought them goes back into the cloud, empty */
       son.hug = { k: 0 }; dil.hug = son.hug;
       son.pose = (o) => T.embrace(o, son, dil, son.hug.k, true);
       dil.pose = (o) => T.embrace(o, dil, son, son.hug.k);
@@ -156,15 +157,19 @@
       await TALK.say('rosa', '이제 다 왔다.\n우리도 건너가자.');
       await X.wait(0.8);
       son.pose = null; dil.pose = null;
-      /* the same evening: a white boat, and the bell Leo promised to ring */
-      S.b2 = X.boat({ x: -74, hull: '#e9e2d6', lamp: false, riders: [] });   /* moored at the pier's end */
+      /* the same evening: a white boat comes in out of the cloud for them, and the bell Leo promised to ring */
+      S.b2 = X.boat({ x: -900, hull: '#e9e2d6', lamp: false, riders: [] });
+      T.announce('등불 없는 하얀 배 한 척이 구름 속에서 부두로 미끄러져 온다.');
+      await X.sail(S.b2, -74, 60);
+      await TALK.say('leo', '…하얀 배네.');
+      await TALK.say('rosa', '다 지키면, 저렇게 데리러 와.');
       await TALK.say('rosa', '레오. 이거.');
       T.announce('로사가 실 한 타래를 건넨다.');
-      await TALK.say('rosa', '아나 오면 같이 떠.\n이번엔 네가 가르쳐 줘.');
+      await TALK.say('rosa', '아나 오면 같이 떠.\n한 줄에 얘기 하나씩 하면서.');
       await TALK.say('leo', '…네. 코 하나 안 빠뜨리고요.');
       for (const [a, seat] of [[rosa, -40], [son, -14], [dil, 12]]) { await X.walk(a, 24, 56); await X.board(a, S.b2, seat); a.flip = true; }
       X.toll(3); await X.wait(0.8);
-      await TALK.say('rosa', '보낼 땐 거꾸로 대답하는 거야.\n마지막 등불부터.');
+      await TALK.say('rosa', '네 엄마 만나면 전할게.\n아들, 잘 지내더라고.', { slow: true });
       T.announce('배웅. 종이 울린 차례를 거꾸로, 마지막 등불부터 대답한다. 대답하는 사이 등불이 자리를 바꾸기도 한다.');
       await X.play(T.puzzle.bell({ rounds: [[1, 3, 0], [2, 0, 3, 1]], reverse: true, shuffle: true }));
       const wave = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4 + a2.x) * 0.2, b: 0.3 }; };
@@ -205,7 +210,7 @@
       await X.play(GZ.trough({ which: 2 }));
       ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
       A.sfx('star', 0.6);
-      await TALK.say('kid', '빨개졌다! 진짜 빨개졌어!');
+      await TALK.say('kid', '올해 건 진짜 빨개!');
       await TALK.say('kid', '제일 빨간 건 엄마 거야.');
       await X.dip(async () => { S.actors.splice(S.actors.indexOf(pipi0), 1); leo.x = PL.TABLE_X - 66; leo.chair = 1; bean.x = PL.TABLE_X + 118; bean.flip = true; X.cam(px + 60, py, 1); X.camSnap(); });
 
@@ -222,13 +227,13 @@
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
       await X.years(35, 40, { age: 76 });
       /* this year she put in something that is not in his notebook */
-      await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt'], heat: true, caption: '작년처럼 끓여 보세요' });
+      await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt'], heat: true, caption: '아나 하는 대로, 같이 끓여요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.75;
       leo.mood = 'wonder';
       A.fragment(6);
       T.announce('호수 속 아나의 스튜는 빛깔이 다르다. 레오의 공책에 없는 풀이 들어갔다.');
-      await X.TALK.say('leo', '호수 속 아나 스튜, 올해는 빛깔이 달라.\n…내 공책엔 없는 걸 넣었네.');
+      await X.TALK.say('leo', '…빛깔이 다르네.\n아나, 뭘 넣은 거야?');
       leo.mood = null;
       T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라, 호수에 비친 아나의 스튜와 견주어 본다.');
       await X.play(T.puzzle.taste({ answer: [0, 2] }));
@@ -320,10 +325,7 @@
       await TALK.say('leo', '다 해 놨어.\n이제 당신만 오면 돼.');
 
       /* ---- Pipi's father, at last; and then nobody is left for them to wait for ---- */
-      const ov = T.place ? T.place('overlook', { leoAge: 3 }) : null;
-      if (ov) { ov.sun.k = 0.4; await X.view(ov, { color: '#fff6e6' }); T.announce('구름 위 벤치. 늙은 레오와 빈이 저무는 구름바다를 본다.'); X.tween(ov.sun, 'k', 1, 7); }
       await X.years(40, 43, { age: 79 });
-      if (ov) await X.view(null, { color: '#1b2440' });
       let pipi2, pm2, pd, qleo2, cloud;
       X.toll(0);
       await quay(() => {
@@ -344,6 +346,7 @@
       await X.sail(S.b1, -74, 70);
       A.sfx('door');
       await X.land(pd, 30);
+      X.sail(S.b1, -1500, 34);   /* the boat that brought them goes back into the cloud, empty */
       T.announce('배에서 허리가 굽은 할아버지가 내린다. 피피의 아빠다.');
       await TALK.say('kid', '아빠!');
       pipi2.hug = { k: 0 }; pd.hug = pipi2.hug;
@@ -372,13 +375,16 @@
       await TALK.say('kid', '응. 아빠 보여 주기로 했잖아.');
       await X.wait(0.8);
       await X.walk(pipi2, qleo2.x - 50, 160);
-      await TALK.say('kid', '아저씨. 우리 이제 건너가야 된대.');
-      await TALK.say('leo', '그래. 다 왔으니까.');
+      S.b2 = X.boat({ x: -900, hull: '#e9e2d6', lamp: false, riders: [] });
+      T.announce('하얀 배가 부두로 미끄러져 온다.');
+      await X.sail(S.b2, -74, 60);
+      await TALK.say('kid', '하얀 배 왔다.\n…우리 이제 가야 돼.');
+      await TALK.say('kid', '같이 기다리자고 했는데….\n나 먼저 가도 돼?');
+      await TALK.say('leo', '그럼. 그동안 하나도 안 심심했어.\n다 지킨 거야.');
       await TALK.say('kid', '아저씨는 혼자서도 기다릴 수 있어?');
-      await TALK.say('leo', '빈도 있고, 토마토도 있고.\n…그리고 아나가 오잖아.');
+      await TALK.say('leo', '빈도 있고, 구름이도 있고.\n…그리고 아나가 오잖아.');
       await TALK.say('kid', '아나 아줌마 오면, 내 얘기 해 줘.\n토마토 같이 키운 거.');
       await TALK.say('leo', '응. 제일 먼저 할게.');
-      S.b2 = X.boat({ x: -74, hull: '#e9e2d6', lamp: false, riders: [] });   /* moored at the pier's end */
       for (const [a, seat] of [[pd, -40], [pm2, -14], [pipi2, 12]]) { await X.walk(a, 24, 62); await X.board(a, S.b2, seat); a.flip = true; }
       T.announce('하얀 배. 이번엔 종을 치지 않는다. 피피가 손을 흔든다. 레오를 눌러 손을 흔들어 준다.');
       pipi2.pose = (o, a2, t) => { o.armF = { a: 2.4 + Math.sin(t * 7) * 0.3, b: 0.2 }; o.face.eye = 'happy'; };

@@ -661,6 +661,24 @@ T = [
     # ---- chapter 6: and on the quay, with her
     ("…발도 안 보고 추네요.", "...You're not even looking at your feet."),
     ("당신 봐야지.", "I'm looking at you."),
+    # ---- chapters 5 and 6, read through again
+    ("…빈, 이제 진짜 우리 집이다.", "...Bean, it's really our house now."),
+    ("남는 방엔 뭘 들일 거야?", "What'll you put in the spare room?"),
+    ("언젠가 우리 떠나는 날,\n종이 울리거든 네 등불로 대답해 줘.", "One day, when it's our turn to go,\nif the bell rings, answer it with your lamp."),
+    ("…엄마도 이걸 세 번 보면서\n날 기다렸대.", "...Mom watched it three times too,\nwaiting for me."),
+    ("오늘이네, 빈.\n아나도 지금쯤 냄비 올렸겠다.", "It's today, Bean.\nAna's put the pot on by now."),
+    ("…같이 끓이자.\n아나 하는 대로.", "...Let's cook with her.\nJust the way she does."),
+    ("…하얀 배네.", "...A white boat."),
+    ("다 지키면, 저렇게 데리러 와.", "When you've kept them all, it comes for you."),
+    ("아나 오면 같이 떠.\n한 줄에 얘기 하나씩 하면서.", "Knit it with Ana when she comes.\nA story for every row."),
+    ("네 엄마 만나면 전할게.\n아들, 잘 지내더라고.", "When I see your mother, I'll tell her.\nHer boy's doing fine."),
+    ("올해 건 진짜 빨개!", "This year's are really red!"),
+    ("아나 하는 대로, 같이 끓여요", "Cook along, the way Ana does"),
+    ("…빛깔이 다르네.\n아나, 뭘 넣은 거야?", "...The colour's different.\nAna, what did you put in?"),
+    ("하얀 배 왔다.\n…우리 이제 가야 돼.", "The white boat's here.\n...We have to go now."),
+    ("같이 기다리자고 했는데….\n나 먼저 가도 돼?", "We said we'd wait together....\nIs it okay if I go first?"),
+    ("그럼. 그동안 하나도 안 심심했어.\n다 지킨 거야.", "Of course. I was never bored, not once.\nYou kept it."),
+    ("빈도 있고, 구름이도 있고.\n…그리고 아나가 오잖아.", "I've got Bean, and Cloudy.\n...And Ana's coming."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

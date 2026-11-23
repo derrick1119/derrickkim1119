@@ -193,11 +193,8 @@
       let bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 190, sit: 1, wag: 0.5 });
       X.title();
       await X.wait(4.2);
-      /* years go by on the old stones above the cloud sea, where he goes to sit with Bean */
-      const ov = T.place ? T.place('overlook', { leoAge: 2 }) : null;
-      if (ov) { await X.view(ov, { color: '#fff6e6' }); T.announce('구름 위 오래된 돌 폐허, 꽃 핀 나무 아래 벤치. 레오와 빈이 나란히 앉아 구름바다를 본다.'); X.tween(ov.sun, 'k', 1, 9); }
+      /* the years go by here on the hill: the apple tree grows, and one spring a swing hangs from it */
       await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); X.wait(d * 0.4).then(() => { A.sfx('knock', 0.3); X.tween(ps, 'swing', 1, d * 0.4); }); } });
-      if (ov) await X.view(null, { color: '#fff6e6' });
       T.announce('사과나무가 자라고, 가지에 작은 그네가 걸렸다. 릴리에게 만들어 주겠다던 그네.');
 
       /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */
@@ -230,12 +227,12 @@
       for (let i = 0; i < 3; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); }
       await X.wait(1.2);
       folk.forEach((a) => { a.pose = null; });
-      await X.TALK.say('leo', '이제 지붕이 생겼어.');
+      await X.TALK.say('leo', '…빈, 이제 진짜 우리 집이다.');
       await X.TALK.say('v1', '아나 씨 오면\n비 맞을 일은 없겠구먼.');
-      await X.TALK.say('rosa', '빈 방엔 뭘 들일 거야?');
+      await X.TALK.say('rosa', '남는 방엔 뭘 들일 거야?');
       await X.TALK.say('leo', '…그건 아나가 정하게 둘래요.');
       await X.TALK.say('rosa', '레오, 하나만 부탁하자.');
-      await X.TALK.say('rosa', '며느리까지 오면, 우리 셋은 건너갈 거야.\n그때 종이 물으면, 네가 대답해 줘.');
+      await X.TALK.say('rosa', '언젠가 우리 떠나는 날,\n종이 울리거든 네 등불로 대답해 줘.');
       await X.TALK.say('leo', '…네. 제가 대답할게요.');
       await X.wait(1);
       folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
