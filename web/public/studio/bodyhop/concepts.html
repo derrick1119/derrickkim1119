@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>👻 몸 갈아타기 2기 — 그림 시안 고르기</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f1e7; --ink: #2b2118; --muted: #7a6a58; --card: #fffaf0; --line: #e4d8c4; --teal: #14b8b0; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #16131a; --ink: #f2ece2; --muted: #a99c8c; --card: #221d26; --line: #3a3240; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  header { max-width: 1240px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) 18px 6px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  header p { margin: 4px 0; color: var(--muted); font-size: 15px; }
+  .grid { max-width: 1240px; margin: 0 auto; padding: 12px 14px 28px; display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  figure a { display: block; }
+  figure img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 844; background: #888; }
+  figcaption { padding: 12px 14px 16px; }
+  .no { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 800; font-size: 18px; margin-right: 8px; vertical-align: middle; }
+  .name { font-weight: 800; font-size: 18px; vertical-align: middle; }
+  figcaption p { margin: 8px 0 0; font-size: 15px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 18px calc(28px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 14px; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>👻 몸 갈아타기 2기 — 그림 시안 3장</h1>
+  <p>같은 장면을 세 가지 그림으로 그렸어요: <b>첫 판, 유령이 슬라임 몸에 쏙 들어가는 순간</b> — 뒤에서는 버린 몸이 펑!, 오른쪽에는 다음에 탈 돌주먹 곰.</p>
+  <p>아이폰 세로 화면 크기 그대로예요. 그림을 누르면 크게 보여요. <b>1·2·3 중 어느 그림으로 갈까요?</b></p>
+</header>
+<main class="grid">
+  <figure>
+    <a href="concepts/c1.jpg"><img src="concepts/c1.jpg" width="390" height="844" alt="시안 1 — 손그림 수채 동화풍"></a>
+    <figcaption><span class="no">1</span><span class="name">손그림 수채 동화풍</span><p id="d1">아침 햇살 속 종이에 번진 수채 물감 — 손으로 그린 동화책 같은 장면.</p></figcaption>
+  </figure>
+  <figure>
+    <a href="concepts/c2.jpg"><img src="concepts/c2.jpg" width="390" height="844" alt="시안 2 — 두꺼운 외곽선의 고급 카툰"></a>
+    <figcaption><span class="no">2</span><span class="name">두꺼운 외곽선 고급 카툰</span><p id="d2">굵은 외곽선과 반짝이는 젤리 광택, 터지는 효과선 — 고급 TV 만화영화풍.</p></figcaption>
+  </figure>
+  <figure>
+    <a href="concepts/c3.jpg"><img src="concepts/c3.jpg" width="390" height="844" alt="시안 3 — 부드러운 입체 점토풍"></a>
+    <figcaption><span class="no">3</span><span class="name">부드러운 입체 점토풍</span><p id="d3">손으로 빚은 점토 인형 미니어처를 진짜 카메라로 찍은 듯한 말랑한 입체 장면.</p></figcaption>
+  </figure>
+</main>
+<footer>
+  <p>규칙은 오너가 '재밌네' 하신 그대로(톡 하면 그 몸으로 옮겨 타기 · 버린 몸은 펑 · 몸이 저절로 싸움)이고, 그림만 새로 시작합니다. 고르신 그림으로 이 장면이 실제로 움직이는 화면부터 만듭니다.</p>
+  <p><b>오너 선택(2026-11-23): 1번 수채 동화풍</b> → <a href="./">움직이는 화면</a></p>
+  <p>1기 기록: <a href="v1-3d.html">3D 시도</a> · <a href="2d.html">프로토타입 2D</a></p>
+</footer>
+</body>
+</html>
