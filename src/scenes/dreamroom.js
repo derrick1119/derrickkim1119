@@ -293,14 +293,35 @@
         g.strokeStyle = '#a8735a'; g.lineWidth = 9; g.strokeRect(150, 300, 150, 364);
         for (let j = 0; j < 8; j++) P.fill(g, P.circle(170 + (j % 3) * 50 + Math.sin(t + j) * 4, 640 - Math.floor(j / 3) * 16, 6), ['#e58aa0', '#f6f0e0', '#f1c04a', '#f6b6c2'][j % 4]);
         P.fill(g, P.rr(-470, 540, 360, 130, 18), '#b48ab0'); P.fill(g, P.rr(-462, 518, 344, 40, 16), '#fbf4ee');
-        const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
-        const lily = { x: -250, y: 540, s: 300, style: ls, sit: true, lean: 0.06, headTilt: 0.12 - D.hold.k * 0.16, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: D.hold.k > 0.6 ? 'closed' : 'open', mouth: 'smile', blush: 0.26 } };
-        const nk = T.ease.io(D.near.k), lx = T.lerp(225, -40, nk);
-        const leo = { x: lx, y: 664 - F.hipHeight(F.styles.leoHome, 300), s: 300, style: F.styles.leoHome, flip: true, lean: 0.06, headTilt: 0.1, face: { mouth: 'smile', blush: 0.14 } };
-        if (nk > 0.02 && nk < 0.98) leo.walk = nk * 12;
-        if (D.hold.k > 0.02) { const hk = D.hold.k; lily.armB = { hand: F.local(lily, T.lerp(lily.x + 30, leo.x - 20, hk), T.lerp(lily.y - 40, leo.y - 30, hk)) }; leo.armF = { hand: F.local(leo, T.lerp(leo.x - 10, lily.x + 50, hk * 0.6), T.lerp(leo.y - 30, lily.y - 46, hk)) }; }
+        const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' }), hk = T.ease.io(D.hold.k);
+        const lily = { x: -250, y: 540, s: 300, style: ls, sit: true, lean: 0.06 + hk * 0.1, headTilt: 0.12 - hk * 0.16, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: hk > 0.6 ? 'closed' : 'open', mouth: 'smile', blush: 0.26 } };
+        /* he comes in at the door, walks to her bedside and goes down on one knee there, so that his face is level with
+           hers: four steps (the feet keep pace with the floor), then the front foot steps on and the back knee goes down */
+        const FLOOR = 664, u = 3, KX = -104, WX = -58, wk = T.clamp(D.near.k / 0.72), kk = T.ease.io(T.clamp((D.near.k - 0.72) / 0.28));
+        const standY = FLOOR - F.hipHeight(F.styles.leoHome, 300), kneelY = FLOOR - 28.5 * u, SOLE = FLOOR - 2.8 * u;
+        const leo = { x: T.lerp(T.lerp(194, WX, wk), KX, kk), y: T.lerp(standY, kneelY, kk), s: 300, style: F.styles.leoHome, flip: true, lean: 0.06 + kk * 0.09 + hk * 0.04, headTilt: 0.1 - kk * 0.06, face: { mouth: 'smile', blush: 0.14 } };
+        if (wk > 0 && wk < 1) leo.walk = wk * 4 * Math.PI;
+        else if (wk >= 1) {
+          const lift = Math.sin(kk * Math.PI) * 5 * u;
+          leo.legF = { foot: F.local(leo, T.lerp(WX - 10.5 * u, KX - 24 * u, kk), SOLE - lift) };
+          leo.legB = { foot: F.local(leo, WX + 10.5 * u, SOLE) };   /* the back foot stays where it was */
+        }
+        /* little fingers: both hands go to one point between them, a little below their shoulders */
+        const sh = (o) => { const ou = o.s / 100, sx = o.flip ? -1 : 1; return [o.x + sx * ou * (Math.sin(o.lean) * 26 + 1.2), o.y + ou * (1.5 - Math.cos(o.lean) * 26)]; };
+        const s1 = sh(lily), s2 = sh(leo), M = [(s1[0] + s2[0]) / 2, (s1[1] + s2[1]) / 2 + 14], lap = [lily.x + 42, lily.y - 4];
+        lily.armF = { hand: F.local(lily, T.lerp(lap[0], M[0] - 6, hk), T.lerp(lap[1], M[1], hk)) };
+        lily.armB = { hand: F.local(lily, lap[0] - 6, lap[1] + 2) };
+        if (hk > 0.01) leo.armF = { hand: F.local(leo, T.lerp(s2[0] + 4, M[0] + 6, hk), T.lerp(s2[1] + 80, M[1], hk)) };
         F.person(g, lily);
         g.save(); g.globalAlpha *= T.clamp(D.near.k * 4); P.glow(g, leo.x, leo.y - 40, 120, '#fff0c8', 0.3); F.person(g, leo); g.restore();
+        if (hk > 0.6) {   /* hooked */
+          const a = T.clamp((hk - 0.6) / 0.4);
+          P.glow(g, M[0], M[1], 46, '#fff0c8', 0.4 * a);
+          g.save(); g.globalAlpha *= a; g.lineCap = 'round'; g.lineWidth = 4.2;
+          g.strokeStyle = ls.skin; g.beginPath(); g.moveTo(M[0] - 3, M[1] + 7); g.quadraticCurveTo(M[0] + 6, M[1] + 13, M[0] + 4, M[1] + 4); g.stroke();
+          g.strokeStyle = F.styles.leoHome.skin; g.beginPath(); g.moveTo(M[0] + 4, M[1] + 9); g.quadraticCurveTo(M[0] - 6, M[1] + 4, M[0] - 3, M[1] + 12); g.stroke();
+          g.restore();
+        }
         g.restore();
       }
       if (mk < 0.99 && B) paintRoom(g, t);
@@ -332,9 +353,14 @@
       lily.armF = { hand: F.local(lily, seat[0] - 28, seat[1] - 120) }; lily.armB = { hand: F.local(lily, seat[0] + 30, seat[1] - 116) };
       F.person(g, lily);
       P.fill(g, P.rr(seat[0] - 46, seat[1] - 4, 92, 10, 4), '#b98a5a');
-      const back = Math.max(0, a), lx = seat[0] + 150 - back * 60;
-      const leo = { x: lx, y: 712 - F.hipHeight(F.styles.leoHome, 270), s: 270, style: F.styles.leoHome, flip: true, lean: 0.1 + back * 0.2, face: { mouth: 'smile', eye: 'happy' } };
-      leo.armF = { hand: F.local(leo, Math.min(lx - 40, seat[0] + 40), seat[1] - 90) };
+      /* he stands his ground behind her, feet planted: only his weight goes into it. He leans in as the seat comes
+         back to him and his hands meet her back, then eases upright again while she flies off */
+      const near = T.ease.io(T.clamp((Math.sin(t * 1.7) - 0.2) / 0.8)), GY = 712, SOLE = GY - 2.8 * 2.7;
+      const leo = { x: 304 - near * 20, y: GY - F.hipHeight(F.styles.leoHome, 270) + 6 + near * 3, s: 270, style: F.styles.leoHome, flip: true, lean: 0.08 + near * 0.24, headTilt: -0.04, face: { mouth: 'smile', eye: 'happy' } };
+      leo.legF = { foot: F.local(leo, 268, SOLE) }; leo.legB = { foot: F.local(leo, 322, SOLE) };
+      const back = [seat[0] + 24, seat[1] - 44], ready = [leo.x - 34, leo.y - 52];
+      leo.armF = { hand: F.local(leo, T.lerp(ready[0], back[0], near), T.lerp(ready[1], back[1], near)) };
+      leo.armB = { hand: F.local(leo, T.lerp(ready[0] + 8, back[0] + 8, near), T.lerp(ready[1] - 6, back[1] - 10, near)) };
       F.person(g, leo);
       for (let i = 0; i < 18; i++) { const ph = (t * 0.05 + i * 0.13) % 1; P.fill(g, P.ellipse(-W / 2 + ((i * 197) % W) + Math.sin(t + i) * 30, ph * 900, 5, 3, ph * 6), '#f6b6c2'); }
       g.restore();
