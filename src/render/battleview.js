@@ -207,6 +207,7 @@ export class BattleView {
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
+    if (b.form) this.drawForm(g, b, T);   // 진형의 금빛 먹줄은 인형들 위에 옅게 (부대가 가리지 않게)
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
     this.drawAmbient(g, T, opt.dt || 0, opt.march);
@@ -229,6 +230,21 @@ export class BattleView {
     g.restore();
     g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  }
+  // 진형: 진을 이룬 부대들을 금빛 먹줄로 잇고, 발밑에 금빛 테를 두른다 (선 순간 크게 번쩍인다)
+  drawForm(g, b, T) {
+    const f = b.form, sq = b.formSquads(), hq = b.squads.find(q => q.team === 0 && q.hero && q.alive > 0); if (!sq.length) return;
+    let pts = sq.map(q => [q.cx, q.cy]);
+    if (f.id === 'jangsa') pts.sort((a, c) => a[0] - c[0]); else if (f.id === 'bangwon' && hq) pts.sort((a, c) => Math.atan2(a[1] - hq.cy, a[0] - hq.cx) - Math.atan2(c[1] - hq.cy, c[0] - hq.cx)); else pts.sort((a, c) => a[1] - c[1]);
+    const age = T - (f.t0 === undefined ? (f.t0 = T) : f.t0), flash = Math.max(0, 1 - age / 0.8), pul = 0.55 + 0.25 * Math.sin(T * 4) + flash * 0.4;
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    const trace = () => { g.beginPath(); pts.forEach(([x, y], i) => { if (i) g.lineTo(x, y + 18); else g.moveTo(x, y + 18); }); if (f.id === 'bangwon') g.closePath(); };
+    g.globalAlpha = 0.3 * pul; trace(); st(g, '#fff0b0', 12 + flash * 18);
+    g.globalAlpha = 0.55; trace(); st(g, '#3a2410', 6.5);
+    g.globalAlpha = 0.95; g.setLineDash([18, 9]); g.lineDashOffset = -T * 40; trace(); st(g, '#ffd560', 3.6); g.setLineDash([]);
+    for (const [x, y] of pts) { g.globalAlpha = 0.6; ell(g, x, y + 18, 46 + flash * 30, 14 + flash * 8, null, '#3a2410', 4.5); g.globalAlpha = 0.95 * pul + 0.05; ell(g, x, y + 18, 46 + flash * 30, 14 + flash * 8, null, '#ffd560', 2.4); g.globalAlpha = 0.16 * pul; ell(g, x, y + 18, 44, 13, '#ffe7a0'); }
+    if (f.id === 'bangwon' && hq) { g.globalAlpha = 0.6 * pul; ell(g, hq.cx, hq.cy + 18, 30, 10, null, '#f3d27c', 2); }
+    g.restore();
   }
   // 밤과 비: 싸움터의 하늘에 따라 천천히 덮였다가 걷힌다
   drawSky(g, b, T, dt) {
@@ -389,7 +405,7 @@ export class BattleView {
         case 'comboFx': for (const [x, y] of e.pts) { if (e.style === 'slash') { fx.slash(x, y - 18, 48, '#eef0ff', 0.8); fx.slash(x, y - 18, 48, '#5a4a8a', 2.3); } else if (e.style === 'arrow') { fx.add({ k: 'arrow', x, y, life: 0.2 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } else { fx.bolt(x, y - 8); fx.star(x, y - 16, 22, '#fffbe6'); } } break;
         // 사기는 싸움터 한복판이 아니라 왼쪽 아래 사기 표시 위에서 오른다
         case 'morale': { const p = fx.p.find(q => q.mor && q.t < 0.45); if (p) { p.val += e.n; p.s = '사기 +' + Math.round(p.val * 10) / 10; p.t = Math.min(p.t, 0.1); } else fx.add({ k: 'text', mor: true, val: e.n, x: 132, y: 548, vy: -34, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); } fx.star(e.x, e.y - 30, 11, '#f0d264'); sfx('coin'); break;
-        case 'synergy': case 'chase': out.push(e); break;
+        case 'synergy': case 'chase': case 'formation': case 'formLost': out.push(e); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
@@ -482,6 +498,6 @@ export class BattleView {
 }
 
 // 진형 미리보기(드래그 중)용 임시 인형
-export function ghostUnits(type, n, x, y, formation, wpn) {
-  const def = defOf(type, wpn); return formation(n).map(([dx, dy], i) => ({ type, def, x: x + dy, y: y + dx, r: def.r, facing: 0, walk: 0, moving: false, atkT: -9, id: i, flash: 0, hp: 1, maxHp: 1, team: 0, stun: 0, root: 0, haste: 0, weaken: 0, barrier: 0, fuse: 0, run: 0, born: -9 }));
+export function ghostUnits(type, n, x, y, formation, wpn, br) {
+  const def = defOf(type, wpn, br); return formation(n).map(([dx, dy], i) => ({ type, def, x: x + dy, y: y + dx, r: def.r, facing: 0, walk: 0, moving: false, atkT: -9, id: i, flash: 0, hp: 1, maxHp: 1, team: 0, stun: 0, root: 0, haste: 0, weaken: 0, barrier: 0, fuse: 0, run: 0, born: -9 }));
 }

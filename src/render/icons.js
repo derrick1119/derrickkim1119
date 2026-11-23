@@ -40,6 +40,40 @@ const book = (g, x, y, w, h, cover, label = WHITE) => { rr(g, x - w / 2 + 1.6, y
 
 // ───────── 전술 패 ─────────
 export const CARD_ART = {
+  salvo(g) { // 일제 사격: 나란히 날아가는 화살과 신호 깃발
+    for (const y of [-12, -2, 8]) arrow(g, -16, y, 0, 26); line(g, [-18, 20, -18, -20], WOODD, 2.2); poly(g, [-18, -20, -6, -16, -18, -12], RED, INK, 1);
+  },
+  masangjae(g) { // 마상재: 편자와 바람 자국
+    path(g, p => { p.moveTo(-13, 14); p.quadraticCurveTo(-16, -12, 0, -14); p.quadraticCurveTo(16, -12, 13, 14); p.lineTo(7, 14); p.quadraticCurveTo(9, -5, 0, -7); p.quadraticCurveTo(-9, -5, -7, 14); p.closePath(); }, IRON, INK, 1.3);
+    for (const [x, y] of [[-10, -6], [10, -6], [-12, 6], [12, 6]]) ell(g, x, y, 1.4, 1.4, STEEL); for (const y of [-14, -4, 6]) line(g, [-24, y, -17, y], INK, 1.3);
+  },
+  counter(g) { // 반격 태세: 등패에 맞고 튕겨 나가는 화살
+    rattan(g, -4, 2, 16); arrow(g, 10, -2, -0.6, 18); for (const [x, y] of [[13, 6], [17, 2], [15, 10]]) line(g, [x, y, x + 4, y + 2], INK, 1.1);
+  },
+  jincheon(g) { // 비격진천뢰: 쇠 껍질 폭탄과 심지 불꽃
+    ell(g, 0, 4, 15, 15, IRON, INK, 1.4); ell(g, -5, -1, 5, 3.4, '#6a6a78'); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; ell(g, Math.cos(a) * 10, 4 + Math.sin(a) * 10, 1.4, 1.4, GREY); }
+    line(g, [6, -9, 11, -17], WOODD, 2); flame(g, 12, -19, 5);
+  },
+  reload(g) { // 화약 재기: 화약 주머니와 불티
+    path(g, p => { p.moveTo(-10, 16); p.quadraticCurveTo(-16, 0, -6, -8); p.lineTo(6, -8); p.quadraticCurveTo(16, 0, 10, 16); p.closePath(); }, '#5a4a3a', INK, 1.3); line(g, [-6, -8, 6, -8], RED, 2.4);
+    for (const [x, y, r] of [[12, -16, 4], [17, -8, 2.6], [5, -19, 2.4]]) spark(g, x, y, r);
+  },
+  bujeok(g) { // 불 부적
+    paperTal(g, -4, 2, 18, 34, '#f0d264', true); flame(g, 10, -12, 6);
+  },
+  daedong(g) { // 대동굿: 태극 북과 오색 천
+    for (const [x, c] of [[-14, RED], [-9, GOLD], [9, '#2f4d7e'], [14, '#3f6b5c']]) path(g, p => { p.moveTo(x, -6); p.quadraticCurveTo(x * 1.2, 8, x * 0.9, 20); p.lineTo(x * 0.9 + 3, 20); p.quadraticCurveTo(x * 1.2 + 3, 8, x + 3, -6); p.closePath(); }, c, INK, 0.9);
+    ell(g, 0, -4, 12, 12, '#c98a4a', INK, 1.3); taegeuk(g, 0, -4, 8);
+  },
+  uibyeong(g) { // 의병 봉기: 엇갈린 낫과 죽창, 흰 머리띠
+    line(g, [-14, 18, 12, -16], WOODD, 3); poly(g, [12, -16, 9, -24, 16, -18], STEEL, INK, 1);
+    line(g, [14, 18, -8, -6], WOODD, 2.8); path(g, p => { p.moveTo(-8, -6); p.quadraticCurveTo(-18, -12, -12, -20); p.quadraticCurveTo(-12, -12, -5, -9); p.closePath(); }, STEEL, INK, 1);
+    rr(g, -12, 10, 24, 5, 2, WHITE, INK, 0.9);
+  },
+  gyeokmun(g) { // 격문: 펼친 두루마리에 붉은 도장과 붓
+    rr(g, -16, -14, 30, 28, 2, WHITE, INK, 1.2); for (const y of [-7, -2, 3]) line(g, [-11, y, 6, y], INK, 1); rr(g, 2, 6, 8, 8, 1, RED, INK, 0.8);
+    rr(g, -19, -17, 6, 34, 3, WOODD, INK, 1.1); line(g, [12, -20, 20, 12], WOODD, 2.4); poly(g, [18, 8, 22, 8, 20, 16], INK);
+  },
   sling(g) { // 돌팔매
     cord(g, p => { p.moveTo(-15, 13); p.quadraticCurveTo(-13, -2, -1, -5); }, '#b98a55'); cord(g, p => { p.moveTo(-15, 13); p.quadraticCurveTo(-2, 14, 4, 0); }, '#b98a55');
     ell(g, 2, -3, 5.6, 3.4, WOODD, INK, 1.1, -0.7); ell(g, -15, 13, 3.2, 3.2, SKIN, INK, 1.1);
@@ -248,7 +282,34 @@ export const MISC_ART = {
 };
 
 // ───────── 보물 ─────────
+// 진법서: 실로 맨 병서 표지에 그 진형의 부대 자리(붉은 점)와 적이 오는 쪽(화살표)을 그렸다
+const formBook = pts => g => { book(g, 0, 1, 32, 38, '#2f4d7e'); rr(g, -11, -13, 22, 28, 1.5, '#f3e6c4', INK, 0.9); for (const [x, y] of pts) ell(g, x, y, 2.4, 2.4, '#b8322a', INK, 0.6); line(g, [7, 10, 10, 10], INK, 0.9); poly(g, [10.6, 8, 13, 10, 10.6, 12], INK); };
 export const RELIC_ART = {
+  gwanhyeok(g) { // 관혁: 과녁에 꽂힌 화살
+    for (const [r, c] of [[19, WHITE], [14, RED], [9, WHITE], [4.4, RED]]) ell(g, 0, 2, r, r, c, INK, 1.1); arrow(g, 15, -14, PI * 0.78, 22);
+  },
+  madeung(g) { // 무쇠 등자
+    line(g, [0, -20, 0, -10], '#6a4428', 3.4); path(g, p => { p.moveTo(-12, 16); p.quadraticCurveTo(-14, -6, 0, -10); p.quadraticCurveTo(14, -6, 12, 16); p.lineTo(8, 16); p.quadraticCurveTo(9, -2, 0, -5); p.quadraticCurveTo(-9, -2, -8, 16); p.closePath(); }, IRON, INK, 1.2); rr(g, -14, 14, 28, 6, 2, GREY, INK, 1.1);
+  },
+  cheolgap(g) { // 쇠미늘 등패
+    rattan(g, 0, 0, 20, IRON); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; ell(g, Math.cos(a) * 14, Math.sin(a) * 14, 2, 2, STEEL, INK, 0.7); }
+  },
+  hwayakgo(g) { // 화약고: 화약 통과 심지 불꽃
+    rr(g, -14, -12, 28, 30, 6, WOODD, INK, 1.3); for (const y of [-6, 8]) rr(g, -15, y, 30, 4, 1.5, IRON, INK, 0.9); line(g, [0, -12, 6, -20], INK, 1.4); flame(g, 7, -22, 5);
+  },
+  bujeokjip(g) { // 부적 보따리: 노란 부적 석 장
+    for (const [x, r] of [[-9, -0.25], [0, 0], [9, 0.25]]) { g.save(); g.translate(x, 2); g.rotate(r); paperTal(g, 0, 0, 12, 30, '#f0d264', true); g.restore(); }
+  },
+  gutbang(g) { // 굿판 방울
+    line(g, [0, 18, 0, -4], WOODD, 2.6); for (const [x, y] of [[-8, -10], [0, -16], [8, -10], [-4, -4], [4, -4]]) ell(g, x, y, 4.4, 4.4, GOLD, INK, 0.9); tassel(g, 0, 18, 10, RED);
+  },
+  uibyeongjang(g) { // 의병장의 격문: 둘둘 만 두루마리와 붉은 도장
+    rr(g, -16, -12, 32, 24, 2, WHITE, INK, 1.2); for (const y of [-5, 0, 5]) line(g, [-10, y, 6, y], INK, 1); rr(g, -19, -15, 6, 30, 3, WOODD, INK, 1.1); rr(g, 13, -15, 6, 30, 3, WOODD, INK, 1.1); rr(g, 6, 3, 7, 7, 1, RED, INK, 0.8);
+  },
+  f_hakik: formBook([[5, -10], [-1, -5], [-5, 1], [-1, 7], [5, 12]]),
+  f_eorin: formBook([[5, 1], [0, -5], [0, 7], [-5, -10], [-5, 12]]),
+  f_jangsa: formBook([[-8, 1], [-3, 1], [2, 1], [7, 1]]),
+  f_bangwon: formBook([[0, -9], [7, 1], [0, 11], [-7, 1]].concat([[0, 1]])),
   drum(g) { // 큰북
     for (const s of [-1, 1]) { line(g, [s * 6, 8, s * 13, 21], INK, 3.4); line(g, [s * 6, 8, s * 13, 21], WOODD, 1.8); } line(g, [-11, 15, 11, 15], INK, 3); line(g, [-11, 15, 11, 15], WOODD, 1.5);
     path(g, p => { p.moveTo(-12, -12); p.quadraticCurveTo(-18, 0, -12, 11); p.lineTo(12, 11); p.quadraticCurveTo(18, 0, 12, -12); p.closePath(); }, '#a8322a', INK, 1.4);

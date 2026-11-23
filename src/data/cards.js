@@ -1,4 +1,5 @@
 import { UNITS, PLAYER_TYPES, HEROES } from './units.js';
+import { branchOf } from './branches.js';
 
 // 패: 싸움 중 손패에서 사기를 내고 쓴다 (전술 패 + 병력 패 + 영웅 패)
 // kind: attack(공격) / support(지원) / tactic(책략) / hero(영웅 전용) / curse(부정)
@@ -21,6 +22,16 @@ export const CARDS = {
   scout: { name: '척후', kind: 'tactic', cost: 1, target: false, rare: 0, v: { gain: 3, expose: 20 }, up: { gain: 4, expose: 30 }, desc: v => `다음 물결에 사기 +${v.gain}, 8초간 적이 받는 피해 +${v.expose}%` },
   torch: { name: '횃불', kind: 'support', cost: 1, target: false, rare: 0, v: { dur: 30, range: 12 }, up: { dur: 45, range: 20 }, desc: v => `${v.dur}초간 밤의 불이익 해제, 원거리 사거리 +${v.range}%` },
   decoy: { name: '허수아비', kind: 'tactic', cost: 1, r: 130, target: true, rare: 1, v: { hp: 560, life: 9 }, up: { hp: 1000, life: 12 }, desc: v => `${v.life}초간 주변 적의 눈길을 끈다 (체력 ${v.hp})` },
+  // ── 빌드 축의 시동 패 (axis: data/branches.js 의 AXES) ──
+  salvo: { name: '일제 사격', kind: 'support', axis: 'volley', cost: 2, target: false, rare: 1, v: { dur: 8, amt: 15 }, up: { dur: 11, amt: 25 }, desc: v => `원거리 아군이 ${v.dur}초간 공격 속도 +30%, 피해 +${v.amt}%` },
+  masangjae: { name: '마상재', kind: 'support', axis: 'charge', cost: 2, target: false, rare: 1, v: { dur: 8, amt: 30 }, up: { dur: 11, amt: 45 }, desc: v => `돌격하는 아군이 바로 돌격 준비, ${v.dur}초간 피해 +${v.amt}%·받는 피해 -20%` },
+  counter: { name: '반격 태세', kind: 'support', axis: 'wall', cost: 2, r: 110, target: true, rare: 1, v: { dur: 8, back: 40 }, up: { dur: 10, back: 60 }, desc: v => `범위 내 아군이 ${v.dur}초간 받는 피해 -30%, 근접으로 맞은 피해의 ${v.back}%를 되돌려 준다` },
+  jincheon: { name: '비격진천뢰', kind: 'attack', axis: 'powder', cost: 4, r: 108, target: true, rare: 2, v: { dmg: 520, stun: 2 }, up: { dmg: 680, stun: 2.5 }, desc: v => `2.4초 뒤 터져 범위 피해 ${v.dmg}, 기절 ${v.stun}초, 화상` },
+  reload: { name: '화약 재기', kind: 'support', axis: 'powder', cost: 1, target: false, rare: 0, v: { dur: 8, amt: 30 }, up: { dur: 11, amt: 45 }, desc: v => `화차·도사가 곧바로 다시 쏘고, ${v.dur}초간 피해 +${v.amt}%` },
+  bujeok: { name: '불 부적', kind: 'support', axis: 'talisman', cost: 2, r: 110, target: true, rare: 1, v: { dur: 10, burn: 14 }, up: { dur: 13, burn: 20 }, desc: v => `범위 내 아군이 ${v.dur}초간 때리면 3초 화상 (초당 ${v.burn})` },
+  daedong: { name: '대동굿', kind: 'support', axis: 'gut', cost: 2, target: false, rare: 1, v: { dur: 15, gain: 1 }, up: { dur: 20, gain: 1.5 }, desc: v => `${v.dur}초간 요괴 무리를 물리칠 때마다 사기 +${v.gain} 더` },
+  uibyeong: { name: '의병 봉기', kind: 'tactic', axis: 'militia', cost: 2, r: 50, target: true, rare: 0, v: { n: 8, life: 20 }, up: { n: 10, life: 26 }, desc: v => `의병 ${v.n}명이 일어나 ${v.life}초간 싸운다 (환도 무사보다 약하다)` },
+  gyeokmun: { name: '격문', kind: 'support', axis: 'militia', cost: 3, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `이번 싸움에서 전멸한 부대 패 ${v.n}장이 손으로 돌아온다` },
   // ── 영웅 전용 ──
   strike: { name: '언월 강타', kind: 'hero', hero: 'commander', cost: 3, r: 85, target: true, v: { dmg: 330, stun: 2 }, up: { dmg: 440, stun: 2.5 }, desc: v => `장군이 뛰어들어 범위 피해 ${v.dmg}, 기절 ${v.stun}초` },
   order: { name: '호령', kind: 'hero', hero: 'commander', cost: 1, target: false, v: { dur: 9 }, up: { dur: 13 }, desc: v => `장군 주변 아군 ${v.dur}초간 공격 속도 +30%, 피해 +20%` },
@@ -51,7 +62,8 @@ export const isUnit = c => CARDS[c.id].kind === 'unit' || CARDS[c.id].kind === '
 export const MAX_LV = 14;   // 고개를 넘을 때마다 한 단계씩 단련되므로 열두 고개를 넘는 동안 넉넉해야 한다
 export const cardVals = c => Object.assign({}, CARDS[c.id].v, c.up ? CARDS[c.id].up : {});
 export const cardCost = c => Math.max(0, CARDS[c.id].cost - (c.up && CARDS[c.id].upCost || 0));
-export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' ' + c.lv + '단' : '') : c.up ? '+' : '');
+// 승급한 병력 패는 갈래의 이름으로 불린다 (창병 → 낭선수)
+export const cardName = c => (c.br && branchOf(c.br) ? branchOf(c.br).name : CARDS[c.id].name) + (isUnit(c) ? ((c.lv || 1) > 1 ? ' ' + c.lv + '단' : '') : c.up ? '+' : '');
 export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
 // 한 묶음에 든 장수: 흔한 패만 두 장, 나머지는 한 장 (패는 귀하다)
 export const packN = id => CARDS[id].hero ? 1 : [2, 1, 1][CARDS[id].rare || 0];

@@ -8,6 +8,8 @@ import { UNITS, HEROES } from '../src/data/units.js';
 import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
 import { N_CH } from '../src/data/stages.js';
+import { BRANCHES } from '../src/data/branches.js';
+import { pendingPromos, promote } from '../src/state.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
@@ -34,6 +36,15 @@ function spotFor(b, c, foes, mine, sharp) {
   if (kind === 'torch') return b.sky === 'night' && b.torch <= 0 && foes.length ? mine[0] : null;
   if (kind === 'stakes') { const f = foes.filter(u => !u.def.range); if (f.length < 3) return null; let x = 1e9, y = 0; for (const u of f) if (u.x < x) { x = u.x; y = u.y; } return x < 900 ? { x: x - 60, y } : null; }
   if (!foes.length) return null;
+  // 빌드 축의 시동 패
+  if (kind === 'salvo') return mine.filter(u => u.def.range > 0 && u.target).length >= 4 ? mine[0] : null;
+  if (kind === 'masangjae') return mine.filter(u => u.def.charge).length >= 2 ? mine[0] : null;
+  if (kind === 'reload') return mine.filter(u => u.def.aoe > 0 && u.def.range > 0).length >= 2 ? mine[0] : null;
+  if (kind === 'daedong') return foes.length >= 8 ? mine[0] : null;
+  if (kind === 'gyeokmun') return b.bench.length ? mine[0] : null;
+  if (kind === 'counter' || kind === 'bujeok') { const q = cluster(mine, r, o => o.target ? 1 : 0); return q && q.s >= 4 ? q.u : null; }
+  if (kind === 'jincheon') { const q = cluster(foes, r, () => 1); return q && q.s >= 4 ? q.u : null; }
+  if (kind === 'uibyeong') { const u = pick(foes); return { x: Math.max(VIEW.x0 + 80, u.x - 80), y: u.y }; }
   if (kind === 'ambush') { const soft = foes.filter(u => u.def.soft && !u.def.structure); const u = soft.length ? pick(soft) : pick(foes); return { x: u.x - 30, y: u.y }; }
   if (kind === 'archers') { const u = mine.find(q => q.def.soft) || mine[0]; return { x: u.x, y: u.y + 60 }; }
   if (kind === 'decoy') { const q = cluster(foes, 110); return q && q.s >= 3 ? { x: q.u.x - 70, y: q.u.y } : null; }
@@ -96,10 +107,11 @@ for (let k = 0; k < runs; k++) {
       takeReward(e.kind);
     } else if (s.type === 'event') { const cs = eventView({ id: pickEvent() }).choices.filter(c => !c.cost || r.gold >= c.cost), c = pick(cs), out = c.pick(); if (!Array.isArray(out)) throw new Error('사건 결과 형식'); }
     else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
-    else if (s.type === 'rest') { const x = Math.random(); if (x < 0.3) act.morale(4); else if (tacticCards().length < 6) act.supply(3); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
+    else if (s.type === 'rest') { const x = Math.random(); if (x < 0.35) act.morale(4); else if (r.gold >= 90 && x < 0.6) { act.gold(-90); act.train(); act.train(); } else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
     sync(b);
     if (advance()) break;
+    for (const c of pendingPromos()) promote(c.uid, pick(BRANCHES[CARDS[c.id].unit]).id);   // 승급: 갈래는 아무거나
   }
   if (process.env.TRACE) console.log(`#${k + 1} ${r.hero} ${r.done ? '평정' : r.ch + 1 + '고개'}  이긴 싸움 ${r.wins}  한도 ${r.cap}  덱 ${r.deck.length}  엽전 ${r.gold}  보물 ${r.relics.join(',')}  무기 ${r.deck.filter(c => c.wpn).map(c => c.wpn).join(',')}  사건 ${(r.evSeen || []).join(',')}`);
   reach[Math.min(N_CH, r.ch)]++; if (r.done) clears++; deckN += r.deck.length; unitN += unitCards().length; lvN += unitCards().reduce((a, c) => a + (c.lv || 1), 0) / unitCards().length;

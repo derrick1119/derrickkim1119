@@ -7,6 +7,7 @@ import { meta, save } from '../state.js';
 import { CARDS, isUnit } from '../data/cards.js';
 import { RewardOverlay } from './overlays.js';
 import { MarketOverlay, TavernOverlay, ForkScene } from './places.js';
+import { PromoOverlay } from './promote.js';
 
 const slot = k => ({ x: 248 + k * 136, y: 574, w: 128, h: 138 });
 const handIdx = (s, f) => s.b.hand.findIndex(c => c && f(c));
@@ -28,6 +29,7 @@ export const TIPS = [
   { id: 'fork', when: s => ov(s, ForkScene), at: null, s: '갈림길입니다.\n험한 길일수록 얻는 것도 큽니다.' },
   { id: 'shop', when: s => ov(s, MarketOverlay), at: null, s: '장터입니다.\n엽전으로 패·보물·무기를 삽니다.' },
   { id: 'rest', when: s => ov(s, TavernOverlay), at: null, s: '주막입니다. 하나를 골라 정비하세요.\n주모의 옛이야기에 두목을 이길 귀띔이 있습니다.' },
+  { id: 'promo', when: s => ov(s, PromoOverlay), at: null, s: '4단에 오른 병력은 승급합니다.\n두 갈래 중 하나를 고르면 싸우는 방식이 바뀝니다.' },
   { id: 'boss', when: s => s.phase === 'prep' && s.enc && s.enc.boss, at: null, s: '두목은 저마다 수가 있습니다.\n위에 뜨는 쪽지를 읽고 맞서세요.' },
 ];
 

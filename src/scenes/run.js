@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
@@ -17,12 +17,14 @@ import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES } from '../data/units.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
 import { portrait, getLook } from '../render/sprites.js';
-import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped } from '../ui/ui.js';
+import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped, foil, goldText } from '../ui/ui.js';
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
 import { Coach } from '../ui/coach.js';
 import { RewardOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
 import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene } from '../ui/places.js';
 import { EventScene } from '../ui/roadevent.js';
+import { PromoOverlay } from '../ui/promote.js';
+import { FORMS } from '../data/formations.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted, bgm } from '../audio.js';
 import { nav } from '../nav.js';
@@ -124,6 +126,8 @@ export class RunScene {
     const r = this.r; this.over = null; this.sync();
     if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
     if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; this.sync(); this.note = { s: chapterOf(r.ch).name, sub: '부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
+    // 4단에 오른 병력이 있으면 길을 떠나기 전에 승급할 갈래를 고른다
+    if (pendingPromos().length) { this.phase = 'stop'; this.over = new PromoOverlay({ onDone: () => { this.over = null; this.sync(); this.march(); } }); return; }
     this.march();
   }
   waveClear(e) {
@@ -158,7 +162,7 @@ export class RunScene {
     if (p === 'over') return 'story';
     if (p === 'fight' || p === 'prep') return this.enc && this.enc.boss ? 'boss' : 'battle';
     if (o instanceof Play) return 'story';
-    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
+    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof PromoOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
     return 'march';
   }
   // 길 위의 변수: 보물 짐꾼을 잡으면 엽전, 우리를 부수면 병력 패
@@ -211,7 +215,7 @@ export class RunScene {
     else if (k === 'q' || k === 'Q') this.allOrder(true); else if (k === 'e' || k === 'E') this.allOrder(false);
     else if (k === 'r' || k === 'R') { if (b.redraw()) this.aim = null; } else if (k === 'f' || k === 'F') this.speed = this.speed === 1 ? 2 : 1;
   }
-  deny(n) { const why = this.b.whyNot(n); sfx('deny'); this.toast(why === 'cap' ? `부대는 ${this.b.cap}개까지 세울 수 있습니다` : why === 'hero' ? (CARDS[this.b.hand[n].id].kind === 'lead' ? '영웅은 이미 전장에 있습니다' : '영웅이 전장에 있어야 씁니다') : '사기가 부족합니다', 1.4); }
+  deny(n) { const why = this.b.whyNot(n); sfx('deny'); this.toast(why === 'nobench' ? '되돌릴 전멸한 부대가 없습니다' : why === 'cap' ? `부대는 ${this.b.cap}개까지 세울 수 있습니다` : why === 'hero' ? (CARDS[this.b.hand[n].id].kind === 'lead' ? '영웅은 이미 전장에 있습니다' : '영웅이 전장에 있어야 씁니다') : '사기가 부족합니다', 1.4); }
   allOrder(hold) { const b = this.b, mine = b.squads.filter(q => q.team === 0 && q.alive > 0 && !q.def.banner); for (const q of mine) hold ? b.orderHold(q) : b.orderAuto(q); this.view.fx.txt(640, 330, hold ? '전군 대기!' : '전군 돌격!', hold ? INDIGO : RED, 38, 1); sfx(hold ? 'order' : 'horn'); }
 
   // ───────── 프레임 ─────────
@@ -238,7 +242,7 @@ export class RunScene {
         this.talkTick(dt * ts);
         if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
         settleBattle(b);
-        for (const e of view.handle(b, sfx)) { if (e.type === 'squadLost') { this.routN = (this.routN || 0) + 1; if (e.wpn && loseWeapon(e.uid)) { const wn = WEAPONS[e.wpn] ? WEAPONS[e.wpn].name : '무기'; view.fx.txt(e.x, e.y - 96, `${wn} 부서짐`, '#7a4a2c', 22, 1.4); this.toast(`[${CARDS[e.id].name}] 부대가 무너져 무기 [${wn}]도 잃었습니다`, 3); } } else if (e.type === 'porterDown' || e.type === 'escaped' || e.type === 'rescue' || e.type === 'rescueLost') this.twistEvent(e); else if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'armyDown' && this.phase !== 'over') this.armyDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardFace(gg, { id: e.id, up: e.up }, x - 46 * s, y - 62 * s, 92 * s, 124 * s), x0: clamp(e.x, 150, 1130), y0: clamp(e.y - 56, HUD_H + 90, BAR_Y - 80), x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 1, s1: 0.22, arc: 90, dur: 0.6, hold: 0.55, onArrive: () => { this.lootT = 1; } }); else this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차(${b.mods.pouch}장) 패를 못 주웠습니다`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        for (const e of view.handle(b, sfx)) { if (e.type === 'squadLost') { this.routN = (this.routN || 0) + 1; if (e.wpn && loseWeapon(e.uid)) { const wn = WEAPONS[e.wpn] ? WEAPONS[e.wpn].name : '무기'; view.fx.txt(e.x, e.y - 96, `${wn} 부서짐`, '#7a4a2c', 22, 1.4); this.toast(`[${CARDS[e.id].name}] 부대가 무너져 무기 [${wn}]도 잃었습니다`, 3); } } else if (e.type === 'porterDown' || e.type === 'escaped' || e.type === 'rescue' || e.type === 'rescueLost') this.twistEvent(e); else if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'armyDown' && this.phase !== 'over') this.armyDown(); else if (e.type === 'formation') { this.formBanner = { name: e.name, bonus: e.bonus, t: 0 }; sfx('star'); } else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardFace(gg, { id: e.id, up: e.up }, x - 46 * s, y - 62 * s, 92 * s, 124 * s), x0: clamp(e.x, 150, 1130), y0: clamp(e.y - 56, HUD_H + 90, BAR_Y - 80), x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 1, s1: 0.22, arc: 90, dur: 0.6, hold: 0.55, onArrive: () => { this.lootT = 1; } }); else this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차(${b.mods.pouch}장) 패를 못 주웠습니다`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
       if (this.phase === 'fight' && !this.emptyWarned) { const am = b.army(); if (am.field === 0 && am.reserve > 0) { this.emptyWarned = true; this.toast('전장에 아군이 없습니다 — 병력 패를 세우세요', 3.2); sfx('warn'); } }
       view.fx.update(dt * Math.max(0.35, ts));
@@ -250,7 +254,7 @@ export class RunScene {
     if (o) { for (const u of o.sq.units) if (!u.dead) opt.rings.push({ x: u.x, y: u.y, r: u.r, col: '#2f4d7e' }); if (o.target) for (const u of o.target.units) if (!u.dead) opt.rings.push({ x: u.x, y: u.y, r: u.r, col: '#c8402f' }); }
     if (a && isUnit(a.card) && (a.live || a.drag || a.armed)) {
       const maxX = b.deployMaxX(), on = (a.live || a.drag) && i.y < BAR_Y - 8 && i.y > HUD_H; opt.deploy = { maxX, ok: !on || i.x <= maxX + 34 };
-      if (on) { const d = CARDS[a.card.id], def = defOf(d.unit, a.card.wpn); opt.extra = ghostUnits(d.unit, def.n, Math.min(i.x, maxX), clamp(i.y, VIEW.y0 + 26, VIEW.y1 - 26), formation, a.card.wpn).map(u => ({ y: u.y, u, alpha: 0.75 })); }
+      if (on) { const d = CARDS[a.card.id], def = defOf(d.unit, a.card.wpn, a.card.br); opt.extra = ghostUnits(d.unit, def.n, Math.min(i.x, maxX), clamp(i.y, VIEW.y0 + 26, VIEW.y1 - 26), formation, a.card.wpn, a.card.br).map(u => ({ y: u.y, u, alpha: 0.75 })); }
     }
     view.style = PAPER_BG ? 'paper' : 'paint';   // 전장 배경은 그림 배경 (?paper 로 예전 종이 배경을 볼 수 있다)
     view.draw(g, b, this.T, opt);
@@ -274,6 +278,13 @@ export class RunScene {
     }
     if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
     if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
+    // 진형이 선 순간: 화면 위쪽에 금박 붓글씨로 진의 이름과 힘을 크게 띄운다
+    if (this.formBanner) { const fb = this.formBanner; fb.t += this.dt || 0.016; const k = clamp(fb.t / 0.25, 0, 1) * clamp((2.6 - fb.t) / 0.5, 0, 1); if (fb.t > 2.6) this.formBanner = null; else if (k > 0) {
+      const sc = 0.8 + 0.2 * easeOutBack(clamp(fb.t / 0.35, 0, 1)); g.save(); g.globalAlpha = k; g.translate(640, 150); g.scale(sc, sc);
+      const gl = g.createRadialGradient(0, 0, 10, 0, 0, 260); gl.addColorStop(0, 'rgba(255,210,130,0.45)'); gl.addColorStop(1, 'rgba(255,210,130,0)'); g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(-260, -120, 520, 240); g.restore();
+      rr(g, -210, -44, 420, 96, 12, 'rgba(14,8,10,0.78)', '#000', 1.6); rr(g, -205, -39, 410, 86, 9, null, foil(g, -210, 210), 1.8);
+      goldText(g, fb.name, 0, -8, { size: 44 }); text(g, fb.bonus, 0, 32, { size: 17, fill: '#f3e6c4' });
+      g.restore(); } }
     if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((4.5 - b.waveT) / 0.8, 0, 1), 112);   // 싸움이 시작되면 위쪽(두목 체력 아래)으로 옮겨 부대를 가리지 않는다
     this.drawBar(g, b, i, live);
     if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
@@ -377,6 +388,9 @@ export class RunScene {
       text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 14, fill: on ? C.cream : '#e8dcc0', maxW: 94 });
       if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name} (${sy.need}) — ${sy.desc}`, 3.5);
     }
+    if (b.form) { const yy = y + Math.ceil(k / 2) * 28, F = FORMS[b.form.id]; rr(g, 13, yy + 2, 212, 26, 6, 'rgba(0,0,0,0.35)'); rr(g, 12, yy, 212, 26, 6, 'rgba(30,14,16,0.9)', '#000', 1.4); rr(g, 14.5, yy + 2.5, 207, 21, 4, null, foil(g, 12, 224), 1.2);
+      goldText(g, F.name, 56, yy + 13.5, { size: 16, glow: false }); text(g, F.bonus, 102, yy + 14, { size: 12, fill: '#f3e6c4', align: 'left', maxW: 116 });
+      if (tapped('formchip', 12, yy, 212, 26)) this.toast(`진형 ${F.name} — ${F.how}. ${F.bonus}`, 3.5); }
   }
   // 싸움터에 닿았을 때: 다가오는 요괴와 지형·하늘을 알려 준다
   drawPreview(g, b) {

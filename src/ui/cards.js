@@ -6,6 +6,7 @@ import { CARDS, KIND, cardVals, cardCost, cardName, isUnit } from '../data/cards
 import { WEAPONS, ARMS, CLS_NAME, canEquip } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
+import { branchOf, AXES } from '../data/branches.js';
 import { G, unitStats, equip, canUp, weaponOf, pouchCap, tacticCards } from '../state.js';
 import { portrait, weaponIcon } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
@@ -18,7 +19,7 @@ const SCALED = ['dmg', 'tick', 'burn', 'dps', 'hp', 'barrier'];
 // 패 설명 (P 를 주면 원정 깊이에 따라 커지는 수치를 반영한다)
 export function cardText(c, P = 1) {
   const d = CARDS[c.id];
-  if (isUnit(c)) { const u = UNITS[d.unit], s = unitStats(d.unit, c.lv || 1, c.wpn); return `체력 ${s.hp} · ${u.heal ? '치유' : '공격'} ${s.atk} · ${s.n}명\n${u.tip}`; }
+  if (isUnit(c)) { const u = UNITS[d.unit], s = unitStats(d.unit, c.lv || 1, c.wpn, c.br), B = branchOf(c.br); return `체력 ${s.hp} · ${u.heal ? '치유' : '공격'} ${s.atk} · ${s.n}명\n${B ? B.tip : u.tip}`; }
   const v = cardVals(c); if (P !== 1) for (const k of SCALED) if (v[k]) v[k] = Math.round(v[k] * P); return d.desc(v);
 }
 
@@ -40,7 +41,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   const wg = g.createRadialGradient(cx, cy, ss * 0.1, cx, cy, ss * 1.1); wg.addColorStop(0, col + '3c'); wg.addColorStop(1, col + '00'); g.fillStyle = wg; g.fillRect(x, y + hh + 3, w, ah + 24);
   if (unit) {
     const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7); gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, ah); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
-    const L = CARD_K[d.unit] || 1; portrait(g, d.unit, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn);
+    const L = CARD_K[d.unit] || 1; portrait(g, d.unit, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn || (branchOf(c.br) && branchOf(c.br).arm) || undefined);
   }
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + 24, y + hh + 24, 25, d.sym || k.sym, col); }   // 패의 종류 표식은 그림 칸의 오른쪽 위 모서리에
@@ -51,6 +52,10 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
     textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 16 : 24), unit ? 20 : 22, { size: unit ? 15 : 16.5, fill: '#4a4034', weight: 400 });
   } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
   rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
+  // 빌드 축 표식: 큰 패의 그림 칸 오른쪽 위에 축의 빛깔 딱지
+  if (big && d.axis && AXES[d.axis]) { const A = AXES[d.axis]; rr(g, x + w - 70, y + hh + 8, 62, 22, 5, A.col, INK, 1.1); text(g, A.name, x + w - 39, y + hh + 19.5, { size: 13.5, font: FONT_B, fill: C.cream }); }
+  // 승급한 패: 머리띠 아래에 금빛 갈래 띠
+  if (c.br && !mini) { const bw = Math.min(w - 16, big ? 120 : 74); rr(g, x + w / 2 - bw / 2, y + hh + 4, bw, big ? 22 : 16, 4, '#2a1a10', '#d8a944', 1.2); text(g, '승급', x + w / 2, y + hh + (big ? 15 : 12), { size: big ? 14 : 11, fill: '#f3d27c' }); }
   if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); symbol(g, 'sword', x + w - 13, y + hh + 13, 14, C.cream); }   // 무기를 끼운 패: 칼 그림
   // 비용 엽전
   const cost = o.cost === undefined ? cardCost(c) : o.cost, cr = big ? 19 : mini ? Math.max(9, w * 0.15) : 14, ccx = x + cr - 3, ccy = y + cr - 3;

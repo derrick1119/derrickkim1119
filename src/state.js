@@ -5,6 +5,7 @@ import { genEncounter } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
 import { CARDS, MAX_LV, starterDeck, cardName, isUnit, packN } from './data/cards.js';
 import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
+import { branchOf, canBranch } from './data/branches.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
 import { N_CH } from './data/stages.js';
@@ -115,7 +116,7 @@ export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS), h
 export const tacticCards = () => G.run.deck.filter(c => !isUnit(c) && CARDS[c.id].kind !== 'curse');
 export const pouchCap = () => mods().pouch;
 // 전장에서 줍는 패: 흔한 패가 자주, 이끄는 영웅의 영웅기도 섞인다
-export function lootTable() { const r = G.run; return cardPool().map(id => [id, CARDS[id].hero ? (CARDS[id].hero === r.hero ? 5 : 3) : [10, 5, 2][CARDS[id].rare || 0]]); }
+export function lootTable() { const r = G.run, ax = runAxes(); return cardPool().map(id => [id, (CARDS[id].hero ? (CARDS[id].hero === r.hero ? 5 : 3) : [10, 5, 2][CARDS[id].rare || 0]) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 1.6 : 1)]); }
 // 싸움에서 쓴 패를 덱에서 지우고, 싸움에서 얻은 패와 엽전을 더한다 (전투 시뮬레이션은 원정 상태를 모른다)
 export function settleBattle(b) {
   const r = G.run;
@@ -128,7 +129,7 @@ export function grantLoot(n) { const t = lootTable(), sum = t.reduce((a, q) => a
 // 한 종류의 전술 패를 익힌다: 지금 가진 것과 앞으로 얻는 것이 모두 강화판(+)이 된다
 export function master(id) { const r = G.run; if (!r.mastery) r.mastery = {}; r.mastery[id] = true; for (const c of r.deck) if (c.id === id) c.up = true; save(); }
 export const mastered = id => !!(G.run.mastery && G.run.mastery[id]);
-export function unitStats(type, lvl, wpn) { const d = defOf(type, wpn), m = lvlMult(lvl || 1); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.hero || d.structure ? d.n : squadN(d.n, lvl || 1) }; }
+export function unitStats(type, lvl, wpn, br) { const d = defOf(type, wpn, br), m = lvlMult(lvl || 1); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.hero || d.structure ? d.n : squadN(d.n, lvl || 1) }; }
 export const depth = () => { const r = G.run; return r.ch * 6 + Math.min(5, r.road ? r.road.i : 0); };
 // 전술 패의 위력: 고개마다 요괴가 한 단계씩 세지는 만큼 따라 오른다 (고개 안에서도 조금씩)
 export const powerNow = () => { const r = G.run; return (1 + 0.2 * r.ch) * (1 + 0.025 * Math.min(5, r.road ? r.road.i : 0)); };
@@ -193,12 +194,17 @@ export function addCard(id, o = {}) { const r = G.run, c = { uid: r.nextId++, id
 export function removeCard(uid) { const d = G.run.deck, i = d.findIndex(c => c.uid === uid); if (i < 0 || d.length <= 6 || CARDS[d[i].id].kind === 'lead') return null; const c = d.splice(i, 1)[0]; if (c.wpn) G.run.items.push(c.wpn); save(); return c; }
 export const canUp = c => isUnit(c) ? (c.lv || 1) < MAX_LV : !mastered(c.id) && CARDS[c.id].kind !== 'curse';
 // 전술 패는 익히기(그 종류가 모두 +), 병력·영웅 패는 조련(+1단: 체력·공격력 +20%)
+// 병과 승급: 4단에 오른 병력 패는 두 갈래 중 하나를 고른다 (data/branches.js)
+export const pendingPromos = () => (G.run ? G.run.deck.filter(c => CARDS[c.id].kind === 'unit' && canBranch(CARDS[c.id].unit, c.lv, c.br)) : []);
+export function promote(uid, br) { const c = cardOf(uid), B = branchOf(br); if (!c || !B || B.type !== CARDS[c.id].unit || c.br) return null; c.br = br; save(); return c; }
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) { c.lv = (c.lv || 1) + 1; save(); } else master(c.id); return c; }
 // 영웅기 패는 덱에 그 영웅 패가 있을 때만 나온다
 export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero))); }
+// 지금 원정이 키우는 빌드 축: 승급한 갈래와 지닌 보물의 축 (그 축의 패·보물이 더 자주 나온다)
+export function runAxes() { const r = G.run, a = new Set(); if (!r) return a; for (const c of r.deck) { const B = branchOf(c.br); if (B) a.add(B.axis); } for (const id of r.relics) if (RELICS[id] && RELICS[id].axis) a.add(RELICS[id].axis); return a; }
 export function rollCards(kind, n = 3, keys) {
   const pool = cardPool().filter(id => !keys || !keys.has('cd' + id)), out = [], upP = kind === 'boss' ? 1 : kind === 'elite' ? 0.3 : kind === 'shop' ? 0.15 : 0.08;
-  const w = id => CARDS[id].hero ? 4 : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0);
+  const ax = runAxes(), w = id => (CARDS[id].hero ? 4 : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0)) * (CARDS[id].axis && ax.has(CARDS[id].axis) ? 2 : 1);
   for (let g = 0; out.length < n && g < 60; g++) { let x = rnd() * pool.reduce((a, id) => a + w(id), 0), id = pool[0]; for (const c of pool) { if ((x -= w(c)) < 0) { id = c; break; } } if (!id || out.some(o => o.id === id)) continue; out.push({ id, up: rnd() < upP }); }
   return out;
 }
@@ -241,7 +247,7 @@ function makeReward(kind, keys) {
   if (kind === 'supply') return { kind: 'supply', ids: ['sling', 'rain', pick(['heal', 'heal', 'horn', 'scout'])], key: 'supply' };
   if (kind === 'train') { const c = unitCards().filter(c => (c.lv || 1) < MAX_LV && !keys.has('tr' + c.uid)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'tr' + x.uid }; }
   if (kind === 'upgrade') { const c = r.deck.filter(c => !isUnit(c) && canUp(c) && !keys.has('up' + c.id)); if (!c.length) return null; const x = pick(c); return { kind, id: x.id, key: 'up' + x.id }; }
-  if (kind === 'relic') { const pool = relicPool().filter(id => !keys.has('rl' + id)); if (!pool.length) return null; const id = pick(pool); return { kind, id, key: 'rl' + id }; }
+  if (kind === 'relic') { const pool = relicPool().filter(id => !keys.has('rl' + id)); if (!pool.length) return null; const ax = runAxes(), wl = pool.flatMap(id => RELICS[id].axis && ax.has(RELICS[id].axis) ? [id, id] : [id]), id = pick(wl); return { kind, id, key: 'rl' + id }; }
   if (kind === 'weapon') { const pool = weaponPool().filter(id => !keys.has('wp' + id)); if (!pool.length) return null; const fresh = pool.filter(id => !r.items.includes(id) && !r.deck.some(q => q.wpn === id)); const id = pick(fresh.length ? fresh : pool); return { kind, id, key: 'wp' + id }; }
   if (kind === 'cap') { if (r.cap >= MAX_CAP) return null; return { kind: 'cap', key: 'cap' }; }
   return null;
