@@ -1,5 +1,10 @@
 /* 기능 모듈 스타일. 개발 중에는 이 파일이 아래 파일들을 불러오고, npm run build 는 main.css 뒤에 이어 붙인다. */
+@import url('./fonts-extra.css');
 @import url('./ext/play.css');
 @import url('./ext/progression.css');
 @import url('./ext/collection.css');
 @import url('./ext/minigames.css');
+@import url('./themes/a.css');
+@import url('./themes/b.css');
+@import url('./themes/c.css');
+@import url('./themes/d.css');

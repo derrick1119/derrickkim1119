@@ -670,6 +670,8 @@ export default {
     music: '배경 음악',
     haptics: '진동',
     language: '언어',
+    uiTheme: 'UI 시안',
+    uiThemes: { base: '지금', a: 'A', b: 'B', c: 'C', d: 'D' },
     howto: '게임 방법',
     howtoLines: [
       '떠다니는 표본을 터치하면 기체가 자랍니다.',

@@ -75,10 +75,10 @@ async function main() {
   // 6) 파일 하나짜리 판
   const dataUri = async (path, mime) => `data:${mime};base64,${(await readFile(join(ROOT, path))).toString('base64')}`;
   let singleCss = css;
-  for (const font of ['BagelFatOne', 'GowunDodum']) {
-    const ref = `../assets/fonts/${font}.woff2`;
-    must(singleCss, ref, 'main.css');
-    singleCss = singleCss.split(ref).join(await dataUri(`assets/fonts/${font}.woff2`, 'font/woff2'));
+  for (const font of ['BagelFatOne', 'GowunDodum']) must(singleCss, `../assets/fonts/${font}.woff2`, 'main.css');
+  // 스타일이 가리키는 글꼴을 모두 품는다(UI 시안 글꼴 포함)
+  for (const ref of new Set(singleCss.match(/\.\.\/assets\/fonts\/[\w-]+\.woff2/g) || [])) {
+    singleCss = singleCss.split(ref).join(await dataUri(ref.slice(3), 'font/woff2'));
   }
   let single = html.replace(devScript, () => `<script>${inlineJs}</script>`);
   must(single, '<link rel="stylesheet" href="./styles/main.css">', 'index.html');
