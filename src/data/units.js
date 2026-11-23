@@ -178,7 +178,7 @@ export const BEAST_TYPES = ['magpie', 'sapsal', 'haetae', 'samjoko', 'tiger'];
 export const SYN_CLASS = t => INF.includes(t) ? 'inf' : RNG.includes(t) ? 'rng' : t === 'knight' ? 'cav' : t === 'priest' || t === 'bishop' ? 'heal' : BEAST_TYPES.includes(t) ? 'beast' : '';
 // 진법: 전장에 선 부대 구성을 세어 켠다. tiers 가 있으면 단계형(셀수록 세진다: SYN_K 의 배율), 없으면 한 단계
 // c = { inf, rng, cav, heal, beast, t: {병종: 부대 수}, temp: 불려 온 무리 수, all: 부대 수 }
-const T = (c, k) => c.t[k] || 0;
+const T = (c, k) => (c.t && c.t[k]) || 0;
 export const SYNERGIES = [
   { id: 'phalanx', name: '방진', need: '보병', tiers: [2, 4, 6], desc: ['보병이 받는 피해 -10%', '-18%', '-25%'], n: c => [c.inf, 2] },
   { id: 'volley', name: '일제 사격', need: '원거리', tiers: [2, 3, 5], desc: ['원거리 공격 속도 +12%', '+22%', '+32%'], n: c => [c.rng, 2] },

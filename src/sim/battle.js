@@ -85,7 +85,7 @@ export class Battle {
     this.lost = 0; this.kills = 0; this.pending = 0; this.uid = 1; this.sid = 1; this.auraT = 0;
     this.waveOn = false; this.waveT = 0; this.waveLost = 0; this.waves = 0;
     this.sky = 'day'; this.torch = 0; this.torchRange = 0; this.terrain = TERRAINS.open; this.terrainT = 0; this.scout = null; this.expose = 0; this.chase = null; this.chaseN = 0;
-    this.syn = {}; this.synN = { inf: 0, rng: 0, cav: 0, heal: 0, beast: 0 }; this.combo = 0; this.sun = false;
+    this.syn = {}; this.synN = { inf: 0, rng: 0, cav: 0, heal: 0, beast: 0, t: {}, temp: 0, all: 0 }; this.combo = 0; this.sun = false;
     this.form = null; this.formTry = null; this.formT = 0;
     this.buildNav({});
     this.raiseBanner(true);
