@@ -291,7 +291,7 @@ export class Battle {
     for (const u of this.units) u.path = null;
     for (const sq of this.squads) if (sq.team === 0 && sq.alive > 0 && this.isBlocked(sq.home.x, sq.home.y)) { const [x, y] = this.spot(sq.home.x, sq.home.y); sq.home = { x, y }; if (sq.order.kind === 'hold') { sq.order.x = x; sq.order.y = y; } }
   }
-  prepWave(o = {}) { this.setTerrain(o.terrain || 'open'); this.sky = o.sky || 'day'; }
+  prepWave(o = {}) { this.marching = false; this.setTerrain(o.terrain || 'open'); this.sky = o.sky || 'day'; }
   // 새 물결: [병종, 열, 줄, 옵션] 목록을 오른쪽 화면 밖에 세운다
   startWave(list, o = {}) {
     this.chainN = 0;   // 도사의 호리병은 싸움마다 처음부터
@@ -351,7 +351,12 @@ export class Battle {
   // ───────── 행군 ─────────
   // 싸움이 끝나면 화면이 앞으로 나아간다: 앞서 나간 병사는 제자리에서 기다리고(화면에서는 뒤로 밀리고), 뒤처진 병사는 걸어서 따라붙는다
   beginMarch() {
-    for (const sq of this.squads) { if (sq.team !== 0 || sq.alive <= 0 || sq.def.banner) continue; sq.home.x = clamp(sq.home.x, 130, sq.def.range > 0 || sq.def.heal ? 360 : 600); if (sq.order.kind !== 'auto') sq.order = { kind: 'hold', x: sq.home.x, y: sq.home.y }; for (const u of sq.units) { u.target = null; u.path = null; } }
+    this.marching = true;
+    const mine = this.squads.filter(sq => sq.team === 0 && sq.alive > 0 && !sq.def.banner);
+    for (const sq of mine) sq.home.x = clamp(sq.home.x, 130, sq.def.range > 0 || sq.def.heal ? 360 : 600);
+    // 행군 대열: 자리가 겹친 부대는 위아래로 벌려 세운다 (겹친 채 걸으면 서로 밀고 당기며 떨린다)
+    for (let it = 0; it < 12; it++) for (let i = 0; i < mine.length; i++) for (let j = i + 1; j < mine.length; j++) { const a = mine[i].home, c = mine[j].home, dx = Math.abs(a.x - c.x), dy = c.y - a.y, need = 78; if (dx > 96 || Math.abs(dy) >= need) continue; const p = (need - Math.abs(dy)) / 2 * (dy >= 0 ? 1 : -1) || 1; a.y = clamp(a.y - p, VIEW.y0 + 40, VIEW.y1 - 40); c.y = clamp(c.y + p, VIEW.y0 + 40, VIEW.y1 - 40); }
+    for (const sq of mine) { if (sq.order.kind !== 'auto') sq.order = { kind: 'hold', x: sq.home.x, y: sq.home.y }; for (const u of sq.units) { u.target = null; u.path = null; } }
   }
   march(dx, dt) {
     let ahead = 0;
@@ -1087,6 +1092,7 @@ export class Battle {
       const a = us[i]; if (a.dead || a.hidden > 0 || a.jump) continue;
       this.near(a.x, a.y, a.r + 32, b => {
         if (b.id <= a.id || b.dead || b.jump) return;
+        if (this.marching && a.team === 0 && b.team === 0) return;   // 행군 중 우리 편끼리는 밀치지 않는다 (대열 자리를 따라 걷는다)
         const dx = b.x - a.x, dy = b.y - a.y; let d = hyp(dx, dy); const same = a.team === b.team; const min = (a.r + b.r) * (same ? 0.8 : 0.96);
         if (d >= min) return; let nx, ny; if (d < 0.01) { const an = (a.id * 2.4) % TAU; nx = Math.cos(an); ny = Math.sin(an); d = 0.01; } else { nx = dx / d; ny = dy / d; }
         const ma = a.def.structure ? 1e6 : a.r * a.r * (a.moving ? 1 : 2.6), mb = b.def.structure ? 1e6 : b.r * b.r * (b.moving ? 1 : 2.6);
