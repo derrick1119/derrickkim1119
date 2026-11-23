@@ -1,10 +1,10 @@
 /**
- * 🍡 꼬치 꿰기 포장마차 (44라운드 손맛 장난감 · 긋기 실험) — 한 화면 · 한 동작(쓱 긋기) · 하루 75초.
+ * 🍡 꼬치 꿰기 포장마차 (44라운드 손맛 장난감 · 긋기 실험) — 한 화면 · 한 동작(쓱 긋기) · 하루 58초.
  * 불판에서 재료가 '퐁퐁' 튀어 오른다. 손가락으로 쓱 그으면 그은 선이 그대로 대나무 꼬치가 되고,
  *   선이 스친 재료가 손가락이 지나간 순서대로 쏙쏙쏙 꿰인다(하나마다 음이 올라감). 긋는 동안 세상이 느려진다.
  * 떼면 꼬치가 착 펴지며 점수가 터지고, 불판에 올라가 지글지글 → 말풍선 재료가 다 꿰인 손님이 받아 가 펄쩍.
  *   길게 꿸수록 뒤 재료일수록 점수가 커지고(+10 +15 +20 …), 같은 재료 셋이면 ×2, 빨간 고추는 매워서 ×½, 탄 것은 깎임.
- * 판 = 장사 하루(75초). 끝나면 점수·최고 기록·새 재료 풀림, 톡 하면 다음 날. 이레 동안 새것 여섯:
+ * 판 = 장사 하루(58초 — 계기판 3분 안에 사흘째까지). 끝나면 점수·최고 기록·새 재료 풀림, 톡 하면 다음 날. 이레 동안 새것 여섯:
  *   새우(높이 뜀) → 파인애플(달콤 ×1.5) → 마시멜로(불판에서 부풀어 펑) → 대왕 소시지(두 칸) → 단골 곰(큰 주문) → 황금 메추리알(×2).
  * 정답 없음 · 기다림 없음 · 잃는 것 없음: 어떻게 그어도 무언가 꿰이고, 아무것도 안 꿰여도 휙 소리와 함께 꼬치가 날아간다.
  * 키보드: 1·2·3 = 가장 많이 꿰이는 선으로 자동 긋기 · 스페이스를 누른 채 화살표 = 직접 긋기.
@@ -15,15 +15,17 @@ import { juice } from '../juice.ts';
 
 const A = 1.5, TAU = Math.PI * 2;
 /** 화면 단위: 가로 폭 = 1, 세로 0~A. 카운터 윗면 · 작업대 시작 · 불판 윗면(재료가 튀어 오르는 곳) · 불판 앞 */
-const COUNTER_Y = 0.43, AIR_TOP = 0.47, GRILL_Y = 1.2, GRILL_B = 1.455;
+const COUNTER_Y = 0.43, AIR_TOP = 0.47, GRILL_Y = 1.27, GRILL_B = 1.455;
 /** 불판 위 꼬치 자리(줄) · 손님 자리 · 손님 머리 · 말풍선 */
-const RACK_Y = [1.262, 1.312, 1.362, 1.412];
+const RACK_Y = [1.312, 1.362, 1.412];
 const CUST_X = [0.18, 0.5, 0.82], CUST_Y = 0.322, BUB_Y = 0.168;
 /** 하루 · 날 수 · 결과 화면(톡 받기 시작 · 저절로 넘어감) */
-const DAY_T = 75 * 60, DAYS = 7, RES_MIN = 66, RES_AUTO = 60 * 14;
+const DAY_T = 58 * 60, DAYS = 7, RES_MIN = 66, RES_AUTO = 60 * 14;
 /** 긋는 동안 세상 빠르기 · 한 획 최대 틱 · 꼬치 칸 · 판정 여유(재료 반지름에 더함) · 첫 꼬치 자석 · 중력(틱²) */
-const SLOW = 0.3, STROKE_MAX = 100, CAP = 8, HIT = 0.04, GRAV = 0.00034;
+const SLOW = 0.3, STROKE_MAX = 100, CAP = 8, HIT = 0.04, GRAV = 0.0005;
 /** 꼬치가 펴짐 · 불판에 착 · 손님에게 날아감 · 받음 (틱) */
+/** 곧게 편 꼬치에서 재료 사이 (반지름 배) */
+const SPACE = 1.5;
 const T_STRAIGHT = 9, T_LAND = 20, T_GIVE = 40, T_DELIV = 54;
 const ORDER_PTS = 80, BEAR_MUL = 2.5, MALLOW_PTS = 20, BURNT_PTS = 15;
 /** 손님: 지루해서 떠남 · 들어옴 · 나감 · 기뻐함 · 빈자리 */
@@ -33,16 +35,16 @@ const BORED_T = 60 * 24, CUST_IN = 26, CUST_OUT = 24, HAPPY_T = 66, CUST_GAP = 1
 export type IK = 'tteok' | 'saus' | 'leek' | 'shrimp' | 'pine' | 'mallow' | 'big' | 'egg' | 'chili' | 'burnt';
 interface IKDef { name: string; base: number; r: number; slots: number; grav: number; col: string; bad?: boolean }
 export const IKD: Record<IK, IKDef> = {
-  tteok: { name: '떡', base: 10, r: 0.05, slots: 1, grav: 1, col: '#fff3d6' },
-  saus: { name: '소시지', base: 15, r: 0.05, slots: 1, grav: 1, col: '#e8553e' },
-  leek: { name: '파', base: 10, r: 0.048, slots: 1, grav: 1, col: '#7ccf52' },
-  shrimp: { name: '새우', base: 25, r: 0.05, slots: 1, grav: 1.25, col: '#ff8a4c' },
-  pine: { name: '파인애플', base: 15, r: 0.05, slots: 1, grav: 1, col: '#ffd23f' },
-  mallow: { name: '마시멜로', base: 12, r: 0.05, slots: 1, grav: 0.55, col: '#fff0f6' },
-  big: { name: '대왕 소시지', base: 40, r: 0.07, slots: 2, grav: 1.3, col: '#d2452f' },
-  egg: { name: '황금 메추리알', base: 30, r: 0.042, slots: 1, grav: 1.15, col: '#ffd84a' },
-  chili: { name: '매운 고추', base: 0, r: 0.047, slots: 1, grav: 1, col: '#ff3b30', bad: true },
-  burnt: { name: '탄 것', base: 0, r: 0.049, slots: 1, grav: 1, col: '#3a3030', bad: true },
+  tteok: { name: '떡', base: 10, r: 0.065, slots: 1, grav: 1, col: '#fff3d6' },
+  saus: { name: '소시지', base: 15, r: 0.065, slots: 1, grav: 1, col: '#e8553e' },
+  leek: { name: '파', base: 10, r: 0.062, slots: 1, grav: 1, col: '#7ccf52' },
+  shrimp: { name: '새우', base: 25, r: 0.065, slots: 1, grav: 1.25, col: '#ff8a4c' },
+  pine: { name: '파인애플', base: 15, r: 0.065, slots: 1, grav: 1, col: '#ffd23f' },
+  mallow: { name: '마시멜로', base: 12, r: 0.065, slots: 1, grav: 0.55, col: '#fff0f6' },
+  big: { name: '대왕 소시지', base: 40, r: 0.088, slots: 2, grav: 1.3, col: '#d2452f' },
+  egg: { name: '황금 메추리알', base: 30, r: 0.055, slots: 1, grav: 1.15, col: '#ffd84a' },
+  chili: { name: '매운 고추', base: 0, r: 0.061, slots: 1, grav: 1, col: '#ff3b30', bad: true },
+  burnt: { name: '탄 것', base: 0, r: 0.064, slots: 1, grav: 1, col: '#3a3030', bad: true },
 };
 export type CK = 'cat' | 'dog' | 'bunny' | 'peng' | 'fox' | 'bear';
 export const CKN: Record<CK, string> = { cat: '고양이', dog: '강아지', bunny: '토끼', peng: '펭귄', fox: '여우', bear: '단골 곰' };
@@ -51,13 +53,13 @@ export const CKN: Record<CK, string> = { cat: '고양이', dog: '강아지', bun
 interface DayDef { add: IK | CK | null; pool: IK[]; haz: IK[]; hazP: number; ord: [number, number]; cust: CK[]; bear: number; egg: number; s2: number; s3: number }
 const BASE: IK[] = ['tteok', 'saus', 'leek'];
 export const DAYDEF: DayDef[] = [
-  { add: null, pool: BASE, haz: [], hazP: 0, ord: [2, 3], cust: ['cat', 'dog', 'bunny'], bear: 0, egg: 0, s2: 10, s3: 5 },
-  { add: 'shrimp', pool: [...BASE, 'shrimp'], haz: ['chili'], hazP: 0.07, ord: [2, 3], cust: ['cat', 'dog', 'bunny', 'peng'], bear: 0, egg: 0, s2: 12, s3: 5 },
-  { add: 'pine', pool: ['tteok', 'saus', 'shrimp', 'pine'], haz: ['chili'], hazP: 0.08, ord: [2, 3], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 16, s3: 6 },
-  { add: 'mallow', pool: ['tteok', 'leek', 'pine', 'mallow'], haz: ['chili', 'burnt'], hazP: 0.1, ord: [2, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 13, s3: 6 },
-  { add: 'big', pool: ['saus', 'leek', 'mallow', 'big'], haz: ['chili', 'burnt'], hazP: 0.1, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 10, s3: 6 },
-  { add: 'bear', pool: ['tteok', 'saus', 'shrimp', 'pine'], haz: ['chili', 'burnt'], hazP: 0.11, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0.3, egg: 0, s2: 10, s3: 7 },
-  { add: 'egg', pool: ['tteok', 'saus', 'shrimp', 'mallow'], haz: ['chili', 'burnt'], hazP: 0.11, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0.3, egg: 0.05, s2: 8, s3: 7 },
+  { add: null, pool: BASE, haz: [], hazP: 0, ord: [2, 3], cust: ['cat', 'dog', 'bunny'], bear: 0, egg: 0, s2: 8, s3: 5 },
+  { add: 'shrimp', pool: [...BASE, 'shrimp'], haz: ['chili'], hazP: 0.07, ord: [2, 3], cust: ['cat', 'dog', 'bunny', 'peng'], bear: 0, egg: 0, s2: 10, s3: 5 },
+  { add: 'pine', pool: ['tteok', 'saus', 'shrimp', 'pine'], haz: ['chili'], hazP: 0.08, ord: [2, 3], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 17, s3: 6 },
+  { add: 'mallow', pool: ['tteok', 'leek', 'pine', 'mallow'], haz: ['chili', 'burnt'], hazP: 0.1, ord: [2, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 12, s3: 6 },
+  { add: 'big', pool: ['saus', 'leek', 'mallow', 'big'], haz: ['chili', 'burnt'], hazP: 0.1, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0, egg: 0, s2: 9, s3: 6 },
+  { add: 'bear', pool: ['tteok', 'saus', 'shrimp', 'pine'], haz: ['chili', 'burnt'], hazP: 0.11, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0.3, egg: 0, s2: 9, s3: 7 },
+  { add: 'egg', pool: ['tteok', 'saus', 'shrimp', 'mallow'], haz: ['chili', 'burnt'], hazP: 0.11, ord: [3, 4], cust: ['cat', 'dog', 'bunny', 'peng', 'fox'], bear: 0.3, egg: 0.05, s2: 7, s3: 7 },
 ];
 export const addName = (a: IK | CK | null) => (a ? (a in IKD ? IKD[a as IK].name : CKN[a as CK]) : '');
 
@@ -81,7 +83,7 @@ export interface SkewerState {
   dayScore: number; total: number; best: number; record: boolean; served: number; maxN: number; strokes: number; dayStrokes: number;
   got: number; stars: boolean[]; firstStroke: boolean; dayFirst: boolean; final: boolean;
   seen: Set<string>; wowN: number; ev: Ev[]; evN: number; dead: boolean;
-  dayScores: number[]; miss: { pts: P[]; t: number } | null; bigSk: number; lastSk: number; hold: number;
+  dayScores: number[]; miss: { pts: P[]; t: number } | null; bigSk: number; lastSk: number; hold: number; lastX?: number;
 }
 type S = SkewerState;
 
@@ -153,9 +155,9 @@ const openCust = (c: Cust | null): c is Cust => !!c && (c.st === 'wait' || c.st 
 
 // ───────────────────────────── 재료 튀어 오르기 ─────────────────────────────
 /** 재료마다 뛰는 높이: 새우는 펄쩍 높이 · 대왕 소시지는 묵직하게 낮게 */
-const APEX: Partial<Record<IK, number>> = { shrimp: -0.12, big: 0.08, egg: -0.06 };
+const APEX: Partial<Record<IK, number>> = { shrimp: -0.14, big: 0.08, egg: -0.06 };
 function launch(s: S, k: IK, x: number, apex: number, tx = x, wait = 0, hover = 0, wel = false): It {
-  const apexY = wel ? apex : clamp(apex + (APEX[k] ?? 0), 0.48, 1.0);
+  const apexY = wel ? apex : clamp(apex + (APEX[k] ?? 0), 0.52, 1.02);
   const g = GRAV * IKD[k].grav, h = Math.max(0.08, GRILL_Y - apexY), vy = -Math.sqrt(2 * g * h), T = -vy / g;
   const nw = DAYDEF[s.day].add === k && s.dt < 60 * 30;
   const it: It = { id: ++s.nid, k, x, y: GRILL_Y + 0.01, vx: (tx - x) / T, vy, rot: (s.rng() - 0.5) * 0.8, vr: (s.rng() - 0.5) * 0.07, born: s.t, wait, hover, wel, nw };
@@ -177,42 +179,43 @@ function pickType(s: S): IK {
   if (w.length && s.rng() < 0.4) return w[Math.floor(s.rng() * w.length)];
   return d.pool[Math.floor(s.rng() * d.pool.length)];
 }
-/** 한 번 '퐁': 줄 · 계단 · 부채 · 줄줄이(포물선 사슬) · 둘 · 하나 높이 — 열 번 그어도 열 번 다른 모양 */
+/** 한 번 '퐁': 작은 묶음(가로 셋 · 비스듬히 셋 · 부채 · 줄줄이 · 둘 · 높이 하나)이 판 여기저기서 쉬지 않고 올라온다.
+ *  한 묶음만 그으면 2~4개 — 긴 꼬치는 여러 묶음을 한 획에 이어야 나온다 */
 function burst(s: S) {
   const r = s.rng(), R = () => s.rng();
   let shape = 'row';
-  if (r < 0.24) shape = 'row';
+  if (r < 0.22) shape = 'row';
   else if (r < 0.44) shape = 'stair';
-  else if (r < 0.62) shape = 'fan';
-  else if (r < 0.8) shape = 'chain';
+  else if (r < 0.6) shape = 'fan';
+  else if (r < 0.76) shape = 'chain';
   else if (r < 0.92) shape = 'pair';
   else shape = 'high';
-  const ap = () => 0.52 + R() * 0.38;
+  // 지난 묶음과 다른 쪽에서 (판 전체를 쓰게)
+  const side = (s.lastX ?? 0.5) < 0.5 ? 0.55 + R() * 0.3 : 0.15 + R() * 0.3, y = 0.54 + R() * 0.44;
+  s.lastX = side;
   if (shape === 'row') {
-    const n = 3 + Math.floor(R() * 3), y = ap(), x0 = 0.14 + R() * 0.1, x1 = 0.86 - R() * 0.1;
+    const n = 3;
     for (let i = 0; i < n; i++) {
-      const x = x0 + ((x1 - x0) * i) / (n - 1);
-      launch(s, pickType(s), x + (R() - 0.5) * 0.03, y + (R() - 0.5) * 0.035, x, 0);
+      const x = clamp(side + (i - 1) * 0.15, 0.08, 0.92);
+      launch(s, pickType(s), x, y + (R() - 0.5) * 0.03, x, 0);
     }
   } else if (shape === 'stair') {
-    const n = 3 + Math.floor(R() * 3), up = R() < 0.5, y0 = 0.52 + R() * 0.08, y1 = 0.84 + R() * 0.1, x0 = 0.15 + R() * 0.08, x1 = 0.85 - R() * 0.08;
-    for (let i = 0; i < n; i++) {
-      const f = i / (n - 1), x = x0 + (x1 - x0) * f;
-      launch(s, pickType(s), x, up ? y1 + (y0 - y1) * f : y0 + (y1 - y0) * f, x, 0);
+    const up = R() < 0.5;
+    for (let i = 0; i < 3; i++) {
+      const x = clamp(side + (i - 1) * 0.14, 0.08, 0.92);
+      launch(s, pickType(s), x, clamp(y + (i - 1) * (up ? -0.09 : 0.09), 0.53, 1.0), x, 0);
     }
   } else if (shape === 'fan') {
-    const n = 3 + Math.floor(R() * 2), x = 0.32 + R() * 0.36, y = ap(), spread = 0.2 + R() * 0.12;
-    for (let i = 0; i < n; i++) launch(s, pickType(s), x, y + Math.abs(i - (n - 1) / 2) * 0.05, clamp(x + spread * ((i / (n - 1)) * 2 - 1), 0.1, 0.9), i * 2);
+    const n = 3;
+    for (let i = 0; i < n; i++) launch(s, pickType(s), side, clamp(y + Math.abs(i - 1) * 0.05, 0.53, 1.0), clamp(side + 0.16 * (i - 1), 0.08, 0.92), i * 2);
   } else if (shape === 'chain') {
-    const n = 4 + Math.floor(R() * 2), left = R() < 0.5, x = left ? 0.08 : 0.92, tx = left ? 0.55 + R() * 0.2 : 0.45 - R() * 0.2, y = 0.55 + R() * 0.3;
-    for (let i = 0; i < n; i++) launch(s, pickType(s), x, y, tx, i * 7);
+    const n = 3 + Math.floor(R() * 2), left = side < 0.5, x = left ? 0.06 : 0.94, tx = left ? side + 0.15 : side - 0.15;
+    for (let i = 0; i < n; i++) launch(s, pickType(s), x, y, tx, i * 6);
   } else if (shape === 'pair') {
-    const x = 0.25 + R() * 0.5, y = ap();
-    launch(s, pickType(s), x - 0.05, y, x - 0.09, 0);
-    launch(s, pickType(s), x + 0.05, y + 0.02, x + 0.09, 3);
+    launch(s, pickType(s), side - 0.07, y, side - 0.08, 0);
+    launch(s, pickType(s), side + 0.07, y + 0.02, side + 0.08, 3);
   } else {
-    const x = 0.2 + R() * 0.6;
-    launch(s, pickType(s), x, 0.5 + R() * 0.08, x + (R() - 0.5) * 0.2, 0);
+    launch(s, pickType(s), side, 0.55 + R() * 0.1, side + (R() - 0.5) * 0.2, 0);
   }
   ev(s, 'burst', 0.5, GRILL_Y, 0, 0, shape);
 }
@@ -226,7 +229,7 @@ function welcomeKinds(s: S): IK[] {
 }
 function welcome(s: S, kinds: IK[]) {
   for (let i = 0; i < kinds.length; i++) {
-    const x = 0.16 + i * 0.17, y = 0.69 - 0.055 * Math.sin((Math.PI * i) / (kinds.length - 1));
+    const x = 0.14 + i * 0.18, y = 0.78 - 0.06 * Math.sin((Math.PI * i) / (kinds.length - 1));
     launch(s, kinds[i], x, y, x, i * 4, s.day === 0 ? 170 : 120, true);
   }
 }
@@ -329,6 +332,8 @@ function finishStroke(s: S) {
     return;
   }
   const kinds = st.on.map((o) => o.k), V = value(kinds);
+  // 꿴 만큼 불판이 바로 다시 퐁 (바로 이어 그어도 늘 꿸 게 있다)
+  s.spawnT = Math.min(s.spawnT, 6);
   // 곧게 편 꼬치: 첫 재료 → 마지막 재료 방향 (하나뿐이면 그은 방향)
   const f = st.on[0], l = st.on[st.on.length - 1];
   let ang = Math.atan2(l.y - f.y, l.x - f.x);
@@ -337,11 +342,16 @@ function finishStroke(s: S) {
     ang = Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.02 ? Math.atan2(p1.y - p0.y, p1.x - p0.x) : 0;
   }
   let len = 0;
-  for (const o of st.on) len += IKD[o.k].r * 1.9;
+  for (const o of st.on) len += IKD[o.k].r * SPACE;
   let cx = 0, cy = 0;
   for (const o of st.on) (cx += o.x), (cy += o.y);
   cx /= st.on.length;
   cy /= st.on.length;
+  {
+    const hx = Math.abs(Math.cos(ang)) * (len / 2 + 0.08), hy = Math.abs(Math.sin(ang)) * (len / 2 + 0.08);
+    cx = clamp(cx, Math.min(0.5, hx + 0.01), Math.max(0.5, 0.99 - hx));
+    cy = clamp(cy, Math.min(0.85, AIR_TOP + hy), Math.max(0.85, GRILL_Y - hy));
+  }
   // 받을 손님: 주문을 다 담은 손님 중 주문이 가장 긴(같으면 오래 기다린) 손님
   let ci = -1, bl = 0, bt = -1;
   for (let i = 0; i < 3; i++) {
@@ -451,8 +461,10 @@ function worldStep(s: S, ws = s.ws) {
   }
   s.spawnT -= ws;
   if (s.spawnT <= 0) {
-    if (s.items.length < 15) burst(s);
-    s.spawnT = 27 + s.rng() * 15;
+    if (s.items.length < 14) burst(s);
+    // 판이 비면 더 빨리 채운다 — 기다린다고 더 많이 모이지 않게
+    const n = s.items.length;
+    s.spawnT = n < 5 ? 12 + s.rng() * 8 : n < 9 ? 22 + s.rng() * 12 : 32 + s.rng() * 12;
   }
 }
 function startDay(s: S) {
@@ -468,7 +480,7 @@ function startDay(s: S) {
   s.stroke = null;
   s.auto = null;
   s.ws = 1;
-  s.spawnT = s.day === 0 ? 30 : 70;
+  s.spawnT = s.day === 0 ? 24 : 40;
   const kinds = welcomeKinds(s);
   s.cust = [null, null, null];
   s.cust[1] = newCust(s, 1, welcomeOrder(kinds), 'wait');
@@ -506,7 +518,7 @@ const game: GameDef<S> & { wows(s: S): number } = {
   rules: [
     '튀어 오른 재료를 손가락으로 쓱 그으면, 선이 스친 재료가 줄줄이 꼬치에 꿰여요.',
     '말풍선 재료를 다 꿰면 손님이 받아 가요. 길게 꿸수록, 같은 재료 셋이면 점수가 커져요.',
-    '빨간 고추·탄 것은 피하기. 하루 75초 장사, 날마다 새 재료가 하나씩 풀려요.',
+    '빨간 고추·탄 것은 피하기. 하루 1분 장사, 날마다 새 재료가 하나씩 풀려요.',
   ],
   controls: 'touch',
   hint: '쓱 그어 꼬치 / 키보드 1 = 자동 꿰기',
@@ -730,7 +742,7 @@ export function skewerstallSmartAt(gap: number): Bot<S> {
   },
   };
 }
-export const skewerstallSmart = skewerstallSmartAt(62);
+export const skewerstallSmart = skewerstallSmartAt(40);
 
 const dumbMem = new WeakMap<object, Mem>();
 /** 못하는 봇: 아무 때나 아무 데서 아무 방향으로 쓱 */
@@ -758,7 +770,7 @@ export const skewerstallHabit: Bot<S> = {
     if (s.phase !== 'day') return NO;
     if (m.plan) return runPlan(s, m, 26);
     if (s.down || s.t < m.next || !s.items.length) return NO;
-    m.plan = plan({ x0: 0.05, y0: 0.7, x1: 0.95, y1: 0.7 }, 0.11);
+    m.plan = plan({ x0: 0.05, y0: 0.78, x1: 0.95, y1: 0.78 }, 0.11);
     return runPlan(s, m, 26);
   },
 };
@@ -1557,7 +1569,7 @@ function bakeFront(w: number, h: number, sc: number): HTMLCanvasElement {
         line(g, (i * w) / 7 + X(0.02), yy, (i * w) / 7 + X(0.11), yy + X(0.01), 'rgba(70,30,10,.18)', 1);
       }
     }
-    g.fillStyle = rad(g, w / 2, X(1.25), X(0.1), X(0.85), [0, 'rgba(255,170,80,.5)'], [0.6, 'rgba(255,140,60,.15)'], [1, 'rgba(255,140,60,0)']);
+    g.fillStyle = rad(g, w / 2, X(1.3), X(0.1), X(0.9), [0, 'rgba(255,170,80,.5)'], [0.6, 'rgba(255,140,60,.15)'], [1, 'rgba(255,140,60,0)']);
     g.fillRect(0, t0, w, t1 - t0);
     g.fillStyle = lin(g, 0, t0, 0, t0 + X(0.12), [0, 'rgba(30,10,10,.45)'], [1, 'rgba(30,10,10,0)']);
     g.fillRect(0, t0, w, X(0.12));
@@ -1567,11 +1579,11 @@ function bakeFront(w: number, h: number, sc: number): HTMLCanvasElement {
     for (const [x, y] of [[0.016, 0.6], [0.984, 0.66]]) lantern(g, X(x), X(y), X(0.034));
     // 옆 소품: 왼쪽 대나무 꼬치 통 · 오른쪽 양념 그릇
     {
-      const cx = X(0.085), cy = X(1.1);
+      const cx = X(0.085), cy = X(1.19);
       for (let i = 0; i < 7; i++) line(g, cx - X(0.02) + i * X(0.007), cy - X(0.02), cx - X(0.03) + i * X(0.01), cy - X(0.13) - hash(i) * X(0.02), '#e8c27a', 2);
       rr(g, cx - X(0.035), cy - X(0.04), X(0.07), X(0.08), X(0.012));
       ink(g, lin(g, cx - X(0.035), 0, cx + X(0.035), 0, [0, '#7ab84a'], [1, '#4a8a2a']), 1.5);
-      const bx = X(0.915), by = X(1.11);
+      const bx = X(0.915), by = X(1.2);
       ell(g, bx, by, X(0.05), X(0.022));
       ink(g, '#f4f0e8', 1.5);
       ell(g, bx, by - X(0.004), X(0.04), X(0.014));
@@ -1616,15 +1628,15 @@ function bakeFront(w: number, h: number, sc: number): HTMLCanvasElement {
     rr(g, X(0.015), g0, X(0.97), g1 - g0, X(0.03));
     ink(g, lin(g, 0, g0, 0, g1, [0, '#4a4244'], [0.2, '#2a2426'], [1, '#1a1416']), 2, '#120c0c');
     rr(g, X(0.045), g0 + X(0.022), X(0.91), g1 - g0 - X(0.04), X(0.018));
-    g.fillStyle = rad(g, w / 2, X(1.33), X(0.05), X(0.6), [0, '#ff8a2a'], [0.35, '#d8401a'], [0.75, '#6a1a0e'], [1, '#2a0c08']);
+    g.fillStyle = rad(g, w / 2, X(1.37), X(0.05), X(0.6), [0, '#ff8a2a'], [0.35, '#d8401a'], [0.75, '#6a1a0e'], [1, '#2a0c08']);
     g.fill();
     // 숯: 빛나는 바닥 위에 검은 숯 조각, 틈과 가장자리가 주황으로 달아오른다
     g.save();
     rr(g, X(0.045), g0 + X(0.022), X(0.91), g1 - g0 - X(0.04), X(0.018));
     g.clip();
-    for (let row = 0; row < 5; row++)
+    for (let row = 0; row < 4; row++)
       for (let col = 0; col < 15; col++) {
-        const i = row * 15 + col, x = X(0.05 + (col + (row % 2) * 0.5) * 0.062 + (hash(i * 3) - 0.5) * 0.02), y = X(1.215 + row * 0.052 + (hash(i * 5) - 0.5) * 0.015);
+        const i = row * 15 + col, x = X(0.05 + (col + (row % 2) * 0.5) * 0.062 + (hash(i * 3) - 0.5) * 0.02), y = X(GRILL_Y + 0.012 + row * 0.05 + (hash(i * 5) - 0.5) * 0.015);
         const r = X(0.028 + hash(i * 7) * 0.01);
         g.beginPath();
         for (let k = 0; k < 6; k++) {
@@ -1647,7 +1659,7 @@ function bakeFront(w: number, h: number, sc: number): HTMLCanvasElement {
       }
     g.restore();
     // 석쇠
-    for (const y of [1.232, 1.282, 1.332, 1.382, 1.432]) {
+    for (const y of [1.29, 1.335, 1.38, 1.425]) {
       line(g, X(0.04), X(y) + 1.5, X(0.96), X(y) + 1.5, 'rgba(0,0,0,.45)', 2.5);
       line(g, X(0.04), X(y), X(0.96), X(y), '#b8b0aa', 2.2);
       line(g, X(0.04), X(y) - 0.6, X(0.96), X(y) - 0.6, 'rgba(255,255,255,.55)', 0.8);
@@ -1667,12 +1679,14 @@ function bakeFront(w: number, h: number, sc: number): HTMLCanvasElement {
 // ───────────────────────────── 장면 그리기 ─────────────────────────────
 interface Puff { x: number; y: number; vx: number; vy: number; r: number; life: number; max: number; col: string; grow: number }
 interface Ember { x: number; y: number; vx: number; vy: number; life: number }
-interface Pop { x: number; y: number; str: string; col: string; size: number; age: number; life: number; delay: number; sid: number; kind: 0 | 1 | 2; tx: number; ty: number; fx: number; fy: number; ta: number }
-interface View { pops: Pop[]; sid: number; ready: Set<number>; zoom: { t: number; x: number; y: number; k: number } | null; lastT: number; lastEv: number; puffs: Puff[]; embers: Ember[]; sq: { due: number; name: SfxN; p: number; v: number }[]; lastDue: number; disp: number; flash: Map<number, number> }
+interface Pop { x: number; y: number; str: string; col: string; size: number; age: number; life: number; delay: number; tags: [string, string][] }
+interface View { pops: Pop[]; lastPop: number; sizNext: number; ready: Set<number>; zoom: { t: number; x: number; y: number; k: number } | null; lastT: number; lastEv: number; puffs: Puff[]; embers: Ember[]; sq: { due: number; name: SfxN; p: number; v: number }[]; lastDue: number; disp: number; flash: Map<number, number> }
 type SfxN = 'pop' | 'thud' | 'whoosh' | 'ding' | 'chime' | 'splash' | 'crack' | 'boing' | 'swell' | 'shrink' | 'coin' | 'clear' | 'tick' | 'zap';
 const VIEW = new WeakMap<object, View>();
 const BG = new Map<string, { b: HTMLCanvasElement; f: HTMLCanvasElement; vig: HTMLCanvasElement }>();
 /** 도레미솔라 — 꿰일 때마다 한 칸씩 올라간다 */
+/** 불판 위 꼬치 배율 */
+const RACK_K = 0.6;
 const SCALE = [1, 1.122, 1.26, 1.498, 1.682, 2, 2.245, 2.52, 2.996];
 const easeOut = (f: number) => 1 - (1 - f) ** 3;
 const easeBack = (f: number) => 1 + 2.4 * (f - 1) ** 3 + 1.4 * (f - 1) ** 2;
@@ -1758,7 +1772,7 @@ function ntext(ctx: C2, str: string, x: number, y: number, px: number, wgt: numb
 }
 function viewOf(s: S): View {
   let v = VIEW.get(s);
-  if (!v) VIEW.set(s, (v = { pops: [], sid: 0, ready: new Set(), zoom: null, lastT: s.t, lastEv: s.evN, puffs: [], embers: [], sq: [], lastDue: 0, disp: s.dayScore, flash: new Map() }));
+  if (!v) VIEW.set(s, (v = { pops: [], lastPop: 0, sizNext: 0, ready: new Set(), zoom: null, lastT: s.t, lastEv: s.evN, puffs: [], embers: [], sq: [], lastDue: 0, disp: s.dayScore, flash: new Map() }));
   return v;
 }
 function puff(V: View, x: number, y: number, n: number, col: string, spread = 0.02, up = 0.0035, r = 0.018) {
@@ -1770,10 +1784,11 @@ function puff(V: View, x: number, y: number, n: number, col: string, spread = 0.
 }
 /** 떠오르는 숫자 (글자 조각을 구워 찍는다). kind 0 = 재료 하나(떼면 합계로 빨려 듦) · 1 = 합계·보너스 · 2 = 곱하기(같이 빨려 듦) */
 const POP_SIZES = [15, 17, 20, 28, 34, 40, 48], WHITE = '#ffffff', CREAM = '#fff6d0', GOLD = '#ffd23f', RED = '#ff6a5a', PINK = '#ffd2e2';
-function addPop(V: View, x: number, y: number, str: string, col: string, size: number, kind: 0 | 1 | 2, delay = 0) {
-  if (V.pops.length > 18) V.pops.shift();
+/** 떠오르는 숫자는 사건마다 하나(합계·손님 보너스) — 곱하기는 합계 옆 작은 딱지 */
+function addPop(V: View, x: number, y: number, str: string, col: string, size: number, delay = 0, tags: [string, string][] = []) {
+  if (V.pops.length > 8) V.pops.shift();
   const q = POP_SIZES.find((z) => z >= size) ?? 48;
-  V.pops.push({ x, y, str, col, size: q, age: 0, life: kind === 1 ? 62 : 54, delay, sid: V.sid, kind, tx: 0, ty: 0, fx: 0, fy: 0, ta: -1 });
+  V.pops.push({ x, y, str, col, size: q, age: 0, life: 62, delay, tags });
 }
 function drawPops(ctx: C2, V: View, dn: number) {
   for (const p of V.pops) {
@@ -1782,25 +1797,31 @@ function drawPops(ctx: C2, V: View, dn: number) {
       continue;
     }
     p.age += dn;
-    let x = p.x, y = p.y, k = 1 + 0.6 * Math.max(0, 1 - p.age / 7), a = Math.min(1, p.life / 14);
-    if (p.ta >= 0) {
-      const f = Math.min(1, (p.age - p.ta) / 9), e = f * f;
-      x = p.fx + (p.tx - p.fx) * e;
-      y = p.fy + (p.ty - p.fy) * e - Math.sin(Math.PI * f) * 14;
-      k *= 1 - 0.35 * f;
-      if (f >= 1) p.life = 0;
-    } else {
-      p.y -= 0.55 * dn;
-      p.life -= dn;
-    }
+    const k = 1 + 0.6 * Math.max(0, 1 - p.age / 7), a = Math.min(1, p.life / 14);
+    p.y -= 0.5 * dn;
+    p.life -= dn;
     if (p.life <= 0) continue;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(x, y);
+    ctx.translate(p.x, p.y);
     ctx.scale(k, k);
-    // 재료 점수·곱하기는 통째로 구운 글자, 합계·보너스는 글자 조각 (값이 늘 달라 통째로 구우면 매번 새로 굽는다)
-    if (p.kind === 1 && p.str[0] === '+') ntext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, 4);
-    else gtext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, p.size >= 24 ? 4 : 3);
+    // 합계는 글자 조각으로 (값이 늘 달라 통째로 구우면 매번 새로 굽는다)
+    ntext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, 4);
+    // 곱하기 딱지: 합계 오른쪽 위에 작게, 하나씩 톡톡 붙는다
+    let tx = p.str.length * p.size * 0.3 + 6;
+    for (let i = 0; i < p.tags.length; i++) {
+      if (p.age < 5 + i * 4) break;
+      const [t, col] = p.tags[i], tw = 12 + t.length * 8, kk = easeBack(Math.min(1, (p.age - 5 - i * 4) / 6));
+      ctx.save();
+      ctx.translate(tx + tw / 2, -p.size * 0.42);
+      ctx.scale(kk, kk);
+      ctx.rotate(-0.12);
+      rr(ctx, -tw / 2, -11, tw, 22, 11);
+      ink(ctx, col, 2, '#5a2a0a');
+      gtext(ctx, t, 0, 0.5, 15, 900, '#5a2a0a');
+      ctx.restore();
+      tx += tw + 4;
+    }
     ctx.restore();
   }
   V.pops = V.pops.filter((p) => p.life > 0);
@@ -1822,11 +1843,12 @@ function fxEvents(s: S, V: View, w: number) {
     const x = X(e.x), y = X(e.y);
     switch (e.k) {
       case 'pop':
-        if (hash(e.id) < 0.5) queue(V, 'pop', 0.42 + hash(e.id * 3) * 0.12, 0.16);
+        // 퐁 — 한 묶음이 한꺼번에 올라와도 퐁퐁퐁 하나씩
+        V.lastPop = Math.max(now(), V.lastPop + 42);
+        V.sq.push({ due: V.lastPop, name: 'pop', p: 0.42 + hash(e.id * 3) * 0.16, v: 0.24 });
         puff(V, e.x, GRILL_Y - 0.005, 1, 'rgba(255,240,220,.5)', 0.01, 0.002, 0.012);
         break;
       case 'press':
-        V.sid++;
         queue(V, 'whoosh', 1.7, 0.25);
         break;
       case 'sk': {
@@ -1836,7 +1858,6 @@ function fxEvents(s: S, V: View, w: number) {
         fx.burst(x, y, col, 4 + (n >> 1), 2.2 + n * 0.25, 2.8);
         fx.burst(x, y, '#ffffff', 2, 3, 1.8);
         fx.ring(x, y, 'rgba(255,255,255,.9)', X(0.05 + n * 0.006), 3);
-        if (e.v > 0) addPop(V, x, y - X(0.065), '+' + e.v, n >= 5 ? GOLD : CREAM, n >= 5 ? 20 : n >= 3 ? 17 : 15, 0);
         fx.kick(0.8 + n * 0.4);
         V.flash.set(e.n, s.t);
         if (e.a === 'chili') fx.burst(x, y, '#ff5a2a', 10, 3.5, 3);
@@ -1845,7 +1866,6 @@ function fxEvents(s: S, V: View, w: number) {
       }
       case 'trip':
         queue(V, 'chime', 1.15, 0.8);
-        addPop(V, x + X(0.04), y - X(0.13), '×2', GOLD, 28, 2);
         fx.burst(x, y, '#fff3a0', 10, 5, 2.8);
         fx.ring(x, y, '#ffd23f', X(0.16), 5);
         break;
@@ -1853,10 +1873,14 @@ function fxEvents(s: S, V: View, w: number) {
         const v = e.v, n = e.n, f = e.a;
         queue(V, 'boing', 0.7 + n * 0.05, 0.55);
         const size = Math.round(22 + Math.min(32, v / 28));
-        // 재료 숫자들이 합계 자리로 쏙 빨려 들고, 합계가 펑
-        const tx = clamp(x, X(0.18), X(0.82)), ty = Math.max(X(0.5), y - X(0.15));
-        for (const p of V.pops) if (p.sid === V.sid && p.kind !== 1 && p.ta < 0 && p.delay <= 0) (p.ta = p.age), (p.fx = p.x), (p.fy = p.y), (p.tx = tx), (p.ty = ty);
-        addPop(V, tx, ty, '+' + fmt(v), n >= 4 ? GOLD : WHITE, size, 1, 8);
+        // 합계 하나만 크게 + 곱하기 딱지
+        const tags: [string, string][] = [];
+        if (f.includes('t')) tags.push(['×2', '#ffd23f']);
+        if (f.includes('p')) tags.push(['×1.5', '#ffe766']);
+        if (f.includes('e')) tags.push(['×2', '#ffd84a']);
+        if (f.includes('c')) tags.push(['×½', '#ff8a7a']);
+        const tx = clamp(x - X(0.04) * tags.length, X(0.2), X(0.66)), ty = Math.max(X(0.52), y - X(0.16));
+        addPop(V, tx, ty, '+' + fmt(v), n >= 4 ? GOLD : WHITE, size, 4, tags);
         if (n >= 4) V.zoom = { t: s.t, x, y, k: n >= 6 ? 0.07 : 0.035 };
         if (n >= 6) {
           fx.kick(10);
@@ -1867,9 +1891,8 @@ function fxEvents(s: S, V: View, w: number) {
           fx.ring(x, y, '#ffd23f', X(0.4), 7);
         } else if (n >= 4) (fx.kick(4), fx.ring(x, y, '#ffe9a0', X(0.22), 5));
         if (f.includes('t')) fx.burst(x, y, '#fff3a0', 10, 5, 2.8);
-        if (f.includes('p')) addPop(V, clamp(x - X(0.2), X(0.1), X(0.9)), Math.max(X(0.5), y - X(0.24)), '×1.5', GOLD, 28, 1, 10);
-        if (f.includes('e')) (addPop(V, clamp(x + X(0.2), X(0.1), X(0.9)), Math.max(X(0.5), y - X(0.24)), '×2', GOLD, 28, 1, 10), queue(V, 'chime', 1.5, 0.7));
-        if (f.includes('c')) (addPop(V, x, y + X(0.06), '×½', RED, 28, 1, 10), queue(V, 'crack', 0.9, 0.6));
+        if (f.includes('e')) queue(V, 'chime', 1.5, 0.7);
+        if (f.includes('c')) queue(V, 'crack', 0.9, 0.6);
         if (f.includes('m')) queue(V, 'ding', 1.5, 0.5);
         break;
       }
@@ -1887,7 +1910,7 @@ function fxEvents(s: S, V: View, w: number) {
         queue(V, 'pop', 0.5, 1);
         fx.burst(x, y, '#ffd2e2', 12, 5, 3.6);
         fx.burst(x, y, '#ffffff', 6, 4, 3);
-        addPop(V, x, y - X(0.08), '+' + e.v, PINK, 28, 1);
+        addPop(V, x, y - X(0.08), '+' + e.v, PINK, 28);
         fx.kick(3);
         break;
       case 'serve': {
@@ -1896,7 +1919,7 @@ function fxEvents(s: S, V: View, w: number) {
         queue(V, 'chime', bear ? 0.8 : 1.25, 0.65);
         fx.burst(x, y, '#ff7aa2', 10, 4, 3.4);
         fx.burst(x, y - X(0.04), '#ffe14a', 6, 5, 2.6);
-        addPop(V, x, y - X(0.12), '+' + e.v, GOLD, bear ? 40 : 28, 1);
+        addPop(V, x, y - X(0.12), '+' + e.v, GOLD, bear ? 40 : 28);
         if (bear) (fx.kick(9), queue(V, 'thud', 0.55, 1), queue(V, 'clear', 0.9, 0.6), fx.blink('#ffe0a0', 0.3));
         if (hot) (fx.burst(x, y + X(0.04), '#ff4a1a', 12, 5, 3.4), queue(V, 'zap', 0.7, 0.7));
         break;
@@ -1927,6 +1950,13 @@ function fxEvents(s: S, V: View, w: number) {
         break;
     }
   }
+  // 불판은 늘 지글지글 (손 안 대도 살아 있는 소리) — 꼬치가 올라가 있으면 더 크게
+  if (s.phase !== 'end' && s.t >= V.sizNext) {
+    const rack = s.done.some((d) => d.t >= T_LAND && d.t < T_GIVE);
+    V.sizNext = s.t + 16 + Math.floor(hash(s.t) * 22);
+    queue(V, 'splash', 2.3 + hash(s.t * 3) * 0.7, rack ? 0.16 : 0.08);
+    if (hash(s.t * 7) < 0.5) queue(V, 'tick', 0.7 + hash(s.t * 5) * 0.8, 0.35);
+  }
   const t = now();
   V.sq.sort((a, b) => a.due - b.due);
   while (V.sq.length && V.sq[0].due <= t + 1) {
@@ -1939,7 +1969,7 @@ function fxEvents(s: S, V: View, w: number) {
 function tickAmbient(s: S, V: View, n: number) {
   for (let k = 0; k < n; k++) {
     const tt = s.t - n + k;
-    if (tt % 7 === 0 && V.embers.length < 12) V.embers.push({ x: 0.08 + hash(tt) * 0.84, y: GRILL_Y + 0.02 + hash(tt * 3) * 0.15, vx: (hash(tt * 5) - 0.5) * 0.001, vy: -0.0035 - hash(tt * 7) * 0.003, life: 50 + hash(tt * 9) * 40 });
+    if (tt % 7 === 0 && V.embers.length < 12) V.embers.push({ x: 0.08 + hash(tt) * 0.84, y: GRILL_Y + 0.02 + hash(tt * 3) * 0.12, vx: (hash(tt * 5) - 0.5) * 0.001, vy: -0.0035 - hash(tt * 7) * 0.003, life: 50 + hash(tt * 9) * 40 });
     if (tt % 9 === 0) puff(V, 0.1 + hash(tt * 11) * 0.8, GRILL_Y + 0.04, 1, 'rgba(255,255,255,.16)', 0.02, 0.0022, 0.03);
     for (const d of s.done) if (d.t >= T_LAND && d.t < T_GIVE && (tt + d.id) % 5 === 0) puff(V, 0.5 + (hash(tt + d.id) - 0.5) * d.len * 0.8, RACK_Y[d.row] - 0.01, 1, 'rgba(255,255,255,.5)', 0.01, 0.0045, 0.02);
     for (const it of s.items) if (it.k === 'burnt' && it.wait <= 0 && (tt + it.id) % 6 === 0) puff(V, it.x, it.y - 0.02, 1, 'rgba(70,60,60,.45)', 0.005, 0.002, 0.014);
@@ -1954,7 +1984,7 @@ function tickAmbient(s: S, V: View, n: number) {
 function drawStick(ctx: C2, kinds: IK[], cx: number, cy: number, ang: number, k: number, mode: number, w: number, sc: number, fresh = -1, alpha = 1) {
   const R = (u: number) => u * w * k;
   let L = 0;
-  for (const q of kinds) L += IKD[q].r * 1.9;
+  for (const q of kinds) L += IKD[q].r * SPACE;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(cx * w, cy * w);
@@ -1964,7 +1994,7 @@ function drawStick(ctx: C2, kinds: IK[], cx: number, cy: number, ang: number, k:
   let x = -L / 2;
   for (let i = 0; i < kinds.length; i++) {
     const q = kinds[i], r = IKD[q].r, u = r * w * k;
-    x += r * 0.95;
+    x += r * SPACE * 0.5;
     ctx.save();
     ctx.translate(R(x), 0);
     ctx.rotate(-ang);
@@ -1972,7 +2002,7 @@ function drawStick(ctx: C2, kinds: IK[], cx: number, cy: number, ang: number, k:
     if (pop) ctx.scale(1 + pop * 0.25, 1 + pop * 0.25);
     stamp(ctx, itemSpr(q, mode, u * sc), F_ITEM, u);
     ctx.restore();
-    x += r * 0.95;
+    x += r * SPACE * 0.5;
   }
   ctx.restore();
 }
@@ -2005,15 +2035,15 @@ function donePose(d: Done) {
     let da = ra - d.ang;
     while (da > Math.PI) da -= TAU;
     while (da < -Math.PI) da += TAU;
-    return { cx: d.cx + (rx - d.cx) * f, cy: d.cy + (ry - d.cy) * f - 0.12 * Math.sin(Math.PI * f), ang: d.ang + da * f, k: 1 - 0.22 * f, mode: 1, f, ph: 1 };
+    return { cx: d.cx + (rx - d.cx) * f, cy: d.cy + (ry - d.cy) * f - 0.12 * Math.sin(Math.PI * f), ang: d.ang + da * f, k: 1 - (1 - RACK_K) * f, mode: 1, f, ph: 1 };
   }
-  if (t < T_GIVE) return { cx: rx, cy: ry, ang: ra, k: 0.78, mode: t > T_LAND + 3 ? 2 : 1, f: (t - T_LAND) / (T_GIVE - T_LAND), ph: 2 };
+  if (t < T_GIVE) return { cx: rx, cy: ry, ang: ra, k: RACK_K, mode: t > T_LAND + 3 ? 2 : 1, f: (t - T_LAND) / (T_GIVE - T_LAND), ph: 2 };
   const f = easeOut((t - T_GIVE) / (T_DELIV - T_GIVE));
   const tx = d.cust >= 0 ? CUST_X[d.cust] + 0.07 : 0.928, ty = d.cust >= 0 ? CUST_Y + 0.02 : COUNTER_Y - 0.05;
   let da = -Math.PI / 2 - ra;
   while (da > Math.PI) da -= TAU;
   while (da < -Math.PI) da += TAU;
-  return { cx: rx + (tx - rx) * f, cy: ry + (ty - ry) * f - 0.18 * Math.sin(Math.PI * f), ang: ra + da * f, k: 0.78 - (d.cust >= 0 ? 0.3 : 0.45) * f, mode: 2, f, ph: 3 };
+  return { cx: rx + (tx - rx) * f, cy: ry + (ty - ry) * f - 0.18 * Math.sin(Math.PI * f), ang: ra + da * f, k: RACK_K - (d.cust >= 0 ? 0.2 : 0.3) * f, mode: 2, f, ph: 3 };
 }
 function drawDone(ctx: C2, s: S, d: Done, w: number, sc: number) {
   const P = donePose(d), kinds = d.on.map((o) => o.k);
@@ -2021,7 +2051,7 @@ function drawDone(ctx: C2, s: S, d: Done, w: number, sc: number) {
     // 펴지는 중: 꿰인 자리 → 곧은 자리 (트왕 흔들림)
     const f = easeBack(Math.min(1, P.f + 0.12));
     let L = 0;
-    for (const q of kinds) L += IKD[q].r * 1.9;
+    for (const q of kinds) L += IKD[q].r * SPACE;
     const ca = Math.cos(d.ang), sa = Math.sin(d.ang), wob = Math.sin(d.t * 1.6) * (1 - P.f) * 0.012;
     const a = { x: d.cx - ca * (L / 2 + 0.07), y: d.cy - sa * (L / 2 + 0.07) }, b = { x: d.cx + ca * (L / 2 + 0.05), y: d.cy + sa * (L / 2 + 0.05) };
     ctx.save();
@@ -2032,7 +2062,7 @@ function drawDone(ctx: C2, s: S, d: Done, w: number, sc: number) {
     let x = -L / 2;
     for (const o of d.on) {
       const r = IKD[o.k].r;
-      x += r * 0.95;
+      x += r * SPACE * 0.5;
       const tx = d.cx + ca * x - sa * wob, ty = d.cy + sa * x + ca * wob;
       const px = o.x + (tx - o.x) * f, py = o.y + (ty - o.y) * f, u = r * w;
       ctx.save();
@@ -2040,7 +2070,7 @@ function drawDone(ctx: C2, s: S, d: Done, w: number, sc: number) {
       ctx.scale(1 + 0.12 * (1 - P.f), 1 - 0.1 * (1 - P.f));
       stamp(ctx, itemSpr(o.k, 1, u * sc), F_ITEM, u);
       ctx.restore();
-      x += r * 0.95;
+      x += r * SPACE * 0.5;
     }
     return;
   }
@@ -2083,7 +2113,7 @@ function drawCust(ctx: C2, s: S, i: number, c: Cust, w: number, sc: number, live
     // 받은 꼬치를 번쩍 들고 냠냠 (재료가 하나씩 사라진다)
     const left = c.got.slice(Math.min(c.got.length, Math.floor(c.t / 11)));
     ctx.restore();
-    if (left.length) drawStick(ctx, left, CUST_X[i] + 0.075 * big, CUST_Y + oy - 0.01, -Math.PI / 2 + 0.25, 0.5, 2, w, sc);
+    if (left.length) drawStick(ctx, left, CUST_X[i] + 0.075 * big, CUST_Y + oy - 0.01, -Math.PI / 2 + 0.25, 0.38, 2, w, sc);
     ctx.save();
     ctx.translate(x, y);
     ell(ctx, u * 1.15, u * 0.55, u * 0.26, u * 0.22);
@@ -2182,8 +2212,8 @@ function wantDayN(day: number, w: number, sc: number) {
   for (const k of kinds) {
     const u = IKD[k].r * w * sc;
     want(`i${k}0:${q3(u)}`, () => itemSpr(k, 0, u));
-    for (let f = 1; f >= 0.44; f -= 0.04) {
-      for (const m of f > 0.74 ? [1, 2] : [2]) want(`i${k}${m}:${q3(u * f)}`, () => itemSpr(k, m, u * f));
+    for (let f = 1; f >= 0.3; f -= 0.04) {
+      for (const m of f > 0.56 ? [1, 2] : [2]) want(`i${k}${m}:${q3(u * f)}`, () => itemSpr(k, m, u * f));
     }
     for (const ic of [0.068, 0.06, 0.052]) want(`b${k}:${q3((ic / 2.3) * w * sc)}`, () => itemSpr(k, 0, (ic / 2.3) * w * sc));
   }
@@ -2303,7 +2333,7 @@ function drawAll(ctx: C2, s: S, w: number, h: number) {
     const gu = X(0.2) * (0.9 + 0.12 * Math.sin(s.t * 0.11 + i * 2.3));
     ctx.globalAlpha = 0.16 + 0.08 * Math.sin(s.t * 0.17 + i * 1.3);
     ctx.save();
-    ctx.translate(X(0.16 + i * 0.23), X(1.33));
+    ctx.translate(X(0.16 + i * 0.23), X(1.37));
     stamp(ctx, glowSpr('255,120,40', (gu / 1.5) * sc), F_ITEM, gu / 1.5);
     ctx.restore();
   }
@@ -2445,7 +2475,7 @@ function drawHint(ctx: C2, s: S, w: number, sc: number) {
   const u = X(0.06);
   stamp(ctx, handSpr(u * sc), F_HAND, u);
   ctx.restore();
-  const py = X(1.035);
+  const py = X(1.12);
   rr(ctx, X(0.17), py - 15, X(0.66), 30, 15);
   ctx.fillStyle = 'rgba(58,30,18,.82)';
   ctx.fill();

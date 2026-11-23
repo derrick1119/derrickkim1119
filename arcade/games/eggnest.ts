@@ -21,15 +21,15 @@ const NX = 0.5, NY = 0.92, RX = 0.52, RY = 0.39, FLOOR = 0.84;
 /** 엄마 새: 왼쪽 위 구석에 작게 (발 자리, 몸 반지름) — 오른쪽(둥지)을 본다 */
 const MX = 0.115, MY = 0.335, MU = 0.058;
 const TAPS = 8, NESTS = 6;
-/** 연쇄가 꺼지기 전 여유(사건이 다 끝나고 1초) · 다 논 아기가 둥지를 떠나기까지 · 엄마가 던진 알이 날아오는 틱 */
-const GRACE = 60, LEAVE = 80, DROP_T = 18;
+/** 연쇄가 꺼지기 전 여유(사건이 다 끝나고 1.5초) · 다 논 아기가 둥지를 떠나기까지 · 엄마가 던진 알이 날아오는 틱 */
+const GRACE = 90, LEAVE = 150, DROP_T = 18;
 const TAP_T = 8, HIT_T = 7, POP_T = 12, END_WAIT = 40, RES_MIN = 30, RES_AUTO = 60 * 45, END_T = 220;
 const EGG_H = 2.4, VS = 1.45;
 const SHARD_R = 0.16, CONE = 0.34, GAP = 0.03, SMALL_P = [0.8, 0.46, 0.4, 0.38, 0.36, 0.34, 0.32];
 const HOLES = [0, 1, 1, 2, 1, 1, 1];
 const NEST_N = [22, 24, 26, 27, 28, 29, 30];
 const HATCH_GOAL = [20, 26, 30, 32, 34, 36];
-const CHAIN_GOAL = [25, 40, 60, 66, 80, 76];
+const CHAIN_GOAL = [25, 40, 54, 60, 70, 66];
 /** 한 연쇄에서 k번째 아기의 점수: k점, 30점까지 (연쇄가 끊기면 다시 1점부터) */
 const ptsOf = (k: number) => Math.min(k, 30);
 
@@ -201,7 +201,7 @@ function newNest(s: NestState) {
 }
 
 // ───────────────────────────── 깨기 · 연쇄 ─────────────────────────────
-/** 연쇄가 살아 있나: 남은 깨짐이 있거나, 끝난 지 1초가 안 됐다 */
+/** 연쇄가 살아 있나: 남은 깨짐이 있거나, 끝난 지 1.5초가 안 됐다 */
 const alive = (s: NestState) => s.pend > 0 || (s.live && s.lt - s.lastEv <= GRACE);
 function sched(s: NestState, q: QE) {
   s.pend++;
@@ -532,7 +532,7 @@ function refill(s: NestState) {
   if (t === 'giant' && o.r < 0.15) t = 'spot';
   const rr = t === 'giant' ? 0.16 : o.r >= 0.15 ? 0.115 : o.r, hp = t === 'giant' ? 2 : rr > 0.09 && t !== 'gold' ? 2 : 1;
   s.eggs.push({ x: o.x, z: o.z, r: rr, t, sp: pickSp(s, t), hp, hp0: hp, st: 4, tc: -99, th: s.lt + DROP_T, ch: 0, dx: 0, dz: 0, tap: false, h: r(), fr: 1e9 });
-  s.dropT = s.lt + (s.free.length > 3 ? 5 + Math.floor(r() * 4) : 18 + Math.floor(r() * 18));
+  s.dropT = s.lt + (s.free.length > 4 ? 10 + Math.floor(r() * 6) : 18 + Math.floor(r() * 18));
   see(s, 'et:' + t);
   ev(s, 'drop', o.x, o.z, s.eggs.length - 1);
 }
@@ -621,7 +621,7 @@ const game: GameDef<NestState> & { wows(s: NestState): number } = {
         run(s);
         refill(s);
       }
-      // 연쇄가 꺼짐: 남은 깨짐이 없고 1초가 지났다 (톡이 없으면 바로)
+      // 연쇄가 꺼짐: 남은 깨짐이 없고 1.5초가 지났다 (톡이 없으면 바로)
       if (s.live && s.pend === 0 && (s.taps <= 0 || s.lt - s.lastEv > GRACE)) {
         s.live = false;
         if (s.combo >= 10) s.wowN++;
@@ -710,7 +710,7 @@ export const eggnestSmart: Bot<NestState> = {
     const mid = between(s);
     if (mid) return mid;
     if (s.down || s.taps <= 0) return NO;
-    if (alive(s) ? s.pend > 0 || s.lt - s.lastEv < 6 : s.free.length > 3 && s.lt - s.lastTap < 90) return NO;
+    if (alive(s) ? s.pend > 0 || s.lt - s.lastEv < 10 : s.free.length > 3 && s.lt - s.lastTap < 90) return NO;
     const i = bestTap(s);
     return i < 0 ? NO : eggAt(s.eggs[i]);
   },
@@ -2720,13 +2720,13 @@ function drawCard(ctx: C2, s: NestState, w: number, h: number) {
   }
   ctx.restore();
 }
-/** 도감: 16칸 (4 × 4, 크게) — 처음 본 아기는 분홍 테두리로 콩콩 */
+/** 도감: 16칸 (8 × 2, 크게) — 처음 본 아기는 분홍 테두리로 콩콩, 드문 것은 금빛 칸 */
 function dexRow(ctx: C2, s: NestState, w: number, y0: number) {
-  const R = (r: number) => r * w, gx = R(0.2), gy = R(0.105), x0 = w / 2 - gx * 1.5, u = R(0.03), t = s.t;
-  gtext(ctx, `도감 ${s.dex.filter(Boolean).length}/${SPN}`, w / 2, y0 - R(0.055), R(0.04), 900, '#7a4214', '', 0);
+  const R = (r: number) => r * w, gx = R(0.105), gy = R(0.13), x0 = w / 2 - gx * 3.5, u = R(0.036), t = s.t;
+  gtext(ctx, `도감 ${s.dex.filter(Boolean).length}/${SPN}`, w / 2, y0 - R(0.04), R(0.042), 900, '#7a4214', '', 0);
   for (let i = 0; i < SPN; i++) {
-    const x = x0 + (i % 4) * gx, y = y0 + R(0.04) + Math.floor(i / 4) * gy, has = s.dex[i], nw = s.nestNew.includes(i);
-    rr(ctx, x - R(0.085), y - R(0.045), R(0.17), R(0.09), R(0.035));
+    const x = x0 + (i % 8) * gx, y = y0 + R(0.065) + Math.floor(i / 8) * gy, has = s.dex[i], nw = s.nestNew.includes(i);
+    rr(ctx, x - R(0.048), y - R(0.058), R(0.096), R(0.116), R(0.03));
     ctx.fillStyle = has ? (SP[i].rare ? 'rgba(255,226,120,.95)' : 'rgba(255,255,255,.96)') : 'rgba(160,120,80,.16)';
     ctx.fill();
     ctx.strokeStyle = nw ? '#ff4f7a' : 'rgba(170,120,60,.5)';
@@ -2734,12 +2734,11 @@ function dexRow(ctx: C2, s: NestState, w: number, y0: number) {
     ctx.stroke();
     if (has) {
       ctx.save();
-      ctx.translate(x - R(0.035), y + R(0.035) - (nw ? Math.abs(Math.sin(t * 0.2 + i)) * R(0.01) : 0));
+      ctx.translate(x, y + R(0.045) - (nw ? Math.abs(Math.sin(t * 0.2 + i)) * R(0.01) : 0));
       stamp(ctx, babySpr(i, nw ? P_CHEER : P_SIT, u * 2.3), F_BABY, u);
       ctx.restore();
-      gtext(ctx, SP[i].name.replace('아기 ', ''), x + R(0.035), y, R(0.03), 800, '#7a4214', '', 0);
-    } else gtext(ctx, '?', x, y, R(0.045), 900, 'rgba(140,100,60,.55)', '', 0);
-    if (nw) gtext(ctx, 'NEW', x + R(0.06), y - R(0.045), R(0.026), 900, '#ffffff', '#ff4f7a', 3);
+    } else gtext(ctx, '?', x, y, R(0.05), 900, 'rgba(140,100,60,.55)', '', 0);
+    if (nw) gtext(ctx, 'NEW', x, y - R(0.06), R(0.026), 900, '#ffffff', '#ff4f7a', 3);
   }
 }
 export const __clone = (s: NestState) => clone(s), __tap = (s: NestState, i: number) => tapEgg(s, i), __ff = (s: NestState) => ff(s);
