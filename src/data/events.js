@@ -67,7 +67,7 @@ export const EVENTS = {
   ] },
   jangseung: { title: '길가의 장승', art: 'treant', text: '장승 하나가 길 한가운데까지 걸어 나와 있습니다.\n절을 올리면 길을 지켜 준답니다.', choices: () => [
     { label: '절을 올린다', desc: '사기 +4로 시작', pick: () => ['장승의 눈매가 조금 누그러진 듯합니다.', act.morale(4)] },
-    { label: '금줄을 걸어 준다', cost: 30, desc: '엽전 30 → 보물 [솟대]', pick: () => { act.gold(-30); return ['흰 종이 끼운 새끼줄을 걸자 바람이 잦아듭니다.', act.relic('sotdae')]; } },
+    { label: '금줄을 걸어 준다', cost: 30, desc: '엽전 30 → 보물 [솟대]', pick: () => { act.gold(-30); return ['고추와 숯을 끼운 새끼줄을 걸자 바람이 잦아듭니다.', act.relic('sotdae')]; } },
   ] },
   scholar: { title: '떠돌이 선비', art: 'necro', text: '정자에서 갓 쓴 선비가 장기판을 펴 놓았습니다.\n"심심하던 차요. 병법 이야기나 합시다."', choices: () => [
     { label: '병법을 배운다', cost: 30, desc: '엽전 30 → 전술 패 하나 익힘(+)', pick: () => { act.gold(-30); return ['선비의 훈수 한마디에 눈이 번쩍 뜨입니다.', act.cardUp()]; } },

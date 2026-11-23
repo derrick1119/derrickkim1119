@@ -144,11 +144,11 @@ function curtain(g, side, e, t) {
 }
 
 // ── 구경꾼의 뒷모습 ──
-// kind: 0 갓 쓴 어른 · 1 댕기 머리 아이 · 2 수건 쓴 아낙 · 3 상투 튼 사내 · 4 더벅머리 꼬마 · 5 쪽진 머리에 비녀 꽂은 아낙
+// kind: 0 갓 쓴 어른 · 1 댕기 머리 아이 · 2 수건 쓴 아낙 · 3 상투 튼 사내 · 4 패랭이 쓴 장돌뱅이 · 5 쪽진 머리에 비녀 꽂은 아낙
 const SIL = '#0f0a10', SIL2 = '#1c141c', RIM = 'rgba(255,214,150,0.92)';
 function viewer(g, x, y, s, kind, t, hop) {
   const ph = x * 0.137, bob = Math.sin(t * 1.25 + ph) * 1.3 - hop * Math.abs(Math.sin(t * 9 + ph)) * 12, tilt = Math.sin(t * 0.42 + ph * 1.7) * 0.05 + hop * Math.sin(t * 7 + ph) * 0.08, br = 1 + Math.sin(t * 1.25 + ph) * 0.012;
-  const small = kind === 1 || kind === 4;
+  const small = kind === 1;
   g.save(); g.translate(x, y + bob); g.scale(s, s * br);
   // 어깨와 등: 아래는 화면 밖으로
   g.fillStyle = SIL; g.beginPath(); const sw = small ? 22 : 30; g.moveTo(-sw - 6, 60); g.quadraticCurveTo(-sw - 4, -4, -8, -10); g.lineTo(8, -10); g.quadraticCurveTo(sw + 4, -4, sw + 6, 60); g.closePath(); g.fill();
@@ -172,9 +172,12 @@ function viewer(g, x, y, s, kind, t, hop) {
     g.beginPath(); g.ellipse(0, hy - hr - 3, 5.4, 6.4, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,214,150,0.7)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-8, hy - hr - 4); g.lineTo(8, hy - hr - 2); g.stroke();
     g.fillStyle = '#251c24'; g.fillRect(-hr, hy - 6, hr * 2, 4);
     g.strokeStyle = RIM; g.lineWidth = 1.25; g.beginPath(); g.arc(0, hy, hr, -2.5, -0.64); g.stroke(); g.beginPath(); g.arc(0, hy - hr - 3, 5.4, -2.6, -0.5); g.stroke();
-  } else if (kind === 4) {   // 더벅머리 꼬마
-    for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(k * 4 - 3, hy - hr + 3); g.lineTo(k * 4.6 + Math.sin(k) * 2, hy - hr - 5 - (2 - Math.abs(k)) * 1.6); g.lineTo(k * 4 + 3, hy - hr + 3); g.closePath(); g.fill(); }
-    g.strokeStyle = RIM; g.lineWidth = 1.25; g.beginPath(); g.arc(0, hy, hr, -2.6, -0.54); g.stroke();
+  } else if (kind === 4) {   // 패랭이: 대오리로 엮은 둥근 대우에 갓보다 좁은 양태, 옆에 목화송이 (장돌뱅이)
+    g.fillStyle = SIL2; g.beginPath(); g.ellipse(0, hy - 7, 19, 4.4, 0, 0, TAU); g.fill(); g.fillStyle = SIL;
+    g.beginPath(); g.moveTo(-10.5, hy - 7); g.quadraticCurveTo(-11, hy - 20, 0, hy - 21); g.quadraticCurveTo(11, hy - 20, 10.5, hy - 7); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,214,150,0.35)'; g.lineWidth = 0.9; for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(k * 3.6, hy - 8); g.quadraticCurveTo(k * 3.2, hy - 16, k * 2, hy - 20); g.stroke(); }
+    g.strokeStyle = RIM; g.lineWidth = 1.25; g.beginPath(); g.ellipse(0, hy - 7, 19, 4.4, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke(); g.beginPath(); g.moveTo(-10, hy - 10); g.quadraticCurveTo(-10, hy - 20, 0, hy - 20.5); g.quadraticCurveTo(10, hy - 20, 10, hy - 10); g.stroke();
+    g.fillStyle = 'rgba(244,236,220,0.9)'; g.beginPath(); g.arc(11, hy - 12, 3.2, 0, TAU); g.fill(); g.beginPath(); g.arc(13.4, hy - 9.6, 2.4, 0, TAU); g.fill();
   } else if (kind === 5) {   // 쪽진 머리: 뒤통수 아래 둥근 쪽에 비녀가 가로로
     g.beginPath(); g.ellipse(0, hy + 7, 8, 6, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(232,210,160,0.85)'; g.lineWidth = 2; g.beginPath(); g.moveTo(-15, hy + 6); g.lineTo(15, hy + 7); g.stroke(); g.fillStyle = 'rgba(232,210,160,0.85)'; g.beginPath(); g.arc(15.5, hy + 7, 2, 0, TAU); g.fill();
     g.strokeStyle = RIM; g.lineWidth = 1.25; g.beginPath(); g.arc(0, hy, hr, -2.6, -0.54); g.stroke();
