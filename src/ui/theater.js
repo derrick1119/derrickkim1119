@@ -112,8 +112,8 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   if (type[0] === '*') { prop(g, type.slice(1), x + dx, y + dy, s, t); return; }
   if (pose) type = type + pose; else if ((act === 'sleep' || (lie && act === 'bow') || o.calm) && LOOKS[type + '_calm']) type = type + '_calm';   // 엎드리거나 잠든 범은 입을 다문다
   const L = getLook(type), sc = (o.scale || 1), ps = s * (L.boss ? 0.62 : 1) * sc / (L.scale / 1.1);
-  // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다
-  if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#9a7440', 2.4 * s); }
+  // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다 (o.rodTo: 막대 아래 끝 y · o.rodSkip: [위, 아래] 그 사이는 앞의 세간에 가려 그리지 않는다)
+  if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); const by = o.rodTo !== undefined ? o.rodTo : y + 96 * s, at = yy => cx + (bx - cx) * (yy - cy) / (by - cy), segs = o.rodSkip ? [[cy, o.rodSkip[0]], [o.rodSkip[1], by]] : [[cy, by]]; for (const [y0, y1] of segs) { if (y1 <= y0) continue; line(g, [at(y0), y0, at(y1), y1], INK, 4.4 * s); line(g, [at(y0), y0, at(y1), y1], '#9a7440', 2.4 * s); line(g, [at(y0) - 0.8 * s, y0 + 6 * s, at(y1) - 0.8 * s, y1], 'rgba(255,230,180,0.35)', 0.9 * s); } }
   const shut = act === 'sleep' || (lie && act === 'bow'), breathe = pose === '_sleep' ? 1 + Math.sin(t * 2) * 0.025 : 1;   // 잠든 범은 숨 쉬듯 부푼다
   g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (breathe !== 1) g.scale(1, breathe); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
   portrait(g, type, 0, 0, ps * (L.scale / 1.1), shut ? 0 : t, false, bare ? 'none' : undefined, shut);
