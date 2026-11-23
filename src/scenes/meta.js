@@ -1,7 +1,7 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
 import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, ell, makeCanvas, clamp } from '../render/draw.js';
-import { button, panel, brushTitle, stamp, bar, tapped, C } from '../ui/ui.js';
+import { button, panel, brushTitle, stamp, bar, tapped, C, foil, goldText } from '../ui/ui.js';
 import { UNITS } from '../data/units.js';
 import { TALES } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
@@ -24,16 +24,23 @@ function shade(id) {
   }
   return c;
 }
+// 장부 한 줄: 금박 테를 두른 한지 쪽지. 연 것은 옅은 쑥빛, 왼쪽에 빛깔 띠
+function slip(g, x, y, w, h, open) {
+  rr(g, x + 2, y + 5, w, h, 7, 'rgba(0,0,0,0.4)');
+  const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, open ? '#eef4e4' : '#fdf8ea'); gr.addColorStop(1, open ? '#d6e3c8' : '#ece0c2'); rr(g, x, y, w, h, 7, gr, INK, 2);
+  rr(g, x + 3, y + 3, w - 6, h - 6, 5, null, foil(g, x, x + w), 1.2); rr(g, x + 3, y + 3, 6, h - 6, 3, open ? TEAL : '#b8742a');
+  g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(x + 12, y + 4, w - 24, 1.2);
+}
 export class MetaScene {
   constructor(a) { this.t = 0; this.book = !!(a && a.book); this.beasts = false; this.sel = 0; noteDeed(); }
   // 영물의 인연: 원정에서 쌓은 공으로 영물이 합류한다. 아직 못 만난 영물도 무엇을 하면 되는지 보인다
   drawBeasts(g) {
     brushTitle(g, 250, 48, 360, 66, '영물의 인연', TEAL, 38);
-    text(g, `인연을 맺은 영물 ${BEASTS.filter(b => has(b.id)).length} / ${BEASTS.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '공을 쌓으면 영물이 합류합니다. 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 720 });
+    goldText(g, `인연을 맺은 영물 ${BEASTS.filter(b => has(b.id)).length} / ${BEASTS.length}`, 520, 44, { size: 32, align: 'left', glow: false });
+    text(g, '공을 쌓으면 영물이 합류합니다. 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 720 });
     BEASTS.forEach((b, n) => {
       const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id], cnt = Math.min(b.need, deedCount(b));
-      rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
+      slip(g, x, y, w, h, open);
       // 초상: 칸을 채우는 고른 크기로. 아직 못 만난 영물은 먹 실루엣으로 보인다
       rr(g, x + 9, y + 8, 104, 69, 5, open ? '#f3ead2' : '#e6dcc2', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 102, 67); g.clip();
       if (open) portrait(g, b.id, x + 61 + (BX[b.id] || 0), y + (BY[b.id] || 73), BK[b.id] || 1, this.t); else g.drawImage(shade(b.id), x + 10, y + 9, 102, 67);
@@ -49,8 +56,8 @@ export class MetaScene {
   drawBook(g) {
     const got = meta.tales || [];
     brushTitle(g, 250, 48, 360, 66, '이야기책', '#2f6f5c', 38);
-    text(g, `들은 이야기 ${got.length} / ${TALES.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '주막에서 고개의 옛이야기를 들려줍니다 — 두목을 이길 귀띔도', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
+    goldText(g, `들은 이야기 ${got.length} / ${TALES.length}`, 520, 44, { size: 32, align: 'left', glow: false });
+    text(g, '주막에서 고개의 옛이야기를 들려줍니다 — 두목을 이길 귀띔도', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left' });
     panel(g, 30, 108, 420, 574); panel(g, 470, 108, 780, 464);
     TALES.forEach((t, n) => {
       const y = 122 + n * 45, has = got.includes(t.id), on = this.sel === n;
@@ -77,11 +84,11 @@ export class MetaScene {
     if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 21 })) { this.book = true; return; }
     if (button(g, 'beasts', 830, 22, 204, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'teal', size: 21 })) { this.beasts = true; return; }
     brushTitle(g, 250, 48, 360, 66, '공적 장부', INDIGO, 38);
-    text(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '원정이 끝날 때마다 공적이 쌓입니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 290 });
+    goldText(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 32, align: 'left', glow: false });
+    text(g, '원정이 끝날 때마다 공적이 쌓입니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 290 });
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
-      rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
+      slip(g, x, y, w, h, open);
       if (u.unit) { rr(g, x + 9, y + 8, 78, 66, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 76, 64); g.clip(); portrait(g, u.unit, x + 47, y + 72, 0.8, this.t); g.restore(); } else stamp(g, x + 48, y + 41, 25, 'perk', '#b8742a', -0.1);
       text(g, u.name, x + 102, y + 30, { size: 23, font: FONT_B, align: 'left' }); text(g, u.desc, x + 104, y + 58, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 320 });
       if (open) stamp(g, x + w - 70, y + 41, 27, 'open', TEAL, -0.12);

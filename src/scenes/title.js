@@ -2,7 +2,7 @@
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, line, path, st, makeCanvas, rng, clamp } from '../render/draw.js';
 import { button, iconBtn, icon, panel, seal, C, ui } from '../ui/ui.js';
-import { drawTitleScene, INTRO_END } from '../render/titleart.js';
+import { drawKeyArt, drawVista, KEY_INTRO } from '../render/keyart.js';
 import { nav } from '../nav.js';
 import { G, meta, save } from '../state.js';
 import { chapterOf } from '../data/stages.js';
@@ -59,17 +59,18 @@ export function backdrop() {
   grassTuft(g, 96, 584, 2, '#5f7a5a', R); grassTuft(g, 1200, 616, 2, '#5f7a5a', R);
   bg = c; return c;
 }
-export function dimBackdrop(g, a = 0.72) { g.drawImage(backdrop(), 0, 0, W, H); g.fillStyle = `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }
+// 메뉴 화면(영웅 고르기·공적 장부)의 배경: 첫 화면과 같은 달밤 고갯마루를 어둡게 깐다
+export function dimBackdrop(g, a = 0.5) { drawVista(g, performance.now() / 1000, Math.min(0.62, a * 0.7)); }
 
-// 첫 화면 '열두 고개': 인형극 무대의 막이 걷히고, 현판이 내려오고, 고갯길의 등불이 하나씩 켜진다 (render/titleart.js)
+// 첫 화면 '열두 고개': 달밤의 열두 겹 고갯마루, 등불 행렬과 금박 제호 (render/keyart.js)
 export class TitleScene {
   constructor() { this.t = 0; this.confirm = false; }
   frame(g, dt) {
     bgm('title');
-    this.t += dt; const t = this.t, intro = t < INTRO_END;
+    this.t += dt; const t = this.t, intro = t < KEY_INTRO;
     // 첫 등장 연출 중에 누르면 바로 끝 장면으로
-    if (intro && ui.inp && ui.inp.released && !this.confirm) this.t = INTRO_END;
-    drawTitleScene(g, this.t);
+    if (intro && ui.inp && ui.inp.released && !this.confirm) this.t = KEY_INTRO;
+    drawKeyArt(g, this.t);
     const r = G.run, k = clamp((this.t - 3.0) / 0.5, 0, 1);
     if (k <= 0) return;
     g.save(); g.globalAlpha = k;

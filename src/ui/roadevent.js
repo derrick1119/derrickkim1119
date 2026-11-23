@@ -5,7 +5,7 @@ import { W, H } from '../config.js';
 import { TAU, INK, RED, TEAL, SUB, FONT_B, text, textBlock, ell, rr, line, path, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { button, icon, panel, tapped, isDown } from './ui.js';
 import { Overlay, resultIcon, BAD, GOOD } from './overlays.js';
-import { glow, chorong } from './places.js';
+import { glow, chorong, hangSign, scroll, motes, beams } from './places.js';
 import { drawStage, drawFrame, puppet } from './theater.js';
 import { G, save } from '../state.js';
 import { chapterOf } from '../data/stages.js';
@@ -70,6 +70,18 @@ function sheet(g, x, y, w, h, band, o = {}) {
   const cx = x + w / 2; rr(g, cx - 7, y - 20, 14, 30, 4, '#a9753f', INK, 1.6); line(g, [cx, y - 16, cx, y + 6], 'rgba(40,24,14,0.6)', 1.2); ell(g, cx, y - 4, 3, 3, '#6a5030');
 }
 
+// 구경꾼 뒷모습 (머리와 어깨). kind: 0 갓 · 1 댕기 머리 아이 · 2 수건 쓴 아낙
+function audience(g, x, y, s, kind, t) {
+  const ink = '#140e14', rim = 'rgba(255,200,130,0.55)', bob = Math.sin(t * 1.3 + x) * 1.2;
+  g.save(); g.translate(x, y + bob); g.scale(s, s);
+  g.fillStyle = ink; g.beginPath(); g.moveTo(-26, 30); g.quadraticCurveTo(-26, -6, 0, -8); g.quadraticCurveTo(26, -6, 26, 30); g.closePath(); g.fill();
+  g.beginPath(); g.arc(0, -20, 12, 0, TAU); g.fill();
+  if (kind === 0) { g.beginPath(); g.ellipse(0, -28, 20, 4.4, 0, 0, TAU); g.fill(); g.fillRect(-6, -40, 12, 12); }
+  else if (kind === 1) { g.beginPath(); g.moveTo(-2, -12); g.quadraticCurveTo(-6, 6, -2, 18); g.lineTo(2, 18); g.quadraticCurveTo(-2, 6, 2, -12); g.closePath(); g.fill(); g.fillStyle = '#8a2a26'; g.fillRect(-4, 14, 8, 5); }
+  else { g.fillStyle = '#4a4248'; g.beginPath(); g.ellipse(0, -26, 13, 7, 0, Math.PI, TAU); g.fill(); }
+  g.strokeStyle = rim; g.lineWidth = 1.4; g.beginPath(); g.arc(0, -20, 12, -2.2, -0.6); g.stroke(); g.beginPath(); g.moveTo(-20, 4); g.quadraticCurveTo(0, -10, 20, 4); g.stroke();
+  g.restore();
+}
 export class EventScene extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, after: o.after, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', bg: o.bg || null, result: null, pickI: -1, rt: 0 }); }
   textW(g, s) { g.save(); g.font = `400 20px ${FONT_B}`; const w = Math.max(...String(s).split('\n').map(l => g.measureText(l).width)); g.restore(); return w; }
@@ -92,19 +104,23 @@ export class EventScene extends Overlay {
     g.drawImage(hallBG(), 0, 0, W, H);
     // 장대 끝의 초롱과 불빛
     for (const [x, d] of [[POLE[0], 1], [POLE[1], -1]]) { const lx = x + d * 86, f = 0.85 + 0.15 * Math.sin(t * 2.6 + x); glow(g, lx, 150, 110, '255,180,100', 0.3 * f); line(g, [lx, 104, lx, 116], INK, 1.4); chorong(g, lx, 122, 2.6); }
+    // 무대를 비추는 두 줄기 빛
+    beams(g, 300, 0, 470, 1.25, 2, t, '255,226,170', 0.07); beams(g, 960, 0, 470, 1.9, 2, t, '255,226,170', 0.07);
     // 무대
     const floor = drawStage(g, SX, SY, SW, SH, { bg: this.bg || STAGE_BG[chapterOf(r.ch).theme] || 'pass' });
     this.cast(g, floor, t);
     drawFrame(g, SX, SY, SW, SH, clamp(t / 0.8, 0, 1), t);
     // 무대 위 현판
-    rr(g, 640 - 168, 17, 336, 44, 6, 'rgba(8,6,10,0.45)'); rr(g, 640 - 170, 12, 340, 44, 6, '#f3e7c8', INK, 2.2); rr(g, 640 - 165, 16, 330, 36, 4, null, 'rgba(122,74,44,0.7)', 1.2); 
-    text(g, this.title, 640, 35, { size: 23, font: FONT_B, fill: INK, maxW: 300 });
+    hangSign(g, 640, 8, this.title, { w: 340, h: 50, size: 24, rope: false });
     // 이야기꾼의 한마디 (결과가 나오면 결과 이야기로 바뀌고, 오른쪽에 떠나는 단추가 선다)
     const said = res ? res[0] : this.body, nw = res ? 680 : clamp(this.textW(g, said) + 90, 460, 840), nx = res ? 214 : 640 - nw / 2, ny = 450, nh = 70, k = res ? clamp(rt / 0.3, 0, 1) : clamp((t - 0.5) / 0.3, 0, 1);
-    rr(g, nx + 3, ny + 5, nw, nh, 9, 'rgba(6,4,10,0.45)'); rr(g, nx, ny, nw, nh, 9, '#fbf3df', INK, 2.2); rr(g, nx + 5, ny + 5, nw - 10, nh - 10, 6, null, 'rgba(201,150,46,0.7)', 1);
+    scroll(g, nx, ny, nw, nh);
     { const s = said, n = String(s).split('\n').length; g.save(); g.globalAlpha = k; textBlock(g, s, nx + nw / 2, ny + nh / 2 - (n - 1) * 13.5 + 1 + (1 - k) * 5, nw - 40, 27, { size: 20, font: FONT_B }); g.restore(); }
     panel(g, GOLD_AT[0] - 34, 12, 190, 48, 'tag'); icon.coin(g, GOLD_AT[0] - 8, GOLD_AT[1], 13); text(g, `엽전 ${r.gold}`, GOLD_AT[0] + 66, GOLD_AT[1] + 1, { size: 22, font: FONT_B, maxW: 140 });
     if (button(g, 'evdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    // 구경꾼: 장대 아래 앉은 마을 사람들의 뒷모습 (등불에 테두리가 밝다)
+    for (const [x, s2, kind] of [[96, 1.1, 0], [150, 0.95, 1], [1130, 1.0, 2], [1188, 1.12, 0], [60, 0.85, 2], [1236, 0.9, 1]]) audience(g, x, 548, s2, kind, t);
+    motes(g, t, 180, 60, 920, 380, 18, '255,236,190', 0.4);
     rope(g);
     if (!res) this.slips(g, t); else this.results(g, t, rt);
   }

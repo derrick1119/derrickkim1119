@@ -33,6 +33,7 @@ const NUM = ['', '하나', '둘', '셋', '넷', '다섯'];
 export const GRADE = ['', 'star1', 'star2', 'star3'];   // 전공 등급: 붓으로 찍는 별 하나·둘·셋
 // 고개 하나가 인형극의 한 마당이다
 const MARCH = 520, MARCH_V = 300;
+const PAPER_BG = typeof location !== 'undefined' && new URLSearchParams(location.search).has('paper');
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
 const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman', 'dueok', 'yagwang'], GHOST = ['skel', 'skelarcher'];
@@ -151,7 +152,6 @@ export class RunScene {
     const kind = DOK.includes(e.utype) ? 'dok' : GHOST.includes(e.utype) && e.last ? 'ghost' : null;
     if (kind && !r.seen[kind] && !this.talk) { r.seen[kind] = 1; this.say(FIRST_SIGHT[kind]); }
   }
-  toggleBg() { meta.bgStyle = meta.bgStyle === 'paper' ? 'paint' : 'paper'; save(); sfx('click'); this.toast(meta.bgStyle === 'paper' ? '배경: 이전 종이 배경' : '배경: 새 그림 배경', 1.6); }
   // 배경 음악: 행군·싸움·두목·쉬어 가는 곳(장터·주막·사건)·끝
   musicFor() {
     const o = this.over, p = this.phase;
@@ -209,7 +209,7 @@ export class RunScene {
     const n = '12345'.indexOf(k);
     if (n >= 0 && b.hand[n]) { if (this.aim && this.aim.slot === n) this.aim = null; else if (b.canPlay(n)) { this.aim = { slot: n, card: b.hand[n], drag: false, armed: true, live: false }; this.order = null; sfx('click'); } else this.deny(n); }
     else if (k === 'q' || k === 'Q') this.allOrder(true); else if (k === 'e' || k === 'E') this.allOrder(false);
-    else if (k === 'r' || k === 'R') { if (b.redraw()) this.aim = null; } else if (k === 'f' || k === 'F') this.speed = this.speed === 1 ? 2 : 1; else if (k === 'b' || k === 'B') this.toggleBg();
+    else if (k === 'r' || k === 'R') { if (b.redraw()) this.aim = null; } else if (k === 'f' || k === 'F') this.speed = this.speed === 1 ? 2 : 1;
   }
   deny(n) { const why = this.b.whyNot(n); sfx('deny'); this.toast(why === 'cap' ? `부대는 ${this.b.cap}개까지 세울 수 있습니다` : why === 'hero' ? (CARDS[this.b.hand[n].id].kind === 'lead' ? '영웅은 이미 전장에 있습니다' : '영웅이 전장에 있어야 씁니다') : '사기가 부족합니다', 1.4); }
   allOrder(hold) { const b = this.b, mine = b.squads.filter(q => q.team === 0 && q.alive > 0 && !q.def.banner); for (const q of mine) hold ? b.orderHold(q) : b.orderAuto(q); this.view.fx.txt(640, 330, hold ? '전군 대기!' : '전군 돌격!', hold ? INDIGO : RED, 38, 1); sfx(hold ? 'order' : 'horn'); }
@@ -252,7 +252,7 @@ export class RunScene {
       const maxX = b.deployMaxX(), on = (a.live || a.drag) && i.y < BAR_Y - 8 && i.y > HUD_H; opt.deploy = { maxX, ok: !on || i.x <= maxX + 34 };
       if (on) { const d = CARDS[a.card.id], def = defOf(d.unit, a.card.wpn); opt.extra = ghostUnits(d.unit, def.n, Math.min(i.x, maxX), clamp(i.y, VIEW.y0 + 26, VIEW.y1 - 26), formation, a.card.wpn).map(u => ({ y: u.y, u, alpha: 0.75 })); }
     }
-    view.style = meta.bgStyle === 'paper' ? 'paper' : 'paint';
+    view.style = PAPER_BG ? 'paper' : 'paint';   // 전장 배경은 그림 배경 (?paper 로 예전 종이 배경을 볼 수 있다)
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
     if (!this.over && !this.menu && !this.sub && !juice.show && !(this.enc && this.enc.boss && this.phase === 'fight') && this.phase !== 'clear') this.drawTalk(g);
@@ -326,7 +326,7 @@ export class RunScene {
     text(g, '남은 병력', 52, 19, { size: 13, fill: '#cfe0f4', align: 'left' });
     text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
     // 노정: 이번 고개에서 만날 것들
-    const n = rd.stops.length, x0 = 330, x1 = 858, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
+    const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
     text(g, chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
     line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
@@ -342,8 +342,6 @@ export class RunScene {
     // 오른쪽: 엽전, 보물, 빠르기, 멈춤
     panel(g, 928, 14, 128, 36, 'tag'); icon.coin(g, 948, 32, 11); text(g, String(r.gold), 1004, 33, { size: 20, font: FONT_B, maxW: 80 });
     if (iconBtn(g, 'relics', 1066, 13, 62, 38, (gg, x, y) => { if (r.relics.length) relicIcon(gg, r.relics[r.relics.length - 1], x - 12, y, 0.52); else symbol(gg, 'treasure', x - 12, y, 22, SUB); text(gg, String(r.relics.length), x + 15, y + 1, { size: 19, font: FONT_B }); })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
-    // 배경 바꿔 보기: 붓 그림 ↔ 종이 디오라마
-    if (iconBtn(g, 'bgstyle', 870, 13, 50, 38, (gg, x, y) => text(gg, meta.bgStyle === 'paper' ? '종이' : '그림', x, y + 1, { size: 16, font: FONT_B, fill: INK }))) this.toggleBg();
     if (iconBtn(g, 'speed', 1138, 13, 58, 38, (gg, x, y) => text(gg, '×' + this.speed, x, y + 1, { size: 22, font: FONT_B, fill: this.speed > 1 ? RED : INK }), { on: this.speed > 1 })) this.speed = this.speed === 1 ? 2 : 1;
     if (iconBtn(g, 'menu', 1206, 13, 60, 38, icon.menu)) this.menu = true;
     // 싸움 중: 전공 조건과 두목 체력

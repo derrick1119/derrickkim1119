@@ -23,23 +23,23 @@ const PT = {
   dusk: { sky: ['#2a2c56', '#c98a74'], far: ['#45506e', '#5a6584', '#707b98'], hill: ['#3a4560', '#4b5672'], leaf: ['#26343e', '#3a4a52', '#5c6e78'], grass: ['#4c5c66', '#5e6e78', '#3c4a54'], sand: ['#8a90a2', '#767c90'], bloom: ['#b9a2e2', '#dccdf4', '#8a72ba'], rock: ['#8a8ea0', '#646878'], wood: '#5a4c48', wall: '#9aa0b0', light: [196, 206, 255], night: true },
   under: { sky: ['#140f1e', '#5a2a4a'], far: ['#3a2c4c', '#4c3a5e', '#62486e'], hill: ['#2c2a3a', '#3a3a4a'], leaf: ['#1e2a2c', '#2e3e40', '#4e6264'], grass: ['#34484a', '#466064', '#24343a'], sand: ['#5c6c6e', '#48585c'], bloom: ['#d0422f', '#ec7060', '#8a2420'], rock: ['#8a8292', '#625a6c'], wood: '#4a3a40', wall: '#9a90a6', light: [255, 170, 160], night: true },
 };
-const pal = id => Object.assign({}, BASE, PT[id] || {}, { night: !!(PT[id] && PT[id].night) || !!(THEMES[id] && THEMES[id].night) });
+export const pal = id => Object.assign({}, BASE, PT[id] || {}, { night: !!(PT[id] && PT[id].night) || !!(THEMES[id] && THEMES[id].night) });
 
 // ── 붓질 도구 ──
-const hx = c => [1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16));
-const mix = (a, b, t) => { const p = hx(a), q = hx(b); return '#' + p.map((v, i) => Math.round(v * (1 - t) + q[i] * t).toString(16).padStart(2, '0')).join(''); };
-const rgba = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
+export const hx = c => [1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16));
+export const mix = (a, b, t) => { const p = hx(a), q = hx(b); return '#' + p.map((v, i) => Math.round(v * (1 - t) + q[i] * t).toString(16).padStart(2, '0')).join(''); };
+export const rgba = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
 // 붓 자국 하나: 납작한 타원 (여러 번 겹쳐 칠한 것처럼)
-const dab = (g, x, y, rx, ry, col, a, rot = 0) => { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); };
-const stroke = (g, pts, col, w, a = 1) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.stroke(); };
-const vgrad = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); stops.forEach(([t, c]) => gr.addColorStop(t, c)); return gr; };
+export const dab = (g, x, y, rx, ry, col, a, rot = 0) => { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); };
+export const stroke = (g, pts, col, w, a = 1) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.stroke(); };
+export const vgrad = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); stops.forEach(([t, c]) => gr.addColorStop(t, c)); return gr; };
 // 이어 붙여 흐르는 그림: 가장자리를 넘는 것은 반대편에도 한 번 더 그린다
 const wrapAt = (P, x, r, fn) => { fn(x); if (x - r < 0) fn(x + P); if (x + r > P) fn(x - P); };
 const bumpP = (x, c, w, P) => { const d = ((x - c) % P + P * 1.5) % P - P / 2; return Math.exp(-(d / w) * (d / w)); };
 function ridgeShape(g, f, x0, x1, yb) { g.beginPath(); g.moveTo(x0, yb); for (let x = x0; x <= x1; x += 5) g.lineTo(x, f(x)); g.lineTo(x1, yb); g.closePath(); }
 
 // 산 한 겹: 능선은 짙고 산허리는 밝게 풀리며, 비스듬한 붓결(준)을 옅게 얹고 아래는 안개에 잠긴다
-function mountain(g, f, w, yb, col, haze, R, o = {}) {
+export function mountain(g, f, w, yb, col, haze, R, o = {}) {
   ridgeShape(g, f, -10, w + 10, yb); g.globalAlpha = 1; g.fillStyle = vgrad(g, yb - (o.h || 150), yb, [[0, mix(col, '#2a3440', 0.12)], [0.55, col], [1, mix(col, haze, 0.55)]]); g.fill();
   g.save(); ridgeShape(g, f, -10, w + 10, yb); g.clip();
   // 볕 드는 쪽 (오른 비탈을 밝게)
@@ -51,7 +51,7 @@ function mountain(g, f, w, yb, col, haze, R, o = {}) {
   g.fillStyle = vgrad(g, yb - (o.mist || 46), yb, [[0, rgba(haze, 0)], [1, rgba(haze, 0.92)]]); g.fillRect(-10, yb - (o.mist || 46), w + 20, (o.mist || 46));
 }
 // 뭉게구름: 흰 붓 자국을 겹쳐 쌓고 아래쪽은 서늘한 그늘
-function cloud(g, x, y, w, P, R) {
+export function cloud(g, x, y, w, P, R) {
   const n = 9 + ((w / 18) | 0), lite = P.night ? '#8c92b4' : '#fffdf6', shade = P.night ? '#4a5272' : mix(P.sky[0], '#8a9aac', 0.4);
   for (let i = 0; i < n; i++) { const t = i / (n - 1), cx = x + (t - 0.5) * w, cy = y - Math.sin(t * Math.PI) * w * 0.16 - R() * 8, r = w * (0.1 + Math.sin(t * Math.PI) * 0.13); dab(g, cx, cy + r * 0.35, r * 1.1, r * 0.5, shade, 0.35); }
   for (let i = 0; i < n; i++) { const t = i / (n - 1), cx = x + (t - 0.5) * w, cy = y - Math.sin(t * Math.PI) * w * 0.16 - R() * 8, r = w * (0.1 + Math.sin(t * Math.PI) * 0.13); dab(g, cx, cy, r, r * 0.78, lite, 0.75); dab(g, cx - r * 0.25, cy - r * 0.3, r * 0.5, r * 0.36, '#ffffff', P.night ? 0.12 : 0.5); }
@@ -78,7 +78,7 @@ export function paintFar(id, seed = 7) {
 
 // ── 성곽·문루·정자 ──
 // 기와지붕: 처마 끝이 살짝 들린 팔작지붕
-function roof(g, x, y, w, h, col) {
+export function roof(g, x, y, w, h, col) {
   g.beginPath(); g.moveTo(x - w * 0.56, y - h * 0.18); g.quadraticCurveTo(x - w * 0.42, y + h * 0.1, x - w * 0.2, y + h * 0.08); g.lineTo(x + w * 0.2, y + h * 0.08); g.quadraticCurveTo(x + w * 0.42, y + h * 0.1, x + w * 0.56, y - h * 0.18);
   g.quadraticCurveTo(x + w * 0.4, y - h * 0.5, x + w * 0.26, y - h * 0.9); g.lineTo(x - w * 0.26, y - h * 0.9); g.quadraticCurveTo(x - w * 0.4, y - h * 0.5, x - w * 0.56, y - h * 0.18); g.closePath();
   g.globalAlpha = 1; g.fillStyle = vgrad(g, y - h, y, [[0, mix(col, '#000000', 0.15)], [1, mix(col, '#c8d0dc', 0.25)]]); g.fill();
@@ -87,7 +87,7 @@ function roof(g, x, y, w, h, col) {
   stroke(g, [x - w * 0.5, y - h * 0.12, x + w * 0.5, y - h * 0.12], mix(col, '#e8eef4', 0.3), 0.9, 0.5);
 }
 // 문루: 무지개 문을 낸 돌 축대 위에 두 층 누각
-function gateTower(g, x, y, s, P) {
+export function gateTower(g, x, y, s, P) {
   const st = P.wall, red = P.night ? '#6a4a52' : '#9a4a3a', green = P.night ? '#3e5a5a' : '#4f8a70';
   g.globalAlpha = 1; g.fillStyle = vgrad(g, y - 34 * s, y, [[0, mix(st, '#ffffff', 0.15)], [1, mix(st, '#5a5040', 0.25)]]);
   g.beginPath(); g.moveTo(x - 62 * s, y); g.lineTo(x - 56 * s, y - 34 * s); g.lineTo(x + 56 * s, y - 34 * s); g.lineTo(x + 62 * s, y); g.closePath(); g.fill();
@@ -99,7 +99,7 @@ function gateTower(g, x, y, s, P) {
   roof(g, x, y - 50 * s, 122 * s, 24 * s, P.roof);
 }
 // 정자: 네 기둥에 팔작지붕
-function pavilion(g, x, y, s, P) {
+export function pavilion(g, x, y, s, P) {
   const red = P.night ? '#6a4a52' : '#9a4a3a';
   g.globalAlpha = 1; g.fillStyle = mix(P.wall, '#6a6050', 0.2); g.fillRect(x - 24 * s, y - 5 * s, 48 * s, 5 * s);
   g.fillStyle = red; for (const dx of [-18, -6, 6, 18]) g.fillRect(x + dx * s - 1.3 * s, y - 24 * s, 2.6 * s, 19 * s);
@@ -123,7 +123,7 @@ function wall(g, f, x0, x1, P, R) {
 }
 
 // ── 반송: 굽은 줄기 위에 넓적한 솔잎 구름이 층층이 앉는다 ──
-function pinePads(g, pads, P, R, s) {
+export function pinePads(g, pads, P, R, s) {
   // 그늘진 아래쪽 → 몸통 → 위쪽 볕 순으로 붓 자국을 겹친다
   for (const [px, py, rx, ry] of pads) dab(g, px, py + ry * 0.35, rx * 1.02, ry * 0.75, mix(P.leaf[0], '#1a2a20', 0.25), 0.95);
   for (const [px, py, rx, ry] of pads) { dab(g, px, py, rx, ry * 0.8, P.leaf[0], 1); for (let i = 0; i < rx * 0.9; i++) { const a = R() * TAU, d = Math.sqrt(R()), x = px + Math.cos(a) * rx * 0.9 * d, y = py + Math.sin(a) * ry * 0.6 * d - ry * 0.15; dab(g, x, y, (4 + R() * 6) * s, (2.4 + R() * 3) * s, P.leaf[1], 0.55); } }
@@ -132,7 +132,7 @@ function pinePads(g, pads, P, R, s) {
   for (const [px, py, rx, ry] of pads) for (let i = 0; i < rx * 0.25; i++) { const x = px + (R() - 0.5) * rx * 1.7, y = py + ry * 0.45 + R() * 3; stroke(g, [x, y, x + (R() - 0.5) * 5, y + 4 + R() * 4], mix(P.leaf[0], '#101810', 0.4), 0.9 * s, 0.5); }
   g.globalAlpha = 1;
 }
-function umbrellaPine(g, x, y, s, P, R, flip) {
+export function umbrellaPine(g, x, y, s, P, R, flip) {
   const f = flip ? -1 : 1, tr = P.trunk;
   // 땅 그림자
   dab(g, x + 10 * s, y + 2, 92 * s, 12 * s, '#2a2014', P.night ? 0.3 : 0.22);
@@ -146,7 +146,7 @@ function umbrellaPine(g, x, y, s, P, R, flip) {
   pinePads(g, pads, P, R, s);
 }
 // ── 꽃나무: 검붉은 가지가 비스듬히 뻗고, 가지 끝마다 꽃송이 구름이 핀다 ──
-function bloomTree(g, x, y, s, P, R, flip) {
+export function bloomTree(g, x, y, s, P, R, flip) {
   const f = flip ? -1 : 1, tr = mix(P.trunk, '#2a1c18', 0.35), tips = [];
   dab(g, x + 20 * s * f, y + 2, 110 * s, 12 * s, '#2a2014', P.night ? 0.3 : 0.2);
   const branch = (x0, y0, a, len, w, d) => {
@@ -169,7 +169,7 @@ function bloomTree(g, x, y, s, P, R, flip) {
   g.globalAlpha = 1;
 }
 // 바위: 위는 볕을 받아 밝고 아래로 갈수록 그늘, 이끼 자국
-function rock(g, x, y, w, h, P, R) {
+export function rock(g, x, y, w, h, P, R) {
   const [lc, dc] = P.rock, pts = []; for (let i = 0; i < 9; i++) { const a = Math.PI + i / 8 * Math.PI, rr2 = 0.82 + R() * 0.22; pts.push([x + Math.cos(a) * w * 0.5 * rr2, y + Math.sin(a) * h * rr2]); }
   dab(g, x + w * 0.08, y + 2, w * 0.6, h * 0.2, '#2a2014', 0.25);
   g.globalAlpha = 1; g.beginPath(); g.moveTo(x - w * 0.5, y); for (const [px, py] of pts) g.lineTo(px, py); g.lineTo(x + w * 0.5, y); g.closePath();
@@ -179,7 +179,7 @@ function rock(g, x, y, w, h, P, R) {
   stroke(g, [x - w * 0.1, y - h * 0.8, x + w * 0.02, y - h * 0.45, x - w * 0.06, y - h * 0.15], mix(dc, '#1e1e22', 0.4), 1, 0.45); g.globalAlpha = 1;
 }
 // 풀포기: 가는 붓으로 쓸어 올린 잎 몇 가닥
-function tuft(g, x, y, s, P, R, col) {
+export function tuft(g, x, y, s, P, R, col) {
   const n = 5 + ((R() * 5) | 0); for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 1.3, l = (7 + R() * 9) * s, bx = x + (R() - 0.5) * 8 * s; stroke(g, [bx, y, bx + Math.cos(a) * l * 0.5 + (R() - 0.5) * 3, y + Math.sin(a) * l * 0.6, bx + Math.cos(a) * l, y + Math.sin(a) * l], i % 3 ? col || P.grass[2] : P.grass[0], 1.3 * s, 0.85); }
   g.globalAlpha = 1;
 }

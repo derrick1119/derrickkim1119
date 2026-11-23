@@ -4,7 +4,8 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, poly, line, path, st, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { part, curve, P, R as RECT, E, dk, lt } from '../render/figures.js';
 import { THEMES, padPine, grassTuft, paperFlower } from '../render/terrain.js';
-import { button, icon, panel, stamp, seal, tapped, isDown, C } from './ui.js';
+import { button, icon, panel, stamp, seal, tapped, isDown, C, foil, goldText, shine, plaque, scroll, hangSign } from './ui.js';
+export { plaque, scroll, hangSign };
 import { cardFace } from './cards.js';
 import { Overlay, RewardOverlay, COL, supplyArt, resultIcon, BAD, GOOD } from './overlays.js';
 import { G, save, describeReward, buyItem, upgradeCard, removeCard, STOP, forkDesc } from '../state.js';
@@ -12,6 +13,7 @@ import { cardName, isUnit } from '../data/cards.js';
 import { weaponIcon, portrait } from '../render/sprites.js';
 import { relicIcon, miscIcon } from '../render/icons.js';
 import { puppet } from './theater.js';
+import { pal as PAL, mix as MIX, vgrad as VG, dab as DAB, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK } from '../render/painted.js';
 import { sfx } from '../audio.js';
 import { juice, SPOT, goldRays } from './juice.js';
 
@@ -30,6 +32,32 @@ export function chorong(g, x, y, s, lit = 1) {
   path(g, sh, lit ? '#e0412f' : '#7a2420', 'rgba(10,8,8,0.7)', 0.9 * s);
   g.save(); g.beginPath(); g.rect(x - 9 * s, y + 3 * s, 18 * s, bh * 0.42); g.clip(); path(g, sh, lit ? '#3d6fd6' : '#24345e', 'rgba(10,8,8,0.7)', 0.9 * s); g.restore();
   rr(g, x - 5 * s, y + 3 * s + bh, 10 * s, 2.4 * s, 1 * s, '#2a2024'); line(g, [x, y + 5.4 * s + bh, x, y + 12 * s + bh], '#c8402f', 1.4 * s);
+}
+// ── 장소들이 함께 쓰는 꾸밈 ──
+// 떠도는 빛 먼지 (볕이나 등불 속에서)
+export function motes(g, t, x, y, w, h, n = 24, rgb = '255,236,190', a = 0.6) {
+  for (let i = 0; i < n; i++) { const ph = i * 1.37, px = x + ((i * 173.3 + Math.sin(t * 0.3 + ph) * 40 + t * (6 + (i % 5) * 2)) % w), py = y + ((i * 91.7 + Math.sin(t * 0.5 + ph * 2) * 20 - t * (3 + i % 3)) % h + h) % h, k = 0.5 + 0.5 * Math.sin(t * 1.7 + ph);
+    g.globalAlpha = a * k; ell(g, px, py, 1.4, 1.4, `rgb(${rgb})`); glow(g, px, py, 6, rgb, a * k * 0.4); }
+  g.globalAlpha = 1;
+}
+// 비스듬히 내리는 빛살
+export function beams(g, x, y, len, ang, n, t, rgb = '255,230,180', a = 0.1) {
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) { const w = 30 + ((i * 37) % 50), ox = x + i * 70, k = a * (0.6 + 0.4 * Math.sin(t * 0.6 + i * 1.3)); const gr = g.createLinearGradient(ox, y, ox + Math.cos(ang) * len, y + Math.sin(ang) * len); gr.addColorStop(0, `rgba(${rgb},${k})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr;
+    g.beginPath(); g.moveTo(ox, y); g.lineTo(ox + w, y); g.lineTo(ox + w + Math.cos(ang) * len, y + Math.sin(ang) * len); g.lineTo(ox + Math.cos(ang) * len - w * 0.4, y + Math.sin(ang) * len); g.closePath(); g.fill(); }
+  g.restore();
+}
+// 장터 뒷골목을 지나가는 사람 그림자 (흰옷에 갓 · 봇짐 · 물동이)
+function walker(g, x, y, s, ph, dir, kind) {
+  const step = Math.sin(ph * 2) * 3 * s, bob = Math.abs(Math.sin(ph * 2)) * 1.6 * s, ink = 'rgba(60,52,48,0.55)', cloth = 'rgba(232,226,210,0.75)';
+  g.save(); g.translate(x, y - bob); g.scale(dir, 1);
+  line(g, [-3 * s + step, 0, -2 * s, -14 * s], ink, 3 * s); line(g, [3 * s - step, 0, 2 * s, -14 * s], ink, 3 * s);
+  path(g, p => { p.moveTo(-8 * s, -12 * s); p.lineTo(8 * s, -12 * s); p.lineTo(6 * s, -36 * s); p.lineTo(-6 * s, -36 * s); p.closePath(); }, cloth, ink, 1);
+  ell(g, 0, -41 * s, 5 * s, 5 * s, 'rgba(220,190,160,0.8)', ink, 1);
+  if (kind === 0) { ell(g, 0, -45 * s, 10 * s, 2.4 * s, 'rgba(30,26,30,0.8)'); rr(g, -3.5 * s, -52 * s, 7 * s, 7 * s, 1.5, 'rgba(30,26,30,0.8)'); }
+  else if (kind === 1) rr(g, -16 * s, -38 * s, 12 * s, 20 * s, 3, 'rgba(150,110,70,0.8)', ink, 1);
+  else { ell(g, 0, -50 * s, 8 * s, 5 * s, 'rgba(120,100,90,0.8)', ink, 1); }
+  g.restore();
 }
 // 종이 구름 (아래가 평평하다)
 function cloud(g, x, y, w, col) { const b = [[-0.36, 0.2], [-0.14, 0.34], [0.1, 0.27], [0.32, 0.17]], sh = p => { p.moveTo(x - w * 0.5, y); for (const [dx, r] of b) p.arc(x + dx * w, y - r * w * 0.42, r * w * 0.5, Math.PI, 0); p.lineTo(x + w * 0.5, y); p.closePath(); }; g.save(); g.shadowColor = 'rgba(120,100,70,0.22)'; g.shadowBlur = 8; g.shadowOffsetY = 3; g.beginPath(); sh(g); g.fillStyle = col; g.fill(); g.restore(); g.beginPath(); sh(g); g.globalAlpha = 0.5; st(g, '#fffaf0', 1.2); g.globalAlpha = 1; }
@@ -135,6 +163,9 @@ export class MarketOverlay extends Overlay {
   draw(g, dt) {
     const r = G.run, t = this.t; this.lineT += dt;
     g.drawImage(marketBG(), 0, 0, W, H);
+    // 뒷골목을 오가는 장꾼들 (갓 쓴 이, 봇짐 진 이, 물동이 인 이)
+    for (let i = 0; i < 5; i++) { const sp = 18 + i * 5, dir = i % 2 ? 1 : -1, x = dir > 0 ? ((t * sp + i * 300) % 1500) - 110 : 1390 - ((t * sp + i * 300) % 1500), y = 348 + (i % 3) * 5; walker(g, x, y, 0.62 + (i % 3) * 0.05, t * 3 + i, dir, i % 3); }
+    beams(g, 820, 150, 520, 2.1, 5, t, '255,236,190', 0.08);
     // 장사꾼: 진열대 왼쪽에서 손님을 부른다
     g.save(); g.globalAlpha = 0.35; ell(g, 164, 602, 40, 8, '#2a1a10'); g.restore(); puppet(g, 'merchant', 160, 600, 1.75, t, { act: this.lineT < 1.4 ? 'talk' : 'idle', face: 1, noStick: true });
     const sp = this.spots();
@@ -147,6 +178,8 @@ export class MarketOverlay extends Overlay {
       if (it.sold) stamp(g, s.x + 26, s.y - (s.row ? 40 : 76), 24, 'get', RED, -0.14);
       priceTag(g, s.x, s.row ? s.y + 26 : s.y + 26, it.price, r.gold >= it.price, it.sold, t, d.name);
     }
+    motes(g, t, 240, 150, 980, 460, 26, '255,240,200', 0.5);
+    for (const x of [320, 530, 750, 960]) glow(g, x, 48, 40 + Math.sin(t * 3 + x) * 3, '255,170,90', 0.25);
     // 장사꾼의 말
     { const k = clamp(this.lineT / 0.25, 0, 1); g.save(); g.globalAlpha = k; g.font = `400 18px ${FONT_B}`; const w = Math.min(330, g.measureText(this.line).width + 34), bx = 34, by = 352; rr(g, bx, by, w, 42, 12, '#fffaf0', INK, 2); poly(g, [bx + 70, by + 40, bx + 92, by + 40, bx + 76, by + 60], '#fffaf0'); line(g, [bx + 70, by + 41, bx + 76, by + 60, bx + 92, by + 41], INK, 2); text(g, this.line, bx + w / 2, by + 21, { size: 18, font: FONT_B, maxW: w - 20 }); g.restore(); }
     // 엽전 주머니
@@ -156,13 +189,13 @@ export class MarketOverlay extends Overlay {
     const it = this.items[this.sel];
     if (it) {
       const d = describeReward(it), ok = r.gold >= it.price, x = 290, y = 612, w = 690, h = 98;
-      rr(g, x + 3, y + 5, w, h, 8, 'rgba(40,24,14,0.35)'); rr(g, x, y, w, h, 8, '#f6eedb', '#5a4030', 2.2); rr(g, x - 10, y - 4, 14, h + 8, 6, '#8a5a30', INK, 1.4); rr(g, x + w - 4, y - 4, 14, h + 8, 6, '#8a5a30', INK, 1.4);
+      scroll(g, x, y, w, h);
       rr(g, x + 22, y + 12, 94, 24, 6, COL[d.col] || INDIGO); text(g, d.title, x + 69, y + 24.5, { size: 14.5, fill: C.cream, maxW: 86 });
       text(g, d.name, x + 128, y + 25, { size: 22, font: FONT_B, align: 'left', maxW: 330 });
       textBlock(g, d.desc.split('\n').join(' · '), x + 22, y + 56, 440, 22, { size: 17, align: 'left', fill: '#3a3026', weight: 400 });
       if (it.sold) stamp(g, x + w - 110, y + h / 2, 30, 'get', RED, -0.12);
       else if (button(g, 'mkbuy', x + w - 210, y + 18, 190, 62, `사기 · 엽전 ${it.price}`, { style: ok ? 'red' : 'grey', size: 22 })) this.buy(it, d);
-    } else { const bob = Math.sin(t * 3) * 2; rr(g, 433, 631 + bob, 414, 54, 8, 'rgba(40,24,14,0.3)'); rr(g, 430, 626 + bob, 414, 54, 8, '#f6eedb', '#5a4030', 2); rr(g, 420, 622 + bob, 14, 62, 6, '#8a5a30', INK, 1.4); rr(g, 840, 622 + bob, 14, 62, 6, '#8a5a30', INK, 1.4); text(g, '물건을 눌러 살펴보세요', 637, 654 + bob, { size: 22, font: FONT_B, fill: INK }); }
+    } else { const bob = Math.sin(t * 3) * 2; scroll(g, 430, 628 + bob, 414, 52); text(g, '물건을 눌러 살펴보세요', 637, 655 + bob, { size: 22, font: FONT_B, fill: INK }); }
     if (!this.left && button(g, 'mkleave', 1004, 632, 262, 66, '장터를 떠난다', { size: 27 })) { this.left = true; this.say('또 오시오!'); sfx('click'); this.onDone(); }
   }
   buy(it, d) {
@@ -248,9 +281,10 @@ function tavernBG() {
 }
 // 고르는 물건들 (원점 = 바닥 가운데)
 // 이름판에 쓰는 짧은 쓰임
-const SHORT = { rest: '다음 싸움 사기 +4', supply: '기본 전술 패 석 장', study: '전술 패 하나를 강화(+)', train: '병력·영웅 패 +1단', feast: '엽전 90 → 병력 패 둘 +1단' };
-const TAV_SPOT = { rest: [200, 518], supply: [410, 518], study: [618, 518], train: [880, 592], feast: [1100, 598] };
-const PLAQUE_X = { rest: 190, supply: 415, study: 640, train: 865, feast: 1090 };   // 이름판은 고르게 늘어선다
+const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전술 강화', feast: '엽전 90 → 병력 패 둘 +1단' };
+// 고를 것은 셋: 평상 위 국밥(쉰다) · 마당의 목인(수련) · 술상(잔치). 보따리와 병법서는 평상 위의 살림살이로만 둔다
+const TAV_SPOT = { rest: [250, 518], train: [880, 592], feast: [1128, 598] };
+const PLAQUE_X = { rest: 250, train: 880, feast: 1128 };
 function tavernThing(g, id, x, y, t, on) {
   if (id === 'rest') { // 소반 위 국밥 한 그릇, 김이 오른다
     rr(g, x - 6, y - 22, 12, 22, 2, '#6a4428', INK, 1.2); part(g, E(x, y - 26, 46, 11), '#8a5a30', null, { lw: 1.4 });
@@ -294,11 +328,13 @@ export class TavernOverlay extends Overlay {
     // 주모와 영웅
     const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
     puppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, noStick: true });
-    puppet(g, r.hero, 838, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
+    puppet(g, r.hero, 792, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
     // 반딧불
     for (let i = 0; i < 12; i++) { const ph = i * 2.3, x = 60 + ((i * 113) % 1160) + Math.sin(t * 0.6 + ph) * 26, y = 330 + ((i * 47) % 160) + Math.sin(t * 1.1 + ph) * 12, a = clamp(Math.sin(t * 1.6 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.6, 1.6, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 8, '255,230,140', a * 0.35); }
     // 고르는 것들과 이름판
-    const order = ['rest', 'supply', 'study', 'train', 'feast'];
+    // 평상 위 살림살이 (고르지 않는다)
+    tavernThing(g, 'supply', 470, 518, t, true); tavernThing(g, 'study', 640, 518, t, true);
+    const order = ['rest', 'train', 'feast'];
     for (const id of order) {
       const c = by[id], [x, y] = TAV_SPOT[id], lack = c && c.cost && r.gold < c.cost, on = !!c && !lack, sel = this.hover === id;
       const hitY = id === 'train' ? y - 130 : y - 90, qx = PLAQUE_X[id], hx = Math.min(x, qx) - 98, hw = 196 + Math.abs(x - qx);
@@ -307,12 +343,12 @@ export class TavernOverlay extends Overlay {
       if (on && !this.result) glow(g, x, y - 46, 80, '255,220,150', 0.16 + 0.1 * Math.sin(t * 3 + x));
       g.save(); if (dn) g.translate(0, -5); tavernThing(g, id, x, y, t, on && !this.result); g.restore();
       // 나무 이름판
-      const px = qx - 98, py = 612, pw = 196, ph = 70;
+      const px = qx - 110, py = 608, pw = 220, ph = 80;
       g.save(); if (!on || this.result) g.globalAlpha = 0.6;
-      rr(g, px + 3, py + 5, pw, ph, 8, 'rgba(10,6,16,0.45)'); rr(g, px, py + (dn ? 3 : 0), pw, ph, 8, '#8a5a30', '#2a1a10', 2); rr(g, px + 6, py + 6 + (dn ? 3 : 0), pw - 12, ph - 12, 5, '#f1e6c8', 'rgba(60,40,20,0.5)', 1);
-      const lab = c ? c.label : ({ rest: '푹 쉰다', supply: '보급을 받는다', study: '전술을 익힌다', train: '조련한다', feast: '잔치를 벌인다' })[id];
-      text(g, lab, qx, py + 25 + (dn ? 3 : 0), { size: 20, font: FONT_B, maxW: pw - 24 });
-      text(g, !c ? '고를 패가 없다' : lack ? `엽전 ${c.cost} 부족` : SHORT[id], qx, py + 50 + (dn ? 3 : 0), { size: 16, fill: lack || !c ? RED : '#4a3a2a', maxW: pw - 16, weight: 400 });
+      plaque(g, px, py, pw, ph, { down: dn, glow: on && !this.result && !this.left });
+      const lab = c ? c.label : ({ rest: '푹 쉰다', train: '수련한다', feast: '잔치를 벌인다' })[id];
+      text(g, lab, qx, py + 33 + (dn ? 3 : 0), { size: 22, font: FONT_B, maxW: pw - 40 });
+      text(g, !c ? '고를 패가 없다' : lack ? `엽전 ${c.cost} 부족` : SHORT[id], qx, py + 56 + (dn ? 3 : 0), { size: 16, fill: lack || !c ? RED : '#4a3a2a', maxW: pw - 34, weight: 400 });
       g.restore();
     }
     // 주모의 옛이야기: 말풍선 한 마디씩
@@ -328,7 +364,7 @@ export class TavernOverlay extends Overlay {
     if (this.result) {
       const k = clamp(this.rt / 0.3, 0, 1), rows = this.result.slice(1), x = 330, y = 120, w = 620, h = 120 + rows.length * 62;
       g.save(); g.globalAlpha = k; g.translate(0, (1 - k) * 16);
-      rr(g, x + 4, y + 6, w, h, 10, 'rgba(10,6,16,0.45)'); rr(g, x, y, w, h, 10, '#f6eedb', '#5a4030', 2.4); rr(g, x - 12, y - 6, 16, h + 12, 7, '#8a5a30', INK, 1.4); rr(g, x + w - 4, y - 6, 16, h + 12, 7, '#8a5a30', INK, 1.4);
+      scroll(g, x, y, w, h);
       textBlock(g, this.result[0], x + w / 2, y + 38, w - 60, 26, { size: 19.5, font: FONT_B });
       rows.forEach((s, i) => { const no = BAD.test(s) && !GOOD.test(s), yy = y + 92 + i * 62, ic = resultIcon(s); rr(g, x + 30, yy - 24, w - 60, 50, 8, no ? '#efd9cf' : '#dfe8d4', INK, 1.6); rr(g, x + 30, yy - 24, 7, 50, 3, no ? RED : TEAL); if (ic) { ic(g, x + 68, yy + 1); text(g, s, x + w / 2 + 20, yy + 1, { size: 19, fill: no ? RED : TEAL, maxW: w - 160 }); } else text(g, s, x + w / 2, yy + 1, { size: 19, fill: no ? RED : TEAL, maxW: w - 100 }); });
       g.restore();
@@ -346,27 +382,36 @@ let FBG = null;
 const FORK_AT = [640, 468], ENDS = [[250, 318], [1030, 318]];
 function forkBG() {
   if (FBG) return FBG;
+  // 붓으로 칠한 들판 (전장의 그림 배경과 같은 결): 볕 드는 하늘, 안개 낀 겹산, 풀밭을 가르는 흙길, 반송과 꽃나무
   FBG = bakeScene(g => {
-    const R = rng(4040), T = THEMES.pass;
-    const sky = g.createLinearGradient(0, 0, 0, 300); sky.addColorStop(0, '#dcd2b4'); sky.addColorStop(1, '#f2ead6'); g.fillStyle = sky; g.fillRect(0, 0, W, 320);
-    cloud(g, 240, 104, 160, '#fbf5e6'); cloud(g, 900, 80, 130, '#fbf5e6'); cloud(g, 1140, 140, 100, '#fbf5e6');
-    ridgeFill(g, x => 230 - 70 * Math.exp(-(((x - 300) / 170) ** 2)) - 90 * Math.exp(-(((x - 980) / 200) ** 2)) - 10 * Math.sin(x * 0.02), '#a9b4a2', 0);
-    ridgeFill(g, x => 282 - 40 * Math.exp(-(((x - 640) / 260) ** 2)) - 12 * Math.sin(x * 0.015 + 2), '#9dab86', 0);
-    const fd = x => 318 + 8 * Math.sin(x * 0.012);
-    ridgeFill(g, fd, '#bfc996', 0);
-    const gd = g.createLinearGradient(0, 320, 0, H); gd.addColorStop(0, 'rgba(255,250,230,0)'); gd.addColorStop(1, 'rgba(110,120,70,0.25)'); g.fillStyle = gd; g.fillRect(0, 320, W, H - 320);
-    fibers(g, 0, 320, W, H - 320, 800, R, 0.1, ['#6a7a40', '#fffbe8']);
-    for (let i = 0; i < 70; i++) { const x = R() * W, y = 340 + R() * 370; grassTuft(g, x, y, 0.8 + R() * 0.8, R() < 0.6 ? '#7a8a52' : '#5f7a4a', R); }
+    const R = rng(4040), P = PAL('pass'), haze = MIX(P.sky[1], '#ffffff', 0.2);
+    g.fillStyle = VG(g, 0, 330, [[0, P.sky[0]], [1, P.sky[1]]]); g.fillRect(0, 0, W, 340);
+    { const gr = g.createRadialGradient(900, 90, 10, 900, 90, 360); gr.addColorStop(0, 'rgba(255,240,200,0.7)'); gr.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = gr; g.fillRect(500, 0, 780, 400); }
+    for (const [x, y, w] of [[230, 96, 200], [1000, 70, 160], [1180, 140, 120], [520, 120, 120]]) PCLOUD(g, x, y, w, P, R);
+    MOUNT(g, x => 236 - 80 * Math.exp(-(((x - 300) / 180) ** 2)) - 96 * Math.exp(-(((x - 980) / 210) ** 2)) - 10 * Math.sin(x * 0.02), W, 270, MIX(P.far[1], haze, 0.2), haze, R, { h: 130, n: 200, mist: 50 });
+    MOUNT(g, x => 290 - 40 * Math.exp(-(((x - 640) / 260) ** 2)) - 14 * Math.sin(x * 0.015 + 2), W, 320, MIX(P.hill[1], haze, 0.15), haze, R, { h: 70, n: 160, mist: 28 });
+    // 풀밭
+    const fd = x => 314 + 8 * Math.sin(x * 0.012);
+    g.beginPath(); g.moveTo(-10, H); for (let x = -10; x <= W + 10; x += 8) g.lineTo(x, fd(x)); g.lineTo(W + 10, H); g.closePath(); g.fillStyle = VG(g, 300, H, [[0, MIX(P.grass[1], P.hill[1], 0.3)], [1, P.grass[0]]]); g.fill();
+    for (let i = 0; i < 9000; i++) { const x = R() * W, y = 316 + R() * 410, r = 3 + R() * 6 * (y / 500); DAB(g, x, y, r, r * 0.34, R() < 0.4 ? P.grass[0] : R() < 0.7 ? P.grass[1] : P.grass[2], 0.35 + R() * 0.3); }
     // 길: 아래 넓게 들어와 갈래목에서 둘로 나뉘어 멀어진다
-    const road = (pts, w0, w1) => { const L = [], Rr = []; for (let i = 0; i < pts.length; i++) { const [x, y] = pts[i], [ax, ay] = pts[Math.max(0, i - 1)], [bx, by] = pts[Math.min(pts.length - 1, i + 1)], dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy) || 1, w = (w0 + (w1 - w0) * i / (pts.length - 1)) / 2; L.push([x - dy / l * w, y + dx / l * w]); Rr.push([x + dy / l * w, y - dx / l * w]); } g.beginPath(); g.moveTo(L[0][0], L[0][1]); for (const [x, y] of L) g.lineTo(x, y); for (let i = Rr.length - 1; i >= 0; i--) g.lineTo(Rr[i][0], Rr[i][1]); g.closePath(); g.save(); g.shadowColor = 'rgba(80,60,30,0.35)'; g.shadowBlur = 6; g.shadowOffsetY = 2; g.fillStyle = '#e3cf9e'; g.fill(); g.restore(); g.save(); g.clip(); fibers(g, 0, 300, W, H - 300, 300, R, 0.14, ['#a08050', '#fffaf0']); g.restore(); g.beginPath(); for (const [x, y] of L) g.lineTo(x, y); st(g, 'rgba(110,84,50,0.5)', 1.4); g.beginPath(); for (const [x, y] of Rr) g.lineTo(x, y); st(g, 'rgba(110,84,50,0.5)', 1.4); };
+    const road = (pts, w0, w1) => { const L = [], Rr = []; for (let i = 0; i < pts.length; i++) { const [x, y] = pts[i], [ax, ay] = pts[Math.max(0, i - 1)], [bx, by] = pts[Math.min(pts.length - 1, i + 1)], dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy) || 1, w = (w0 + (w1 - w0) * i / (pts.length - 1)) / 2; L.push([x - dy / l * w, y + dx / l * w]); Rr.push([x + dy / l * w, y - dx / l * w]); }
+      g.beginPath(); g.moveTo(L[0][0], L[0][1]); for (const [x, y] of L) g.lineTo(x, y); for (let i = Rr.length - 1; i >= 0; i--) g.lineTo(Rr[i][0], Rr[i][1]); g.closePath(); g.globalAlpha = 1; g.fillStyle = VG(g, 300, H, [[0, MIX(P.sand[0], '#ffffff', 0.15)], [1, P.sand[1]]]); g.fill();
+      g.save(); g.clip(); for (let i = 0; i < 1400; i++) { const x = R() * W, y = 300 + R() * 420; DAB(g, x, y, 4 + R() * 14, 1.4 + R() * 3, R() < 0.5 ? MIX(P.sand[0], '#fffaf0', 0.3) : MIX(P.sand[1], '#7a5a34', 0.25), 0.16); } g.restore();
+      for (const E2 of [L, Rr]) for (let i = 0; i < E2.length; i += 1) { const [x, y] = E2[i]; DAB(g, x, y, 5 + R() * 8, 2 + R() * 2, P.grass[2], 0.5); } };
     const bez = (p0, p1, p2, n = 24) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = (1 - t) * (1 - t), b = 2 * t * (1 - t), c = t * t; return [a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]; });
     road(bez([640, 740], [640, 560], FORK_AT), 300, 110);
     road(bez(FORK_AT, [420, 430], ENDS[0]), 100, 26); road(bez(FORK_AT, [860, 430], ENDS[1]), 100, 26);
-    // 들꽃과 솔, 바위
-    for (const [x, y, s, f] of [[90, 380, 0.9, false], [150, 400, 0.6, true], [1190, 390, 0.85, true], [1120, 410, 0.6, false], [470, 340, 0.5, false], [820, 336, 0.46, true]]) padPine(g, x, y, s, T, f);
-    for (let i = 0; i < 16; i++) { const x = R() < 0.5 ? 30 + R() * 360 : 900 + R() * 350, y = 560 + R() * 140; paperFlower(g, x, y, 1.1 + R() * 0.5, R() < 0.5 ? '#f3e9cf' : '#e2c47c', '#5f7a4a', R); }
+    // 풀포기와 들꽃
+    for (let i = 0; i < 420; i++) { const x = R() * W, y = 330 + R() * 390; PTUFT(g, x, y, 0.7 + R() * 0.9 * (y / 500), P, R); }
+    for (let i = 0; i < 240; i++) { const x = R() * W, y = 340 + R() * 380, col = ['#f4e38a', '#fbf7ec', P.bloom[0]][(R() * 3) | 0]; DAB(g, x, y, 2.4, 2, col, 0.95); DAB(g, x, y, 0.9, 0.9, '#d9a441', 0.9); }
+    // 반송과 꽃나무, 바위
+    for (const [x, y, s2, f] of [[110, 392, 0.55, false], [1180, 398, 0.6, true], [470, 336, 0.3, false], [820, 332, 0.28, true], [1060, 352, 0.36, false]]) PPINE(g, x, y, s2, P, R, f);
+    PBLOOM(g, 30, 600, 0.9, P, R, false); PBLOOM(g, 1250, 610, 0.85, P, R, true);
+    for (const [x, y, w] of [[300, 470, 60], [980, 480, 54], [560, 690, 40]]) PROCK(g, x, y, w, w * 0.5, P, R);
     // 갈래목의 서낭 돌무더기
-    const [fx, fy] = FORK_AT; for (const [dx, dy, r] of [[-30, 10, 14], [-10, 12, 16], [12, 10, 14], [30, 12, 12], [-20, -4, 12], [2, -6, 13], [20, -4, 11], [-8, -18, 10], [10, -18, 9], [0, -30, 8]]) ell(g, fx + dx, fy + dy, r, r * 0.75, ['#a59f8f', '#b8b1a0', '#958f80'][(dx + 40) % 3], INK, 1.1);
+    const [fx, fy] = FORK_AT; for (const [dx, dy, r] of [[-30, 10, 14], [-10, 12, 16], [12, 10, 14], [30, 12, 12], [-20, -4, 12], [2, -6, 13], [20, -4, 11], [-8, -18, 10], [10, -18, 9], [0, -30, 8]]) PROCK(g, fx + dx, fy + dy + r * 0.4, r * 2, r * 1.3, P, R);
+    g.globalAlpha = 1;
   });
   return FBG;
 }
@@ -386,6 +431,9 @@ export class ForkScene extends Overlay {
   draw(g, dt) {
     const t = this.t, r = G.run, k = clamp(t / 0.4, 0, 1);
     g.drawImage(forkBG(), 0, 0, W, H);
+    beams(g, 760, 0, 640, 2.0, 6, t, '255,240,200', 0.09);
+    // 길가의 나비 두 마리
+    for (let i = 0; i < 3; i++) { const bx = 300 + i * 340 + Math.sin(t * 0.7 + i * 2) * 80, by = 420 + Math.sin(t * 1.1 + i) * 40, f = Math.abs(Math.sin(t * 14 + i)); const col = ['#f3c4c9', '#fbf7ec', '#e8c45a'][i]; for (const s2 of [-1, 1]) ell(g, bx + s2 * 5 * f, by, 5 * f + 1, 4, col, 'rgba(60,40,20,0.6)', 0.8); line(g, [bx, by - 4, bx, by + 4], '#3a2a20', 1.4); }
     // 길끝마다 그곳이 서 있다
     [this.a, this.b].forEach((st, n) => { const [x, y] = ENDS[n]; g.save(); g.globalAlpha = clamp((t - 0.2 - n * 0.1) / 0.4, 0, 1); drawSpriteSafe(g, st.type, x, y + 6, 0.95); g.restore(); });
     // 이정표: 기둥과 두 화살판
@@ -400,17 +448,18 @@ export class ForkScene extends Overlay {
       const px = n ? 812 : 64, py = 540, pw = 404, ph = 122, hit2 = tapped('fd' + key, px, py, pw, ph), dn2 = isDown('fd' + key, px, py, pw, ph);
       if (t > 0.4 && hit2) pick(key);
       g.save(); g.globalAlpha = clamp((t - 0.2 - n * 0.12) / 0.3, 0, 1); g.translate(0, dn2 ? 3 : 0);
-      rr(g, px + 3, py + 6, pw, ph, 10, 'rgba(40,24,14,0.3)'); rr(g, px, py, pw, ph, 10, '#f6eedb', '#5a4030', 2.2); rr(g, px, py, 10, ph, 5, v.col);
-      seal(g, px + 58, py + ph / 2, 62, v.ch, v.col); text(g, v.name, px + 104, py + 34, { size: 28, font: FONT_B, align: 'left', fill: v.col });
-      textBlock(g, forkDesc(st.type), px + 104, py + 70, pw - 120, 22, { size: 16, align: 'left', fill: '#4a4034', weight: 400 });
-      text(g, n ? '오른쪽 길 ▶' : '◀ 왼쪽 길', px + pw - 18, py + 32, { size: 15, font: FONT_B, align: 'right', fill: '#8a6a4a' });
+      plaque(g, px, py, pw, ph, { col: v.col, glow: !this.left && t > 0.4 });
+      seal(g, px + 64, py + ph / 2, 60, v.ch, v.col); text(g, v.name, px + 108, py + 40, { size: 29, font: FONT_B, align: 'left', fill: v.col });
+      textBlock(g, forkDesc(st.type), px + 108, py + 76, pw - 132, 22, { size: 17, align: 'left', fill: '#3a3026', weight: 400 });
+      text(g, n ? '오른쪽 길 ▶' : '◀ 왼쪽 길', px + pw - 26, py + 38, { size: 16, font: FONT_B, align: 'right', fill: '#8a5a2c' });
       g.restore();
     });
+    motes(g, t, 0, 100, W, 500, 22, '255,248,220', 0.45);
     // 영웅이 갈래목 앞에서 두리번거린다
     const look = Math.sin(t * 0.9) > 0 ? 1 : -1;
     g.save(); g.globalAlpha = 0.35; ell(g, 640, 652, 40, 8, '#2a1a10'); g.restore();
     puppet(g, r.hero, 640, 648, 1.7, t, { act: this.go ? 'hop' : 'idle', face: this.go ? (this.go.key === 'a' ? -1 : 1) : look, noStick: true });
-    { g.save(); g.globalAlpha = k; rr(g, 498, 16, 284, 56, 10, '#8a5a30', '#2a1a10', 2); rr(g, 506, 23, 268, 42, 6, '#f1e6c8', 'rgba(60,40,20,0.5)', 1); text(g, '갈림길 · 어느 길로?', 640, 45, { size: 24, font: FONT_B }); g.restore(); }
+    { g.save(); g.globalAlpha = k; hangSign(g, 640, 18, '갈림길 · 어느 길로?', { w: 340, h: 58, size: 26 }); g.restore(); }
     if (this.go) { this.go.t += dt; if (this.go.t > 0.45 && !this.go.done) { this.go.done = true; this.onPick(this.go.key); } }
   }
 }

@@ -2,7 +2,7 @@
 // 장터·주막·갈림길·보물 터는 places.js, 길 위의 사건은 roadevent.js 가 그 장소를 통째로 그린다
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack, st } from '../render/draw.js';
-import { ui, tapped, button, panel, brushTitle, stamp, icon, C } from './ui.js';
+import { ui, tapped, button, panel, brushTitle, stamp, icon, C, foil, shine } from './ui.js';
 import { cardFace, DeckView } from './cards.js';
 import { G, save, openReward, rollRewards, describeReward, applyReward, canUp, act } from '../state.js';
 import { CARDS, isUnit } from '../data/cards.js';
@@ -56,7 +56,12 @@ export class RewardOverlay extends Overlay {
   draw(g, dt) {
     // 보물 상자는 먼저 덜컹거리다 뚜껑이 열리고, 그 빛 속에서 고를 것들이 올라온다
     const lead = this.kind === 'treasure' ? 1.15 : 0, r = G.run, p = this.p, t = Math.max(0, this.t - lead - (lead ? 0.24 : 0)), done = this.taken !== -1;
-    if (this.scene) this.scene(g, dt); else dim(g, 0.78);   // 보물 칸은 제 풍경(장면)을 깔고, 전리품은 전장 위를 어둡게 덮는다
+    if (this.scene) this.scene(g, dt); else {   // 보물 칸은 제 풍경(장면)을 깔고, 전리품은 전장 위를 어둡게 덮고 가운데에 금빛 빛무리를 띄운다
+      dim(g, 0.8);
+      g.save(); g.globalCompositeOperation = 'lighter'; const sp = g.createRadialGradient(640, 280, 40, 640, 280, 560); sp.addColorStop(0, 'rgba(255,200,120,0.22)'); sp.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = sp; g.fillRect(0, 0, W, H); g.restore();
+      // 부드러운 빛살: 가운데에서 천천히 도는 옅은 쐐기들
+      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(640, 300); g.rotate(this.t * 0.05); for (let k = 0; k < 12; k++) { g.rotate(TAU / 12); const bg2 = g.createLinearGradient(0, 0, 0, -620); bg2.addColorStop(0, 'rgba(255,220,150,0.07)'); bg2.addColorStop(1, 'rgba(255,220,150,0)'); g.fillStyle = bg2; g.beginPath(); g.moveTo(0, 0); g.lineTo(-60, -620); g.lineTo(60, -620); g.closePath(); g.fill(); } g.restore();
+    }
     brushTitle(g, 640, 34, 420, 62, { battle: '전리품', elite: '강적의 전리품', boss: '두목의 전리품', treasure: '보물 상자' }[this.kind] || '전리품', this.kind === 'treasure' ? '#b8862a' : INDIGO, 36);
     if (lead && this.t < lead + 0.3 && !this.ownChest) {
       const q = this.t / lead, pop = clamp((this.t - lead * 0.72) / 0.3, 0, 1), fade = 1 - clamp((this.t - lead) / 0.28, 0, 1);
@@ -70,7 +75,10 @@ export class RewardOverlay extends Overlay {
     panel(g, 1070, 76, 180, 40, 'tag'); icon.coin(g, 1094, 96, 12); text(g, `엽전 ${r.gold}`, 1170, 97, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, k = easeOutBack(clamp((t - n * 0.1) / (this.rise ? 0.5 : 0.32), 0, 1)), x = this.rise ? 528 + (n * 264 - 264) * Math.min(1, k) : 264 + n * 264, y = this.rise ? 118 + (1 - k) * 420 : 118 + (1 - k) * 50, mine = this.taken === n;   // rise: 열린 상자에서 떠올라 제자리로 퍼진다
+      // 고를 것 뒤의 금빛 후광 (숨 쉬듯)
+      if (!done && t - n * 0.1 > 0) { g.save(); g.globalCompositeOperation = 'lighter'; const hx = x + w / 2, hy = y + h / 2, ha = 0.18 + 0.06 * Math.sin(this.t * 2.4 + n); const hg = g.createRadialGradient(hx, hy, 40, hx, hy, 220); hg.addColorStop(0, `rgba(255,210,130,${ha})`); hg.addColorStop(1, 'rgba(255,210,130,0)'); g.fillStyle = hg; g.fillRect(hx - 230, hy - 230, 460, 460); g.restore(); }
       g.save(); g.globalAlpha = t - n * 0.1 > 0 ? 1 : 0;   // 비치지 않게, 불투명한 채로 미끄러져 들어온다
+      rr(g, x - 5, y - (d.card && o.kind !== 'card' ? 30 : 5), w + 10, h + (d.card && o.kind !== 'card' ? 35 : 10), 12, null, foil(g, x, x + w), 2.4);
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
@@ -141,9 +149,8 @@ export function restChoices() {
   const r = G.run;
   return [
     { id: 'rest', label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
-    r.deck.some(c => isUnit(c) && canUp(c)) ? { id: 'train', label: '조련한다', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
-    { id: 'supply', label: '보급을 받는다', desc: '기본 전술 패 석 장', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다.', act.supply(3)] },
-    r.deck.some(c => !isUnit(c) && canUp(c)) ? { id: 'study', label: '전술을 익힌다', desc: '전술 패 한 종류를 모두 강화판(+)으로', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
+    // 수련: 병력·영웅 패는 +1단(조련), 전술 패는 강화판(+)으로 — 덱에서 하나를 고른다
+    r.deck.some(c => canUp(c)) ? { id: 'train', label: '수련한다', desc: '패 하나를 +1단 · 전술 패는 강화(+)', deck: 'up', filter: c => canUp(c), story: '주막 마당에서 밤새 합을 맞추고 병법을 가다듬었습니다.' } : null,
     { id: 'feast', label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 패 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
   ].filter(Boolean);
 }

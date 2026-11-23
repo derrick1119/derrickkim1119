@@ -12,7 +12,7 @@ import { TAU, INK, PAPER, RED, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, pol
 import { portrait, getLook, getWeapon, leftover, LOOKS } from '../render/sprites.js';
 import { stopSprite, pine, THEMES } from '../render/terrain.js';
 import { backdrop } from '../scenes/title.js';
-import { button, tapped, ui } from './ui.js';
+import { button, tapped, ui, hangSign, scroll } from './ui.js';
 import { sfx } from '../audio.js';
 
 const WOOD = '#7a4a2c', WOODL = '#a9753f', CLOTH = '#2f426b', CLOTHD = '#1c2948', GOLD = '#d6a640';
@@ -144,7 +144,11 @@ export class Play {
     const Lr = ui.layer; ui.layer = Lr + 1;
     try {
       this.t += dt; this.bt += dt; const t = this.t, b = this.beats[this.i], X = 120, Y = 58, Wd = 1040, Hd = 456;
-      g.fillStyle = 'rgba(20,17,24,0.93)'; g.fillRect(0, 0, W, H);
+      // 마당에 친 무대: 어두운 밤, 무대를 비추는 두 줄기 빛과 떠도는 먼지
+      g.fillStyle = 'rgba(14,12,20,0.95)'; g.fillRect(0, 0, W, H);
+      { const sp = g.createRadialGradient(640, 290, 60, 640, 300, 760); sp.addColorStop(0, 'rgba(120,90,60,0.35)'); sp.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sp; g.fillRect(0, 0, W, H);
+        g.save(); g.globalCompositeOperation = 'lighter'; for (const [bx, ang] of [[260, 0.95], [1020, 2.2]]) { const gr = g.createLinearGradient(bx, 0, bx + Math.cos(ang) * 520, Math.sin(ang) * 520); gr.addColorStop(0, 'rgba(255,226,170,0.1)'); gr.addColorStop(1, 'rgba(255,226,170,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(bx - 30, 0); g.lineTo(bx + 30, 0); g.lineTo(bx + 30 + Math.cos(ang) * 520 + 90, Math.sin(ang) * 520); g.lineTo(bx - 30 + Math.cos(ang) * 520 - 90, Math.sin(ang) * 520); g.closePath(); g.fill(); } g.restore();
+        for (let i = 0; i < 20; i++) { const x = (i * 173 + Math.sin(t * 0.3 + i) * 30) % W, y = 40 + ((i * 89 + t * 6) % 500), a = 0.25 + 0.25 * Math.sin(t * 1.6 + i); g.globalAlpha = a; g.fillStyle = '#ffe9c0'; g.fillRect(x, y, 1.6, 1.6); } g.globalAlpha = 1; }
       if (!this.left && button(g, 'playskip', 1108, 646, 150, 50, '건너뛰기', { style: 'paper', size: 20 })) { this.finish(); return; }
       const floor = drawStage(g, X, Y, Wd, Hd, { bg: this.bg });
       g.save(); g.beginPath(); g.rect(X, Y, Wd, Hd); g.clip();
@@ -155,10 +159,10 @@ export class Play {
       g.restore();
       drawFrame(g, X, Y, Wd, Hd, clamp(t / 0.8, 0, 1), t);
       // 무대 위 현판: 어느 이야기인지
-      if (this.name) { rr(g, 640 - 168, 25, 336, 44, 6, 'rgba(8,6,10,0.45)'); rr(g, 640 - 170, 20, 340, 44, 6, '#f3e7c8', INK, 2.2); rr(g, 640 - 165, 24, 330, 36, 4, null, 'rgba(122,74,44,0.7)', 1.2); text(g, this.name, 640, 43, { size: 23, font: FONT_B, fill: INK, maxW: 310 }); }
+      if (this.name) hangSign(g, 640, 14, this.name, { w: 360, h: 50, size: 24, rope: false });
       // 이야기꾼의 한마디
       const k = clamp(this.bt / 0.3, 0, 1);
-      rr(g, 150, 546, 980, 96, 10, 'rgba(8,6,10,0.4)'); rr(g, 146, 540, 988, 96, 10, PAPER, INK, 2.4); rr(g, 152, 546, 976, 84, 7, null, 'rgba(201,150,46,0.7)', 1);
+      scroll(g, 150, 540, 980, 96);
       g.globalAlpha = k; const rows = this.rows(g, b.s); textBlock(g, b.s, 640, 588 - (rows - 1) * 19 + (1 - k) * 6, 920, 38, { size: 29, font: FONT_B }); g.globalAlpha = 1;
       for (let m = 0; m < this.beats.length; m++) ell(g, 640 + (m - (this.beats.length - 1) / 2) * 17, 660, 4.4, 4.4, m === this.i ? '#f6efdc' : 'rgba(246,239,220,0.28)');
       if (this.bt > 0.7) { g.globalAlpha = 0.8 + Math.sin(t * 5) * 0.2; text(g, this.i < this.beats.length - 1 ? '눌러서 다음 ▶' : '눌러서 마침 ▶', 1040, 620, { size: 17.5, font: FONT_B, fill: '#6a4a2c' }); g.globalAlpha = 1; }

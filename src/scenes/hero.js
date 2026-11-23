@@ -1,7 +1,7 @@
 // 영웅 고르기 (가로): 위에는 영웅 일곱의 얼굴, 아래에는 고른 영웅의 고유기와 전용 패
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
-import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
+import { button, panel, brushTitle, seal, C, tapped, foil, goldText, shine } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta, HARD, save } from '../state.js';
 import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
@@ -13,6 +13,7 @@ import { portrait } from '../render/sprites.js';
 import { cardFace } from '../ui/cards.js';
 import { sfx, bgm } from '../audio.js';
 
+const vgrad2 = (g, y0, y1) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, '#2a1810'); gr.addColorStop(1, '#140a06'); return gr; };
 const ROLE = { commander: '선봉 · 근접', blade: '자객 · 근접', hunter: '저격 · 원거리', bishop: '치유 · 지원', archmage: '도술 · 광역', sangsoe: '풍물 · 지원', chief: '버팀 · 근접' };
 export class HeroScene {
   constructor() { this.t = 0; this.sel = 0; }
@@ -22,15 +23,25 @@ export class HeroScene {
     brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
     // 영웅 일곱
     HEROES.forEach((id, i) => {
-      const d = UNITS[id], x = 44 + i * 172, y = 84, w = 160, h = 150, on = this.sel === i, locked = !heroOpen(id);
+      const d = UNITS[id], x = 44 + i * 172, y = 80, w = 160, h = 146, on = this.sel === i, locked = !heroOpen(id);
       if (tapped('h' + i, x, y, w, h)) { this.sel = i; sfx('card'); }
-      rr(g, x + 2, y + 4, w, h, 7, 'rgba(40,28,16,0.26)'); rr(g, x, y, w, h, 7, on ? '#fdf5d6' : PAPER, INK, 2.2);
-      g.save(); g.beginPath(); g.rect(x + 4, y + 4, w - 8, 100); g.clip(); g.fillStyle = on ? '#f3e2b0' : '#ece0c2'; g.fillRect(x + 4, y + 4, w - 8, 100); g.fillStyle = 'rgba(140,160,120,0.55)'; g.fillRect(x + 4, y + 82, w - 8, 24);
-      if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, 0.86, this.t, on); g.restore();
-      g.fillStyle = INK; g.fillRect(x + 4, y + 104, w - 8, 1.6); g.fillStyle = HERO_COL[id]; g.fillRect(x + 4, y + 105.6, w - 8, 3);
-      text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 141, { size: 14.5, fill: locked ? RED : '#5a4a3a' });
-      const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, y + 8, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, y + 19.5, { size: 13.5, fill: C.cream }); }
-      if (on) rr(g, x - 3, y - 3, w + 6, h + 6, 9, null, RED, 4);
+      // 옻칠 액자: 금테 안에 영웅의 빛깔로 물든 하늘, 고른 영웅은 빛살과 함께 살짝 떠오른다
+      const lift = on ? -4 : 0, yy = y + lift, col = HERO_COL[id];
+      if (on) { g.save(); g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(x + w / 2, yy + 60, 10, x + w / 2, yy + 60, 120); gl.addColorStop(0, 'rgba(255,210,130,0.45)'); gl.addColorStop(1, 'rgba(255,210,130,0)'); g.fillStyle = gl; g.fillRect(x - 40, yy - 40, w + 80, h + 80); g.restore(); }
+      rr(g, x + 2, yy + 6, w, h, 9, 'rgba(0,0,0,0.45)'); rr(g, x, yy, w, h, 9, foil(g, x, x + w), INK, 2.2);
+      rr(g, x + 4, yy + 4, w - 8, h - 8, 7, '#1a1016', 'rgba(40,20,8,0.8)', 1);
+      g.save(); g.beginPath(); g.rect(x + 6, yy + 6, w - 12, 100); g.clip();
+      const sk = g.createLinearGradient(0, yy + 6, 0, yy + 106); sk.addColorStop(0, locked ? '#2a2630' : col); sk.addColorStop(1, locked ? '#4a4450' : '#f3e2b0'); g.globalAlpha = on ? 1 : 0.8; g.fillStyle = sk; g.fillRect(x + 6, yy + 6, w - 12, 100); g.globalAlpha = 1;
+      if (on) { g.save(); g.globalAlpha = 0.25; g.translate(x + w / 2, yy + 106); for (let k = 0; k < 9; k++) { g.rotate(0.35); g.fillStyle = '#fff4d0'; g.fillRect(-2, -120, 4, 120); } g.restore(); }
+      g.fillStyle = 'rgba(30,40,30,0.35)'; g.fillRect(x + 6, yy + 88, w - 12, 18);
+      if (locked) { g.globalAlpha = 0.45; g.filter = 'grayscale(1) brightness(0.6)'; } portrait(g, id, x + w / 2 - 4, yy + 104, 0.86, this.t, on); g.filter = 'none'; g.globalAlpha = 1; g.restore();
+      g.fillStyle = foil(g, x, x + w); g.fillRect(x + 6, yy + 104, w - 12, 2.4);
+      g.fillStyle = vgrad2(g, yy + 106, yy + h - 4); g.fillRect(x + 6, yy + 106.4, w - 12, h - 112);
+      if (on) goldText(g, d.name, x + w / 2, yy + 123, { size: 22, glow: false }); else text(g, d.name, x + w / 2, yy + 123, { size: 21, font: FONT_B, fill: locked ? '#8a8070' : '#f3e6c4' });
+      text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, yy + 141, { size: 14, fill: locked ? '#e07a66' : '#cbb894' });
+      if (locked) seal(g, x + w - 24, yy + 24, 26, '?', '#5a5346');
+      const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, yy + 10, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, yy + 21.5, { size: 13.5, fill: C.cream }); }
+      if (on) { rr(g, x - 3, yy - 3, w + 6, h + 6, 11, null, '#f3d27c', 3); shine(g, x, yy, w, h, 9, 3.6, 0.25); }
     });
     // 고른 영웅
     const id = HEROES[this.sel], d = UNITS[id], locked = !heroOpen(id), cards = Object.keys(CARDS).filter(k => CARDS[k].hero === id), col = HERO_COL[id];
@@ -66,8 +77,8 @@ export class HeroScene {
       text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', 544, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: 390 });
       text(g, lv ? `${hd.desc}${lv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
     } else {
-      text(g, '전술 패는 쓰면 사라집니다. 길에서 다시 채우세요.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
-      text(g, '영웅마다 병법이 다릅니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+      text(g, '전술 패는 쓰면 사라집니다. 길에서 다시 채우세요.', 540, 626, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
+      text(g, '영웅마다 병법이 다릅니다.', 540, 650, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
     }
   }
 }
