@@ -465,7 +465,7 @@
       for (let i = 0; i < 4; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); await X.wait(0.5); }
       X.cam(-240, 452, 1, 0.5);
       await X.wait(2.6);
-      T.announce('구름바다 끝, 빛의 폭포. 브램과 마르타의 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 구름 아래 산 사람들의 하늘로 떨어진다.');
+      T.announce('구름바다 위에서 브램과 마르타의 배가 빛으로 물든다. 배가 구름을 떠나고, 둘은 하나의 빛이 되어 하늘로 오른다.');
       await X.crossing([{ style: F.styles.bram, s: 144 }, { style: F.styles.bramWife, s: 106 }], { leoAge: 1, also: X.seeOff() });
       /* the neighbours go back up into the town; the little one is still looking out to where they went */
       [leo].concat(crowd).forEach((a) => { a.pose = null; });
@@ -590,7 +590,7 @@
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3);
-      T.announce('빛의 폭포. 로사와 아들의 배가 빛을 거슬러 오른다. 별 하나가 구름 아래로 떨어진다.');
+      T.announce('구름바다 위에서 로사와 아들의 배가 빛으로 물든다. 배가 구름을 떠나고, 둘은 하나의 빛이 되어 하늘로 오른다.');
       W.S.hook.flags.rosaGone = true;
       await X.crossing([{ style: F.styles.rosa, s: 138 }, { style: F.styles.rosaSon, s: 144 }], { leoAge: 1, also: X.seeOff() });
       /* the quay again, and the two who are left on it; the little one is still looking out to where they went */

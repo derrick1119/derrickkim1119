@@ -376,8 +376,8 @@
       /* everyone takes the rope, in a line down the hill from the fallen frame */
       const pullers = [leo].concat(crew);
       crew[1].prop = null;
-      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.sit = 0; a.x = PL.HX + 190 + i * 62; }); X.cam(PL.HX + 200, py + 10, 1.0); }, { out: 0.6, in: 0.8 });
-      await X.play(T.puzzle.heave({ pulls: 3, crew: pullers, top: () => [PL.HX, W.y3(PL.HX) - 30 - 200 * Math.max(0.05, ps.raise)], raise: (k) => { ps.raise = Math.max(0.02, k); S.fallen = T.clamp(1 - k * 1.5); } }));
+      await X.dip(async () => { pullers.forEach((a, i) => { const j = i >> 1, r = i % 2 === 0; a.go = null; a.moving = false; a.sit = 0; a.x = r ? PL.HX + 205 + j * 60 : PL.HX - 205 - j * 60; a.flip = r; }); X.cam(PL.HX, W.y3(PL.HX) - 150, 1.0); }, { out: 0.6, in: 0.8 });
+      await X.play(T.puzzle.heave({ pulls: 3, sway: 0.55, tempo: 0.64, quick: 0.97, tricks: 0.3, crew: pullers, at: PL.HX, cam: X.cam, top: () => [PL.HX, W.y3(PL.HX) - 10 - 150 * Math.max(0.05, ps.raise)], raise: (k, sh) => { ps.raise = Math.max(0.02, k); ps.sway = -(sh || 0); S.fallen = T.clamp(1 - k * 1.5); } }));
       S.fallen = 0; ps.stage = 2; ps.raise = 0; X.cam(px, py, 1);
       A.sfx('knock', 0.4); X.notes(4);
       T.announce('뼈대가 다시 선다. 사람들이 손뼉을 친다.');

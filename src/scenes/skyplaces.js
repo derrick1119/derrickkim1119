@@ -2,8 +2,10 @@
      T.place('overlook', o)  the painting: stone ruins with ivy and an iron lantern, a wooden bench, a tree in
                              blossom on a floating island, ruins adrift in a sea of cloud at sunset. Leo and Bean
                              on the bench. For quiet passages of time.
-     T.place('falls', o)     the crossing place: a fall of light pouring UP out of the cloud sea into the sky,
-                             where boats rise to the beyond, and a stone landing with lanterns. o.boat + V.sail().
+     T.place('falls', o)     a fall of light pouring UP out of the cloud sea into the sky, where boats rise to the
+                             beyond, and a stone landing with lanterns. o.boat + V.sail(). The story no longer goes
+                             here: a crossing now leaves from the quay itself and goes up as a star (stage.js,
+                             X.crossing); the place stays for the effects page (#place:falls).
    A place is a view: draw(g, t, S) · update(dt, S) · pointer · key · want · hintAt, so a chapter shows it with
    `await X.view(T.place('overlook'), { color: '#fff6e6' })`. Static art is baked in parallax layers. */
 (function () {

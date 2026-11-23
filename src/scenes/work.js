@@ -155,59 +155,271 @@
   };
 
   /* ---------- everyone on the rope ----------
-     o: { pulls, crew: [actors], top: () => world [x, y] of what is being raised, raise(k), leo }.
-     One, two, three: the pull only counts on three, when every hand is on it. */
+     What is going up (the frame after the storm, the ridge beam) has a rope to each side, and the crew split between
+     them. Someone calls the count, 하나, 둘, 셋!, and a pull only takes when every hand is on it, on 셋, and only if what
+     they are raising stands straight. It sways as it comes up, and once it leans it goes on leaning, dragging the
+     team on the far side toward it: that side must haul it back (← or →, or tap that side), and too hard a haul sends
+     it over the other way. Pulled crooked it only lurches; pulled out of time it sags back a little; let it lean too
+     far and it sinks back down. The count can quicken, wait a beat, or (an old joke) tease with 「둘 반」. After a few
+     misses the count slows and everyone holds on harder.
+     o: { crew: [actors], top(k) -> world [x, y]: the middle of its top at height k (0..1), raise(k, sh): show it at
+          height k, leaning sh (top over foot, + to the right), at: world x of its middle, cam(x, y, z, k): to frame
+          both teams, beam: length (a beam the puzzle draws itself, tilting; otherwise the scene draws a frame),
+          span: half the gap between the ropes' ends, pulls, sway (how unsteady), tempo (seconds a beat),
+          quick (the beat shortens by this after each good pull), tricks (0..1: how often the count waits or teases),
+          tease (「둘 반」 allowed), gust (0..1: a lurch of its own now and then) } */
   Z.heave = function (o) {
-    const G = make({ pulls: o.pulls || 3, n: 0, ph: 0, yank: 0, miss: 0, k: 0 });
-    const BEAT = 0.62, WIN = 0.3;
-    const cyc = () => G.ph % (BEAT * 4);
-    const onThree = () => Math.abs(cyc() - BEAT * 2.5) < WIN;
-    const crew = o.crew;
+    const N = o.pulls || 3, SW = o.sway == null ? 0.6 : o.sway, BEAM = o.beam || 0, crew = o.crew, rnd = T.rng(o.seed || 17);
+    const G = make({ pulls: N, h: 0, k: 0, L: 0, corr: 0, phase: 'gather', wait: 0.9, cyc: [], bi: 0, ct: 0, n: 0, beat: o.tempo || 0.62, pulled: false,
+      yank: 0, cool: 0, fails: 0, dry: 0, assist: 0, said: 0, since3: Infinity });
+    const PRE = 0.12, SH = 0.36, gAt = (x) => W().groundAt(x);
+    const teams = [{ dir: 1, m: [], heave: 0, give: 0, drag: 0, slip: 0 }, { dir: -1, m: [], heave: 0, give: 0, drag: 0, slip: 0 }];
+    let at = o.at;
+    const slow = () => [1, 1.15, 1.3][G.assist], steady = () => [1, 0.6, 0.3][G.assist], straight = () => [0.4, 0.5, 0.62][G.assist];
+    const itemLen = (it) => (it.rest ? (G.pulled ? 1.6 : 1) : it.d) * G.beat * slow();   /* a breath after a good pull */
+    const post = () => T.clamp(0.85 * G.beat, 0.45, 0.55) + 0.12 * G.assist;   /* long enough to hear 셋 and answer it */
+    const cur = () => G.cyc[G.bi];
+    const inWindow = () => {   /* from just before 셋 until a moment after it, even into the breath that follows */
+      const c = cur(); if (!c || G.pulled) return false;
+      if (G.since3 <= post()) return true;
+      const nx = G.cyc[G.bi + 1];
+      return !!(nx && nx.three && itemLen(c) - G.ct <= PRE);
+    };
+    const lean = () => G.L + G.corr;   /* where it is heading, with the last haul still going into it */
+    /* the rope's two ends on what is going up, at its height k */
+    const ends = (k) => {
+      const c = o.top(k);
+      if (BEAM) { const th = -G.L * 0.2, h = BEAM / 2 - 12; return [[c[0] - Math.cos(th) * h, c[1] - Math.sin(th) * h], [c[0] + Math.cos(th) * h, c[1] + Math.sin(th) * h], c, th]; }
+      const sp = o.span || 110, sh = G.L * SH, foot = gAt(c[0]), dx = sh * (foot - c[1]);
+      return [[c[0] - sp + dx, c[1]], [c[0] + sp + dx, c[1]], c, sh];
+    };
+
+    /* a puller: braced, leaning back into the rope, hands on it at the waist; dragged in when the load leans away */
+    const posePull = (tm, rank) => (oo, aa, t) => {
+      if (aa.go) return;
+      const dir = tm.dir, u = (aa.s / 150) * (aa.style && aa.style.kid ? 0.62 : 1);
+      const pull = Math.max(tm.heave, G.yank * 0.85), drag = Math.max(tm.drag, tm.give * 0.4, tm.slip), wob = Math.sin(t * 1.9 + aa.x * 0.07);
+      const sx = aa.x + dir * (drag * 9 + tm.slip * 6) * u;
+      oo.flip = dir < 0;
+      oo.x = sx - dir * (7 + pull * 7 - drag * 6) * u;
+      oo.y += (3 + pull * 4 - drag * 2) * u;
+      oo.lean = -0.3 - pull * 0.16 + drag * 0.27 + wob * 0.015;
+      const gF = sx + dir * 13 * u, gB = sx - dir * 9 * u, fF = F.local(oo, gF, gAt(gF)), fB = F.local(oo, gB, gAt(gB));
+      oo.legF = { foot: [fF[0], fF[1] - 2.8] }; oo.legB = { foot: [fB[0], fB[1] - 2.8] };
+      const hy = oo.y - (26 + (rank === 0 ? 6 : 0) - pull * 3) * u, hx = oo.x + dir * (21 + drag * 8 - pull * 4) * u;
+      oo.armF = { hand: F.local(oo, hx + dir * 6 * u, hy - 2 * u) }; oo.armB = { hand: F.local(oo, hx - dir * 3 * u, hy + 2 * u) };
+      const strain = pull > 0.45 || drag > 0.55;
+      oo.face = Object.assign({}, oo.face, { eye: strain ? 'closed' : 'open', mouth: strain ? 'open' : 'line', blush: 0.2 + 0.3 * Math.max(pull, drag) });
+      oo.headTilt = -0.05 - pull * 0.08 + drag * 0.12;
+    };
     G.start = function () {
-      crew.forEach((a, i) => {
-        a.go = null; a.flip = true;
-        a.pose = (oo, aa, t) => { const pull = G.yank * 0.3 + (onThree() && !G.done ? 0.1 : 0); oo.lean = -0.28 - pull * 0.5; oo.legF = { foot: [-12, 46] }; oo.legB = { foot: [6, 48] }; oo.face.eye = G.yank > 0.4 ? 'closed' : 'open'; oo.face.mouth = G.yank > 0.4 ? 'open' : 'line'; const hy = oo.y - 30 * (aa.s / 150); oo.armF = { hand: F.local(oo, aa.x - 26, hy) }; oo.armB = { hand: F.local(oo, aa.x - 18, hy + 4) }; oo.x += pull * 6; };
+      if (at == null) at = o.top(0)[0];
+      const near = crew.slice().sort((a, b) => Math.abs(a.x - at) - Math.abs(b.x - at));
+      const L0 = near.filter((a) => a.x < at), R0 = near.filter((a) => a.x >= at);
+      let left = L0, right = R0;
+      if (!L0.length || !R0.length) {   /* all on one side: the nearer half takes the rope round to the other */
+        const half = Math.ceil(near.length / 2), one = R0.length ? -1 : 1;
+        const go = near.slice(0, half), stay = near.slice(half);
+        if (one < 0) { left = go; right = stay; } else { right = go; left = stay; }
+      }
+      const D0 = o.reach || 205, GAP = o.gap || 60;
+      [[left, 0], [right, 1]].forEach(([list, ti]) => {
+        const tm = teams[ti];
+        tm.m = list;
+        list.forEach((a, j) => {
+          const x = at - tm.dir * (D0 + j * GAP), d = Math.abs(x - a.x);
+          a.sit = 0; a.moving = false; a.pose = posePull(tm, j);
+          if (d > 2) a.go = { x, v: T.clamp(d / 2.4, 80, 240), res: () => { a.flip = tm.dir < 0; } };
+          else { a.go = null; a.x = x; a.flip = tm.dir < 0; }
+        });
       });
+      if (o.cam) { const far = D0 + GAP * (Math.max(left.length, right.length) - 1) + 120; o.cam(at, gAt(at) - 150, T.clamp((T.view.W / 2 - 30) / far, 0.72, 1.02), 1.2); }
+      o.raise(0, 0);
+      T.announce('다 같이 당기기. 셋에 맞춰 위 방향키나 가운데를 눌러 다 함께 당긴다. 기울면 끌려가는 쪽 줄을 왼쪽, 오른쪽 방향키나 그쪽을 눌러 당겨 바로 세운다.');
     };
-    G.keyOf = anyKey; G.hit = () => 0;
-    G.tap = function () {
-      if (G.miss > 0 || G.done) return;
+
+    /* ---------- the count ---------- */
+    function cycle() {
+      G.bi = 0; G.ct = 0; G.pulled = false; G.since3 = Infinity; G.n++;
+      const rest = { w: '', rest: true };
+      let kind = 'base';
+      if (G.n > 1 && G.assist === 0 && rnd() < (o.tricks || 0)) kind = o.tease && rnd() < 0.5 ? 'tease' : 'hold';
+      if (kind === G.prevKind && kind !== 'base') kind = 'base';   /* never the same trick twice running */
+      G.prevKind = kind;
+      const one = { w: '하나', d: 1, m: 57 }, two = { w: '둘', d: 1, m: 57 }, three = { w: '셋!', d: 1, m: 64, three: true };
+      G.cyc = kind === 'tease' ? [one, two, { w: '둘 반', d: 1, m: 58, tease: true }, three, rest] : kind === 'hold' ? [one, two, { w: '', d: 1.1, hold: true }, three, rest] : [one, two, three, rest];
+      if (o.gust && G.n > 1 && G.h > 0.05 && rnd() < o.gust) { G.L += (rnd() < 0.5 ? -1 : 1) * 0.22 * SW; T.audio.sfx('creak'); }
+      enter();
+    }
+    function enter() { const c = cur(); if (c && c.three) G.since3 = 0; if (c && c.m) T.audio.note({ m: c.m, vel: c.three ? 0.3 : 0.2, voice: 'pluck', dur: 0.4 }); }
+    function sag(f) { G.h = Math.max(0, G.h - f / N); T.audio.sfx('creak'); }
+    function stepCount(dt) {
+      G.ct += dt; G.since3 += dt;
+      while (cur() && G.ct >= itemLen(cur())) {
+        G.ct -= itemLen(cur());
+        G.bi++;
+        if (G.bi >= G.cyc.length) {
+          if (!G.pulled && ++G.dry >= 3 && G.assist < 2) { G.assist++; G.dry = 0; G.wrong('천천히 해요. 구령을 늦추고, 다들 꽉 붙잡았어요'); }   /* 셋 went by with no pull */
+          cycle(); return;
+        }
+        enter();
+      }
+    }
+
+    /* ---------- the moves ---------- */
+    G.keyOf = (key) => (key === 'ArrowLeft' || key === 'a' || key === 'A' || key === '1' ? 0 : key === 'ArrowRight' || key === 'd' || key === 'D' || key === '3' ? 2 : key === 'ArrowUp' || key === ' ' || key === 'Enter' || key === 'w' || key === 'W' || key === '2' ? 1 : -1);
+    const loadX = () => { const e = ends(G.k); return scr(e[2][0], e[2][1])[0]; };
+    G.hit = (x, y) => { const lx = loadX(); if ((y < 265 && Math.abs(x) < 400) || Math.abs(x - lx) < 120) return 1; return x < lx ? 0 : 2; };
+    G.tap = function (n) {
+      if (G.done || G.phase !== 'count') return;
       G.idle = 0;
-      if (!onThree()) { G.wrong('혼자서는 꿈쩍도 안 해요. 「셋!」에 다 같이'); G.miss = 0.7; return; }
-      G.say = ''; G.n++; G.yank = 1; G.ph = BEAT * 3.2;
-      G.clock.tween(G, 'k', G.n / G.pulls, 0.6, T.ease.out).then(() => o.raise(G.k));
-      T.audio.sfx('knock', G.n / G.pulls); T.audio.step(G.n * 2, { voice: 'box', vel: 0.4 });
-      if (G.n >= G.pulls) { T.audio.promise(); crew.forEach((a) => { a.pose = null; }); G.finish(1.6); }
+      if (n !== 1) {   /* one side hauls, the other gives a little */
+        const tm = teams[n === 0 ? 0 : 1], other = teams[n === 0 ? 1 : 0];
+        tm.heave = 1; other.give = 1;
+        if (G.h > 0.02) G.corr += n === 0 ? -0.38 : 0.38;
+        T.audio.sfx('step'); T.audio.note({ m: n === 0 ? 50 : 52, vel: 0.14, voice: 'pluck', dur: 0.3 });
+        return;
+      }
+      if (G.cool > 0 || G.pulled) return;
+      const c = cur();
+      if (!inWindow()) {
+        G.fails++; G.cool = 0.5; sag(0.3);
+        G.wrong(c && c.tease ? '「둘 반」은 셋이 아니에요! 조금 처졌어요' : '혼자서는 꿈쩍도 안 해요. 「셋!」에 다 같이');
+        return;
+      }
+      if (G.h > 0.02 && Math.abs(lean()) > straight()) {   /* crooked: the pull only throws it further over */
+        G.fails++; G.cool = 0.4; G.pulled = true;
+        G.L += Math.sign(G.L || 1) * 0.15;
+        G.wrong(BEAM ? '기운 채로 당기면 더 기울어요. 먼저 수평부터 맞춰요' : '비뚤어진 채로 당기면 기울기만 해요. 먼저 바로 세워요');
+        return;
+      }
+      G.say = ''; G.pulled = true; G.yank = 1; G.fails = 0; G.dry = 0;
+      G.h = Math.min(1, G.h + 1 / N);
+      teams.forEach((tm) => { tm.heave = Math.max(tm.heave, 0.6); });
+      T.audio.sfx('knock', G.h); T.audio.step(Math.round(G.h * N) * 2, { voice: 'box', vel: 0.4 });
+      if (G.h >= 0.999) { T.audio.promise(); G.finish(1.6); return; }
+      G.beat = Math.max(0.46, G.beat * (o.quick || 1));
+      if (G.assist > 0) G.assist--;
+      G.L += (rnd() < 0.5 ? -1 : 1) * (0.18 + 0.18 * SW);   /* it comes up with a lurch to one side */
+      T.audio.sfx('creak');
     };
+
     const up = G.update;
     G.update = function (dt) {
       up(dt);
-      const before = Math.floor(cyc() / BEAT);
-      if (!G.done) G.ph += dt;
-      const now = Math.floor(cyc() / BEAT);
-      if (now !== before && now < 3 && !G.done) T.audio.note({ m: [57, 57, 64][now], vel: 0.2, voice: 'pluck', dur: 0.4 });
-      G.yank = Math.max(0, G.yank - dt * 1.6); G.miss = Math.max(0, G.miss - dt);
-      o.raise(G.k - G.yank * 0.03);
+      const t = T.time;
+      G.yank = Math.max(0, G.yank - dt * 1.6); G.cool = Math.max(0, G.cool - dt);
+      teams.forEach((tm) => { tm.heave = Math.max(0, tm.heave - dt * 2.4); tm.give = Math.max(0, tm.give - dt * 2.4); tm.slip = Math.max(0, tm.slip - dt * 1.5); });
+      if (G.phase === 'gather') {
+        G.wait -= dt;
+        if (G.wait <= 0 && crew.every((a) => !a.go)) { G.phase = 'count'; G.idle = 0; cycle(); }
+      } else if (!G.done) stepCount(dt);
+      /* the lean: nothing while it lies on the ground; once up, it keeps going the way it leans */
+      if (G.done) { G.L *= 1 - Math.min(1, dt * 4); G.corr = 0; }
+      else if (G.phase === 'count' && G.h > 0.02) {
+        const r = SW * (0.35 + 0.65 * G.h) * steady(), wind = SW * 0.16 * (Math.sin(t * 1.3 + 0.5) + 0.6 * Math.sin(t * 2.9 + 1.7)) * (0.3 + G.h) * steady();
+        G.L += (r * G.L + wind) * dt;
+        const d = G.corr * Math.min(1, dt * 9); G.L += d; G.corr -= d;
+        if (Math.abs(G.L) >= 1) {   /* over too far: it sinks back, and the dragged side stumbles in */
+          const s = Math.sign(G.L), tm = teams[s > 0 ? 0 : 1];
+          tm.slip = 1; G.fails++; sag(0.5);
+          G.L = s * 0.5; G.corr = 0;
+          G.wrong(BEAM ? '한쪽이 처져서 도로 내려앉았어요. 처지는 쪽 줄을 당겨요' : '너무 기울어서 도로 내려앉았어요. 끌려가는 쪽 줄을 당겨요');
+        }
+      } else { G.L = 0; G.corr = 0; }
+      if (G.fails >= 3 && G.assist < 2) { G.assist++; G.fails = 0; }
+      teams[0].drag = T.clamp((G.L - 0.05) / 0.7); teams[1].drag = T.clamp((-G.L - 0.05) / 0.7);
+      /* for those who listen: say which way it goes when it starts to go */
+      const side = Math.abs(G.L) > 0.35 ? Math.sign(G.L) : 0;
+      if (side && side !== G.said) T.announce(BEAM ? (side > 0 ? '왼쪽이 처진다. 왼쪽 줄을 당긴다.' : '오른쪽이 처진다. 오른쪽 줄을 당긴다.') : side > 0 ? '오른쪽으로 기운다. 왼쪽 줄을 당긴다.' : '왼쪽으로 기운다. 오른쪽 줄을 당긴다.');
+      G.said = side;
+      G.k += (G.h - G.k) * Math.min(1, dt * (G.h > G.k ? 4 : 2.5));
+      o.raise(G.k, BEAM ? 0 : G.L * SH);
+      if (G.done && G.a < 0.3 && !G.let) { G.let = true; crew.forEach((a) => { a.pose = null; }); }   /* let go of the rope */
     };
-    G.next = () => (G.done || G.miss > 0 || !onThree() ? null : '1');
-    G.hintAt = () => [0, 180];
+    G.next = () => {
+      if (G.done || G.phase !== 'count') return null;
+      const Le = lean();
+      if (G.cool <= 0 && inWindow() && !(cur() && cur().tease) && (G.h <= 0.02 || Math.abs(Le) <= straight())) return 'ArrowUp';
+      if (G.h > 0.02 && Math.abs(Le) > 0.24) return Le > 0 ? 'ArrowLeft' : 'ArrowRight';
+      return null;
+    };
+    const teamSpot = (tm) => {
+      const pts = tm.m.map((a) => (a.j && a.j.head ? a.j.head : [a.x, gAt(a.x) - 1.3 * a.s])), x = pts.reduce((s, p) => s + p[0], 0) / Math.max(1, pts.length);
+      const y = Math.min(...pts.map((p) => p[1])) - 56;
+      return scr(x, y);
+    };
+    G.hintAt = () => { const k = G.next(); return !k ? null : k === 'ArrowUp' ? [0, 170] : teamSpot(teams[k === 'ArrowLeft' ? 0 : 1]); };
+
+    /* ---------- drawing ---------- */
+    function rope(g, tm, end, z) {
+      const hands = [];
+      tm.m.forEach((a) => { if (a.j && a.j.handF && !a.go) hands.push(scr(a.j.handF[0], a.j.handF[1]), scr(a.j.handB[0], a.j.handB[1])); });
+      const e = scr(end[0], end[1]);
+      if (!hands.length) return;
+      const tense = T.clamp(0.35 + tm.drag * 0.8 + tm.heave * 0.4 + G.yank * 0.4), h0 = hands[0], sagY = (1 - tense) * 26 * z;
+      const run = (w, c) => {
+        g.strokeStyle = c; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round';
+        g.beginPath(); g.moveTo(e[0], e[1]); g.quadraticCurveTo((e[0] + h0[0]) / 2, (e[1] + h0[1]) / 2 + sagY, h0[0], h0[1]);
+        for (let i = 1; i < hands.length; i++) g.lineTo(hands[i][0], hands[i][1]);
+        const lx = hands[hands.length - 1], a = tm.m[tm.m.length - 1], tx = a.x - tm.dir * 40 * (a.s / 150), ty = scr(tx, gAt(tx) - 2);
+        g.quadraticCurveTo(lx[0] - tm.dir * 16 * z, lx[1] + 10 * z, ty[0], ty[1]);   /* the end of it, trailing in the grass */
+        g.stroke();
+      };
+      const need = T.clamp((tm.drag - 0.08) / 0.4);
+      if (need > 0.02) { g.save(); g.globalAlpha *= need * (0.55 + 0.25 * Math.sin(T.time * 8)); run(11 * z, '#ffd98a'); g.restore(); }
+      run(4 * z, '#e6d6b0');
+      P.fill(g, P.circle(e[0], e[1], 5 * z), '#cdb88f');   /* tied on */
+    }
+    function arrow(g, tm, t) {
+      if (!tm.m.length) return;
+      const q = teamSpot(tm), need = G.phase === 'count' ? T.clamp((tm.drag - 0.08) / 0.4) : 0, k = 1 + 0.1 * need * Math.sin(t * 8);
+      const shape = P.poly([[-34, -22], [10, -22], [10, -44], [52, 0], [10, 44], [10, 22], [-34, 22]]);
+      g.save(); g.translate(q[0], q[1]); g.scale(-tm.dir * k * 0.6, k * 0.6); g.globalAlpha = G.a * (0.4 + 0.6 * need);
+      if (need > 0.05) P.glow(g, 8, 0, 90, '#ffd98a', 0.5 * need, 'source-over');
+      g.lineJoin = 'round'; g.lineWidth = 7; g.strokeStyle = 'rgba(40,32,56,0.45)'; g.stroke(shape);   /* readable on a bright sky */
+      P.fill(g, shape, need > 0.3 ? '#ffd98a' : '#fff6e4');
+      g.restore();
+    }
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
+      const z = zoom(), e = ends(G.k);
       g.save(); g.globalAlpha = G.a;
-      /* the rope, from what is being raised to every pair of hands */
-      const top = o.top(), s0 = scr(top[0], top[1]);
-      g.strokeStyle = '#e6d6b0'; g.lineWidth = 4 * zoom(); g.lineCap = 'round';
-      g.beginPath(); g.moveTo(s0[0], s0[1]);
-      crew.forEach((a) => { if (a.j && a.j.handF) { const h = scr(a.j.handF[0], a.j.handF[1]); g.lineTo(h[0], h[1]); } });
-      g.stroke();
-      const b = Math.floor(cyc() / BEAT);
-      ['하나', '둘', '셋!'].forEach((w, i) => {
-        const on = b === i || (i === 2 && onThree()), x = -210 + i * 210;
-        P.text(g, w, x, 170, { size: i === 2 ? 120 : 90, color: on ? (i === 2 ? '#ffd98a' : '#fff6e4') : 'rgba(243,234,216,0.35)', alpha: G.a, seed: 3 + i, glow: 'rgba(14,20,32,0.7)' });
-      });
-      for (let i = 0; i < G.pulls; i++) P.fill(g, P.circle(-((G.pulls - 1) * 30) / 2 + i * 30, 250, 9), i < G.n ? '#ffd98a' : 'rgba(243,234,216,0.35)');
+      if (G.h > 0.02 && Math.abs(G.L) > 0.12 && !G.done) {   /* where straight is */
+        const c = e[2], foot = gAt(c[0]), q0 = BEAM ? scr(c[0] - BEAM / 2 - 30, c[1]) : scr(c[0], foot), q1 = BEAM ? scr(c[0] + BEAM / 2 + 30, c[1]) : scr(c[0], c[1] - 30);
+        g.save(); g.globalAlpha *= T.clamp((Math.abs(G.L) - 0.12) * 2) * 0.6; g.strokeStyle = '#fff6e0'; g.lineWidth = 2; g.setLineDash([8, 8]);
+        g.beginPath(); g.moveTo(q0[0], q0[1]); g.lineTo(q1[0], q1[1]); g.stroke(); g.restore();
+      }
+      if (BEAM) {   /* the ridge beam, tipping as it comes up */
+        const c = scr(e[2][0], e[2][1]);
+        g.save(); g.translate(c[0], c[1]); g.scale(z, z); g.rotate(e[3]);
+        P.fill(g, P.rr(-BEAM / 2, -8, BEAM, 16, 6), '#b98a5a'); P.fill(g, P.rr(-BEAM / 2, -8, BEAM, 5, 3), '#d1a676');
+        P.fill(g, P.ellipse(-BEAM / 2, 0, 5, 8), '#d9b384'); P.fill(g, P.ellipse(BEAM / 2, 0, 5, 8), '#d9b384');
+        g.restore();
+      }
+      rope(g, teams[0], e[0], z); rope(g, teams[1], e[1], z);
+      arrow(g, teams[0], t); arrow(g, teams[1], t);
+      /* the count, word by word as it is called */
+      if (G.phase === 'count' && !G.done) {
+        const words = G.cyc.map((c, i) => [c, i]).filter((q) => q[0].w), n = words.length, gap = n > 3 ? 200 : 220;
+        words.forEach(([c, i], j) => {
+          if (i > G.bi) return;
+          const now = i === G.bi || (c.three && inWindow()) || (cur().hold && i === G.bi - 1), x = (j - (n - 1) / 2) * gap;   /* 「둘…」 held */
+          const col = !now ? 'rgba(243,234,216,0.4)' : c.three ? '#ffd98a' : c.tease ? '#f6a6bd' : '#fff6e4';
+          P.text(g, c.w, x, 170, { size: c.three ? 124 : c.tease ? 78 : 90, color: col, alpha: G.a, seed: 3 + j, glow: 'rgba(14,20,32,0.7)' });
+        });
+        const c = cur();
+        if (c && c.hold) { const nx = words.findIndex((q) => q[0].three); P.text(g, '…', (nx - (n - 1) / 2) * gap, 160, { font: 'serif', size: 60, color: 'rgba(243,234,216,0.5)', alpha: G.a * (0.5 + 0.5 * Math.sin(t * 9)), glow: 'rgba(14,20,32,0.6)' }); }
+      }
+      /* how far up: a dot a pull, filling as it rises and emptying if it sinks */
+      for (let i = 0; i < N; i++) {
+        const x = -((N - 1) * 30) / 2 + i * 30, f = T.clamp(G.k * N - i);
+        P.fill(g, P.circle(x, 250, 9), 'rgba(243,234,216,0.35)');
+        if (f > 0.02) { g.save(); g.globalAlpha *= f; P.fill(g, P.circle(x, 250, 9), '#ffd98a'); g.restore(); }
+      }
       g.restore();
-      G.caption(g, '「셋!」에 맞춰 눌러서, 다 같이 당겨 세우세요');
+      G.hintRing(g, t);
+      G.caption(g, G.phase === 'gather' ? '양쪽으로 나뉘어 줄을 잡아요' : BEAM ? '「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 처지는 쪽 줄을 ← → 로 당겨 수평을 맞춰요' : '「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 끌려가는 쪽 줄을 ← → 로 당겨 바로 세워요');
     };
     return G;
   };

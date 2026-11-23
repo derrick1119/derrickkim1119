@@ -178,7 +178,7 @@
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3);
-      T.announce('빛의 폭포. 로사네 셋의 배가 빛을 거슬러 오른다. 별 하나가 구름 아래로 떨어진다.');
+      T.announce('구름바다 위에서 로사네 셋의 배가 빛으로 물든다. 배가 구름을 떠나고, 셋은 하나의 빛이 되어 하늘로 오른다.');
       T.world.S.hook.flags.rosaGone = true;
       await X.crossing([{ style: F.styles.rosa, s: 138 }, { style: F.styles.rosaSon, s: 144 }, { style: Object.assign({}, F.styles.villagerB, { top: '#9a7fb0', hair: '#e8e4dc' }), s: 130 }], { leoAge: 3, also: X.seeOff() });
       await home();
@@ -393,7 +393,7 @@
       X.sail(S.b2, -1500, 34);
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3);
-      T.announce('빛의 폭포. 피피네 셋의 배가 빛을 거슬러 오른다. 피피가 끝까지 손을 흔든다. 별 하나가 구름 아래로 길게 떨어진다.');
+      T.announce('밤바다 위에서 피피네 셋의 배가 빛으로 물든다. 피피가 끝까지 손을 흔든다. 배가 구름을 떠나고, 셋은 하나의 빛이 되어 하늘로 오른다.');
       await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], { leoAge: 3, color: '#141b36', also: X.seeOff() });
       qleo2.pose = null;
       X.cam(...X.place.quay(), 1.05, 0.5);
