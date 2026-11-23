@@ -30,7 +30,11 @@
     kidA: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
     kidB: { skin: '#f0c4a6', hair: '#6b3f2a', hairStyle: 'apple', tie: '#f1c04a', top: '#c9573f', bottom: '#c9573f', skirt: 16, shoe: '#5a3a2e', kid: true },
     kidC: { skin: '#f3ccb0', hair: '#2a2024', hairStyle: 'short', top: '#7fb0c9', bottom: '#5d6f8a', shoe: '#33291f', kid: true },
+    /* the little one who watches the clouds: about six, and always in her small knitted hat */
+    cloud: { skin: '#f4d0b8', hair: '#3b2a23', hairStyle: 'bob', top: '#e3e6f3', bottom: '#e3e6f3', skirt: 16, shoe: '#8f7f9e', kid: true, knit: '#e2909c' },
   };
+  /* a small knitted hat, rose, with a cream bobble (worn as style.knit) */
+  F.KNIT = '#e2909c';
   /* Leo in Welcome Harbor, k = 0 (as he arrived) … 4 (white). The beanie hides most of it. */
   F.leoAt = function (k) {
     const u = T.clamp(k / 4);
@@ -260,7 +264,7 @@
     g.translate(head[0], head[1]);
     g.rotate(ha + (o.headRot || 0));
     const R = K.R, face = o.face || {};
-    if (st.hairStyle === 'apple') { /* little fountain ponytail */
+    if (st.hairStyle === 'apple' && !st.knit) { /* little fountain ponytail (tucked under a hat when there is one) */
       g.fillStyle = st.hair;
       g.beginPath(); g.ellipse(-R * 0.35, -R - 4.2, 2.6, 5.4, -0.5 + (o.hairSway || 0), 0, TAU); g.fill();
       g.fillStyle = st.tie; g.beginPath(); g.arc(-R * 0.22, -R - 0.4, 1.9, 0, TAU); g.fill();
@@ -355,6 +359,27 @@
       g.strokeStyle = T.shade(st.beanie, 0.16); g.lineWidth = 3.6; g.lineCap = 'round';
       const d = Math.PI / 180, r1 = R + 1.5;
       g.beginPath(); g.moveTo(Math.cos(-34 * d) * r1, Math.sin(-34 * d) * r1); g.lineTo(Math.cos(176 * d) * r1, Math.sin(176 * d) * r1); g.stroke();
+    }
+    if (st.knit) {
+      /* a knitted hat pulled down to the brow: a soft dome, a ribbed turn-up, a bobble on top */
+      const r1 = R + 1.8, a0 = -18 * d2r, a1 = 196 * d2r;
+      const fx = Math.cos(a0) * r1, fy = Math.sin(a0) * r1, bx = Math.cos(a1) * r1, by = Math.sin(a1) * r1;
+      g.fillStyle = st.knit;
+      g.beginPath(); g.moveTo(fx, fy);
+      g.bezierCurveTo(R * 1.02, -R * 1.18, R * 0.2, -R * 1.62, -R * 0.42, -R * 1.42);
+      g.bezierCurveTo(-R * 1.12, -R * 1.14, -R * 1.24, -R * 0.42, bx, by);
+      g.closePath(); g.fill();
+      g.save(); g.clip();   /* a few rows of stitches */
+      g.strokeStyle = T.shade(st.knit, -0.12); g.lineWidth = 0.55; g.globalAlpha *= 0.7;
+      for (let i = 0; i < 4; i++) { const yy = -R * 0.5 - i * R * 0.22; g.beginPath(); for (let k = -6; k <= 6; k++) { const xx = k * R * 0.2; g.lineTo(xx, yy + (k % 2 ? 0.9 : 0)); } g.stroke(); }
+      g.restore();
+      g.strokeStyle = T.shade(st.knit, -0.08); g.lineWidth = 3.4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(fx + 0.4, fy + 0.6); g.quadraticCurveTo(-R * 0.2, -R * 0.42, bx, by + 0.4); g.stroke();
+      g.strokeStyle = T.shade(st.knit, -0.22); g.lineWidth = 0.6;
+      for (let k = 0; k < 7; k++) { const u2 = (k + 0.5) / 7, px = T.lerp(fx, bx, u2), py = T.lerp(fy, by, u2) - Math.sin(u2 * Math.PI) * R * 0.28; g.beginPath(); g.moveTo(px, py - 1.4); g.lineTo(px, py + 1.4); g.stroke(); }
+      g.fillStyle = '#fbf1e2';
+      g.beginPath(); g.arc(-R * 0.38, -R * 1.5, 2.7, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(160,120,110,0.25)'; g.beginPath(); g.arc(-R * 0.3, -R * 1.42, 1.5, 0, TAU); g.fill();
     }
     g.restore();
     if (!skip.armF) drawArm(af, st.top);

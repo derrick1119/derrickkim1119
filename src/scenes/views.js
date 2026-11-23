@@ -10,7 +10,7 @@
 
   /* ---------- the lake ---------- */
   /* o: { paint(g, t), leo: style, mom: bool, mirror: 0..1 (how plainly he sees himself), warm: bool,
-     shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }] } */
+     shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }], kid: a style (someone small sitting on the bank, looking in) } */
   T.lake = function (o) {
     const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
     const SC = 0.7, TOP = 232, PH = 640;
@@ -236,6 +236,7 @@
         g.globalAlpha = L.mirror * (0.75 + 0.25 * Math.sin(t * 1.1));
         F.person(g, lo);
         g.restore();
+        if (L.kid) sitter(g, t, bx - 96, 176, false);
         if (L.mom) { const no = { x: bx - 4, y: 206 - F.hipHeight(F.styles.mom, 158), s: 158, style: F.styles.mom, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); }
         F.person(g, lo);
         /* reeds */
@@ -245,6 +246,14 @@
       const m = L.mote;
       if (m && !m.gone) { P.glow(g, m.x, m.y, 70, '#fff0b8', 0.7 + 0.2 * Math.sin(t * 3)); P.glow(g, m.x, m.y, 20, '#ffffff', 0.9); if (!m.held && T.clamp((T.time - m.t0 - 2.5) / 1.2) > 0) P.fingerHint(g, [[m.hx, m.hy], [m.hx + 120, m.hy + 150], [m.hx + 240, m.hy + 330]], (t * 0.4) % 1, T.clamp((T.time - m.t0 - 2.5) / 1.2), '#fff6e0'); }
     };
+    /* someone small on the edge of the bank, knees up, looking down into the picture */
+    function sitter(g, t, x, y, flip) {
+      const st = L.kid, s = 112;
+      const o = { x, y: y - 6, s, style: st, flip, sit: true, lean: 0.24, headTilt: 0.42 + Math.sin(t * 0.6) * 0.03, face: { blush: 0.24 },
+        legF: { foot: [13, 9] }, legB: { foot: [10, 10] } };
+      o.armF = { hand: [12, -4] }; o.armB = { hand: [10, -2] };   /* arms round her knees */
+      F.person(g, o);
+    }
     /* a flat cut-out of him, for the shadow before it has found its seat */
     const flat = (st, c) => { const o2 = {}; Object.keys(st).forEach((k) => { o2[k] = typeof st[k] === 'string' && st[k][0] === '#' ? c : st[k]; }); return o2; };
     function drawShore(g, t, W) {
@@ -307,6 +316,7 @@
       /* who has come to look: his mother with her lamp, and Leo himself when he is not one of the things to slide.
          They stand at the far end of the bank, each drawn once, at the same scale as the things beside them. */
       const mx = -W * SC / 2 + 22;
+      if (L.kid) sitter(g, t, W / 2 - 92, BANK - 4, true);
       if (L.mom) {
         const ms = F.styles.mom, sm = 150;
         const j = F.person(g, { x: mx, y: BANK - F.hipHeight(ms, sm), s: sm, style: ms, lean: 0.08, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } });

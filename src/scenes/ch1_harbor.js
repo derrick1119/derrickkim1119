@@ -987,8 +987,21 @@
     o.armB = { a: 0.2 + 0.18 * Math.sin(p * Math.PI), b: 0.45 };
   }
 
+  /* a little girl on the crates at the land end of the pier, looking up at the clouds. As he comes past she
+     looks down at him for a moment, and then up again */
+  let kumoLook = 0;
+  function cloudKid(g) {
+    const st = F.styles.cloud, s = 96, t = T.time;
+    const near = S.ph === 'walk' && S.wx > 330 && S.wx < 470 ? 1 : 0;
+    kumoLook += (near - kumoLook) * 0.06;
+    const o = { x: 468, y: PIER_Y - 38, s, style: st, flip: true, sit: true, lean: -0.08 + kumoLook * 0.12, headTilt: T.lerp(-0.42 + Math.sin(t * 0.5) * 0.04, 0.08, kumoLook), face: { blush: 0.22 } };
+    o.legF = { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 1.6) * 0.18 }; o.legB = { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.25 + Math.sin(t * 1.6 + 2) * 0.18 };
+    o.armF = { a: -0.2, b: 0.2 }; o.armB = { a: -0.3, b: 0.2 };   /* hands flat on the crate behind her */
+    F.person(g, o);
+  }
   /* ---------- drawing: people on the road ---------- */
   function people(g, h) {
+    if (h === 1 && S.ph !== 'home') cloudKid(g);
     if (S.ph === 'home' || S.ph === 'sail') { if (S.ph === 'sail' && h === 1) pierMom(g); return; }
     const t = T.time, L = S.leo, N = S.mom;
     const ns = F.styles.mom, ls = L.style;

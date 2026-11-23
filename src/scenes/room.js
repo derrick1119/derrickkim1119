@@ -319,7 +319,11 @@
       g.beginPath(); g.arc(x, 24 - h, 5, 0, TAU); g.stroke(); g.restore();
       c([[x - 6, 30 - h * 0.55], [x + 6, 30 - h * 0.55]], col, 2, seed + 1);
     };
-    stick(-10, 26, '#d7a23c', 14); stick(4, 24, '#c9573f', 16); stick(15, 14, '#5b8fb0', 18);
+    stick(-14, 26, '#d7a23c', 14); stick(0, 24, '#c9573f', 16); stick(10, 14, '#5b8fb0', 18);
+    /* and holding her hand, a smaller girl in a pink hat: the friend she always drew in */
+    stick(20, 12, '#e2909c', 24);
+    P.scribble(g, P.poly([[14.5, 12.5], [15.5, 8], [20, 5], [24.5, 8], [25.5, 12.5]]), [14, 4, 12, 9], '#e2909c', { gap: 2, w: 2.4, seed: 26, ang: 0.3 });
+    P.scribble(g, P.circle(20, 3.6, 1.8), [18, 1.6, 4, 4], '#f0d9b8', { gap: 1.5, w: 2, seed: 27 });
     c([[-70, 26], [-62, 26]], '#b57c50', 4, 20);
     /* sun */
     P.scribble(g, P.circle(58, -40, 9), [48, -50, 20, 20], '#f0b93a', { gap: 4, w: 4, seed: 22 });

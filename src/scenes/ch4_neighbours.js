@@ -105,6 +105,7 @@
       await quay(5, 5, () => {
         leo = X.actor('leo', { x: 420, style: F.leoAt(0), flip: true });
         mom = X.actor('mom', { x: 360, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        X.cloudKid();   /* already looking up at it */
         S.rb.a = 1;
       });
       X.walk(leo, 200, 110);
@@ -140,7 +141,7 @@
 
       /* ---- Bean's lake: Lily walking home from school in the rain, then on the back step with his collar ---- */
       const lakeB = T.lake({
-        paint: T.vig.lilyBean, leo: F.leoAt(0), mom: true, shore: true,
+        paint: T.vig.lilyBean, leo: F.leoAt(0), mom: true, shore: true, kid: F.styles.cloud,
         rhText: '빈은 릴리 옆 늘 앉던 계단에, 공은 풀밭에, 등불은 꺼진 현관 등에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'dog', id: 'bean', x: -330, at: [140, 634], flip: false, lockFlip: false, ps: 300 },
@@ -150,11 +151,19 @@
           { kind: 'lamp', id: 'lamp', x: -60, at: [383, 380] },
         ],
       });
-      const help = T.lakeHelp({ level: 1, leoAge: 1 });
+      const help = T.lakeHelp({ level: 1, leoAge: 1, who: F.lilyAt(11, { knit: F.KNIT }), friend: F.styles.cloud });
       await X.view(help, { color: '#1b2a40' });
       X.age('릴리, 11');
-      T.announce('거울 호수. 비 오는 하굣길, 릴리가 빈의 목걸이를 손에 감고 혼자 걷는다.');
+      T.announce('거울 호수. 비 오는 하굣길, 릴리가 빈의 목걸이를 손에 감고 혼자 걷는다. 물가에는 구름이도 와 있다.');
       await TALK.say('leo', '빈이 날마다\n마중 나가던 길이야.');
+      /* at the school gate she will not start off into the dark, and whispers to someone who is not there */
+      help.fright(true);
+      await X.wait(1.4);
+      await TALK.say('lily', '…거기 있지?', { slow: true });
+      help.call();
+      T.announce('물가를 걷던 구름이가 릴리 위쪽 물가로 가서 물속을 내려다본다.');
+      await X.wait(2.8);
+      help.fright(false);
       await help.done();
       await X.wait(1.2);
       await TALK.say('leo', '…오늘도 데려다주는구나, 빈.', { slow: true });
@@ -286,14 +295,15 @@
       await TALK.say('leo', '밧줄은 제가 풀게요.');
 
       /* ---- a year on: Captain Bram's wife, and she is in no hurry now either ---- */
-      let wife;
+      let wife, cloud;
       await quay(9, 10, () => {
+        cloud = X.cloudKid({ x: 166, chair: 0, flip: true, lamp: true, lampHand: 'F', look: true });   /* a little lamp of her own, for whoever is coming */
         bram = X.actor('bram', { x: 96, style: F.styles.bram, s: 144, flip: true, lean: 0.06 });
         bram.pose = (o, a, t) => { if (!a.moving && !a.boat) { o.armF = { a: -0.5, b: -0.3 }; o.armB = { a: -0.5, b: -0.3 }; o.y += Math.sin(t * 2.4) * 1.5; } };
         leo = X.actor('leo', { x: 392, style: F.leoAt(0), flip: true });
         bean = X.actor('bean', { dog: true, s: 220, x: 440, sit: 1, flip: true, wag: 0.6 });
         mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
-        crowd.push(X.actor('v1', { x: 486, style: F.styles.villagerA, s: 142, flip: true }), X.actor('v2', { x: 268, style: F.styles.villagerB, s: 134, flip: true }), X.actor('v3', { x: 222, style: F.styles.rosa, s: 138, flip: true }));
+        crowd.push(X.actor('v1', { x: 486, style: F.styles.villagerA, s: 142, flip: true }), X.actor('v2', { x: 268, style: F.styles.villagerB, s: 134, flip: true }), X.actor('v3', { x: 222, style: F.styles.rosa, s: 138, flip: true }), cloud);
         wife = X.actor('wife', { style: F.styles.bramWife, s: 106, lean: 0.24, face: { old: true } });
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
@@ -302,6 +312,7 @@
       const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 3, 0, 1]] });
       X.sail(S.b1, -74, 30);
       await pressed;
+      cloud.pose = (q, a, t) => { q.headTilt = 0.02; q.armF = { a: 1.9 + Math.sin(t * 2) * 0.06, b: 0.5 }; };   /* she holds her lamp up for the boat */
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
       A.sfx('door');
       X.walk(bram, 62, 50);
@@ -342,7 +353,18 @@
       X.cam(-240, 452, 1, 0.5);
       await X.wait(2.6);
       T.announce('구름바다 끝, 빛의 폭포. 브램과 마르타의 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 구름 아래 산 사람들의 하늘로 떨어진다.');
-      await X.crossing([{ style: F.styles.bram, s: 144 }, { style: F.styles.bramWife, s: 106 }], { leoAge: 1 });
+      await X.crossing([{ style: F.styles.bram, s: 144 }, { style: F.styles.bramWife, s: 106 }], { leoAge: 1, also: X.seeOff() });
+      /* the neighbours go back up into the town; the little one is still looking out to where they went */
+      [leo, mom].concat(crowd).forEach((a) => { a.pose = null; });
+      crowd.filter((a) => a !== cloud).forEach((a, i) => X.walk(a, 720 + i * 50, 70).then(() => { a.hidden = true; }));
+      cloud.pose = (q) => { q.headTilt = -0.06; };
+      X.cam(150, 470, 1.3, 0.8);
+      await X.wait(2.4);
+      await TALK.say('cloud', '나도 누굴 지켜야 할 것 같은데…\n누군지 몰라.', { slow: true });
+      await X.walk(leo, cloud.x + 46, 60);
+      leo.flip = true;
+      leo.pose = (q) => { q.armF = { hand: F.local(q, cloud.x + 6, PIER - 70) }; q.headTilt = 0.12; };   /* a hand on her head, and nothing said */
+      await X.wait(2.6);
 
       /* ---- Rosa's baby ---- */
       let rosa, son;
@@ -356,6 +378,7 @@
         mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         son = X.actor('son', { style: F.styles.rosaSon, s: 144, lean: 0.16, face: { old: true } });
         S.b1 = X.boat({ x: -820, riders: [son] });
+        X.cloudKid({ x: 548, chair: 0, lamp: true, lampHand: 'F', look: true });
       });
       X.toll(3);
       await TALK.say('rosa', '오늘은 꼭 그 애일 것 같아.', { auto: 2.4 });
