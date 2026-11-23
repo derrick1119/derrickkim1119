@@ -854,15 +854,30 @@ function texOnce(key, size, draw, opts) {
 }
 
 const headMats = new Map();
-/** 인물 kind 의 표정 ex 살갗 재질(종류 × 표정마다 하나, 처음 쓸 때 그린다). */
-function headMat(kind, F, ex) {
-  const key = `${kind}|${ex}`;
+/**
+ * 인물 kind 의 표정 ex 살갗 재질(종류 × 표정마다 하나, 처음 쓸 때 그린다).
+ * flip = 왼쪽을 보고 걸어 모델이 좌우로 뒤집혔을 때: 얼굴 그림도 좌우로 뒤집어(u → 1 − u) 두 번 뒤집힌 셈이 되게 한다.
+ * 그래야 한쪽만 올라간 눈썹·비뚤어진 입꼬리가 걷는 방향과 상관없이 늘 같은 쪽에 있다.
+ * 얼굴 펼침(uOf)이 u = 0.5 를 기준으로 대칭이라 가능하다. 뒤집힌 텍스처는 그림(source)을 함께 써서 GPU 메모리가 늘지 않는다.
+ */
+function headMat(kind, F, ex, flip = false) {
+  const key = `${kind}|${ex}${flip ? '|f' : ''}`;
   let m = headMats.get(key);
   if (!m) {
-    const E = exprOf(F, ex);
-    const tex = texOnce(`vface:${key}`, TS, (ctx) => paintFace(ctx, F, E));
-    m = vinylize(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.38, envMapIntensity: 0.75 }), 0.15);
-    m.userData.E = E;
+    if (flip) {
+      const base = headMat(kind, F, ex, false);
+      const tex = base.map.clone();
+      tex.repeat.x = -1;
+      tex.offset.x = 1;
+      // clone() 은 비닐 셰이더 보정(onBeforeCompile)을 옮기지 않으므로 같은 설정으로 새로 만든다
+      m = vinylize(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.38, envMapIntensity: 0.75 }), 0.15);
+      m.userData.E = base.userData.E;
+    } else {
+      const E = exprOf(F, ex);
+      const tex = texOnce(`vface:${key}`, TS, (ctx) => paintFace(ctx, F, E));
+      m = vinylize(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.38, envMapIntensity: 0.75 }), 0.15);
+      m.userData.E = E;
+    }
     headMats.set(key, m);
   }
   return m;
@@ -1300,13 +1315,17 @@ function headwear(P, key, make, { rough = 0.38, outline = OLH } = {}) {
   return add(P.head, merged(`vhw:${key}`, make), VM(rough), { outline });
 }
 
-/** 표정을 바꾼다(살갗 그림·눈 크기·눈동자 종류·감은 눈). 같은 표정이면 아무것도 하지 않는다. */
-function setFace(P, ex) {
-  if (P.ex === ex) return;
+/** 표정을 바꾼다(살갗 그림·눈 크기·눈동자 종류·감은 눈). 같은 표정·같은 방향이면 아무것도 하지 않는다. */
+function setFace(P, ex, dir = 1) {
+  const flip = dir < 0;
+  const same = P.ex === ex;
+  if (same && P.flipped === flip) return;
   P.ex = ex;
-  const m = headMat(P.kind, P.F, ex);
+  P.flipped = flip;
+  const m = headMat(P.kind, P.F, ex, flip);
   P.skull.material = m;
   P.nose.material = m;
+  if (same) return; // 방향만 바뀌었다: 눈은 그대로
   const E = m.userData.E;
   P.E = E;
   const k = E.k * (P.F.ek || 1);
@@ -1582,7 +1601,7 @@ function pickFace(P, st, seed) {
     else if (st.look > 0.5) ex = blinkAt(st.t, seed, 4.6) ? 'b' : 'l';
     else ex = blinkAt(st.t, seed) ? 'b' : 'n';
   }
-  setFace(P, ex);
+  setFace(P, ex, st.dir);
   aimEyes(P, st);
 }
 
