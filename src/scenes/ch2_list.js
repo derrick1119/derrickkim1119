@@ -87,6 +87,9 @@
       /* someone has been watching from behind the stakes the whole time */
       const pipi = X.actor('kid', { x: PL.HX + 260, style: F.styles.kidA, s: 100, flip: true });
       pipi.pose = (o, a, t) => { o.headTilt = -0.2 + Math.sin(t * 2) * 0.05; o.armF = { a: 0.3, b: 1.6 }; };
+      /* and a smaller one who came up with her, sitting in the grass with her face to the sky */
+      const cloud = X.actor('cloud', { x: PL.HX + 372, style: F.styles.cloud, s: 94, flip: true, sit: 1 });
+      cloud.pose = (o, a, t) => { o.headTilt = -0.4 + Math.sin(t * 0.5) * 0.04; o.lean = -0.16; o.armF = { a: -0.3, b: 0.2 }; o.armB = { a: -0.4, b: 0.2 }; };
       A.sfx('step');
       await X.wait(0.8);
       leo.flip = false;
@@ -98,6 +101,15 @@
       await X.TALK.say('leo', '아나. 내 아내.');
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
       await X.TALK.say('leo', '그래. 약속.');
+      await X.wait(0.4);
+      await X.TALK.say('leo', '…저 애는?');
+      await X.TALK.say('kid', '구름이.\n맨날 구름만 봐서 구름이야.');
+      await X.TALK.say('cloud', '저 구름 봐.\n둘이 손 잡고 있어.');
+      /* he looks up too, for a while */
+      const look0 = leo.pose;
+      leo.pose = (o, a, t) => { if (look0) look0(o, a, t); o.headTilt = -0.34; };
+      await X.wait(2.2);
+      leo.pose = look0;
       X.tween(bram, 'sit', 0, 0.6);
       X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
       /* ---- that night on the quay: what you do while you wait ---- */

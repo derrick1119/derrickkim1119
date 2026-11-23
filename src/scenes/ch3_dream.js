@@ -233,7 +233,16 @@
       await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
       await TALK.say('bram', '마르타 오는 날,\n이 배 띄우는 것 좀 거들어 주게.');
       await TALK.say('leo', '네. 꼭요.');
-      await X.dip(async () => { leo.x = PL.HX + 30; bram.x = PL.HX - 200; bram.flip = false; X.cam(px, py, 1); X.camSnap(); });
+      /* a few days on: the two of them walk back up the hill together, to the timber he sawed, dry now */
+      await X.dip(async () => { leo.pose = null; leo.x = PL.HX - 520; leo.flip = false; bram.x = PL.HX - 580; bram.flip = false; X.cam(PL.HX - 260, py, 1); X.camSnap(); });
+      T.announce('며칠 뒤. 레오와 브램이 함께 언덕을 올라온다. 레오가 켜 둔 나무가 볕에 말라 있다.');
+      X.walk(bram, PL.HX - 200, 72);
+      await X.walk(leo, PL.HX - 118, 72);
+      X.cam(px, py, 1, 1.2);
+      bram.flip = false; leo.flip = true;
+      await TALK.say('bram', '자네가 켠 나무, 잘 말랐구먼.');
+      await TALK.say('bram', '배 거들어 준 품은 갚아야지.\n뼈대, 오늘 올리세.');
+      await TALK.say('leo', '네. 바람 오기 전에요.');
 
       /* ---- the frame ---- */
       const push = (o) => { o.armF = { a: 1.9, b: 0.3 }; o.armB = { a: 1.7, b: 0.3 }; o.lean = 0.2; };
@@ -342,6 +351,7 @@
         X.actor('rosa', { x: C.PLOT - 760, style: F.styles.rosa, s: 138 }),
         X.actor('v1', { x: C.PLOT - 840, style: F.styles.villagerA, s: 142 }),
         X.actor('kid', { x: C.PLOT - 900, style: F.styles.kidA, s: 100 }),
+        X.actor('cloud', { x: C.PLOT - 950, style: F.styles.cloud, s: 94 }),
       ];
       crew[1].prop = (g, j) => { g.save(); g.translate(j.handF[0], j.handF[1] + 6); g.strokeStyle = '#e6d6b0'; g.lineWidth = 4; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(0, 0, 14 - i * 2, 20 - i * 3, 0.3, 0, Math.PI * 2); g.stroke(); } g.restore(); };
       crew.forEach((a, i) => X.walk(a, PL.HX - 160 - i * 62, 82 + i * 4));
@@ -422,7 +432,7 @@
       await X.wait(0.8);
 
       /* ---- Ana ---- */
-      const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: true, i: 0 });
+      const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: true, i: 0, kid: F.styles.cloud });   /* 구름이 is already there, looking in */
       await X.view(lake2, { color: '#1b2a40' });
       await TALK.say('mom', '너도 아나 보고 가렴.');
       T.announce('호수에 물결이 인다. 고리 셋을 눌러 돌려 비친 모습을 맞춘다.');

@@ -105,6 +105,7 @@
         son = X.actor('son', { x: 270, style: F.styles.rosaSon, s: 144, lean: 0.14, flip: true, face: { old: true } });
         dil = X.actor('dil', { style: Object.assign({}, F.styles.villagerB, { top: '#9a7fb0', hair: '#e8e4dc' }), s: 130, lean: 0.14, face: { old: true } });
         S.b1 = X.boat({ x: -880, riders: [dil] });
+        X.cloudKid({ x: 548, chair: 0, lamp: true, lampHand: 'F', look: true });
       });
       X.bed(1, 0.13, 'sea');
       X.toll(1); await X.wait(1);
@@ -151,7 +152,7 @@
       await X.wait(3);
       T.announce('빛의 폭포. 로사네 셋의 배가 빛을 거슬러 오른다. 별 하나가 구름 아래로 떨어진다.');
       T.world.S.hook.flags.rosaGone = true;
-      await X.crossing([{ style: F.styles.rosa, s: 138 }, { style: F.styles.rosaSon, s: 144 }, { style: Object.assign({}, F.styles.villagerB, { top: '#9a7fb0', hair: '#e8e4dc' }), s: 130 }], { leoAge: 3 });
+      await X.crossing([{ style: F.styles.rosa, s: 138 }, { style: F.styles.rosaSon, s: 144 }, { style: Object.assign({}, F.styles.villagerB, { top: '#9a7fb0', hair: '#e8e4dc' }), s: 130 }], { leoAge: 3, also: X.seeOff() });
       await home();
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
@@ -186,7 +187,7 @@
       await X.dip(async () => { S.actors.splice(S.actors.indexOf(pipi0), 1); leo.x = PL.TABLE_X - 66; leo.chair = 1; bean.x = PL.TABLE_X + 118; bean.flip = true; X.cam(px + 60, py, 1); X.camSnap(); });
 
       /* ---- an evening in the lake: Ana walking home in the rain, and what he can do from the shore ---- */
-      const way = T.lakeHelp({ level: 3, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), leoAge: 3 });
+      const way = T.lakeHelp({ level: 3, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), leoAge: 3, friend: { style: F.styles.cloud, beside: false } });
       await X.view(way, { color: '#1b2a40' });
       X.age('아나, 73');
       T.announce('거울 호수. 비 오는 저녁, 장바구니를 든 아나가 혼자 집으로 걷는다. 릴리가 문 앞에서 기다린다.');
@@ -237,6 +238,7 @@
         pipi.pose = (o, a, t) => { if (!a.moving && !a.hug) o.y -= Math.abs(Math.sin(t * 5)) * 4; };
         pm = X.actor('pmom', { style: F.styles.villagerB, s: 128, lean: 0.14, face: { old: true } });
         S.b1 = X.boat({ x: -880, riders: [pm] });
+        X.cloudKid({ lamp: true, lampHand: 'F', look: true });
       });
       X.bed(1, 0.13, 'sea');
       X.toll(1); await X.wait(1.2);
@@ -299,9 +301,10 @@
       if (ov) { ov.sun.k = 0.4; await X.view(ov, { color: '#fff6e6' }); T.announce('구름 위 벤치. 늙은 레오와 빈이 저무는 구름바다를 본다.'); X.tween(ov.sun, 'k', 1, 7); }
       await X.years(40, 43, { age: 79 });
       if (ov) await X.view(null, { color: '#1b2440' });
-      let pipi2, pm2, pd, qleo2;
+      let pipi2, pm2, pd, qleo2, cloud;
       X.toll(0);
       await quay(() => {
+        cloud = X.cloudKid({ x: 548, chair: 0, lamp: true, lampHand: 'F', look: true });
         qleo2 = X.actor('leo', { x: 420, style: F.leoAt(3), flip: true, face: { old: true } });
         X.actor('bean', { dog: true, s: 220, x: 480, sit: 1, flip: true, wag: 0.4 });
         pm2 = X.actor('pmom', { x: 330, style: F.styles.villagerB, s: 128, lean: 0.14, flip: true, face: { old: true } });
@@ -362,13 +365,29 @@
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3);
       T.announce('빛의 폭포. 피피네 셋의 배가 빛을 거슬러 오른다. 피피가 끝까지 손을 흔든다. 별 하나가 구름 아래로 길게 떨어진다.');
-      await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], { leoAge: 3, color: '#141b36' });
+      await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], { leoAge: 3, color: '#141b36', also: X.seeOff() });
       qleo2.pose = null;
       X.cam(...X.place.quay(), 1.05, 0.5);
       await X.wait(1.4);
       await TALK.say('leo', '…이제 피피네도 갔네, 빈.', { slow: true });
       A.sfx('bark');
       await X.wait(1.2);
+      /* and the smallest one is still at the end of the quay, her lamp put out, looking at the sea */
+      cloud.lamp = false; cloud.look = false;
+      X.cam(470, 500, 1.4, 0.8);
+      await X.wait(1.2);
+      await TALK.say('cloud', '다 지키고 가는데,\n나는 아직도 몰라.');
+      const qbean = S.actors.find((a) => a.id === 'bean');
+      if (qbean) { qbean.sit = 0; X.walk(qbean, 372, 70).then(() => { qbean.flip = false; qbean.sit = 1; }); }
+      await X.walk(qleo2, cloud.x - 44, 50);
+      qleo2.flip = false;
+      qleo2.pose = (q) => { q.headTilt = 0.14; q.lean = 0.1; };
+      await X.wait(0.6);
+      await TALK.say('leo', '그럼 나랑 같이 찾아보자.\n심심하지 않게.');
+      cloud.look = true;
+      cloud.face = { eye: 'happy', mouth: 'smile' };
+      A.motif({ voice: 'box', vel: 0.3, beat: 0.7 });
+      await X.wait(2.2);
       await home();
       X.bed(4, 0.13, 'home');
 

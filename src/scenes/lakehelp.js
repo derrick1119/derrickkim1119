@@ -15,7 +15,11 @@
      o.helpers  [{ kind: 'lantern'|'cloud'|'plank'|'bean', x }]   o.obstacles [{ x, need: kind | [kind, kind], w }] (street x, she starts at 120)
      o.len                        street length (home is at len - 150); o.caption the opening line; o.home: false (no one at the door) or a style
      o.leo / o.leoAge             who walks the bank above her; o.speed her pace (1)
+     o.friend                     a small one who walks the bank too, a little behind him: a style, or { style, s, beside }.
+                                  When the walker stops afraid (in the dark, in the rain) she goes and stands over her, and a
+                                  faint shadow of her stands beside the walker until it passes (beside: false — she only watches)
      V.start() · V.done() -> Promise (she is home) · V.star(opts) a shooting star in her sky · want() · hintAt()
+     V.fright(on) before the start: she stands at the school gate afraid · V.call(): the friend may come to her then
      A need with no helper of its kind on the bank is dropped, so she can never be left waiting for ever. */
 (function () {
   'use strict';
@@ -141,6 +145,19 @@
     const L = (V.lily = { x: o.startX || 120, ph: 0, v: 66, moving: false, wait: 0, mood: 'walk', relief: 0, home: 0, hop: 0, style: wst, s: ws });
     const homeWho = o.home === false ? null : o.home && o.home.skin ? o.home : F.anaAt(41);
     const leo = { x: L.x - 110, ph: 0, moving: false, style: o.leo || F.leoAt(o.leoAge == null ? 1 : o.leoAge) };
+    const fo = o.friend, fr = (V.friend = fo ? { x: L.x - 190, ph: 0, moving: false, flip: false, near: 0, come: false, style: fo.skin ? fo : fo.style, s: (!fo.skin && fo.s) || 104, beside: fo.skin ? true : fo.beside !== false } : null);
+    V.fright = function (on) { L.hold = !!on; };
+    V.call = function () { if (fr) fr.come = true; };
+    /* the friend keeps a little behind him; when the one in the water is afraid, she goes and stands over her */
+    function friendStep(dt) {
+      if (!fr) return;
+      const afraid = fr.beside && !V.finished && (V.started || fr.come) && (L.mood === 'scared' || L.mood === 'huddle');
+      const want = afraid ? L.x + 6 : leo.x - 72, d = want - fr.x;
+      const st = Math.sign(d) * Math.min(Math.abs(d), (afraid ? 170 : Math.max(46, Math.abs(d) * 1.5)) * dt);
+      fr.moving = Math.abs(d) > 1.5; fr.x += st; if (Math.abs(st) > 0.05) fr.flip = st < 0;
+      fr.ph += Math.abs(st) / (10 * (fr.s / 150));
+      fr.near += ((afraid && Math.abs(d) < 30 ? 1 : 0) - fr.near) * Math.min(1, dt * 1.8);
+    }
 
     const helpers = (V.helpers = (o.helpers || lv.helpers).map((h, i) => ({ kind: h.kind, x: h.x, i, go: null, ph: 0, flip: false, held: false, run: 0, lift: 0, pop: 0, seen: 0 })));
     /* a need with nothing on the bank to meet it would leave her waiting for ever: such needs are dropped */
@@ -308,8 +325,8 @@
       /* things left behind at that edge make room for each other instead of piling up */
       const spare = helpers.filter((h) => !h.held && h.go == null && !(h.run > 0) && h.x < camL() + 240 && !obs.some((q) => !q.passed && q.needs.includes(h.kind) && near(h, q))).sort((a, b) => a.x - b.x);
       for (let i = 1; i < spare.length; i++) if (spare[i].x < spare[i - 1].x + 70) { const nx = spare[i - 1].x + 70; spare[i].ph += (nx - spare[i].x) / 9; spare[i].x = nx; }
-      if (!V.started) { V.camX += (camTarget() - V.camX) * Math.min(1, dt * 3); return; }
-      if (V.finished) { L.home = Math.min(1, L.home + dt / 2.4); L.moving = false; leo.moving = false; return; }
+      if (!V.started) { L.mood = L.hold ? 'scared' : 'walk'; friendStep(dt); V.camX += (camTarget() - V.camX) * Math.min(1, dt * 3); return; }
+      if (V.finished) { L.home = Math.min(1, L.home + dt / 2.4); L.moving = false; leo.moving = false; friendStep(dt); return; }
       /* where she may walk to */
       let q = nextObs();
       while (q && L.x > q.x + q.w / 2 + 4) { q.passed = true; q = nextObs(); }
@@ -342,6 +359,7 @@
       /* her feeling, in a word */
       const firstUnmet = q && !met(q) ? q.needs.find((k) => !has(q, k)) : null;
       L.mood = !L.moving && firstUnmet ? { lantern: 'scared', cloud: 'huddle', plank: 'edge', bean: 'sad' }[firstUnmet] : happy ? 'happy' : L.relief > 0.3 ? 'relief' : 'walk';
+      friendStep(dt);
       V.camX += (camTarget() - V.camX) * Math.min(1, dt * 2.2);
       if (L.x >= HOME - 46.5) {
         V.finished = true; V.rh = null; sel = -1; held = -1;
@@ -450,6 +468,16 @@
       const sad = L.mood === 'scared' || L.mood === 'huddle' || L.mood === 'sad' || L.mood === 'edge';
       F.person(g, { x: sx, y: BANK - F.hipHeight(st, 150), s: 150, style: st, walk: leo.moving ? leo.ph : null, lean: 0.06 + (sad ? 0.1 : 0), headTilt: 0.32 + (sad ? 0.1 : 0),
         face: { blush: 0.16, mouth: L.mood === 'happy' || V.finished ? 'smile' : sad ? 'line' : null, eye: V.finished ? 'happy' : 'open' } });
+    }
+    function drawFriend(g) {
+      if (!fr) return;
+      const sx = fr.x - V.camX, st = fr.style, k = T.ease.io(fr.near);
+      if (sx < -T.view.W / 2 - 60 || sx > T.view.W / 2 + 60) return;
+      /* at the very edge, she leans out over the water to look down at her */
+      const o = { x: sx, y: BANK - F.hipHeight(st, fr.s), s: fr.s, style: st, flip: fr.moving && fr.flip, lean: 0.05 + k * 0.18, headTilt: 0.26 + k * 0.26, face: { blush: 0.24, eye: V.finished ? 'happy' : 'open', mouth: V.finished ? 'smile' : null } };
+      if (fr.moving) o.walk = fr.ph;
+      if (k > 0.02) { o.armF = { a: 0.3 + 0.7 * k, b: 0.2 }; o.armB = { a: 0.2, b: 0.4 }; }
+      F.person(g, o);
     }
 
     /* ---------- her street ---------- */
@@ -659,8 +687,19 @@
       const s = sx_(L.x), st = L.style, u = L.s / 100, m = L.mood, b = bean();
       const onPlank = helpers.some((h) => h.kind === 'plank' && Math.abs(h.x - L.x) < 85);
       const hop = m === 'happy' && L.moving ? Math.abs(Math.sin(L.ph)) * 4 : 0;
-      const shiver = m === 'huddle' || m === 'scared' ? Math.sin(t * 34) * 0.9 : 0;
+      const calm = fr && fr.beside ? T.ease.io(fr.near) : 0;   /* someone is standing with her */
+      const shiver = (m === 'huddle' || m === 'scared' ? Math.sin(t * 34) * 0.9 : 0) * (1 - 0.75 * calm);
       const y = GROUND - F.hipHeight(st, L.s) - (onPlank ? 5 : 0) - hop;
+      /* the friend's shadow from the bank: a small girl at her back, a hand on her. Faint; it comes and goes */
+      if (calm > 0.01) {
+        const fst = fr.style, fs = 128, fx = sx_(fr.x) - 30 * u - 6, fy = GROUND - F.hipHeight(fst, fs);
+        g.save(); g.globalAlpha = 0.4 * calm * (0.86 + 0.14 * Math.sin(t * 1.7));
+        P.glow(g, fx, fy - 20, 80, '#fff6e6', 0.3);
+        const fo2 = { x: fx, y: fy, s: fs, style: fst, lean: 0.08, headTilt: 0.06, face: { blush: 0.2, eye: 'closed', mouth: 'smile' }, flatLook: true };
+        fo2.armF = { hand: F.local(fo2, s - 6 * u, y - 6 * u) }; fo2.armB = { a: 0.2, b: 0.3 };
+        F.person(g, fo2);
+        g.restore();
+      }
       const o = { x: s + shiver, y, s: L.s, style: st, lean: 0.06, headTilt: 0.14, face: { blush: 0.3 } };
       if (L.moving) o.walk = L.ph;
       if (V.finished) { o.face = { eye: 'happy', mouth: 'open', blush: 0.4 }; o.headTilt = -0.05; o.armB = { a: 2.3 + Math.sin(t * 9) * 0.25, b: 0.3 }; }
@@ -690,7 +729,7 @@
         const hx = j.head[0], hy = j.head[1];
         g.save(); g.lineCap = 'round';
         if (m === 'scared' || m === 'huddle') {   /* a shiver */
-          g.strokeStyle = 'rgba(240,244,255,0.75)'; g.lineWidth = 2;
+          g.strokeStyle = T.rgba('#f0f4ff', 0.75 * (1 - 0.7 * calm)); g.lineWidth = 2;
           for (const d of [-1, 1]) for (let k = 0; k < 2; k++) { const x = s + d * (30 + k * 8), y0 = y - 46 + k * 10, w = Math.sin(t * 30 + k) * 2; g.beginPath(); g.moveTo(x + w, y0); g.quadraticCurveTo(x + d * 4 - w, y0 + 7, x + w, y0 + 14); g.stroke(); }
         }
         if (m === 'huddle') {   /* the rain finding her */
@@ -733,6 +772,7 @@
       const order = helpers.map((h, i) => i).sort((a, b) => (a === held || a === sel ? 1 : 0) - (b === held || b === sel ? 1 : 0));
       for (const i of order) if (helpers[i].kind === 'cloud' && i !== held && i !== sel) drawHelper(g, helpers[i], t, i);
       drawLeo(g, t);
+      drawFriend(g);
       for (const i of order) if (!(helpers[i].kind === 'cloud' && i !== held && i !== sel)) drawHelper(g, helpers[i], t, i);
       /* ---- below: the water, and her street in it ---- */
       const wg = g.createLinearGradient(0, WATER, 0, 900);

@@ -206,6 +206,7 @@
         X.actor('son', { x: C.PLOT - 740, style: F.styles.rosaSon, s: 144, lean: 0.14, face: { old: true } }),
         X.actor('mom', { x: C.PLOT - 800, style: F.styles.mom, s: C.MOM_S, lean: 0.1 }),
         X.actor('kid', { x: C.PLOT - 860, style: F.styles.kidA, s: 104 }),
+        X.actor('cloud', { x: C.PLOT - 910, style: F.styles.cloud, s: 94 }),
       ];
       folk.forEach((a, i) => X.walk(a, PL.HX - 180 - i * 58, 80 + i * 3));
       await X.wait(4.4);
@@ -251,6 +252,7 @@
         leo = X.actor('leo', { x: 250, style: F.leoAt(2), flip: true, lean: 0.06 });
         bean = X.actor('bean', { dog: true, s: 220, x: 300, sit: 1, flip: true, wag: 0.4 });
         far = X.boat({ x: -74, hull: '#e9e2d6', lamp: false, riders: [] });   /* moored at the pier's end */
+        X.cloudKid();   /* on her crates, a little way off */
       });
       X.bed(1, 0.12, 'sea');
       T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
@@ -276,7 +278,7 @@
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3.4);
       T.announce('빛의 폭포. 엄마의 하얀 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 산 사람들의 하늘로 떨어진다.');
-      await X.crossing([{ style: F.styles.mom, s: C.MOM_S }], { leoAge: 2, color: '#2a2440' });
+      await X.crossing([{ style: F.styles.mom, s: C.MOM_S }], { leoAge: 2, color: '#2a2440', also: X.seeOff() });
       leo.pose = null;
 
       /* ---- years on: a magpie with a letter in its beak ---- */
@@ -340,7 +342,7 @@
       /* ---- the lake: the night before ---- */
       X.walk(leo, C.PLOT + 380, 84);
       await X.wait(1.6);
-      const way = T.lakeHelp({ level: 2, who: 31, home: F.anaAt(61), leoAge: 2 });
+      const way = T.lakeHelp({ level: 2, who: 31, home: F.anaAt(61), leoAge: 2, friend: F.styles.cloud });
       await X.view(way, { color: '#1b2a40' });
       T.announce('거울 호수. 결혼식 전날 밤, 비 오는 길을 릴리가 혼자 옛집으로 걷는다. 물가의 것들을 옮기면, 그 그림자가 그 길에 닿는다.');
       await TALK.say('leo', '…옛집으로 가는구나.', { slow: true });

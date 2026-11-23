@@ -98,6 +98,20 @@
         X.actor('kid2', { x: 400, style: F.styles.kidB, s: 100, flip: true }),
         X.actor('v3', { x: 456, style: F.styles.villagerC, s: 142, flip: true }),
       ];
+      /* and 구름이, with her little lamp held out for whoever is coming */
+      const cloud = X.cloudKid({ x: 254, chair: 0, lamp: true, lampHand: 'F', look: true });
+      cloud.still = 0; cloud.kept = 0;
+      cloud.pose = (q, a, t) => {
+        const k = T.ease.io(a.still);
+        q.headTilt = a.look ? T.lerp(0.04, 0, k) : -0.38 + Math.sin(t * 0.5) * 0.04;
+        if (ana.hug && ana.hug.k > 0.01 && Math.abs(ana.x - a.x) < 80) { T.embrace(q, a, ana, ana.hug.k); q.face.eye = 'closed'; return; }
+        if (a.hold) { q.armF = { hand: F.local(q, (ana.x + a.x) / 2, W.groundAt(a.x) - 44) }; return; }   /* walking with Ana, her hand in Ana's */
+        if (a.lay) { q.lean = 0.36; q.headTilt = 0.2; q.armF = { hand: F.local(q, PL.ROOM_X + 4, W.y3(PL.ROOM_X) - 10) }; q.armB = { hand: F.local(q, PL.ROOM_X + 10, W.y3(PL.ROOM_X) - 6) }; return; }
+        if (a.withLeo) { q.armB = { hand: F.local(q, (leo.x + a.x) / 2, W.groundAt(a.x) - 44) }; q.headTilt = -0.1; q.face.eye = 'happy'; return; }
+        if (a.lamp) q.armF = { a: T.lerp(a.held ? 1.9 : 0.2, 0.15, k), b: T.lerp(0.5, 0.05, k) };
+        if (k > 0.5) { q.face.eye = 'open'; q.face.mouth = 'line'; }
+      };
+      cloud.prop = (g, j, o, a) => { if (a.kept > 0.01) P.glow(g, j.head[0], j.head[1] - 10, 90, '#fff2c8', 0.4 * a.kept); };
       X.cam(leo.x - 50, 548, 1.5); X.camSnap();
       S.track = { a: leo, dx: -50 };
       await X.view(null, { color: '#1b2a40', out: 1.6, in: 2.2 });
@@ -110,6 +124,7 @@
       const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [0, 1, 2, 3, 2, 1]], beat: 1.05, shuffle: true });
       const arrived = X.sail(boat, -74, 56);
       await pressed;
+      cloud.held = true;   /* she holds her lamp up for the boat, the way she always does */
       await arrived;
       S.camK = 2;
       /* he sets the lamp down, and takes off his cap */
@@ -126,6 +141,7 @@
       leo.prop = (g, j, o, a) => { if (a.doff >= 0.5 && !a.hand) { g.save(); g.translate(j.handF[0], j.handF[1] + 4); g.rotate(-0.3); P.fill(g, P.soft([[-12, 4], [-11, -6], [0, -11], [11, -6], [12, 4]]), '#d7a23c'); P.fill(g, P.rr(-13, 2, 26, 6, 3), '#e4b85a'); g.restore(); } };
       await X.land(ana, 30);
       T.announce('배에서 백발의 아나가 내린다.');
+      X.tween(cloud, 'still', 1, 2.4, T.ease.io);   /* the little lamp sinks; she stands quite still, looking */
       X.cam(84, 548, 1.55, 1.1);
       await X.wait(1);
       X.tween(leo, 'doff', 1, 1.5, T.ease.lin);
@@ -151,6 +167,7 @@
       T.announce('두 사람이 끌어안는다. 긴 침묵.');
       X.bed(null);
       bean.sit = 1;
+      X.sail(boat, -1500, 20);   /* the boat that brought her goes back out into the mist */
       await X.wait(7.5);          /* the long quiet */
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
       await X.wait(2.5);
@@ -169,23 +186,84 @@
       folk.forEach((a) => { a.pose = null; });
       await X.wait(0.8);
 
-      /* ---- home ---- */
+      /* ---- the little one with the lamp ----
+         Ana sees the hat she knitted, twice over, for two babies; one of them never came out into the world */
       await X.tween(ana.hug, 'k', 0, 0.9); leo.hug.k = 0; leo.armOver = false; ana.wet = 0; leo.wet = 0;
-      leo.hand = ana.hand = true; leo.flip = ana.flip = false; bean.sit = 0;
-      X.cam(qx + 150, qy, 1.05, 0.7);
-      X.walk(bean, 700, 96); X.walk(ana, 560, 58); X.walk(leo, 604, 58);
-      await X.wait(5.2);
+      X.walk(folk[0], 330, 60);
+      bean.sit = 0; X.walk(bean, 58, 60).then(() => { bean.flip = false; bean.sit = 1; });
+      leo.flip = false; ana.flip = false;
+      ana.pose = (o) => { o.headTilt = 0.08; o.face.eye = 'open'; o.face.mouth = 'line'; };
+      X.cam(180, 540, 1.4, 0.8);
+      T.announce('아나의 눈이 등불을 든 작은 아이에게 가 멈춘다. 아이가 쓴 작은 분홍 털모자.');
+      await X.wait(1.6);
+      await TALK.say('ana', '…그 모자.', { slow: true });
+      X.cam(cloud.x - 50, 560, 1.9, 0.7);
+      await X.walk(ana, cloud.x - 44, 34);
+      /* she goes down on one knee in front of her */
+      ana.kneel = 0;
+      ana.pose = (o, a, t) => {
+        const k = T.ease.io(a.kneel), hh = F.hipHeight(a.style, a.s);
+        o.y += k * hh * 0.42;
+        o.legF = { foot: [T.lerp(1, 17, k), T.lerp(49, 29.5, k)] }; o.legB = { foot: [T.lerp(-1, -22, k), T.lerp(49, 30, k)] };
+        o.lean = 0.08 + 0.06 * k; o.headTilt = 0.04 - 0.06 * k;
+        o.face.eye = a.wet > 0.5 ? 'happy' : 'open'; o.face.mouth = a.wet > 0.5 ? 'smile' : 'line'; o.face.tear = a.wet || 0; o.face.tearY = (t * 2) % 3;
+        if (a.hug && a.hug.k > 0.01) { T.embrace(o, ana, cloud, a.hug.k, true); return; }
+        if (a.touch) o.armF = { hand: F.local(o, cloud.x - 4 + Math.sin(t * 1.3) * 1.5, W.groundAt(cloud.x) - 72) };
+      };
+      await X.tween(ana, 'kneel', 1, 1.4, T.ease.io);
+      ana.touch = true;
+      A.note({ m: 76, vel: 0.22, voice: 'glass', dur: 1.2 });
+      await X.wait(1.6);
+      await TALK.say('ana', '…릴리 동생이구나.\n우리 둘째.', { slow: true });
+      await X.wait(1.2);
+      /* she knows the voice: it talked to the two of them every day, before either was born */
+      A.theme({ voice: 'felt', vel: 0.26, beat: 0.9, left: true });
+      await TALK.say('cloud', '둘이 사이좋게,\n서로 아껴 주고 지켜 줘.', { slow: true });
+      ana.wet = 0.8;
+      await X.wait(1.4);
+      await X.walk(leo, ana.x - 54, 30);
+      leo.wet = 0.5;
+      await TALK.say('leo', '…호수에서 릴리 옆에 있던 게,\n너였구나.', { slow: true });
+      await X.wait(0.6);
+      await TALK.say('ana', '릴리, 잘 컸어.\n무서울 땐 누가 손 잡아 준다고 했지.');
+      await TALK.say('ana', '…네가 지켜 줬구나.', { slow: true });
+      /* and with that, the promise she could not keep is kept: from here, all along */
+      A.promise();
+      T.announce('구름이에게 빛이 내려앉는다. 지키지 못한 약속이 지켜졌다. 등불 없는 하얀 배가 부두 끝으로 미끄러져 온다.');
+      cloud.lamp = false; cloud.still = 0;
+      X.tween(cloud, 'kept', 1, 1.2).then(() => X.tween(cloud, 'kept', 0.25, 2.4));
+      const white = X.boat({ x: -760, hull: '#e9e2d6', lamp: false, riders: [] });
+      X.cam(90, 520, 1.15, 0.7);
+      await X.sail(white, -74, 120);
+      await X.wait(1);
+      /* she looks out at it a while; it has come for her */
+      cloud.look = true; cloud.flip = true;
+      X.cam(cloud.x - 50, 560, 1.9, 0.8);
+      await X.wait(2.2);
+      await TALK.say('cloud', '언니 올 때까지,\n여기서 같이 기다릴래.');
+      ana.touch = false; ana.hug = { k: 0 }; cloud.z = 1;
+      await X.tween(ana.hug, 'k', 1, 1.1, T.ease.out);
+      A.motif({ voice: 'box', vel: 0.34, beat: 0.74 });
+      await X.wait(3);
+
+      /* ---- home ---- */
       await X.dip(async () => {
         S.actors = S.actors.filter((a) => !folk.includes(a));
-        leo.go = ana.go = bean.go = null; leo.moving = ana.moving = bean.moving = false;
-        leo.x = PL.BOARD_X - 300; ana.x = leo.x - 44; bean.x = leo.x + 90;
+        leo.go = ana.go = bean.go = cloud.go = null; leo.moving = ana.moving = bean.moving = cloud.moving = false;
+        ana.hug = { k: 0 }; ana.kneel = 0; ana.wet = 0; leo.hand = ana.hand = true; leo.flip = ana.flip = cloud.flip = false; bean.sit = 0;
+        cloud.hold = true; cloud.look = true; cloud.prop = null; cloud.z = 0;
+        /* Leo's hand in one of hers, the little one's in the other */
+        ana.pose = (o) => { const mx = (ana.x + leo.x) / 2; o.armF = { hand: F.local(o, mx, W.groundAt(mx) - 58) }; o.armB = { hand: F.local(o, (ana.x + cloud.x) / 2, W.groundAt(ana.x) - 44) }; };
+        leo.x = PL.BOARD_X - 300; ana.x = leo.x - 44; bean.x = leo.x + 90; cloud.x = ana.x - 38;
         S.mem = { house: 0, table: 0, swing: 0, ps };
         X.follow(leo, 90); X.camSnap();
       }, { out: 1.2, in: 1.6 });
-      T.announce('둘이 손을 잡고 언덕을 오른다. 레오가 지은 것들 위로, 옛 기억이 분필과 크레용 선으로 겹친다.');
+      T.announce('셋이 손을 잡고 언덕을 오른다. 레오가 지은 것들 위로, 옛 기억이 분필과 크레용 선으로 겹친다.');
       X.walk(bean, PL.HX + 156, 88).then(() => { bean.flip = true; bean.sit = 1; });
+      X.walk(cloud, PL.BOARD_X - 54, 58);
       X.walk(ana, PL.BOARD_X - 16, 58);
       await X.walk(leo, PL.BOARD_X + 28, 58);
+      cloud.hold = false; cloud.look = false;
       /* the tomato beds on the slope: a promise to a child, kept first thing */
       leo.flip = true;
       ana.pose = (o) => { o.headTilt = -0.16; o.face.eye = 'open'; };
@@ -216,6 +294,7 @@
       X.bed(4, 0.13, 'walk');
       leo.hand = ana.hand = true; leo.flip = ana.flip = false;
       X.tween(S.mem, 'house', 1, 3.4, T.ease.lin);
+      X.walk(cloud, PL.HX - 30, 54);
       X.walk(ana, PL.HX + 28, 54);
       X.walk(leo, PL.HX + 72, 54).then(() => { leo.hand = ana.hand = false; });
       await X.wait(3.2);
@@ -251,6 +330,7 @@
       leo.prop = null; leo.onSwing = ana.onSwing = true; leo.hill = ana.hill = 3; ana.z = 1;
       leo.x = PL.swingSeat(ps)[0] - 24; ana.x = leo.x + 48;
       bean.x = PL.TREE_X - 150; bean.flip = false; bean.sit = 1; ps.spot = [PL.swingSeat(ps)[0]];
+      cloud.go = null; cloud.moving = false; cloud.x = PL.TREE_X - 94; cloud.flip = false; cloud.sit = 1; cloud.look = false;   /* in the grass by Bean, face to the sky */
       S.swinging = true;
       X.cam(PL.TREE_X + 10, py + 52, 1.5); X.camSnap();
       await X.view(null, { color: '#161d2a', out: 1.6, in: 2.2 });
@@ -307,25 +387,27 @@
       leo.onSwing = ana.onSwing = false; leo.hill = ana.hill = null;
       leo.x = PL.TREE_X + 20; ana.x = PL.TREE_X + 44;
       bean.sit = 0; X.walk(bean, PL.ROOM_X + 128, 84).then(() => { bean.flip = true; bean.sit = 1; });
+      cloud.sit = 0; cloud.look = true; X.walk(cloud, PL.ROOM_X - 2, 50).then(() => { cloud.flip = false; });
       X.walk(ana, PL.ROOM_X + 34, 62);
       await X.walk(leo, PL.ROOM_X - 34, 62);
-      leo.flip = false; ana.flip = true;
-      leo.lay = ana.lay = true;
-      X.tween(leo, 'sit', 0.5, 0.7); await X.tween(ana, 'sit', 0.5, 0.7);
+      leo.flip = false; ana.flip = true; cloud.z = 2;
+      leo.lay = ana.lay = cloud.lay = true;
+      X.tween(cloud, 'sit', 0.5, 0.7); X.tween(leo, 'sit', 0.5, 0.7); await X.tween(ana, 'sit', 0.5, 0.7);
       A.sfx('knock'); X.note();
       await X.tween(ps, 'room2', 1, 1.6);
-      T.announce('둘이 함께, 릴리의 방이 될 자리의 첫 주춧돌을 놓는다.');
-      leo.lay = ana.lay = false;
-      X.tween(leo, 'sit', 0, 0.8); await X.tween(ana, 'sit', 0, 0.8);
-      /* and they turn to the sea, where boats come from */
+      T.announce('셋이 함께, 릴리의 방이 될 자리의 첫 주춧돌을 놓는다.');
+      leo.lay = ana.lay = cloud.lay = false;
+      X.tween(cloud, 'sit', 0, 0.8); X.tween(leo, 'sit', 0, 0.8); await X.tween(ana, 'sit', 0, 0.8);
+      /* and they turn to the sea, where boats come from: she holds Leo's hand, as he holds Ana's */
+      X.walk(cloud, PL.ROOM_X - 6, 30);
       X.walk(ana, PL.ROOM_X + 76, 40);
       await X.walk(leo, PL.ROOM_X + 36, 40);
-      leo.flip = ana.flip = true; leo.hand = ana.hand = false; ps.spot = [PL.ROOM_X + 56];
+      leo.flip = ana.flip = cloud.flip = true; leo.hand = ana.hand = false; cloud.withLeo = true; ps.spot = [PL.ROOM_X + 40];
       ana.pose = (o, a, t) => { o.armB = { hand: F.local(o, (ana.x + leo.x) / 2, W.groundAt(ana.x) - 58) }; o.headTilt = -0.1; o.face.eye = 'happy'; };
-      leo.pose = (o, a, t) => { o.armF = { hand: F.local(o, (ana.x + leo.x) / 2, W.groundAt(leo.x) - 58) }; o.headTilt = -0.1; o.face.eye = 'happy'; };
+      leo.pose = (o, a, t) => { o.armF = { hand: F.local(o, (ana.x + leo.x) / 2, W.groundAt(leo.x) - 58) }; o.armB = { hand: F.local(o, (leo.x + cloud.x) / 2, W.groundAt(leo.x) - 44) }; o.headTilt = -0.1; o.face.eye = 'happy'; };
       X.cam(PL.ROOM_X + 24, py + 56, 1.45, 0.6);
       await X.wait(1.8);
-      await TALK.say('both', '천천히 와.', { slow: true });
+      await TALK.say('all', '천천히 와.', { slow: true });
       X.bed(null);
       A.theme({ voice: 'box', vel: 0.36, beat: 0.66, left: true });
       await X.wait(3.2);

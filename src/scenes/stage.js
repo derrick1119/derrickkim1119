@@ -34,10 +34,12 @@
     X.cam = function (x, y, z, k) { const c = S.camT; c.x = x; c.y = y; c.z = z == null ? 1 : z; if (k) S.camK = k; S.follow = null; };
     /* a shooting star across the sky of the screen: someone has crossed, and the living see it */
     X.star = function (o = {}) { const W = T.view.W; return T.fx && T.fx.star ? T.fx.star.add(Object.assign({ from: [W * 0.32, 70], to: [-W * 0.22, 380], dur: 1.8 }, o)) : Promise.resolve(); };
-    /* someone has kept every promise: their boat rises up the falls of light, and a star falls to the living world */
+    /* someone has kept every promise: their boat rises up the falls of light, and a star falls to the living world.
+       o.also: more who stand on the landing to see them off (place actors: { id, style, s, at, dx, pose }) */
     X.crossing = async function (riders, o = {}) {
       if (!T.place) return;
       const V = T.place('falls', { boat: { riders, hull: o.hull || '#e9e2d6' }, leoAge: o.leoAge });
+      if (o.also && V.actors) V.actors.push(...o.also);
       await X.view(V, { color: o.color || '#1b2440', out: 1.2, in: 1.4 });
       const l = V.actor && V.actor('leo');
       if (l) l.pose = (q, t) => { q.armF = { a: 2.3 + Math.sin(T.time * 4) * 0.2, b: 0.3 }; };
@@ -61,6 +63,21 @@
       S.actors.push(a);
       return a;
     };
+    /* 구름이, who is always looking at the clouds. Unless placed elsewhere she sits on the crates at the land end of
+       the pier with her face to the sky (a.look: she looks level instead; a.lamp: a little lamp in her hand) */
+    X.cloudKid = function (o) {
+      const c = X.actor('cloud', Object.assign({ x: 468, style: F.styles.cloud, s: 94, flip: true, chair: 1, chairH: 31 }, o));
+      c.pose = (q, a, t) => {
+        q.headTilt = a.look ? 0.04 : -0.38 + Math.sin(t * 0.5) * 0.04;
+        if (!a.chair || a.moving) return;
+        q.lean = -0.06;
+        q.legF = { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 1.6) * 0.18 }; q.legB = { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.25 + Math.sin(t * 1.6 + 2) * 0.18 };
+        if (!a.lamp) { q.armF = { a: -0.2, b: 0.2 }; q.armB = { a: -0.3, b: 0.2 }; }
+      };
+      return c;
+    };
+    /* and on the landing at the falls, seeing someone off (for X.crossing's o.also) */
+    X.seeOff = () => [{ id: 'cloud', style: F.styles.cloud, s: 100, at: 'landing', dx: -66, headTilt: -0.26, face: { mouth: 'smile' }, pose: (q, t) => { q.armF = { a: 2.2 + Math.sin(t * 4 + 2) * 0.22, b: 0.3 }; } }];
     X.walk = function (a, x, v) { return new Promise((res) => { if (Math.abs(a.x - x) < 1) { res(); return; } if (a.go) a.go.res(); a.go = { x, v: v || 72, res }; }); };
     X.wait = (sec) => S.clock.wait(sec);
     X.tween = (o, key, to, dur, ease) => S.clock.tween(o, key, to, dur, ease);

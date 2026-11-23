@@ -143,7 +143,7 @@
     P.fill(g, P.ellipse(110, 690, 34, 10), '#c9573f'); P.fill(g, P.ellipse(110, 686, 26, 6), '#7a3438');
     if (lit.ball > 0.01) { g.save(); g.globalAlpha = lit.ball; P.fill(g, P.circle(-150, 700, 18), '#e3b64f'); P.line(g, -164, 694, -136, 706, 2, '#c99a2a'); g.restore(); }
     /* Lily */
-    const st = F.lilyAt(11), cry = b === 0, wh = b === 1, laugh = b >= 2;
+    const st = F.lilyAt(11, { knit: F.KNIT }), cry = b === 0, wh = b === 1, laugh = b >= 2;   /* still in her knitted hat from the walk home */
     const a = { x: 250, y: 620, s: 290, style: st, flip: true, sit: true, lean: cry ? 0.36 : 0.08, headTilt: cry ? 0.42 : wh ? -0.12 : 0.06,
       legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.05 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 }, face: { eye: cry ? 'closed' : laugh ? 'happy' : 'open', mouth: wh ? 'open' : laugh ? 'smile' : 'line', blush: 0.3, tear: cry || laugh ? 0.8 : 0, tearY: (t * 2) % 3 } };
     const collar = [a.x - 40, a.y - 56];
