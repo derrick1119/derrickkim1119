@@ -251,3 +251,22 @@ python3 tools/subset_fonts.py NanumPenScript-Regular.ttf GowunBatang-Regular.ttf
 손글씨는 나눔손글씨 펜(Nanum Pen Script), 본문은 고운바탕(Gowun Batang)에서
 필요한 글자만 남긴 것입니다. 둘 다 SIL Open Font License 1.1을 따르며,
 전문은 `assets/fonts/OFL-*.txt`에 있습니다.
+
+## 새 조각: 물가의 손, 별똥별, 하늘의 두 곳
+
+장 대본에서 바로 가져다 쓸 수 있게 만든 독립 모듈입니다(아직 어느 장에도 넣지 않았습니다).
+주소 끝에 `#lakehelp:1` / `#lakehelp:2` / `#lakehelp:3`, `#place:overlook`, `#place:falls`, `#stars`를 붙이면
+따로 볼 수 있습니다(`src/scenes/fxdemo.js`, 출시 때는 이 한 줄을 빼도 됩니다).
+
+- **물가의 손** `T.lakeHelp({ level })` (`src/scenes/lakehelp.js`): 위는 해 질 녘 구름바다의 물가, 아래 물속은 비 오는 밤의 골목.
+  열한 살 릴리가 빈의 목걸이를 쥐고 혼자 집에 가고, 레오는 물가를 따라 걷습니다. 물가의 등불·구름·판자·빈을 끌어 옮기면
+  같은 자리의 골목에 그 그림자가 닿습니다(등불 → 빛 웅덩이, 구름 → 비 가림, 판자 → 물웅덩이 다리, 빈 → 곁에서 같이 걷는 빈).
+  준비가 안 된 곳에 닿으면 릴리는 멈춰서 기다립니다(어둠에 떨고, 비에 웅크리고, 웅덩이를 내려다보고, 빈이 기다리던 자리에서 운다).
+  실패는 없고, 지나온 것은 다시 앞으로 옮겨 써야 합니다. 1단계 장애물 2·도우미 2 → 2단계 4·3(두 곳이 붙어 있음) → 3단계 6·4(한 곳에 둘이 함께 있어야 함).
+  키보드는 숫자 키로 고르고 좌우 화살표로 옮깁니다. `want()`/`hintAt()`이 있어 테스트 봇으로 풀립니다.
+- **별똥별과 소원 불빛** (`src/fx_stars.js`): `T.fx.star.add({ from, to, dur })`는 별똥별이 떨어지면 끝나는 Promise를 돌려주고,
+  `T.fx.wishLight({ land, to })`는 작은 불빛이 구름바다에 내려앉았다가(종소리) `to`로 날아갑니다. 기본 층은 지금 장면 위에 저절로 그려지고,
+  다른 층(`layer: 'lake'`)은 그 장면이 `T.fx.star.draw(g, t, 'lake')`로 직접 그립니다. 장면이 바뀌면 남은 별은 모두 정리됩니다.
+- **하늘의 두 곳** `T.place('overlook' | 'falls', o)` (`src/scenes/skyplaces.js`): 컨셉 그림의 그곳(담쟁이 덮인 아치 폐허, 철 등불,
+  벤치의 레오와 빈, 꽃 핀 나무, 떠 있는 폐허)과, 구름바다에서 하늘로 거꾸로 흐르는 빛의 폭포와 등불 선착장.
+  `o.actors`로 인물을 바꾸고, 폭포에서는 `o.boat`와 `V.sail()`로 누군가 건너가는 장면(끝에 별똥별)을 보여 줍니다.
