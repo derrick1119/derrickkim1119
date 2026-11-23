@@ -8,9 +8,10 @@ import { button, icon, panel, stamp, seal, tapped, isDown, C, foil, goldText, sh
 export { plaque, scroll, hangSign };
 import { cardFace } from './cards.js';
 import { Overlay, RewardOverlay, COL, supplyArt, resultIcon, BAD, GOOD } from './overlays.js';
-import { G, save, describeReward, buyItem, upgradeCard, removeCard, STOP, forkDesc } from '../state.js';
+import { G, save, describeReward, buyItem, upgradeCard, removeCard, STOP, forkDesc, act, canTemper, temper } from '../state.js';
 import { cardName, isUnit } from '../data/cards.js';
 import { weaponIcon, portrait } from '../render/sprites.js';
+import { WEAPONS } from '../data/weapons.js';
 import { relicIcon, miscIcon } from '../render/icons.js';
 import { puppet } from './theater.js';
 import { pal as PAL, mix as MIX, vgrad as VG, dab as DAB, mountain as MOUNT, cloud as PCLOUD, tuft as PTUFT, umbrellaPine as PPINE, bloomTree as PBLOOM, rock as PROCK, stroke as PSTROKE } from '../render/painted.js';
@@ -596,6 +597,106 @@ export class TreasureScene extends RewardOverlay {
     if (pop > 0) { g.globalAlpha = Math.min(1, pop * 2); ell(g, 0, top + 4 * ps, 29 * ps, 7 * ps, '#e9c04a', INK, 1.4); for (let i = 0; i < 9; i++) { const ax = (i - 4) * 6 * ps, ay = top + (1 - Math.abs(i - 4) / 4) * -4 * ps + 2 * ps; ell(g, ax, ay, 3.4 * ps, 2.2 * ps, i % 3 ? '#f0d264' : '#fff0a8', 'rgba(90,60,10,0.7)', 1); } ell(g, -8 * ps, top - 2 * ps, 3 * ps, 3 * ps, '#c8402f', INK, 1); ell(g, 10 * ps, top - 1 * ps, 2.6 * ps, 2.6 * ps, '#3d6fd6', INK, 1); g.globalAlpha = 1; }
     g.restore();
     if (!this.popped && pop > 0) { this.popped = true; sfx('star'); juice.burst(cx, cy - 40, '#f0d264', 16); }
+  }
+}
+// ═════════════════════════ 대장간 ═════════════════════════
+// 저녁 무렵의 산골 대장간. 왼쪽엔 숯불이 이글거리는 돌 화덕과 풀무, 벽엔 집게·망치, 오른쪽엔 무기 걸이.
+// 가운데 모루에서 대장장이가 쇠를 두드릴 때마다 불티가 튄다. 고를 것은 오른쪽 아래 옻칠 이름판 셋 (여러 번 들러도 하나씩 한 번)
+let FGBG = null;
+function forgeBG() {
+  if (FGBG) return FGBG;
+  FGBG = bakeScene(g => {
+    const R = rng(1717), S2 = PSTROKE;
+    // 돌벽: 어둑한 흙벽에 박힌 돌, 위로 갈수록 그을음
+    g.globalAlpha = 1; g.fillStyle = VG(g, 0, 440, [[0, '#1a1210'], [0.5, '#3a2a22'], [1, '#4a382c']]); g.fillRect(0, 0, W, 450);
+    for (let i = 0; i < 160; i++) { const x = R() * W, y = 40 + R() * 400, w = 26 + R() * 40; DAB(g, x, y, w / 2, w / 4, R() < 0.5 ? '#5a4636' : '#4a3a2e', 0.55); DAB(g, x - w * 0.15, y - w * 0.1, w * 0.3, w * 0.08, '#7a6450', 0.25); }
+    g.globalAlpha = 1; g.fillStyle = VG(g, 0, 200, [[0, 'rgba(0,0,0,0.6)'], [1, 'rgba(0,0,0,0)']]); g.fillRect(0, 0, W, 200);
+    // 기둥과 들보
+    for (const x of [470, 940]) { g.globalAlpha = 1; g.fillStyle = VG(g, 0, 450, [[0, '#2a1a10'], [1, '#5a3a22']]); g.fillRect(x - 12, 0, 24, 450); S2(g, [x - 5, 10, x - 5, 440], '#8a6040', 1.4, 0.5); }
+    g.globalAlpha = 1; g.fillStyle = VG(g, 40, 70, [[0, '#4a2e1a'], [1, '#2a1a10']]); g.fillRect(0, 44, W, 26); S2(g, [0, 47, W, 47], '#9a6a44', 1.2, 0.5);
+    // 바닥: 다져진 흙, 화덕 불빛이 번진다
+    g.globalAlpha = 1; g.fillStyle = VG(g, 440, H, [[0, '#4a3628'], [1, '#2a1e18']]); g.fillRect(0, 440, W, H - 440);
+    for (let i = 0; i < 1800; i++) { const x = R() * W, y = 446 + R() * 280; DAB(g, x, y, 3 + R() * 12, 1 + R() * 2.5, R() < 0.5 ? '#5a4434' : '#2a1e18', 0.3); }
+    { g.globalAlpha = 1; const gr = g.createRadialGradient(230, 400, 20, 230, 400, 520); gr.addColorStop(0, 'rgba(255,140,60,0.35)'); gr.addColorStop(1, 'rgba(255,140,60,0)'); g.fillStyle = gr; g.fillRect(0, 100, 900, 620); }
+    // 돌 화덕과 굴뚝
+    for (let y = 0; y < 190; y += 22) for (let x = 230 - 70 + (y / 22 % 2) * 12; x < 300; x += 28) PROCK(g, x, 200 - y, 30, 20, { rock: ['#7a6a60', '#3a302a'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R);
+    for (let y = 0; y < 220; y += 24) for (let x = 60 + (y / 24 % 2) * 14; x < 400; x += 32) PROCK(g, x, 470 - y, 34, 22, { rock: ['#8a7a6c', '#4a3e36'], grass: ['#3e4a3c', '#55624a', '#2a3428'] }, R);
+    g.globalAlpha = 1; g.fillStyle = '#120806'; g.beginPath(); g.moveTo(120, 450); g.lineTo(120, 360); g.quadraticCurveTo(230, 290, 340, 360); g.lineTo(340, 450); g.closePath(); g.fill();
+    // 풀무 (화덕 오른쪽)
+    g.globalAlpha = 1; g.fillStyle = VG(g, 380, 450, [[0, '#7a5232'], [1, '#4a3020']]); g.beginPath(); g.moveTo(400, 450); g.lineTo(400, 390); g.quadraticCurveTo(440, 372, 480, 390); g.lineTo(480, 450); g.closePath(); g.fill(); S2(g, [400, 410, 480, 410], '#2a1810', 2); S2(g, [440, 380, 440, 340, 470, 330], '#6a4428', 5);
+    // 벽에 걸린 연장: 집게·망치·부지깽이
+    S2(g, [560, 120, 780, 120], '#2a1810', 4);
+    for (const [x, kind] of [[590, 'tong'], [640, 'ham'], [690, 'tong'], [740, 'ham']]) { S2(g, [x, 120, x, 128], '#1a1008', 2); if (kind === 'tong') { S2(g, [x - 4, 128, x - 8, 230], '#3a3a44', 4); S2(g, [x + 4, 128, x + 8, 230], '#3a3a44', 4); S2(g, [x - 3, 130, x - 7, 228], '#8a8a96', 1, 0.6); } else { S2(g, [x, 128, x, 220], '#6a4428', 5); rr(g, x - 16, 212, 32, 18, 3, '#3a3a44', INK, 1.4); S2(g, [x - 14, 214, x + 14, 214], '#9a9aa6', 1.2, 0.7); } }
+    // 무기 걸이 (오른쪽 벽)
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 150, 170, [[0, '#6a4428'], [1, '#3a2414']]); g.fillRect(990, 150, 250, 16); g.fillRect(990, 330, 250, 16);
+      for (const [x, id, s, rot] of [[1020, 'spear', 1.5, -1.57], [1070, 'woldo', 1.4, -1.57], [1120, 'dangpa', 1.4, -1.57], [1170, 'hyeopdo', 1.4, -1.57]]) { g.save(); g.translate(x, 250); g.rotate(rot); weaponIcon(g, id, 0, 0, s); g.restore(); }
+      for (const [x, id] of [[1030, 'twin'], [1100, 'axe'], [1180, 'flail']]) weaponIcon(g, id, x, 395, 1.1); }
+    // 숫돌·물통 (오른쪽 앞)
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 560, 610, [[0, '#6a4a30'], [1, '#3a2818']]); g.fillRect(780, 560, 120, 50); g.globalAlpha = 1; g.fillStyle = '#2a3a48'; g.fillRect(786, 562, 108, 10); S2(g, [788, 564, 890, 564], '#6a8aa8', 1.2, 0.6); for (const x of [790, 880]) { g.fillStyle = '#2a1a10'; g.fillRect(x, 608, 10, 20); } }
+    // 모루와 나무 밑동
+    { g.globalAlpha = 1; g.fillStyle = VG(g, 520, 600, [[0, '#6a4a30'], [1, '#3a2818']]); g.beginPath(); g.ellipse(660, 600, 52, 14, 0, 0, TAU); g.fill(); g.fillRect(608, 548, 104, 52); g.beginPath(); g.ellipse(660, 548, 52, 14, 0, 0, TAU); g.fillStyle = '#8a6a48'; g.fill(); for (let k = 1; k < 4; k++) { g.beginPath(); g.ellipse(660, 548, 52 * k / 4, 14 * k / 4, 0, 0, TAU); g.strokeStyle = 'rgba(60,40,20,0.6)'; g.lineWidth = 1; g.stroke(); }
+      const an = p => { p.moveTo(600, 506); p.lineTo(700, 506); p.quadraticCurveTo(730, 506, 738, 516); p.lineTo(690, 522); p.lineTo(680, 532); p.lineTo(686, 546); p.lineTo(634, 546); p.lineTo(640, 532); p.lineTo(628, 520); p.lineTo(600, 516); p.closePath(); };
+      g.beginPath(); an(g); g.globalAlpha = 1; g.fillStyle = VG(g, 500, 546, [[0, '#5a5a66'], [1, '#22222a']]); g.fill(); g.strokeStyle = '#0a0a10'; g.lineWidth = 2; g.stroke(); S2(g, [604, 508, 700, 508], '#c8c8d4', 1.6, 0.8); }
+    DAB(g, 640, 640, 300, 16, '#0a0606', 0.35);
+    // 가장자리를 어둡게
+    const vg = g.createRadialGradient(W / 2, H * 0.55, 300, W / 2, H * 0.55, 820); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)'); g.globalAlpha = 1; g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  });
+  return FGBG;
+}
+const FORGE_ACT = [
+  { id: 'temper', label: '무기 벼리기', cost: 40, sub: '병력 패 하나 · 공격 +20%, 체력 +10%' },
+  { id: 'buy', label: '무기 사기', cost: 70, sub: '대장장이가 아끼는 무기 하나' },
+  { id: 'sell', label: '쇠붙이 팔기', cost: 0, sub: '보관함의 무기 하나 → 엽전 +35' },
+];
+export class ForgeScene extends Overlay {
+  constructor(o) { super(); this.onDone = o.onDone; this.done = {}; this.line = '쇠는 달았을 때 두드려야지! 무얼 해 드릴까?'; this.lineT = 0; this.res = null; this.resT = 0; }
+  say(s) { this.line = s; this.lineT = 0; }
+  can(a) { const r = G.run; if (this.done[a.id]) return false; if (a.cost && r.gold < a.cost) return false; if (a.id === 'temper') return r.deck.some(canTemper); if (a.id === 'sell') return r.items.length > 0; return true; }
+  act(a) {
+    const r = G.run; sfx('card');
+    if (a.id === 'temper') this.deck({ mode: 'temper', title: '무기 벼리기', onPick: uid => { const c = temper(uid); this.sub = null; if (!c) return; r.gold -= a.cost; this.done.temper = 1; save(); sfx('star'); this.strike = 1.2; this.say('좋은 쇠가 됐소! 이제 요괴 가죽도 뚫릴 게요.'); this.res = [`[${cardName(c)}] 의 무기를 벼렸습니다`, '공격 +20% · 체력 +10%']; this.resT = 0; } });
+    else if (a.id === 'buy') { r.gold -= a.cost; const s = act.weapon(); this.done.buy = 1; save(); sfx('coin'); this.strike = 1.2; this.say('이건 내 자랑이오. 잘 쓰시오.'); this.res = ['대장장이가 무기 하나를 내줍니다', s]; this.resT = 0; }
+    else if (a.id === 'sell') { const w = r.items.pop(); r.gold += 35; this.done.sell = 1; save(); sfx('coin'); this.say('녹여서 보습이라도 만들지.'); this.res = [`[${WEAPONS[w] ? WEAPONS[w].name : '무기'}] 를 팔았습니다`, '엽전 +35']; this.resT = 0; }
+  }
+  draw(g, dt) {
+    const r = G.run, t = this.t; this.lineT += dt; if (this.strike > 0) this.strike -= dt;
+    g.drawImage(forgeBG(), 0, 0, W, H);
+    // 화덕 숯불: 일렁이는 빛과 불꽃, 솟는 불티
+    { const f = 0.8 + 0.2 * Math.sin(t * 11) * Math.sin(t * 6.3); glow(g, 230, 400, 180, '255,130,50', 0.5 * f); glow(g, 230, 420, 70, '255,200,100', 0.7 * f);
+      for (let k = 0; k < 6; k++) { const x = 160 + k * 26, h = (30 + (k % 3) * 12) * (0.8 + 0.3 * Math.sin(t * 9 + k * 2)); path(g, p => { p.moveTo(x - 12, 452); p.quadraticCurveTo(x - 8, 452 - h * 0.6, x, 452 - h); p.quadraticCurveTo(x + 8, 452 - h * 0.6, x + 12, 452); p.closePath(); }, ['#ff7a2e', '#ffb040', '#ff9a2e'][k % 3]); }
+      for (let k = 0; k < 14; k++) { const q = ((t * 0.5 + k / 14) % 1), x = 230 + Math.sin(k * 3 + t) * 60 * q, y = 420 - q * 330; g.globalAlpha = 1 - q; ell(g, x, y, 1.6, 1.6, '#ffd070'); } g.globalAlpha = 1; }
+    // 대장장이와 영웅
+    const beat = (t % 0.9) / 0.9, hit = beat < 0.12;
+    puppet(g, 'berserk', 560, 548, 1.75, t, { act: hit ? 'shake' : 'idle', face: 1, noStick: true });
+    puppet(g, r.hero, 812, 552, 1.7, t, { act: this.strike > 0 ? 'hop' : 'idle', face: -1, noStick: true });
+    // 모루 위 달군 쇠와 불티
+    { const heat = 0.6 + 0.4 * Math.sin(t * 3); rr(g, 640, 500, 46, 7, 3, `rgb(255,${140 + heat * 60},${60 + heat * 40})`, '#3a1a08', 1); glow(g, 662, 503, 40, '255,150,60', 0.5 * heat);
+      const n = hit || this.strike > 0 ? 14 : 0; for (let k = 0; k < n; k++) { const a = -Math.PI * (0.15 + Math.random() * 0.7), d = 20 + Math.random() * 60; ell(g, 662 + Math.cos(a) * d, 500 + Math.sin(a) * d * 0.8, 1.8, 1.8, '#ffe080'); } if (hit) glow(g, 662, 500, 70, '255,220,140', 0.6); }
+    // 물통의 김
+    for (let k = 0; k < 4; k++) { const q = ((t * 0.3 + k / 4) % 1); g.globalAlpha = 0.2 * (1 - q); ell(g, 840 + Math.sin(q * 6 + k) * 10, 556 - q * 90, 14 + q * 26, 8 + q * 12, '#d8d4dc'); } g.globalAlpha = 1;
+    motes(g, t, 0, 60, 900, 500, 20, '255,190,120', 0.45);
+    // 대장장이의 말
+    { const k = clamp(this.lineT / 0.25, 0, 1); g.save(); g.globalAlpha = k; g.font = `400 18px ${FONT_B}`; const w = Math.min(420, g.measureText(this.line).width + 36), bx = 420, by = 352; rr(g, bx + 3, by + 4, w, 44, 12, 'rgba(0,0,0,0.4)'); rr(g, bx, by, w, 44, 12, '#fffaf0', INK, 2); poly(g, [bx + 110, by + 42, bx + 134, by + 42, bx + 128, by + 64], '#fffaf0'); line(g, [bx + 110, by + 43, bx + 128, by + 64, bx + 134, by + 43], INK, 2); text(g, this.line, bx + w / 2, by + 23, { size: 18, font: FONT_B, maxW: w - 24 }); g.restore(); }
+    hangSign(g, 640, 8, '대장간', { w: 240, h: 50, size: 26, rope: false });
+    panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
+    if (button(g, 'fgdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    // 고를 것: 오른쪽 아래 옻칠 이름판 셋
+    const pw = 360, ph = 76, px = W - pw - 26;
+    FORGE_ACT.forEach((a, n) => {
+      const py = 452 + n * (ph + 10), on = this.can(a), done = !!this.done[a.id];
+      if (!this.left && !this.sub && on && tapped('fg' + a.id, px, py, pw, ph)) this.act(a);
+      const dn = on && isDown('fg' + a.id, px, py, pw, ph);
+      g.save(); if (!on) g.globalAlpha = 0.6;
+      const yy = plaque(g, px, py, pw, ph, { down: dn, glow: on && !this.left });
+      text(g, a.label + (a.cost ? ` · 엽전 ${a.cost}` : ''), px + 30, yy + 31, { size: 22, font: FONT_B, align: 'left', maxW: pw - 70 });
+      const why = done ? '이번에는 했습니다' : a.cost && r.gold < a.cost ? `엽전 ${a.cost} 부족` : a.id === 'sell' && !r.items.length ? '보관함에 무기가 없다' : a.id === 'temper' && !r.deck.some(canTemper) ? '벼릴 패가 없다' : a.sub;
+      text(g, why, px + 31, yy + 55, { size: 15.5, align: 'left', fill: on ? '#4a3a2a' : RED, maxW: pw - 60, weight: 400 });
+      if (on) text(g, '▶', px + pw - 30, yy + ph / 2 + 1, { size: 16, fill: '#8a5a2c' });
+      g.restore();
+    });
+    if (!this.left && button(g, 'fgleave', 30, 640, 280, 62, '대장간을 떠난다', { size: 26 })) { this.left = true; sfx('click'); this.onDone(); }
+    // 한 일의 결과: 위쪽 두루마리에 잠깐
+    if (this.res) { this.resT += dt; const k = clamp(this.resT / 0.25, 0, 1) * clamp((2.6 - this.resT) / 0.4, 0, 1); if (this.resT > 2.6) this.res = null; else if (k > 0) { g.save(); g.globalAlpha = k; scroll(g, 410, 96, 460, 92); text(g, this.res[0], 640, 128, { size: 19, font: FONT_B, maxW: 420 }); text(g, this.res[1], 640, 160, { size: 17, fill: TEAL, maxW: 420 }); g.restore(); } }
   }
 }
 import { stopSprite } from '../render/terrain.js';

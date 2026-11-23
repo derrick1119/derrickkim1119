@@ -129,7 +129,7 @@ export function grantLoot(n) { const t = lootTable(), sum = t.reduce((a, q) => a
 // 한 종류의 전술 패를 익힌다: 지금 가진 것과 앞으로 얻는 것이 모두 강화판(+)이 된다
 export function master(id) { const r = G.run; if (!r.mastery) r.mastery = {}; r.mastery[id] = true; for (const c of r.deck) if (c.id === id) c.up = true; save(); }
 export const mastered = id => !!(G.run.mastery && G.run.mastery[id]);
-export function unitStats(type, lvl, wpn, br) { const d = defOf(type, wpn, br), m = lvlMult(lvl || 1); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.hero || d.structure ? d.n : squadN(d.n, lvl || 1) }; }
+export function unitStats(type, lvl, wpn, br, tp) { const d = defOf(type, wpn, br, tp), m = lvlMult(lvl || 1); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.hero || d.structure ? d.n : squadN(d.n, lvl || 1) }; }
 export const depth = () => { const r = G.run; return r.ch * 6 + Math.min(5, r.road ? r.road.i : 0); };
 // 전술 패의 위력: 고개마다 요괴가 한 단계씩 세지는 만큼 따라 오른다 (고개 안에서도 조금씩)
 export const powerNow = () => { const r = G.run; return (1 + 0.2 * r.ch) * (1 + 0.025 * Math.min(5, r.road ? r.road.i : 0)); };
@@ -139,11 +139,11 @@ export const powerNow = () => { const r = G.run; return (1 + 0.2 * r.ch) * (1 + 
 export const STOP = {
   // ch = 도장에 찍는 그림 기호 (render/symbols.js 의 이름. 사건만 물음표 그대로)
   battle: { ch: 'battle', name: '싸움', col: '#2f4d7e' }, elite: { ch: 'elite', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
-  shop: { ch: 'shop', name: '장터', col: '#b8742a' }, rest: { ch: 'rest', name: '주막', col: '#2f6f5c' }, treasure: { ch: 'treasure', name: '보물', col: '#b8862a' }, boss: { ch: 'boss', name: '두목', col: '#7a1f1c' }, fork: { ch: 'fork', name: '갈림길', col: '#5a5346' },
+  shop: { ch: 'shop', name: '장터', col: '#b8742a' }, rest: { ch: 'rest', name: '주막', col: '#2f6f5c' }, treasure: { ch: 'treasure', name: '보물', col: '#b8862a' }, boss: { ch: 'boss', name: '두목', col: '#7a1f1c' }, fork: { ch: 'fork', name: '갈림길', col: '#5a5346' }, forge: { ch: 'forge', name: '대장간', col: '#c8642a' },
 };
-const FORK_DESC = { battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
+const FORK_DESC = { forge: '대장간 연기가 오르는 길 — 무기를 벼린다', battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
 export function genRoad(ch) {
-  const side = () => pick(['event', 'event', 'shop', 'treasure']), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
+  const side = () => pick(['event', 'event', 'shop', 'treasure', 'forge']), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
   const [a, b] = two(), [c, d] = two(), safe = pick(['event', 'shop', 'treasure']);
   // 고개 하나는 여섯 칸: 싸움 · 갈림길 · 싸움 · 갈림길(강적이냐 쉬운 길이냐) · 주막(그 고개의 옛이야기를 듣는다) · 두목
   const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'rest' }, { type: 'boss' }];
@@ -197,6 +197,9 @@ export const canUp = c => isUnit(c) ? (c.lv || 1) < MAX_LV : !mastered(c.id) && 
 // 병과 승급: 4단에 오른 병력 패는 두 갈래 중 하나를 고른다 (data/branches.js)
 export const pendingPromos = () => (G.run ? G.run.deck.filter(c => CARDS[c.id].kind === 'unit' && canBranch(CARDS[c.id].unit, c.lv, c.br)) : []);
 export function promote(uid, br) { const c = cardOf(uid), B = branchOf(br); if (!c || !B || B.type !== CARDS[c.id].unit || c.br) return null; c.br = br; save(); return c; }
+// 대장간: 병력 패 하나의 무기를 벼린다 (한 장에 한 번)
+export const canTemper = c => CARDS[c.id].kind === 'unit' && !c.tp;
+export function temper(uid) { const c = cardOf(uid); if (!c || !canTemper(c)) return null; c.tp = 1; save(); return c; }
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) { c.lv = (c.lv || 1) + 1; save(); } else master(c.id); return c; }
 // 영웅기 패는 덱에 그 영웅 패가 있을 때만 나온다
 export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero))); }
@@ -296,10 +299,15 @@ export function genShop() {
 export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it.price) return false; r.gold -= it.price; it.sold = true; applyReward(it); return true; }
 
 // ───────── 사건에서 쓰는 도우미 ─────────
-export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang'];
-const EVENT_MIN = { well: 1, tomb: 1 };
+export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb', 'hokburi', 'heungbu', 'urung', 'seonnyeo', 'ojak', 'tiger', 'kongjwi', 'yagwang',
+  'haedal', 'bangui', 'dokkaebibul', 'banjjogi', 'gureong', 'gureong2', 'jeoseung', 'dangsan', 'talchum', 'dure', 'sanjeok', 'sanjeok2', 'child', 'child2', 'seowon', 'trap', 'dokkaebisijang', 'flood', 'armory', 'sansa', 'sotdae', 'pansori', 'bongsu', 'madang', 'gutdang'];
+// 앞선 사건의 선택이 있어야 나오는 이어지는 사건
+const EVENT_NEED = { gureong2: 'gureong', sanjeok2: 'sanjeok', child2: 'child' };
+const EVENT_MIN = { well: 1, tomb: 1, jeoseung: 2, armory: 1, gureong2: 2, sanjeok2: 2, child2: 2 };
 // 인연을 맺은 영물이 이번 원정의 덱에 없으면, 사건 자리에서 가끔 그 영물을 다시 만난다 ('beast:까치' 처럼)
-export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && (EVENT_MIN[e] || 0) <= r.ch), ev = pick(pool.length ? pool : EVENT_IDS); r.evSeen.push(ev); return ev; }
+export function pickEvent() { const r = G.run, wait = BEASTS.filter(b => has(b.id) && !r.deck.some(c => c.id === 'u_' + b.id) && !(r.beastQ || []).includes(b.id)); if (wait.length && rnd() < 0.4) return 'beast:' + pick(wait).id; const ok = e => !EVENT_NEED[e] || (r.flags || []).includes(EVENT_NEED[e]), pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && ok(e) && (EVENT_MIN[e] || 0) <= r.ch),
+    // 이어지는 사건이 기다리고 있으면 먼저 꺼낸다
+    chain = pool.filter(e => EVENT_NEED[e]), ev = chain.length && rnd() < 0.7 ? pick(chain) : pick(pool.length ? pool : EVENT_IDS.filter(e => ok(e) && !EVENT_NEED[e])); r.evSeen.push(ev); return ev; }
 const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
@@ -314,7 +322,7 @@ export const act = {
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },
   morale(n) { G.run.nextMorale = n; return `다음 싸움을 사기 +${n} 로 시작`; },
   weapon(id) { const r = G.run; if (!id) { const pool = weaponPool(), fresh = pool.filter(w => !r.items.includes(w) && !r.deck.some(q => q.wpn === w)); id = pick(fresh.length ? fresh : pool); } if (!id) return act.gold(40); r.items.push(id); return `무기 [${WEAPONS[id].name}] — ${WEAPONS[id].desc}`; },
-  card(id, up, n = 2) { if (!id) id = rollCards('battle', 1)[0].id; for (let k = 0; k < n; k++) addCard(id, { up }); return `패 [${CARDS[id].name}${up || mastered(id) ? '+' : ''}] ${n}장을 얻었습니다`; },
+  card(id, up, n = 2) { if (!id) id = rollCards('battle', 1)[0].id; for (let k = 0; k < n; k++) addCard(id, { up, lv: id.startsWith('u_') ? 1 + Math.floor(G.run.ch * 0.8) : 1 }); return `패 [${CARDS[id].name}${up || mastered(id) ? '+' : ''}] ${n}장을 얻었습니다`; },
   cardUp() { const d = G.run.deck.filter(c => !isUnit(c) && canUp(c)); if (!d.length) return act.gold(30); const c = pick(d); master(c.id); return `전술을 익혔습니다: [${CARDS[c.id].name}] → [${CARDS[c.id].name}+]`; },
   supply(n) { const got = []; for (let k = 0; k < n; k++) { const id = pick(['sling', 'sling', 'rain', 'rain', 'heal', 'heal', 'horn', 'scout']); addCard(id); got.push(CARDS[id].name); } return `패 ${n}장: ${got.join(', ')}`; },
   doubt() { addCard('doubt'); return '부정 -1: 덱에 쓸모없는 패 [잡념]이 섞였습니다'; },

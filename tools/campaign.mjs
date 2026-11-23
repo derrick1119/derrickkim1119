@@ -9,7 +9,7 @@ import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
 import { N_CH } from '../src/data/stages.js';
 import { BRANCHES } from '../src/data/branches.js';
-import { pendingPromos, promote } from '../src/state.js';
+import { pendingPromos, promote, canTemper, temper } from '../src/state.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
@@ -109,6 +109,7 @@ for (let k = 0; k < runs; k++) {
     else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
     else if (s.type === 'rest') { const x = Math.random(); if (x < 0.35) act.morale(4); else if (r.gold >= 90 && x < 0.6) { act.gold(-90); act.train(); act.train(); } else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
+    else if (s.type === 'forge') { const c = pick(r.deck.filter(canTemper)); if (c && r.gold >= 40) { r.gold -= 40; temper(c.uid); } else if (r.gold >= 70) { r.gold -= 70; act.weapon(); } }
     sync(b);
     if (advance()) break;
     for (const c of pendingPromos()) promote(c.uid, pick(BRANCHES[CARDS[c.id].unit]).id);   // 승급: 갈래는 아무거나

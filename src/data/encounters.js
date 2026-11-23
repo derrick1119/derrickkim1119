@@ -24,6 +24,22 @@ export const AFFIX = {
   swift: { name: '날쌘', desc: '이동 속도 +30%', foe: { spd: 1.3 } },
   regen: { name: '재생', desc: '초마다 체력 1.5% 회복', foe: { regen: 0.015 } },
   fierce: { name: '흉포', desc: '공격력 +20%', foe: { atk: 1.2 } },
+  // 2단계: 싸우는 법을 바꾸게 하는 수식어
+  plated: { name: '방패 든', desc: '화살·돌 피해 -40% — 도술·근접으로', foe: { projGuard: 0.4 } },
+  undying: { name: '되살아나는', desc: '쓰러지면 30% 확률로 한 번 다시 일어선다', foe: { second: 0.3 } },
+  blazing: { name: '불붙은', desc: '때리면 3초 화상', foe: { burn: 0.35 } },
+  thorny: { name: '가시 돋친', desc: '근접으로 친 아군이 피해 15%를 되돌려 받는다', foe: { thorn: 0.15 } },
+  swarm: { name: '떼 지은', desc: '무리 수 +40%, 체력 -15%', foe: { nMul: 1.4, hp: 0.85 } },
+  giant: { name: '거대한', desc: '체력 +60%, 이동 -20%', foe: { hp: 1.6, spd: 0.8 } },
+};
+// 두목의 변형: 같은 고개라도 원정마다 두목이 조금씩 다르게 나온다
+export const BOSS_VAR = {
+  plain: { name: '', desc: '', foe: {} },
+  enraged: { name: '성난', desc: '요괴 공격 속도 +15%', foe: { as: 1.15 } },
+  armored: { name: '단단한', desc: '두목 체력 +20%', foe: { bossHp: 1.2 } },
+  swarming: { name: '떼를 부르는', desc: '패거리 무리 수 +30%', foe: { nMul: 1.3 } },
+  burning: { name: '불을 두른', desc: '요괴가 때리면 화상', foe: { burn: 0.3 } },
+  undying: { name: '저승을 거스르는', desc: '패거리가 30% 확률로 한 번 다시 일어선다', foe: { second: 0.3 } },
 };
 const SPREAD = { 1: [2.5], 2: [1.5, 3.5], 3: [0.75, 2.5, 4.25], 4: [0.25, 1.75, 3.25, 4.75] };
 
@@ -81,7 +97,7 @@ export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다
   const C = CHAPTERS[Math.min(N_CH - 1, ch)], lvl = ch + 1, late = Math.min(ch, 4);
   const chase = { at: 0, every: 11, types: C.chase };
-  if (kind === 'boss') { const b = BOSSES[C.boss], pk = b.packs[(R() * b.packs.length) | 0]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {}, terrain: 'arena', sky: C.bossSky, chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with, lvl }); }
+  if (kind === 'boss') { const b = BOSSES[C.boss], pk = b.packs[(R() * b.packs.length) | 0], vk = ch < 2 ? 'plain' : Object.keys(BOSS_VAR)[(R() * Object.keys(BOSS_VAR).length) | 0], V = BOSS_VAR[vk]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: Object.assign({}, V.foe), bossVar: vk, terrain: 'arena', sky: C.bossSky, chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with, lvl }); }
   const pool = { w: C.pool };
   let budget = budgetFor(ch, row, kind, eliteMul);
   const first = ch === 0 && row === 0;

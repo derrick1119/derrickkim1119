@@ -191,6 +191,7 @@ export const LOOKS = {
   haetae: { body: haetae, blinkBody: g => haetae(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 58, w: 130, ox: 62, scale: 1.12 },
   samjoko: { body: samjoko, weapon: 'none', hold: hold(0, 'none'), h: 54, float: true, scale: 1.1 },
   tiger: { body: tiger, blinkBody: g => tiger(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.08 },
+  militia: { doll: { robe: '#efe9da', top: '#f6f1e4', git: '#d8cfba', legs: '#e8e1cf', shoe: '#c9a86a', sash: '#b8322a', hem: '#d8cfba', skin: '#e2b888', jaw: 'round', brow: 'stern', eyes: 'sharp', mouth: 'flat', beard: 'stubble' }, hold: hold(0.1, 'thrust'), h: 60 },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },

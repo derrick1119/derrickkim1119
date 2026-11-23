@@ -3,6 +3,9 @@ import { G, act } from '../state.js';
 import { UNITS } from './units.js';
 
 const chance = p => Math.random() < p;
+const pick = a => a[(Math.random() * a.length) | 0];
+// 다음 고개에서 이어지는 사건의 표시 (state.js 의 EVENT_NEED)
+const flag = k => { const r = G.run; (r.flags || (r.flags = [])).push(k); };
 const melee = d => !d.range && !d.heal;
 // 그 영웅이 덱에 있을 때만 열리는 갈래
 const hero = (h, c) => G.run.deck.some(q => q.id === 'h_' + h) ? Object.assign({ hero: h }, c) : null;
@@ -114,6 +117,110 @@ export const EVENTS = {
     hero('archmage', { label: '신선: 술 한 잔 따른다', desc: '보물 [도깨비 감투], 엽전 +40', pick: () => ['"그 빗자루의 손주뻘이로구나." 야광귀가 넙죽 절합니다.', act.relic('gamtu'), act.gold(40)] }),
     { label: '문간에 체를 건다', desc: '패 [허수아비] 두 장', pick: () => ['야광귀가 체 구멍을 세다 틀리고, 또 세다 날이 샙니다.', act.card('decoy')] },
     { label: '헌 신을 내놓는다', desc: '50%: 엽전 +70 · 50%: 부정', pick: () => chance(0.5) ? ['야광귀가 신값이라며 엽전을 놓고 갑니다.', act.gold(70)] : ['헌 신 대신 영웅 신을 신고 갔습니다!', act.curse()] },
+  ] },
+  // ── 설화와 길 위의 삶 (2단계) ──
+  haedal: { title: '해님 달님', art: 'tiger', text: '"떡 하나 주면 안 잡아먹지."\n고개마다 호랑이가 같은 말을 합니다.', choices: () => [
+    hero('hunter', { label: '명궁: "이번엔 네가 쫓겨라"', desc: '보물 [호랑이 가죽]', pick: () => ['화살 한 대에 호랑이가 꼬리를 말고 달아납니다.', act.relic('crest')] }),
+    { label: '떡을 던져 준다', desc: '엽전 -25, 사기 +3으로 시작', pick: () => ['호랑이가 떡에 정신 팔린 사이 고개를 넘었습니다.', act.gold(-25), act.morale(3)] },
+    { label: '나무에 올라 빈다', desc: '50%: 보물 · 50%: 부정', pick: () => chance(0.5) ? ['하늘에서 튼튼한 동아줄이 내려옵니다.', act.relic()] : ['썩은 동아줄이었습니다. 엉덩방아를 찧습니다.', act.curse()] },
+  ] },
+  bangui: { title: '방귀쟁이 며느리', art: 'jumo', text: '며느리가 참았던 방귀를 뀌자\n배나무의 배가 우수수 떨어집니다.', choices: () => [
+    { label: '같이 가자고 청한다', desc: '패 [척후+] 두 장', pick: () => ['"요괴 앞에서 한 방이면 됩니다." 며느리가 웃습니다.', act.card('scout', true)] },
+    { label: '떨어진 배를 줍는다', desc: '엽전 +40', pick: () => ['장에 내다 판 배가 제법 값이 나갑니다.', act.gold(40)] },
+  ] },
+  dokkaebibul: { title: '도깨비불', art: 'goblin', text: '골짜기에 푸른 불이 하나둘 켜집니다.\n따라가면 보물이 있다는데…', choices: () => [
+    { label: '불을 따라간다', desc: '55%: 보물 · 45%: [잡념], 엽전 -20', pick: () => chance(0.55) ? ['불이 멈춘 바위 밑에 녹슨 함이 묻혀 있습니다.', act.relic()] : ['밤새 같은 자리를 맴돌았습니다.', act.doubt(), act.gold(-20)] },
+    { label: '횃불을 밝혀 쫓는다', desc: '패 [횃불] 두 장', pick: () => ['불을 밝히자 도깨비불이 꺼집니다.', act.card('torch')] },
+  ] },
+  banjjogi: { title: '반쪽이', art: 'berserk', text: '눈도 팔도 하나뿐인 장사가 바위를 번쩍 듭니다.\n"나도 데려가 주시오!"', choices: () => [
+    { label: '받아들인다', desc: '병력 패 [철퇴 장사]', pick: () => ['"반쪽이라고 얕보지 마시오!" 철퇴를 어깨에 멥니다.', act.card('u_berserk', false, 1)] },
+    { label: '씨름 한 판', desc: '60%: 영웅 +1단 · 40%: 엽전 -30', pick: () => chance(0.6) ? ['간신히 이겼습니다. 영웅의 어깨가 펴집니다.', act.hero()] : ['내동댕이쳐졌습니다. 약값이 듭니다.', act.gold(-30)] },
+  ] },
+  gureong: { title: '구렁덩덩 신선비', art: 'serpent', text: '구렁이가 허물을 벗고 선비가 되었습니다.\n"이 허물을 태우면 나는 떠나야 하오."', choices: () => [
+    { label: '허물을 지켜 준다', desc: '엽전 +30, 언젠가 보답', pick: () => { flag('gureong'); return ['"이 은혜는 꼭 갚겠소." 선비가 허물을 품에 넣습니다.', act.gold(30)]; } },
+    { label: '허물을 태운다', desc: '보물 하나, 부정', pick: () => ['선비는 하늘로 떠나고, 재 속에 무언가 반짝입니다.', act.relic(), act.curse()] },
+  ] },
+  gureong2: { title: '신선비의 보답', art: 'serpent', text: '허물을 지켜 준 선비가 구름을 타고 내려옵니다.\n"약속을 지키러 왔소."', choices: () => [
+    { label: '보답을 받는다', desc: '보물 하나, 부대 한도 +1', pick: () => ['선비가 하늘의 병서와 함께 길을 열어 줍니다.', act.relic(), act.cap(1)] },
+  ] },
+  jeoseung: { title: '저승사자의 실수', art: 'reaper', text: '저승사자가 명부를 뒤적입니다.\n"이상하다… 데려갈 사람이 여기 있는데."', choices: () => [
+    hero('bishop', { label: '고승: 명부를 고쳐 준다', desc: '부정 씻김, 영웅 +1단', pick: () => { const c = act.cleanse(); return ['"그 이름은 이미 극락에 올랐소." 사자가 머리를 긁습니다.', act.hero(), ...(c ? [c] : [])]; } }),
+    { label: '엽전으로 달랜다', desc: '엽전 -50, 보물 하나', pick: () => ['사자가 엽전을 세더니 낡은 노리개를 떨구고 갑니다.', act.gold(-50), act.relic()] },
+    { label: '이름을 바꿔 적는다', desc: '50%: 엽전 +80 · 50%: 부정', pick: () => chance(0.5) ? ['사자는 엉뚱한 이를 찾아 떠났습니다. 품에서 엽전이 떨어집니다.', act.gold(80)] : ['들켰습니다! 사자가 이름 위에 붉은 점을 찍습니다.', act.curse()] },
+  ] },
+  dangsan: { title: '당산나무 제사', art: 'treant', text: '마을 어귀 당산나무에 금줄이 걸렸습니다.\n제사를 거들면 복을 받는답니다.', choices: () => [
+    { label: '제사를 거든다', desc: '엽전 -30, 보물 하나', pick: () => ['오색 천이 바람에 흩날리고, 무당이 작은 보물을 건넵니다.', act.gold(-30), act.relic()] },
+    { label: '마른 가지를 얻는다', desc: '패 [목책 세우기] 두 장', pick: () => ['당산나무의 마른 가지로 튼튼한 말뚝을 깎았습니다.', act.card('stakes')] },
+  ] },
+  talchum: { title: '탈춤 놀이판', art: 'shaman', text: '장터 마당에 탈꾼들이 판을 벌였습니다.\n양반탈이 거드름을 피우자 사람들이 깔깔 웃습니다.', choices: () => [
+    hero('sangsoe', { label: '상쇠: 장단을 맞춘다', desc: '보물 [풍물패], 패 [함성] 두 장', pick: () => ['꽹과리 소리에 놀이판이 뒤집어집니다.', act.relic('band'), act.card('cry')] }),
+    { label: '구경한다', desc: '사기 +3으로 시작', pick: () => ['한바탕 웃고 나니 다리에 힘이 붙습니다.', act.morale(3)] },
+    { label: '탈꾼을 모은다', desc: '엽전 -40, 패 [함성+] 두 장', pick: () => ['탈꾼들이 앞장서서 요괴를 조롱하기로 했습니다.', act.gold(-40), act.card('cry', true)] },
+  ] },
+  dure: { title: '두레패', art: 'spear', text: '논두렁에서 두레패가 풍물을 치며 일합니다.\n"요괴 때문에 모내기도 못 하오."', choices: () => [
+    { label: '함께 일어서자', desc: '패 [의병 봉기] 두 장', pick: () => ['농기를 앞세운 두레패가 낫과 죽창을 듭니다.', act.card('uibyeong')] },
+    { label: '모내기를 돕는다', desc: '엽전 +35, 사기 +2로 시작', pick: () => ['품삯 대신 주먹밥과 엽전을 얻었습니다.', act.gold(35), act.morale(2)] },
+  ] },
+  sanjeok: { title: '산적 떼', art: 'berserk', text: '"이 고개를 넘으려면 통행세를 내라!"\n산적들이 길을 막았습니다.', choices: () => [
+    hero('chief', { label: '두령: "내 얼굴 모르나?"', desc: '병력 패 [철퇴 장사] 두 장', pick: () => ['"형님!" 산적들이 엎드려 절하고 따라나섭니다.', act.card('u_berserk', false, 2)] }),
+    { label: '통행세를 낸다', desc: '엽전 -40', pick: () => ['산적들이 순순히 길을 비킵니다.', act.gold(-40)] },
+    { label: '설득한다', desc: '60%: 언젠가 도움 · 40%: 엽전 -60', pick: () => { if (chance(0.6)) { flag('sanjeok'); return ['"요괴를 친다고? 그럼 우리도 한몫 끼지." 두목이 웃습니다.']; } return ['말이 통하지 않았습니다. 짐을 털렸습니다.', act.gold(-60)]; } },
+  ] },
+  sanjeok2: { title: '산적 두목의 의리', art: 'berserk', text: '전에 만난 산적 두목이 무리를 이끌고 나타납니다.\n"약속대로 한몫 끼러 왔소!"', choices: () => [
+    { label: '반갑게 맞는다', desc: '패 [격문] · 병력 패 [철퇴 장사]', pick: () => ['산적들이 의병의 깃발 아래 섭니다.', act.card('gyeokmun', false, 1), act.card('u_berserk', false, 1)] },
+  ] },
+  child: { title: '길 잃은 아이', art: 'magpie', text: '덤불 속에서 아이가 울고 있습니다.\n"엄마가 고개 너머 장에 갔어요."', choices: () => [
+    { label: '데려다준다', desc: '이번엔 아무것도 · 언젠가 보답', pick: () => { flag('child'); return ['아이를 업고 한참을 걸어 장터 어귀에 내려 주었습니다.']; } },
+    { label: '주먹밥을 쥐여 준다', desc: '엽전 -10, 사기 +2로 시작', pick: () => ['아이가 웃자 군사들 얼굴도 풀립니다.', act.gold(-10), act.morale(2)] },
+  ] },
+  child2: { title: '아이의 아버지', art: 'shield', text: '전에 데려다준 아이의 아버지가 찾아왔습니다.\n관아의 무기고지기랍니다.', choices: () => [
+    { label: '고마움을 받는다', desc: '무기 하나, 엽전 +50', pick: () => ['"무기고 열쇠는 내가 쥐고 있소." 좋은 무기를 내줍니다.', act.weapon(), act.gold(50)] },
+  ] },
+  seowon: { title: '서원의 유생들', art: 'necro', text: '서원의 유생들이 병법을 두고 다툽니다.\n"선비님 생각은 어떻소?"', choices: () => [
+    { label: '병서를 빌린다', desc: '전술 패 하나 강화(+)', pick: () => ['밤새 병서를 읽고 전술 하나를 가다듬었습니다.', act.cardUp()] },
+    { label: '논쟁에 끼어든다', desc: '50%: 진법서 · 50%: [잡념]', pick: () => chance(0.5) ? ['유생들이 감복해 귀한 진법서를 건넵니다.', act.relic(pick(['f_hakik', 'f_eorin', 'f_jangsa', 'f_bangwon']))] : ['말꼬리를 잡혀 밤새 시달렸습니다.', act.doubt()] },
+  ] },
+  trap: { title: '사냥꾼의 덫', art: 'hunter', text: '덫에 걸린 사냥꾼이 끙끙거립니다.\n"좀 꺼내 주시오!"', choices: () => [
+    { label: '구해 준다', desc: '무기 하나', pick: () => ['사냥꾼이 아끼던 활을 내어 줍니다.', act.weapon(pick(['crossbow', 'pyeonjeon', 'firebow']))] },
+    { label: '덫을 챙긴다', desc: '패 [마름쇠] 두 장', pick: () => ['사냥꾼을 꺼내 주고 덫은 쓸 데가 있어 챙겼습니다.', act.card('caltrop')] },
+  ] },
+  dokkaebisijang: { title: '도깨비 시장', art: 'goblin', text: '자정에만 서는 도깨비 시장입니다.\n"무엇이든 바꿔 드립니다요."', choices: () => [
+    { label: '부정을 판다', desc: '부정 씻김, 엽전 +30', pick: () => { const c = act.cleanse(); return c ? ['도깨비가 부정을 덥석 사 갑니다. 좋아하는 눈치입니다.', c, act.gold(30)] : ['팔 부정이 없습니다. 구경만 하고 나옵니다.', act.gold(10)]; } },
+    { label: '엽전을 걸고 내기', desc: '엽전 -40 → 50%: +120', pick: () => { act.gold(-40); return chance(0.5) ? ['이겼습니다! 도깨비가 혀를 찹니다.', act.gold(120)] : ['도깨비가 이겼습니다. 엽전 꾸러미가 가벼워집니다.', '엽전 -40']; } },
+    { label: '패를 바꾼다', desc: '[잡념] 없애고 패 한 종류 두 장', pick: () => { const c = act.clearDoubt(); return ['도깨비가 쓸모없는 생각을 사 가고 새 패를 줍니다.', ...(c ? [c] : []), act.card()]; } },
+  ] },
+  flood: { title: '불어난 개울', art: 'spear', text: '밤새 비가 와 개울이 넘쳤습니다.\n돌아가면 하루가 걸립니다.', choices: () => [
+    { label: '다리를 놓는다', desc: '패 [목책 세우기+] 두 장', pick: () => ['통나무를 엮어 다리를 놓는 사이 말뚝 다루는 솜씨가 늘었습니다.', act.card('stakes', true)] },
+    { label: '건너 버린다', desc: '60%: 사기 +3으로 시작 · 40%: [잡념]', pick: () => chance(0.6) ? ['다들 흠뻑 젖었지만 기세가 올랐습니다.', act.morale(3)] : ['몇몇이 떠내려갈 뻔했습니다. 다들 겁을 먹었습니다.', act.doubt()] },
+  ] },
+  armory: { title: '버려진 무기고', art: 'rshield', text: '불탄 관아 뒤에 무기고가 덩그러니 남았습니다.\n녹슨 자물쇠가 걸려 있습니다.', choices: () => [
+    { label: '자물쇠를 부순다', desc: '무기 하나', pick: () => ['먼지 속에서 쓸 만한 무기를 찾았습니다.', act.weapon()] },
+    { label: '화약을 챙긴다', desc: '패 [비격진천뢰] 한 장', pick: () => ['젖지 않은 화약 통이 하나 남아 있습니다.', act.card('jincheon', false, 1)] },
+  ] },
+  sansa: { title: '산사의 노승', art: 'bishop', text: '깊은 산 절에서 노승이 차를 내옵니다.\n"요괴도 원래는 길 잃은 마음이지요."', choices: () => [
+    hero('archmage', { label: '신선: 바둑 한 판', desc: '보물 하나, 패 강화(+)', pick: () => ['한 수 차이로 졌습니다. 노승이 껄껄 웃으며 선물을 줍니다.', act.relic(), act.cardUp()] }),
+    { label: '불공을 드린다', desc: '엽전 -30, 부정 씻김', pick: () => { const c = act.cleanse() || act.clearDoubt(); return ['향 냄새 속에서 마음이 가벼워졌습니다.', act.gold(-30), ...(c ? [c] : ['씻을 부정이 없어 복을 빌었습니다', act.morale(2)])]; } },
+    { label: '약초를 얻는다', desc: '패 [약손+] 두 장', pick: () => ['노승이 산에서 캔 약초를 한 보따리 싸 줍니다.', act.card('heal', true)] },
+  ] },
+  sotdae: { title: '솟대 마을', art: 'magpie', text: '마을 어귀에 솟대가 줄지어 섰습니다.\n장대 끝 오리에게 소원을 빈답니다.', choices: () => [
+    { label: '군대를 위해 빈다', desc: '무작위 병력 패 +1단 둘', pick: () => ['오리가 하늘로 소원을 물어 갑니다.', act.train(), act.train()] },
+    { label: '영웅을 위해 빈다', desc: '영웅 +1단', pick: () => ['영웅의 꿈에 솟대 오리가 날아듭니다.', act.hero()] },
+  ] },
+  pansori: { title: '소리꾼', art: 'priest', text: '정자 아래 소리꾼이 북장단에 맞춰 판을 엽니다.\n"얼씨구!" 추임새가 터집니다.', choices: () => [
+    { label: '한 대목 듣는다', desc: '사기 +4로 시작', pick: () => ['적벽가 한 대목에 군사들 가슴이 뜨거워집니다.', act.morale(4)] },
+    { label: '고수를 데려간다', desc: '엽전 -45, 패 [진군의 북+] 두 장', pick: () => ['북채를 쥔 고수가 앞장섭니다.', act.gold(-45), act.card('horn', true)] },
+  ] },
+  bongsu: { title: '봉수대', art: 'xbow', text: '봉수대 군사가 연기를 올리지 못해 쩔쩔맵니다.\n요괴가 장작을 다 적셔 놓았답니다.', choices: () => [
+    { label: '봉화를 올려 준다', desc: '보물 하나', pick: () => ['연기가 다섯 줄로 오르자 군사가 고마워 무언가 건넵니다.', act.relic()] },
+    { label: '신호를 배운다', desc: '패 [일제 사격] 두 장', pick: () => ['연기와 깃발로 화살을 한꺼번에 쏘는 법을 배웠습니다.', act.card('salvo')] },
+  ] },
+  madang: { title: '마상재 놀이', art: 'knight', text: '말 위에서 재주를 넘는 마상재 패가 지나갑니다.\n"우리도 요괴 한번 쳐 볼까?"', choices: () => [
+    { label: '함께 가자고 한다', desc: '병력 패 [기마 무사]', pick: () => ['말발굽 소리가 고개를 울립니다.', act.card('u_knight', false, 1)] },
+    { label: '재주를 배운다', desc: '패 [마상재] 두 장', pick: () => ['말 위에서 몸을 낮추는 법을 익혔습니다.', act.card('masangjae')] },
+  ] },
+  gutdang: { title: '무당집', art: 'shaman', text: '대나무에 오색 천을 단 무당집입니다.\n"부정 탄 기운이 보이는구먼."', choices: () => [
+    { label: '굿을 청한다', desc: '엽전 -40, 부정 하나 씻김 · 패 [대동굿]', pick: () => { const c = act.cleanse() || act.clearDoubt(); return ['방울 소리와 함께 무당이 칼춤을 춥니다.', act.gold(-40), ...(c ? [c] : []), act.card('daedong', false, 1)]; } },
+    { label: '부적을 산다', desc: '엽전 -30, 패 [불 부적] 두 장', pick: () => ['무당이 붉은 글씨로 부적을 써 줍니다.', act.gold(-30), act.card('bujeok')] },
   ] },
 };
 // ───── 영물의 인연: 인형극이 끝나면 영물을 어떻게 맞이할지 고른다 (어느 쪽이든 영물 패가 덱에 들어온다) ─────

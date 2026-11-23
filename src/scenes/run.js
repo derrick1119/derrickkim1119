@@ -9,7 +9,7 @@ import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, 
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
 import { CHAPTERS, ORD, chapterOf } from '../data/stages.js';
-import { AFFIX, TWIST } from '../data/encounters.js';
+import { AFFIX, TWIST, BOSS_VAR } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
@@ -21,10 +21,10 @@ import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble,
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
 import { Coach } from '../ui/coach.js';
 import { RewardOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
-import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene } from '../ui/places.js';
+import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene, ForgeScene } from '../ui/places.js';
 import { EventScene } from '../ui/roadevent.js';
 import { PromoOverlay } from '../ui/promote.js';
-import { FORMS } from '../data/formations.js';
+import { FORMS, FORM_DIAG, FORM_ORDER } from '../data/formations.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted, bgm } from '../audio.js';
 import { nav } from '../nav.js';
@@ -73,13 +73,15 @@ export class RunScene {
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
-      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.twist ? TWIST[e.twist] : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? 'boss' : st.type === 'elite' ? 'elite' : 'battle', chCol: e.boss ? '#f1e2c0' : undefined };
+      const BV = e.boss && e.bossVar && BOSS_VAR[e.bossVar] && BOSS_VAR[e.bossVar].name ? BOSS_VAR[e.bossVar] : null;
+      this.note = { s: (BV ? BV.name + ' ' : '') + e.name, sub: BV ? `${BV.desc} · ` + (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') : e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.twist ? TWIST[e.twist] : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? 'boss' : st.type === 'elite' ? 'elite' : 'battle', chCol: e.boss ? '#f1e2c0' : undefined };
       if (e.boss) sfx('boss');
       this.routN = 0; this.emptyWarned = false;
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; if (id.startsWith('beast:')) this.beastScene(id.slice(6), false, done); else { const v = eventView({ id }); this.over = new EventScene({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); } }
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new MarketOverlay({ items, onDone: done }); }
     else if (st.type === 'rest') { this.phase = 'stop'; const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new TavernOverlay({ tale: taleView(tl), choices: restChoices(), onDone: done }); }
+    else if (st.type === 'forge') { this.phase = 'stop'; this.over = new ForgeScene({ onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
@@ -162,7 +164,7 @@ export class RunScene {
     if (p === 'over') return 'story';
     if (p === 'fight' || p === 'prep') return this.enc && this.enc.boss ? 'boss' : 'battle';
     if (o instanceof Play) return 'story';
-    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof PromoOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
+    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof ForgeScene || o instanceof PromoOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
     return 'march';
   }
   // 길 위의 변수: 보물 짐꾼을 잡으면 엽전, 우리를 부수면 병력 패
@@ -388,6 +390,12 @@ export class RunScene {
       text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 14, fill: on ? C.cream : '#e8dcc0', maxW: 94 });
       if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name} (${sy.need}) — ${sy.desc}`, 3.5);
     }
+    // 싸움 준비 동안: 아는 진형을 작은 그림으로 보여 준다 (부대를 그 모양으로 세우면 진이 선다)
+    if (!b.form && (this.phase === 'prep' || (this.phase === 'fight' && b.waveT < 8))) { const known = FORM_ORDER.filter(id => b.mods.forms.includes(id)), y0 = y + Math.ceil(k / 2) * 28 + 4, hh = 22 + known.length * 30;
+      rr(g, 13, y0 + 2, 212, hh, 7, 'rgba(0,0,0,0.35)'); rr(g, 12, y0, 212, hh, 7, 'rgba(24,14,16,0.86)', '#000', 1.2); rr(g, 14.5, y0 + 2.5, 207, hh - 5, 5, null, foil(g, 12, 224), 1);
+      text(g, '아는 진형', 118, y0 + 13, { size: 13, fill: '#e2b85a' });
+      known.forEach((id, n) => { const F = FORMS[id], cy = y0 + 34 + n * 30, cx = 36; for (const [dx, dy, hero] of FORM_DIAG[id]) ell(g, cx + dx * 12, cy + dy * 10, hero ? 2.6 : 2.2, hero ? 2.6 : 2.2, hero ? '#f3d27c' : '#e06a50'); line(g, [cx + 15, cy - 6, cx + 19, cy, cx + 15, cy + 6], 'rgba(255,255,255,0.35)', 1);
+        text(g, F.name, 62, cy, { size: 14, font: FONT_B, fill: '#f3e6c4', align: 'left' }); text(g, `부대 ${F.need}`, 214, cy, { size: 11.5, fill: '#b8a888', align: 'right' }); }); }
     if (b.form) { const yy = y + Math.ceil(k / 2) * 28, F = FORMS[b.form.id]; rr(g, 13, yy + 2, 212, 26, 6, 'rgba(0,0,0,0.35)'); rr(g, 12, yy, 212, 26, 6, 'rgba(30,14,16,0.9)', '#000', 1.4); rr(g, 14.5, yy + 2.5, 207, 21, 4, null, foil(g, 12, 224), 1.2);
       goldText(g, F.name, 56, yy + 13.5, { size: 16, glow: false }); text(g, F.bonus, 102, yy + 14, { size: 12, fill: '#f3e6c4', align: 'left', maxW: 116 });
       if (tapped('formchip', 12, yy, 212, 26)) this.toast(`진형 ${F.name} — ${F.how}. ${F.bonus}`, 3.5); }

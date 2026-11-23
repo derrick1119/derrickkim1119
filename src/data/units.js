@@ -58,6 +58,9 @@ export const UNITS = {
   // ───── 패로 불러내는 것 ─────
   stake: { name: '목책', role: '방벽', side: 0, cost: 0, n: 1, hp: 120, atk: 0, as: 9, range: 0, spd: 0, r: 12, structure: true, stake: true,
     desc: '길을 막는다', tip: '요괴의 길을 막는 말뚝.' },
+  // 의병: 의병 봉기 패로만 불려 온다 (흰옷에 죽창, 병력 패가 아니다)
+  militia: { name: '의병', role: '의병', side: 0, cost: 0, n: 8, hp: 74, atk: 10, as: 1.0, range: 0, spd: 66, r: 10,
+    desc: '죽창을 든 의병', tip: '농기구와 죽창을 들고 일어선 백성들.' },
   decoy: { name: '허수아비', role: '미끼', side: 0, cost: 0, n: 1, hp: 190, atk: 0, as: 9, range: 0, spd: 0, r: 13, structure: true, decoy: true,
     desc: '적의 눈길을 끈다', tip: '주변 적이 허수아비를 먼저 공격합니다.' },
   // ───── 적군 ─────

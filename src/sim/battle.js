@@ -42,11 +42,12 @@ const hyp = Math.hypot;
 // 무기를 끼운 병종 정의 (기본 정의를 복사해 무기 효과를 덧씌운다)
 const DEFS = new Map();
 // 승급한 병과(br)는 그 갈래의 무기를 처음 들고(따로 끼운 무기가 없을 때), 무기 효과 뒤에 갈래의 효과를 덧씌운다 (data/branches.js)
-export function defOf(type, wpn, br) {
+// tp = 대장간에서 벼린 무기 (공격력 +20%, 체력 +10%)
+export function defOf(type, wpn, br, tp) {
   const base = UNITS[type], arm = ARMS[type], B = branchOf(br); if (!arm && !B) return base;
-  const wid = wpn && WEAPONS[wpn] ? wpn : B && B.arm ? B.arm : arm ? arm.base : null, key = type + ':' + wid + ':' + (B ? B.id : '');
+  const wid = wpn && WEAPONS[wpn] ? wpn : B && B.arm ? B.arm : arm ? arm.base : null, key = type + ':' + wid + ':' + (B ? B.id : '') + (tp ? ':t' : '');
   let d = DEFS.get(key);
-  if (!d) { d = Object.assign({}, base); const w = wid && WEAPONS[wid]; if (w && w.mod) w.mod(d); if (wid) d.wpn = wid; if (B) { B.mod(d); d.br = B.id; } DEFS.set(key, d); }
+  if (!d) { d = Object.assign({}, base); const w = wid && WEAPONS[wid]; if (w && w.mod) w.mod(d); if (wid) d.wpn = wid; if (B) { B.mod(d); d.br = B.id; } if (tp) { d.atk = (d.atk || 0) * 1.2; d.hp *= 1.1; if (d.heal) d.heal *= 1.15; d.temper = true; } DEFS.set(key, d); }
   return d;
 }
 function angDiff(a, b) { let d = (b - a) % TAU; if (d > PI) d -= TAU; if (d < -PI) d += TAU; return d; }
@@ -93,11 +94,11 @@ export class Battle {
     this.drawPile = this.shuffle(deck.filter(c => !out.has(c.uid))); for (let i = 0; i < HAND; i++) this.hand[i] = this.drawCard();
     this.centroids();
   }
-  copyCard(c) { const o = { uid: c.uid, id: c.id, up: !!c.up, lv: c.lv || 1, wpn: c.wpn, br: c.br }; if (c.free) o.free = 1; return o; }
+  copyCard(c) { const o = { uid: c.uid, id: c.id, up: !!c.up, lv: c.lv || 1, wpn: c.wpn, br: c.br, tp: c.tp }; if (c.free) o.free = 1; return o; }
   // 원정 덱이 바뀌면(새 패·익히기·무기·조련) 전장의 패에 반영한다
   syncDeck(deck) {
     const by = new Map(deck.map(c => [c.uid, c])), seen = new Set();
-    const fix = c => { if (!c) return c; const r = by.get(c.uid); if (!r) return null; seen.add(c.uid); c.up = !!r.up; c.lv = r.lv || 1; c.wpn = r.wpn; c.br = r.br; return c; };
+    const fix = c => { if (!c) return c; const r = by.get(c.uid); if (!r) return null; seen.add(c.uid); c.up = !!r.up; c.lv = r.lv || 1; c.wpn = r.wpn; c.br = r.br; c.tp = r.tp; return c; };
     this.drawPile = this.drawPile.map(fix).filter(Boolean); this.bench = this.bench.map(fix).filter(Boolean); this.rest = this.rest.map(fix).filter(Boolean);
     for (let i = 0; i < HAND; i++) if (this.hand[i]) { this.hand[i] = fix(this.hand[i]); if (!this.hand[i]) this.slotT[i] = 0.3; }
     for (const sq of this.squads) { if (!sq.card) continue; const c = fix(sq.card); sq.card = c; if (c && sq.alive > 0) this.refit(sq, c); }
@@ -105,7 +106,7 @@ export class Battle {
   }
   // 전장에 선 부대의 조련 단계·무기를 바꾼다
   refit(sq, c) {
-    const nd = defOf(sq.type, c.wpn, c.br), od = sq.def, k = lvlMult(c.lv) / lvlMult(sq.lvl);
+    const nd = defOf(sq.type, c.wpn, c.br, c.tp), od = sq.def, k = lvlMult(c.lv) / lvlMult(sq.lvl);
     if (nd === od && k === 1) return;
     for (const u of sq.units) { if (u.dead) continue; const h = k * nd.hp / od.hp; u.maxHp *= h; u.hp *= h; if (od.atk) u.atk *= k * nd.atk / od.atk; if (od.heal) u.healAmt *= k * nd.heal / od.heal; u.def = nd; u.lvl = c.lv; }
     sq.def = nd; sq.lvl = c.lv;
@@ -141,7 +142,7 @@ export class Battle {
 
   // ───────── 생성 ─────────
   addSquad(team, s) {
-    const def = defOf(s.type, s.wpn, s.br), pos = { x: s.x, y: s.y }, n = s.n || (team === 0 && !def.hero && !def.structure ? squadN(def.n, s.lvl || 1) : team === 1 && this.foe && this.foe.nMul && !def.boss && def.n > 1 ? Math.max(1, Math.round(def.n * this.foe.nMul)) : def.n);   // 우리 부대는 단련한 만큼, 요괴 무리는 고개를 따라 병사가 는다
+    const def = defOf(s.type, s.wpn, s.br, s.tp), pos = { x: s.x, y: s.y }, n = s.n && team === 1 && this.foe && this.foe.nMul && !def.boss && s.n > 1 ? Math.max(1, Math.round(s.n * this.foe.nMul)) : s.n || (team === 0 && !def.hero && !def.structure ? squadN(def.n, s.lvl || 1) : team === 1 && this.foe && this.foe.nMul && !def.boss && def.n > 1 ? Math.max(1, Math.round(def.n * this.foe.nMul)) : def.n);   // 우리 부대는 단련한 만큼, 요괴 무리는 고개를 따라 병사가 는다
     const sq = { id: this.sid++, team, type: s.type, def, lvl: s.lvl || 1, units: [], alive: 0, total: n, order: { kind: 'auto' }, cx: pos.x, cy: pos.y, hero: !!def.hero, home: { x: pos.x, y: pos.y } };
     // 측면 돌격: 길 가장자리를 따라 들어와 후방을 노린다
     // 협공: 왼쪽(우리 뒤) 가장자리에서 들이닥친다 / 보물 짐꾼: 위에서 들판을 가로질러 오른쪽 아래로 달아난다
@@ -156,7 +157,7 @@ export class Battle {
   spawn(type, team, x, y, sq, lvl, off) {
     const def = sq && sq.type === type ? sq.def : defOf(type), m = lvlMult(lvl), md = this.mods;
     const um = team === 0 ? md.unit[type] : null;
-    let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp * (def.boss ? this.foe.bossK || 1 : 1));   // 두목은 고개를 따라 세진다
+    let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp * (def.boss ? (this.foe.bossK || 1) * (this.foe.bossHp || 1) : 1));   // 두목은 고개를 따라 세진다
     if (team === 0) { if (def.hero) hp *= md.heroHp; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
     const u = {
       id: this.uid++, team, type, def, squad: sq, lvl, x, y, px: x, py: y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp,
@@ -427,7 +428,7 @@ export class Battle {
   // 병력·영웅 패를 내면 그 자리에 부대가 선다. 전술 패는 쓰면 원정에서 사라진다
   deploy(c, x, y, quiet) {
     x = clamp(x, VIEW.x0 + 44, VIEW.x1 - 60); y = clamp(y, VIEW.y0 + 26, VIEW.y1 - 26);
-    const sq = this.addSquad(0, { type: CARDS[c.id].unit, x, y, lvl: c.lv || 1, wpn: c.wpn, br: c.br }); sq.card = c;
+    const sq = this.addSquad(0, { type: CARDS[c.id].unit, x, y, lvl: c.lv || 1, wpn: c.wpn, br: c.br, tp: c.tp }); sq.card = c;
     if (!quiet) { for (const u of sq.units) { u.stun = 0.3; u.cd = 0.5; } this.ev('appear', { x, y, summon: true, ally: true, r: 44 }); }
     return sq;
   }
@@ -487,7 +488,7 @@ export class Battle {
     else if (id === 'reload') { for (const u of this.units) if (!u.dead && u.team === 0 && u.def.aoe > 0 && u.def.range > 0) { u.cd = 0; u.dmgUp = Math.max(u.dmgUp, v.dur); u.dmgUpAmt = Math.max(u.dmgUpAmt, v.amt / 100); } r = 0; }
     else if (id === 'bujeok') this.allies(x, y, r, u => { u.fireT = v.dur; u.fireDmg = v.burn * P; });
     else if (id === 'daedong') { this.gutT = v.dur; this.gutGain = v.gain; r = 0; }
-    else if (id === 'uibyeong') this.summon('sword', x, y, v.n, v.life, P * 0.55);
+    else if (id === 'uibyeong') this.summon('militia', x, y, v.n, v.life, P);
     else if (id === 'gyeokmun') { for (let k = 0; k < v.n && this.bench.length; k++) { const back = this.bench.shift(), slot = this.hand.findIndex(h => !h); if (slot >= 0) { this.hand[slot] = back; this.ev('draw', { slot }); } else this.drawPile.push(back); } r = 0; }
     else if (id === 'archers') this.summon('xbow', x, y, v.n, v.life, P);
     else if (id === 'decoy') { const sq = this.summon('decoy', x, y, 1, v.life, 1); for (const u of sq.units) { u.hp = u.maxHp = v.hp * P; u.taunt = r; u.stun = 0; } }
@@ -774,6 +775,7 @@ export class Battle {
     if (d.stunHit && !t.def.boss && !t.def.structure && this.rand() < d.stunHit.p) t.stun = Math.max(t.stun, d.stunHit.t * (t.def.hero ? 0.5 : 1));
     if (d.burnHit) { t.burn = Math.max(t.burn, d.burnHit.t); t.burnDmg = Math.max(t.burnDmg, u.atk * d.burnHit.k); }
     if (d.slowHit) { t.slow = Math.max(t.slow, d.slowHit.t); t.slowAmt = d.slowHit.amt * (t.def.boss ? 0.5 : 1); }
+    if (u.team === 1 && this.foe.burn && t.team === 0 && !t.def.structure) { t.burn = Math.max(t.burn, 3); t.burnDmg = Math.max(t.burnDmg, u.atk * this.foe.burn); }
     // 야광귀: 때릴 때마다 사기를 훔쳐 간다
     if (d.steal && u.team === 1 && t.team === 0 && this.morale > 0) { this.morale = Math.max(0, this.morale - d.steal); this.ev('steal', { x: t.x, y: t.y, n: d.steal }); }
   }
@@ -816,6 +818,7 @@ export class Battle {
     if (t.def.iron) d *= kind === 'melee' || kind === 'proj' ? t.def.iron.cut : kind === 'aoe' || kind === 'burn' ? t.def.iron.fire : 1;
     if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 0.85;
     if (t.team === 0 && this.form && this.form.fx.guard) d *= 1 - this.form.fx.guard;
+    if (t.team === 1 && this.foe.projGuard && kind === 'proj' && !t.def.boss) d *= 1 - this.foe.projGuard;
     if (t.team === 1 && this.expose && this.waveT < 8) d *= 1 + this.expose;
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
@@ -832,6 +835,8 @@ export class Battle {
     if (t.def.boss && t.team === 1) { const q = Math.min(3, Math.floor((1 - Math.max(0, t.hp) / t.maxHp) * 4)); if (q > (t.q || 0)) { this.gain((q - (t.q || 0)) * 1.5, t.x, t.y - 40); t.q = q; } }
     this.ev('hit', { x: t.x, y: t.y, amt: d, flank, block, team: t.team, kind, big: d > 45 });
     if (t.hp <= 0) this.kill(t, src);
+    // 가시 돋친 요괴: 근접으로 친 아군이 피해 일부를 되돌려 받는다
+    if (t.team === 1 && this.foe.thorn && kind === 'melee' && src && !src.dead && src.team === 0 && d > 0) this.damage(src, d * this.foe.thorn, null, 'riposte');
     // 불 부적을 붙인 아군의 타격은 화상을 남긴다
     if (src && src.fireT > 0 && t.hp > 0 && (kind === 'melee' || kind === 'proj')) { t.burn = Math.max(t.burn, 3); t.burnDmg = Math.max(t.burnDmg, src.fireDmg); }
     // 반격 태세: 근접으로 맞은 만큼 되돌려 준다
@@ -842,6 +847,7 @@ export class Battle {
   }
   kill(t, src, silent) {
     if (t.dead) return;
+    if (t.team === 1 && this.foe.second && !t.secondUsed && !t.def.boss && !t.def.structure && !t.def.porter && !t.def.rescue && this.rand() < this.foe.second) { t.secondUsed = true; t.hp = t.maxHp * 0.5; t.stun = Math.max(t.stun, 0.8); this.ev('text', { x: t.x, y: t.y - 40, s: '다시 일어선다!', c: '#6a4a8a' }); this.ev('appear', { x: t.x, y: t.y, summon: true, r: 22 }); return; }
     t.dead = true; t.hp = 0; t.deadT = this.time; t.squad.alive--; t.moving = false;
     this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r, last: !(t.def.revive && !t.revived) });
     if (t.ai) bossDeath(this, t, silent);

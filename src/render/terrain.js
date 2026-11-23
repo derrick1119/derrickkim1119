@@ -351,6 +351,16 @@ const STOPS = {
     ell(g, 70, -35.4, 7.2, 1.7, '#6a4a2c', INK, 1);
     jar(g, -52, 0, 1, '#6b4a3a'); jar(g, -41.4, 1, 0.76, '#8a6248'); grassTuft(g, 44, 1, 0.7, TEAL, SR());
   },
+  forge(g) { // 대장간: 돌 화덕과 굴뚝 연기, 처마 밑 모루
+    part(g, RC(-44, -6, 88, 6), GREY[0], RC(-44, -3, 88, 3), { lw: 1.1 });
+    part(g, RC(-40, -42, 56, 36), '#8a7a6a', RC(-40, -42, 56, 10), { k: 0.24, lw: 1.4 }); for (const [x, y] of [[-34, -34], [-20, -28], [-6, -36], [-28, -18], [-12, -14], [4, -22]]) part(g, E(x, y, 6, 4), '#a59f8f', null, { lw: 0.8 });
+    part(g, RC(-30, -24, 20, 18), '#2a1810', null, { lw: 1.2 }); ell(g, -20, -12, 7, 5, '#ff9a2e'); ell(g, -20, -12, 3.6, 2.6, '#ffe08a');
+    part(g, RC(4, -70, 12, 30), '#7a6a5a', RC(4, -70, 12, 6), { lw: 1.2 }); for (const [x, y, r] of [[12, -78, 6], [18, -88, 8], [12, -100, 9]]) { g.globalAlpha = 0.5; ell(g, x, y, r, r * 0.8, '#d8d4cc', INK, 0.8); g.globalAlpha = 1; }
+    const roof = p => { p.moveTo(-48, -40); p.lineTo(-6, -58); p.lineTo(46, -46); p.lineTo(46, -38); p.lineTo(-6, -50); p.lineTo(-48, -34); p.closePath(); }; part(g, roof, '#6a5040', null, { lw: 1.3 });
+    for (const x of [26, 42]) part(g, RC(x - 2, -42, 4, 36), WOODD, null, { lw: 0.9 });
+    part(g, P(16, -18, 40, -18, 36, -13, 32, -13, 32, -6, 22, -6, 22, -13, 18, -13), '#4a4a55', null, { lw: 1 }); rr(g, 24, -6, 6, 6, 1, WOODD, INK, 0.8);
+    glint(g, 34, -24, 3); glint(g, 22, -26, 2.4);
+  },
   shop(g) { // 장터 좌판: 줄무늬 차일 아래 늘어놓은 물건
     post(g, -40, 62, 2.6); post(g, 40, 62, 2.6);
     const top = P(-50, -62, 50, -62, 57, -42, -57, -42);

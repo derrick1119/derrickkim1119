@@ -42,7 +42,7 @@ export const WEAPONS = {
 for (const k of Object.keys(WEAPONS)) WEAPONS[k].id = k;
 // 병종별 쓸 수 있는 무기 종류와 기본 무기
 export const ARMS = {
-  sword: { cls: ['short'], base: 'hwando' }, shield: { cls: ['short'], base: 'hwando' }, spear: { cls: ['pole'], base: 'spear' }, knight: { cls: ['pole', 'short'], base: 'lance' },
+  sword: { cls: ['short'], base: 'hwando' }, militia: { cls: ['pole'], base: 'spear' }, shield: { cls: ['short'], base: 'hwando' }, spear: { cls: ['pole'], base: 'spear' }, knight: { cls: ['pole', 'short'], base: 'lance' },
   berserk: { cls: ['blunt', 'short'], base: 'mace' }, xbow: { cls: ['bow'], base: 'bow' }, wizard: { cls: ['talisman'], base: 'firetal' }, priest: { cls: ['ritual'], base: 'fans' },
   commander: { cls: ['pole', 'short'], base: 'woldo' }, bishop: { cls: ['ritual'], base: 'staff' }, archmage: { cls: ['talisman'], base: 'featherfan' },
   blade: { cls: ['short'], base: 'yedo' }, hunter: { cls: ['bow'], base: 'greatbow' }, sangsoe: { cls: ['gong'], base: 'chae' }, chief: { cls: ['blunt', 'short'], base: 'ssangdokki' },
