@@ -440,7 +440,7 @@
         const slope = a.boat ? 0 : Math.abs(W_.groundAt(a.x + 8) - W_.groundAt(a.x - 8)) / 16;
         const st = Math.sign(d) * Math.min(Math.abs(d), (a.go.v / (1 + slope * 0.9)) * dt);
         a.x += st; if (!a.keepFlip) a.flip = d < 0;
-        a.ph += Math.abs(st) / (a.stride || (a.dog ? 5 : 10 * (a.s / 150))); a.moving = true;
+        a.ph += Math.abs(st) / (a.stride || (a.dog ? 18 * (a.s / 220) : 10 * (a.s / 150)));   /* a dog's legs, a calm walking pace */ a.moving = true;
         if (a.id === 'leo' && !S.view) { const n = Math.floor(a.ph / Math.PI); if (n !== a.stepN) { a.stepN = n; if (n % 2 === 0) T.audio.sfx('step'); } }
         if (Math.abs(a.go.x - a.x) < 0.5) { a.x = a.go.x; a.moving = false; const r = a.go.res; a.go = null; r(); }
       }

@@ -394,19 +394,20 @@
       const a = o.at(), s = a[2], x = a[0], y = a[1];
       g.save(); g.globalAlpha = G.a; g.translate(x, y); g.scale(s, s);
       /* the steam box over a fire, and the hull's ribs beyond it */
-      for (let k = 0; k < 5; k++) { const ph = t * 9 + k; P.fill(g, P.ellipse(-120 + (k - 2) * 10, 30 - Math.abs(Math.sin(ph)) * 14, 7, 12 + 8 * Math.abs(Math.sin(ph))), k % 2 ? '#ffb45a' : '#ff7a3a'); }
-      P.fill(g, P.rr(-200, -10, 160, 34, 6), '#7a5a3c');
-      if (G.on) for (let k = 0; k < 5; k++) { const life = (t * 0.8 + k / 5) % 1; P.glow(g, -190 + k * 30, -20 - life * 70, 14 + life * 18, '#fff3dc', Math.sin(life * Math.PI) * 0.8); }
+      for (let k = 0; k < 5; k++) { const ph = t * 9 + k; P.fill(g, P.ellipse(-320 + (k - 2) * 10, 30 - Math.abs(Math.sin(ph)) * 14, 7, 12 + 8 * Math.abs(Math.sin(ph))), k % 2 ? '#ffb45a' : '#ff7a3a'); }
+      P.fill(g, P.rr(-400, -10, 160, 34, 6), '#7a5a3c');
+      if (G.on) for (let k = 0; k < 5; k++) { const life = (t * 0.8 + k / 5) % 1; P.glow(g, -390 + k * 30, -20 - life * 70, 14 + life * 18, '#fff3dc', Math.sin(life * Math.PI) * 0.8); }
       g.strokeStyle = '#8a5a3b'; g.lineWidth = 7; g.lineCap = 'round';
       for (let k = 0; k < 5; k++) { const rx = 40 + k * 44; g.beginPath(); g.moveTo(rx, 30); g.quadraticCurveTo(rx - 30, -30, rx + 4, -90); g.stroke(); }
       for (let k = 0; k < G.i; k++) { g.beginPath(); g.moveTo(20, -76 + k * 22); g.quadraticCurveTo(130, -36 + k * 18, 240, -76 + k * 22); g.stroke(); }
       /* the plank: straight in the box, then laid round the ribs */
       const bk = T.ease.io(G.bend), py = -76 + G.i * 22;
       g.strokeStyle = G.crack > 0.05 ? '#5a3d28' : T.mix('#d9b384', '#b07a4a', T.clamp(G.heat)); g.lineWidth = 9;
-      g.beginPath(); g.moveTo(T.lerp(-196, 20, bk), T.lerp(4, py, bk)); g.quadraticCurveTo(T.lerp(-120, 130, bk), T.lerp(4, py + 40, bk), T.lerp(-44, 240, bk), T.lerp(4, py, bk)); g.stroke();
+      g.beginPath(); g.moveTo(T.lerp(-396, 20, bk), T.lerp(4, py, bk)); g.quadraticCurveTo(T.lerp(-320, 130, bk), T.lerp(4, py + 40, bk), T.lerp(-244, 240, bk), T.lerp(4, py, bk)); g.stroke();
       g.restore();
       /* the heat, and the band where it will bend */
       const b = band();
+      P.text(g, '판자를 김에 쬔 정도', 0, 112, { font: 'serif', size: 22, color: '#f3ead8', alpha: 0.85 * G.a, glow: 'rgba(8,12,22,0.8)' });
       P.fill(g, P.rr(-200, 132, 400, 22, 11), 'rgba(20,26,44,0.45)');
       P.fill(g, P.rr(-200 + 400 * b[0], 130, 400 * (b[1] - b[0]), 26, 6), 'rgba(159,207,134,0.85)');
       P.fill(g, P.rr(-200, 136, 400 * T.clamp(G.heat), 14, 7), '#ffcf8a');

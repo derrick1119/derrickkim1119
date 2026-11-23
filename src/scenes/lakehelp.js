@@ -135,7 +135,7 @@
     else if (who && who.skin) wst = who;
     else if (who && who.style) { wst = who.style; ws = who.s || null; }
     else wst = F.lilyAt(11);
-    ws = ws || (wst.kid ? 200 : 150);   /* a child, or a grown-up at the same height in the street */
+    ws = ws || (wst.kid ? 160 : 188);   /* a child comes up to a grown-up's chest; a grown-up is the size of the one at the door */
     const NAME_ = o.name || '릴리', named = (s) => (NAME_ === '릴리' ? s : s.replace(/릴리/g, NAME_));
     const BAG = o.bag == null ? !!wst.kid : !!o.bag;
     const L = (V.lily = { x: o.startX || 120, ph: 0, v: 66, moving: false, wait: 0, mood: 'walk', relief: 0, home: 0, hop: 0, style: wst, s: ws });
@@ -314,7 +314,7 @@
       let q = nextObs();
       while (q && L.x > q.x + q.w / 2 + 4) { q.passed = true; q = nextObs(); }
       const b = bean();
-      let limit = HOME;
+      let limit = HOME - 46;   /* she stops just short of the door, beside whoever is waiting in it */
       if (q && !met(q)) limit = Math.max(L.x, entryOf(q));
       /* Bean comes to her where he used to wait, and walks along with her a while */
       if (q && b && b.run <= 0 && q.needs.includes('bean') && near(b, q) && L.x >= entryOf(q) - 30) {
@@ -343,7 +343,7 @@
       const firstUnmet = q && !met(q) ? q.needs.find((k) => !has(q, k)) : null;
       L.mood = !L.moving && firstUnmet ? { lantern: 'scared', cloud: 'huddle', plank: 'edge', bean: 'sad' }[firstUnmet] : happy ? 'happy' : L.relief > 0.3 ? 'relief' : 'walk';
       V.camX += (camTarget() - V.camX) * Math.min(1, dt * 2.2);
-      if (L.x >= HOME - 0.5) {
+      if (L.x >= HOME - 46.5) {
         V.finished = true; V.rh = null; sel = -1; held = -1;
         if (T.audio) T.audio.promise();
         T.announce(named('릴리가 집에 왔어요'));
@@ -534,7 +534,7 @@
         P.fill(g, P.rr(x + 70, GROUND - 4, 84, 6, 2), '#b9a58e');
         if (homeWho) {   /* someone at the door, watching for her */
           const near = T.clamp((L.x - (HOME - 500)) / 400), hug = T.ease.io(L.home);
-          const a = { x: x + 112 - hug * 40, y: GROUND - F.hipHeight(homeWho, 196), s: 196, style: homeWho, flip: true, lean: 0.04 + near * 0.06, headTilt: 0.14 - near * 0.1,
+          const a = { x: x + 156 - hug * 30, y: GROUND - F.hipHeight(homeWho, 188), s: 188, style: homeWho, flip: true, lean: 0.04 + near * 0.06, headTilt: 0.14 - near * 0.1,
             face: { eye: hug > 0.3 ? 'happy' : 'open', mouth: near > 0.5 ? 'smile' : 'line', blush: 0.2 } };
           if (hug > 0.02) { a.armF = { a: 1.2 + hug * 0.6, b: 0.3 }; a.armB = { a: 1.0 + hug * 0.5, b: 0.4 }; }
           F.person(g, a);

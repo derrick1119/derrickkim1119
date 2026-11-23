@@ -747,7 +747,7 @@
   function drawSlip(g, x, y) {
     const t = T.time;
     T.blit(g, S.spr.slip, x, y + 2);
-    K.lantern(g, x - 262, y + 2, t, { seed: 5 });
+    /* (no lamp of its own: the street lamp at 572 already stands by the first house) */
     /* Bram at the bow, driving one more nail */
     const wave = S.bram.wave, swing = wave > 0.1 ? 0 : Math.max(0, Math.sin(t * 5.6));
     const st = F.styles.bram, s = 142, bx = x + 232;
@@ -798,7 +798,6 @@
     const o = { x: x - 20, y: y - 154, s, style: st, sit: true, lean: 0.04, legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 2.2) * 0.2 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.2 + Math.sin(t * 2.2 + 2) * 0.2 }, face: { mouth: 'smile', blush: 0.22 } };
     o.armF = k > 0.05 ? { a: 2.4 + Math.sin(t * 9) * 0.25, b: 0.3 } : { a: 0.6, b: 0.9 }; o.armB = { a: 0.5, b: 0.9 };
     F.person(g, o);
-    K.lantern(g, x + 120, y + 2, t, { seed: 9 });
   }
   function drawArch(g, x, y) {
     g.strokeStyle = '#f6e9cc'; g.lineWidth = 6; g.lineCap = 'round';

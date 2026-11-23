@@ -228,7 +228,7 @@
       /* and in return, a hand with his boat */
       await TALK.say('bram', '그 손 좀 빌리세.\n배 판자 휘는 건 혼자선 어려워.');
       const SLIP = 900;
-      await X.dip(async () => { leo.x = SLIP - 120; leo.flip = false; leo.pose = null; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
+      await X.dip(async () => { leo.x = SLIP - 172; leo.flip = true; leo.pose = (o) => { o.armF = { a: 1.05, b: 0.35 }; o.armB = { a: 0.9, b: 0.35 }; o.lean = 0.16; }; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
       T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
       await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
       await TALK.say('bram', '마르타 오는 날,\n이 배 띄우는 것 좀 거들어 주게.');
