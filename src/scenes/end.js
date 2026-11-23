@@ -1,8 +1,8 @@
 // 원정 끝 (평정 / 실패) — 가로
 import { bgm } from '../audio.js';
 import { W, H } from '../config.js';
-import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
-import { button, panel, brushTitle, C } from '../ui/ui.js';
+import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr, ell } from '../render/draw.js';
+import { button, panel, brushTitle, C, foil } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD } from '../state.js';
 import { UNITS } from '../data/units.js';
@@ -30,7 +30,9 @@ export class EndScene {
       g.save(); g.translate(c.x + Math.sin(t * 2 + c.p) * 20, c.y); g.rotate(t * 3 + c.p); rr(g, -7, -4, 14, 8, 1, c.c, INK, 1); g.restore(); }
     brushTitle(g, 640, 54, 520, 76, win ? '고개를 넘었다' : '도깨비에 홀린 밤', win ? INDIGO : '#5a5346', 44);
     // 원정의 끝을 알리는 그림: 이기면 높이 세운 깃발, 지면 부러진 깃발
-    inkMark(g, win ? 'win' : 'lose', 310, 64, 86, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
+    // 금테 두른 옻칠 메달 위에 원정의 끝 그림
+    { const mk = Math.min(1, Math.max(0, (t - 0.15) / 0.4)); g.save(); g.globalAlpha = mk; ell(g, 312, 68, 58, 58, 'rgba(0,0,0,0.4)'); ell(g, 310, 64, 56, 56, foil(g, 254, 366), INK, 2); ell(g, 310, 64, 49, 49, win ? '#2b3b60' : '#3a2a30', 'rgba(40,20,8,0.8)', 1.2); ell(g, 310, 64, 44, 44, null, 'rgba(243,210,124,0.5)', 1); g.restore(); }
+    inkMark(g, win ? 'win' : 'lose', 310, 64, 70, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
     const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: 'rgba(8,8,20,0.75)', lw: 5, fill: '#f3e6c4' });
@@ -40,11 +42,15 @@ export class EndScene {
     if (r) {
       [['쌓은 전공', `${r.merit || 0}`], ['이긴 싸움', `${r.wins}`], ['물리친 요괴', `${r.kills}`], ['잃은 병사', `${r.lost}`]].forEach(([a, b], n) => { const x = 820 + (n % 2) * 200, y = 224 + Math.floor(n / 2) * 32; text(g, a, x, y, { size: 18, align: 'left', fill: SUB }); text(g, b, x + 180, y, { size: 24, font: FONT_B, align: 'right' }); });
       text(g, `덱 ${r.deck.length}장`, 544, 296, { size: 20, font: FONT_B, align: 'left' });
-      const cw = Math.min(58, 680 / r.deck.length - 4); r.deck.slice().sort((a, b) => (isUnit(b) ? 1 : 0) - (isUnit(a) ? 1 : 0)).forEach((c, n) => cardFace(g, c, 544 + n * (cw + 4), 312, cw, cw * 1.32));
-      text(g, r.relics.length ? `지닌 보물 ${r.relics.length}` : '지닌 보물 없음', 544, 424, { size: 20, font: FONT_B, align: 'left' });
-      const rp = Math.min(46, 660 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 568 + n * rp, 476, Math.min(0.8, rp / 44)));
+      // 같은 패는 한 장으로 묶어 ×N 을 달고, 많으면 두 줄로 (넘치는 것은 '+N')
+      const grp = []; for (const c of r.deck.slice().sort((a, b) => (isUnit(b) ? 1 : 0) - (isUnit(a) ? 1 : 0))) { const key = c.id + ':' + (c.lv || 1) + ':' + (c.up ? 1 : 0); const q = grp.find(x => x.key === key); if (q) q.n++; else grp.push({ key, c, n: 1 }); }
+      const per = grp.length <= 11 ? 11 : 16, cw = grp.length <= 11 ? 58 : 38, ch = cw * 1.32, rows = Math.min(2, Math.ceil(grp.length / per));
+      grp.slice(0, per * rows).forEach((q, n) => { const x = 544 + (n % per) * (cw + 4), y = 312 + Math.floor(n / per) * (ch + 6); cardFace(g, q.c, x, y, cw, ch); if (q.n > 1) { rr(g, x + cw - 22, y - 6, 26, 16, 5, RED, INK, 1.2); text(g, '×' + q.n, x + cw - 9, y + 2, { size: 12, font: FONT_B, fill: C.cream }); } });
+      if (grp.length > per * rows) text(g, `+${grp.length - per * rows}`, 544 + per * (cw + 4) + 6, 312 + ch, { size: 16, font: FONT_B, align: 'left', fill: '#5a4a3a' });
+      text(g, r.relics.length ? `지닌 보물 ${r.relics.length}` : '지닌 보물 없음', 544, 424 + (grp.length > 11 ? 24 : 0), { size: 20, font: FONT_B, align: 'left' });
+      const rp = Math.min(46, 660 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 568 + n * rp, 476 + (grp.length > 11 ? 16 : 0), Math.min(0.8, rp / 44)));
       // 평정해서 새 험로가 열렸으면 알린다: 다음 원정은 한 단계 더 험한 길로 갈 수 있다
-      if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 800, 400, 422, 46, 8, '#2f6f5c', INK, 2); rr(g, 804, 404, 414, 38, 5, null, 'rgba(240,217,154,0.8)', 1.2); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1011, 424, { size: 20, font: FONT_B, fill: '#f6efdc', maxW: 396 }); g.restore(); }
+      if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 800, 268, 422, 36, 8, '#2f6f5c', INK, 2); rr(g, 803, 271, 416, 30, 5, null, 'rgba(240,217,154,0.8)', 1.2); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1011, 286.5, { size: 18, font: FONT_B, fill: '#f6efdc', maxW: 396 }); g.restore(); }
     }
     // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
     const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];

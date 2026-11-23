@@ -46,7 +46,7 @@ export function drawStage(g, x, y, w, h, o = {}) {
   for (let i = 0; i < 26; i++) { const px = x + ((i * 97 + 31) % 1000) / 1000 * w, py = floor + 4 * k + ((i * 53) % 40) * k; line(g, [px, py, px + 16 * k, py], 'rgba(120,96,56,0.35)', 1.2 * k); }
   if (bg.tint) { g.fillStyle = bg.tint; g.fillRect(x, y, w, h); }
   // 밤: 걸개그림의 해가 있던 자리에 보름달이 뜬다
-  if (bg.moon) { const mx = x + w * 0.703, my = y + 0.41 * (floor - y + 30 * k), mr = 66 * k; g.globalAlpha = 0.22; ell(g, mx, my, mr * 1.5, mr * 1.5, '#fff6d8'); g.globalAlpha = 1; ell(g, mx, my, mr, mr, '#fbf1cf', 'rgba(38,42,54,0.35)', 1.2); g.globalAlpha = 0.16; ell(g, mx - 18 * k, my - 12 * k, 16 * k, 12 * k, '#b9a878'); ell(g, mx + 20 * k, my + 16 * k, 10 * k, 8 * k, '#b9a878'); g.globalAlpha = 1; }
+  if (bg.moon) { const mx = x + w * 0.703, my = y + 0.41 * (floor - y + 30 * k), mr = 66 * k; const hg = g.createRadialGradient(mx, my, mr * 0.9, mx, my, mr * 2.4); hg.addColorStop(0, 'rgba(255,246,216,0.4)'); hg.addColorStop(1, 'rgba(255,246,216,0)'); g.fillStyle = hg; g.fillRect(mx - mr * 2.4, my - mr * 2.4, mr * 4.8, mr * 4.8); g.globalAlpha = 1; ell(g, mx, my, mr, mr, '#fbf1cf', 'rgba(38,42,54,0.35)', 1.2); g.globalAlpha = 0.16; ell(g, mx - 18 * k, my - 12 * k, 16 * k, 12 * k, '#b9a878'); ell(g, mx + 20 * k, my + 16 * k, 10 * k, 8 * k, '#b9a878'); g.globalAlpha = 1; }
   g.restore();
   return floor;
 }

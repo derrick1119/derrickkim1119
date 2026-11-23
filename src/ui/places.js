@@ -283,8 +283,8 @@ function tavernBG() {
 // 이름판에 쓰는 짧은 쓰임
 const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전술 강화', feast: '엽전 90 → 병력 패 둘 +1단' };
 // 고를 것은 셋: 평상 위 국밥(쉰다) · 마당의 목인(수련) · 술상(잔치). 보따리와 병법서는 평상 위의 살림살이로만 둔다
-const TAV_SPOT = { rest: [250, 518], train: [880, 592], feast: [1128, 598] };
-const PLAQUE_X = { rest: 250, train: 880, feast: 1128 };
+const TAV_SPOT = { rest: [560, 518], train: [870, 592], feast: [1160, 598] };
+const PLAQUE_X = { rest: 560, train: 870, feast: 1160 };
 function tavernThing(g, id, x, y, t, on) {
   if (id === 'rest') { // 소반 위 국밥 한 그릇, 김이 오른다
     rr(g, x - 6, y - 22, 12, 22, 2, '#6a4428', INK, 1.2); part(g, E(x, y - 26, 46, 11), '#8a5a30', null, { lw: 1.4 });
@@ -328,12 +328,12 @@ export class TavernOverlay extends Overlay {
     // 주모와 영웅
     const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
     puppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, noStick: true });
-    puppet(g, r.hero, 792, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
+    puppet(g, r.hero, 852, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
     // 반딧불
     for (let i = 0; i < 12; i++) { const ph = i * 2.3, x = 60 + ((i * 113) % 1160) + Math.sin(t * 0.6 + ph) * 26, y = 330 + ((i * 47) % 160) + Math.sin(t * 1.1 + ph) * 12, a = clamp(Math.sin(t * 1.6 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.6, 1.6, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 8, '255,230,140', a * 0.35); }
     // 고르는 것들과 이름판
     // 평상 위 살림살이 (고르지 않는다)
-    tavernThing(g, 'supply', 470, 518, t, true); tavernThing(g, 'study', 640, 518, t, true);
+    tavernThing(g, 'supply', 190, 518, t, true); tavernThing(g, 'study', 360, 518, t, true);
     const order = ['rest', 'train', 'feast'];
     for (const id of order) {
       const c = by[id], [x, y] = TAV_SPOT[id], lack = c && c.cost && r.gold < c.cost, on = !!c && !lack, sel = this.hover === id;
@@ -502,8 +502,12 @@ function treasureBG() {
     path(g, p => { p.moveTo(96, 724); p.quadraticCurveTo(150, 640, 168, 520); p.quadraticCurveTo(176, 420, 150, 330); p.lineTo(206, 300); p.quadraticCurveTo(230, 420, 246, 520); p.quadraticCurveTo(262, 640, 330, 724); p.closePath(); }, '#4a3a30', INK, 2.4);
     for (let i = 0; i < 10; i++) { const x0 = 160 + i * 8; line(g, [x0, 330 + i * 6, x0 - 6 + R() * 12, 700], 'rgba(20,12,8,0.35)', 1.4); }
         for (const [x1, y1, x2, y2, w] of [[160, 360, 40, 230, 22], [196, 340, 330, 210, 20], [180, 320, 200, 150, 18], [150, 300, 90, 160, 14], [220, 300, 400, 260, 12]]) { line(g, [x1, y1, x2, y2], INK, w + 4); line(g, [x1, y1, x2, y2], '#4a3a30', w); }
-    for (let i = 0; i < 34; i++) { const a = R() * TAU, d = R(), x = 200 + Math.cos(a) * 240 * d, y = 160 + Math.sin(a) * 120 * d - 20, r = 40 + R() * 46; ell(g, x, y, r, r * 0.72, i % 3 ? '#2a4436' : '#24392e', 'rgba(10,16,12,0.6)', 1.6); }
-    for (let i = 0; i < 18; i++) { const a = -0.9 + R() * 1.4, x = 200 + Math.cos(a) * (180 + R() * 70), y = 150 + Math.sin(a) * 110; g.globalAlpha = 0.35; ell(g, x, y, 20 + R() * 16, 8 + R() * 6, '#5a7a62'); } g.globalAlpha = 1;
+    // 느티나무 잎: 잎 뭉치마다 그늘진 아래 → 몸통 → 달빛 받은 위 가장자리 순으로 붓 자국을 겹친다
+    { const clumps = Array.from({ length: 22 }, () => { const a = R() * TAU, d = Math.sqrt(R()); return [200 + Math.cos(a) * 250 * d, 150 + Math.sin(a) * 125 * d - 20, 46 + R() * 40]; }).sort((p, q) => p[1] - q[1]);
+      for (const [cx, cy, r] of clumps) DAB(g, cx + 4, cy + r * 0.2, r * 1.05, r * 0.7, '#121f1a', 0.9);
+      for (const [cx, cy, r] of clumps) { for (let k = 0; k < r * 0.9; k++) { const a = R() * TAU, d = Math.sqrt(R()) * r; DAB(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.66, 5 + R() * 9, 3 + R() * 5, R() < 0.5 ? '#223a2e' : '#2c4838', 0.75); } }
+      for (const [cx, cy, r] of clumps) for (let k = 0; k < r * 0.5; k++) { const a = -Math.PI * (0.15 + R() * 0.55), d = r * (0.55 + R() * 0.45); DAB(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.62, 3 + R() * 6, 1.6 + R() * 3, R() < 0.5 ? '#5f8a6c' : '#7fa88a', 0.55); }
+      g.globalAlpha = 1; }
     [[70, 270, RED], [110, 300, '#e0b23c'], [300, 270, '#2f4d7e'], [350, 262, '#f6efdc'], [260, 290, '#3f8a6a'], [40, 250, '#f6efdc']].forEach(([x, y, c], i) => { line(g, [x, y - 8, x, y], INK, 1.2); path(g, p => { p.moveTo(x - 5, y); p.quadraticCurveTo(x - 7 + (i % 2) * 6, y + 30, x - 3, y + 58); p.lineTo(x + 4, y + 56); p.quadraticCurveTo(x + 2 + (i % 2) * 6, y + 28, x + 5, y); p.closePath(); }, c, INK, 1.2); });
     // 금줄: 새끼줄에 흰 종이 술을 끼웠다
     path(g, p => { p.moveTo(156, 500); p.quadraticCurveTo(206, 528, 256, 500); }, null, INK, 8); path(g, p => { p.moveTo(156, 500); p.quadraticCurveTo(206, 528, 256, 500); }, null, '#c9a862', 5);

@@ -1,7 +1,8 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
-import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, ell, makeCanvas, clamp } from '../render/draw.js';
-import { button, panel, brushTitle, stamp, bar, tapped, C, foil, goldText } from '../ui/ui.js';
+import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, ell, line, path, makeCanvas, clamp } from '../render/draw.js';
+import { button, panel, brushTitle, stamp, bar, tapped, C, foil, goldText, icon } from '../ui/ui.js';
+import { symbol } from '../render/symbols.js';
 import { UNITS } from '../data/units.js';
 import { TALES } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
@@ -23,6 +24,14 @@ function shade(id) {
     k.globalCompositeOperation = 'source-in'; const gr = k.createLinearGradient(0, 0, 0, 67); gr.addColorStop(0, '#2b2832'); gr.addColorStop(1, '#55505e'); k.fillStyle = gr; k.fillRect(0, 0, 102, 67); SHADES.set(id, c);
   }
   return c;
+}
+// 출발 혜택의 그림: 옻칠 메달 안에 노잣돈(꿴 엽전) · 눈썰미(눈) · 군량(쌀가마) · 가보(보물 함)
+function perkIcon(g, id, x, y, t) {
+  ell(g, x + 1, y + 3, 30, 30, 'rgba(0,0,0,0.3)'); ell(g, x, y, 30, 30, foil(g, x - 30, x + 30), INK, 1.6); ell(g, x, y, 25, 25, '#2a1a20', 'rgba(40,20,8,0.8)', 1);
+  if (id === 'p_gold') { line(g, [x - 14, y - 10, x + 14, y + 12], '#b8322a', 2.4); for (let k = -1; k <= 1; k++) icon.coin(g, x + k * 9, y + k * 7.5 + 1, 8); }
+  else if (id === 'p_reroll') { path(g, p => { p.moveTo(x - 17, y); p.quadraticCurveTo(x, y - 15, x + 17, y); p.quadraticCurveTo(x, y + 15, x - 17, y); p.closePath(); }, '#f6efdc', INK, 1.4); ell(g, x, y, 7, 7, '#2f4d7e', INK, 1); ell(g, x, y, 3, 3, INK); ell(g, x - 2, y - 2, 1.3, 1.3, '#fff'); }
+  else if (id === 'p_cap') icon.sack(g, x, y + 2, 1.35);
+  else symbol(g, 'treasure', x, y, 34, '#f3d27c');
 }
 // 장부 한 줄: 금박 테를 두른 한지 쪽지. 연 것은 옅은 쑥빛, 왼쪽에 빛깔 띠
 function slip(g, x, y, w, h, open) {
@@ -81,15 +90,17 @@ export class MetaScene {
     this.t += dt; dimBackdrop(g, 0.82);
     if (this.book) { this.drawBook(g); return; }
     if (this.beasts) { this.drawBeasts(g); return; }
-    if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 21 })) { this.book = true; return; }
-    if (button(g, 'beasts', 830, 22, 204, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'teal', size: 21 })) { this.beasts = true; return; }
+    if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'wood', size: 21 })) { this.book = true; return; }
+    if (button(g, 'beasts', 830, 22, 204, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'wood', size: 21 })) { this.beasts = true; return; }
     brushTitle(g, 250, 48, 360, 66, '공적 장부', INDIGO, 38);
     goldText(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 32, align: 'left', glow: false });
     text(g, '원정이 끝날 때마다 공적이 쌓입니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 290 });
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
       slip(g, x, y, w, h, open);
-      if (u.unit) { rr(g, x + 9, y + 8, 78, 66, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 76, 64); g.clip(); portrait(g, u.unit, x + 47, y + 72, 0.8, this.t); g.restore(); } else stamp(g, x + 48, y + 41, 25, 'perk', '#b8742a', -0.1);
+      // 지금 공적으로 열 수 있는 줄은 금테가 숨 쉬듯 빛난다
+      if (!open && afford) { g.save(); g.globalAlpha = 0.55 + 0.35 * Math.sin(this.t * 3 + n); rr(g, x - 3, y - 3, w + 6, h + 6, 9, null, '#f3d27c', 2.6); g.restore(); }
+      if (u.unit) { rr(g, x + 9, y + 8, 78, 66, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 76, 64); g.clip(); portrait(g, u.unit, x + 47, y + 72, 0.8, this.t); g.restore(); } else perkIcon(g, u.id, x + 48, y + 41, this.t);
       text(g, u.name, x + 102, y + 30, { size: 23, font: FONT_B, align: 'left' }); text(g, u.desc, x + 104, y + 58, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 320 });
       if (open) stamp(g, x + w - 70, y + 41, 27, 'open', TEAL, -0.12);
       else if (button(g, 'u' + n, x + w - 164, y + 15, 150, 50, `공적 ${u.cost}`, { style: afford ? 'indigo' : 'grey', size: 23 })) { if (buyUnlock(u.id)) sfx('star'); else sfx('deny'); }

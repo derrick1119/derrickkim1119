@@ -41,7 +41,7 @@ function trainArt(g, unit, lv, cx, cy, t) {
 function tile(g, d, x, y, w, h, t) {
   const col = COL[d.col] || INDIGO;
   rr(g, x + 2, y + 4, w, h, 8, 'rgba(50,36,20,0.28)'); rr(g, x, y, w, h, 8, PAPER, INK, 2.4);
-  g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, 7); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 46); g.fillStyle = INK; g.fillRect(x, y + 46, w, 2); g.globalAlpha *= 0.14; ell(g, x + w / 2, y + 112, 80, 58, col); g.restore();
+  g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, 7); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 46); g.fillStyle = INK; g.fillRect(x, y + 46, w, 2); { const rg = g.createRadialGradient(x + w / 2, y + 112, 6, x + w / 2, y + 112, 92); rg.addColorStop(0, col + '33'); rg.addColorStop(1, col + '00'); g.fillStyle = rg; g.fillRect(x, y + 48, w, 150); } g.restore();
   text(g, d.title, x + w / 2, y + 24, { size: 26, font: FONT_B, fill: C.cream });
   const cx = x + w / 2, cy = y + 112;
   if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 2.3); else if (d.misc === 'trainOne') trainArt(g, d.unit, d.lv, cx, cy, t); else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }

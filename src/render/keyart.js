@@ -123,11 +123,12 @@ function front() {
     const R = rng(77), rock = '#070914', rim = '#c9d2ff';
     // 오른쪽 벼랑
     const rf = x => 470 + 60 * Math.exp(-Math.pow((x - 1080) / 120, 2)) * -1 + (1280 - x) * 0.32 + Math.sin(x * 0.05) * 6;
-    g.beginPath(); g.moveTo(980, H); for (let x = 980; x <= W + 10; x += 6) g.lineTo(x, Math.min(H, rf(x))); g.lineTo(W + 10, H); g.closePath(); g.globalAlpha = 1; g.fillStyle = vgrad(g, 380, H, [[0, '#141a30'], [1, rock]]); g.fill();
-    for (let x = 990; x < W; x += 5) stroke(g, [x, rf(x), x + 5, rf(x + 5)], rim, 1.6, 0.35);
+    const rf2 = x => rf(x) + Math.max(0, 1010 - x) * 2.2;
+    g.beginPath(); g.moveTo(880, H); for (let x = 880; x <= W + 10; x += 6) g.lineTo(x, Math.min(H, rf2(x))); g.lineTo(W + 10, H); g.closePath(); g.globalAlpha = 1; g.fillStyle = vgrad(g, 380, H, [[0, '#141a30'], [1, rock]]); g.fill();
+    for (let x = 900; x < W; x += 5) if (rf2(x) < H - 4) stroke(g, [x, rf2(x), x + 5, rf2(x + 5)], rim, 1.6, 0.35);
     // 늙은 소나무: 벼랑에서 굽어 올라 달 앞을 가로지르는 가지
     const P = Object.assign({}, pal('dusk'), { leaf: ['#05070f', '#0b0f1e', '#1a2240'] });
-    const trunk = [[1160, 600], [1140, 520], [1150, 452], [1176, 392], [1130, 330], [1060, 286], [970, 262], [880, 262], [800, 276]];
+    const trunk = [[1172, 700], [1140, 520], [1150, 452], [1176, 392], [1130, 330], [1060, 286], [970, 262], [880, 262], [800, 276]];
     const tw = k => 40 - k * 4.4, L2 = [], R2 = [];
     for (let k = 0; k < trunk.length; k++) { const [x0, y0] = trunk[Math.max(0, k - 1)], [x1, y1] = trunk[Math.min(trunk.length - 1, k + 1)], dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, w = tw(k) / 2; L2.push([trunk[k][0] - dy / l * w, trunk[k][1] + dx / l * w]); R2.push([trunk[k][0] + dy / l * w, trunk[k][1] - dx / l * w]); }
     g.globalAlpha = 1; g.beginPath(); g.moveTo(L2[0][0], L2[0][1]); for (const [x, y] of L2) g.lineTo(x, y); for (let k = R2.length - 1; k >= 0; k--) g.lineTo(R2[k][0], R2[k][1]); g.closePath(); g.fillStyle = '#05070e'; g.fill();
@@ -142,8 +143,13 @@ function front() {
     const lf = x => 560 - 40 * Math.exp(-Math.pow((x - 240) / 110, 2)) + Math.max(0, x - 330) * 0.9 + Math.sin(x * 0.07) * 4;
     g.beginPath(); g.moveTo(-10, H); for (let x = -10; x <= 460; x += 5) g.lineTo(x, Math.min(H, lf(x))); g.lineTo(460, H); g.closePath(); g.globalAlpha = 1; g.fillStyle = vgrad(g, 480, H, [[0, '#121830'], [1, rock]]); g.fill();
     for (let x = 0; x < 440; x += 5) stroke(g, [x, lf(x), x + 5, lf(x + 5)], rim, 1.6, 0.3 * clamp((x - 60) / 200, 0.2, 1));
+    // 맨 앞 둔덕: 달빛 테를 두르고 풀 실루엣이 선다 (아래쪽 빈 어둠을 채운다)
+    const ff = x => 640 - 26 * Math.exp(-Math.pow((x - 300) / 260, 2)) - 18 * Math.exp(-Math.pow((x - 980) / 240, 2)) + Math.sin(x * 0.02) * 4;
+    g.beginPath(); g.moveTo(-10, H); for (let x = -10; x <= W + 10; x += 6) g.lineTo(x, ff(x)); g.lineTo(W + 10, H); g.closePath(); g.globalAlpha = 1; g.fillStyle = vgrad(g, 600, H, [[0, '#0e1328'], [1, '#04060e']]); g.fill();
+    for (let x = 0; x < W; x += 5) stroke(g, [x, ff(x), x + 5, ff(x + 5)], rim, 1.4, 0.18 + 0.25 * Math.exp(-Math.pow((x - MOON[0]) / 400, 2)));
+    for (let i = 0; i < 140; i++) { const x = R() * W, y = ff(x) + 2, h2 = 8 + R() * 16; stroke(g, [x, y, x + (R() - 0.5) * 6, y - h2], '#05070f', 1.6); if (R() < 0.3) stroke(g, [x + 1, y - h2 * 0.6, x + 2, y - h2], rim, 0.8, 0.3); }
     // 아래쪽: 메뉴가 읽히도록 짙게 가라앉힌다
-    g.globalAlpha = 1; g.fillStyle = vgrad(g, 520, H, [[0, 'rgba(4,6,14,0)'], [1, 'rgba(4,6,14,0.92)']]); g.fillRect(0, 520, W, 200);
+    g.globalAlpha = 1; g.fillStyle = vgrad(g, 560, H, [[0, 'rgba(4,6,14,0)'], [1, 'rgba(4,6,14,0.7)']]); g.fillRect(0, 560, W, 160);
     g.fillStyle = vgrad(g, 0, 140, [[0, 'rgba(4,6,14,0.55)'], [1, 'rgba(4,6,14,0)']]); g.fillRect(0, 0, W, 140);
   });
   return FRONT;
@@ -196,6 +202,16 @@ function logo() {
     // 뒤에 깔린 먹 번짐 (밤하늘에서 글자를 띄운다)
     for (let i = 0; i < 60; i++) { const R = rng(i * 13 + 5); dab(g, cx + (R() - 0.5) * 460, cy + (R() - 0.5) * 80, 60 + R() * 90, 22 + R() * 30, '#03040a', 0.07); }
     g.globalAlpha = 1;
+    // 제호 뒤를 가로지르는 굵은 먹 붓질: 갈라진 붓끝과 마른 붓 자국, 위 가장자리에 금빛
+    { const R2 = rng(77), x0 = cx - 330, x1 = cx + 330, hh = x => { const u = clamp((x - x0) / (x1 - x0), 0, 1); return 50 * Math.pow(Math.sin(u * Math.PI), 0.55) * (1 + 0.08 * Math.sin(u * 23)); }, mid = x => cy - 2 + Math.sin((x - x0) / 140) * 5;
+      // 몸통: 가운데가 굵고 양 끝으로 갈수록 가늘어지는 한 번의 붓질
+      g.beginPath(); g.moveTo(x0, mid(x0)); for (let x = x0; x <= x1; x += 5) g.lineTo(x, mid(x) - hh(x)); for (let x = x1; x >= x0; x -= 5) g.lineTo(x, mid(x) + hh(x) * 0.9); g.closePath();
+      g.globalAlpha = 0.62; g.fillStyle = '#06070e'; g.fill(); g.globalAlpha = 1;
+      // 마른 붓 자국: 끝으로 갈수록 갈라진 털 자국
+      for (let i = 0; i < 40; i++) { const y = cy - 44 + i * 2.3, a = R2() * 0.4 + 0.15, xs = x1 - 120 - R2() * 120; stroke(g, [xs, y + (R2() - 0.5) * 2, x1 + 20 + R2() * 40, y + (R2() - 0.5) * 6], '#06070e', 0.8 + R2() * 1.6, a); }
+      for (let i = 0; i < 18; i++) { const y = cy - 30 + i * 3.2; stroke(g, [x0 - 20 - R2() * 30, y, x0 + 60 + R2() * 60, y + (R2() - 0.5) * 3], '#06070e', 0.8 + R2(), 0.25); }
+      for (let x = x0 + 20; x < x1 - 20; x += 4) stroke(g, [x, mid(x) - hh(x) + 1, x + 4, mid(x + 4) - hh(x + 4) + 1], '#d8a944', 1.1, 0.5 * Math.pow(Math.sin((x - x0) / (x1 - x0) * Math.PI), 2));
+      g.globalAlpha = 1; }
     g.font = `400 ${size}px ${FONT_B}`; g.textAlign = 'center'; g.textBaseline = 'middle';
     // 바깥 빛무리 → 먹 테 → 금박 → 윗면 빛 → 금 가루
     g.save(); g.shadowColor = 'rgba(255,196,110,0.6)'; g.shadowBlur = 38; g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#1c0e06'; g.strokeText('열두 고개', cx, cy); g.restore();
@@ -256,11 +272,16 @@ export function drawKeyArt(g, t) {
   const lk = clamp((t - 1.2) / 1.2, 0, 1);
   if (lk > 0) {
     const L = logo(), lx = 470 - LW / 2, ly = 34;
+    glow(g, 470, 150, 300, '255,196,110', 0.12 * lk);
     g.save(); g.beginPath(); g.rect(lx - 20, ly - 20, (LW + 40) * ease(lk), LH + 40); g.clip(); g.globalAlpha = Math.min(1, lk * 1.6); g.drawImage(L, lx, ly, LW, LH); g.restore();
     // 금박 위를 지나는 빛줄기
     const q = ((t - 2.4) % 5) / 1.2; if (q > 0 && q < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const sx = lx + 60 + q * (LW - 60); const gr = g.createLinearGradient(sx - 40, 0, sx + 40, 0); gr.addColorStop(0, 'rgba(255,240,200,0)'); gr.addColorStop(0.5, 'rgba(255,240,200,0.28)'); gr.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(sx - 60, ly + 200); g.lineTo(sx - 10, ly + 40); g.lineTo(sx + 50, ly + 40); g.lineTo(sx, ly + 200); g.closePath(); g.fill(); g.restore(); }
     g.globalAlpha = clamp((t - 2.2) / 0.6, 0, 1); g.font = `400 21px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(4,6,14,0.7)'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 471, ly + 258); g.fillStyle = '#e8e2f6'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 470, ly + 256); g.globalAlpha = 1;
   }
+  g.globalAlpha = 1;
+  // 앞 둔덕 위로 깔리는 안개와 출정 단추 뒤의 따뜻한 불빛
+  for (let k = 0; k < 3; k++) { const x = ((t * (8 + k * 4) + k * 520) % 1900) - 300; dab(g, x, 612 + k * 10, 420, 16, '#aab0d8', 0.08); }
+  glow(g, 640, 660, 220 + Math.sin(t * 2) * 10, '255,170,90', 0.16 * clamp((t - 2.8) / 0.6, 0, 1));
   g.globalAlpha = 1;
   // 가장자리를 눌러 가운데로 시선을 모은다
   { const vg = g.createRadialGradient(W / 2, H * 0.42, 260, W / 2, H * 0.5, 820); vg.addColorStop(0, 'rgba(0,0,8,0)'); vg.addColorStop(1, 'rgba(0,0,8,0.55)'); g.fillStyle = vg; g.fillRect(0, 0, W, H); }

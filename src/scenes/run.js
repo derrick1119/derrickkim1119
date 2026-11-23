@@ -372,8 +372,9 @@ export class RunScene {
     for (const sy of SYNERGIES) {
       const [n, need] = sy.n(b.synN), on = n >= need; if (!n) continue;
       const x = 12 + (k % 2) * 108, yy = y + Math.floor(k / 2) * 28; k++;
-      g.globalAlpha = on ? 0.96 : 0.8; rr(g, x, yy, 104, 24, 6, on ? TEAL : PAPER, INK, 1.5); if (on) rr(g, x + 2.6, yy + 2.6, 98.8, 18.8, 3.6, null, 'rgba(226,184,90,0.7)', 0.9); g.globalAlpha = 1;
-      text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 13.5, fill: on ? C.cream : SUB, maxW: 94 });
+      // 진법 칸: 어두운 옻칠에 크림빛 글자 (갖춰지면 쑥빛에 금테)
+      rr(g, x + 1, yy + 2, 104, 24, 6, 'rgba(0,0,0,0.35)'); rr(g, x, yy, 104, 24, 6, on ? TEAL : 'rgba(30,22,26,0.88)', INK, 1.5); rr(g, x + 2.6, yy + 2.6, 98.8, 18.8, 3.6, null, on ? 'rgba(243,210,124,0.85)' : 'rgba(226,184,90,0.45)', 0.9);
+      text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 14, fill: on ? C.cream : '#e8dcc0', maxW: 94 });
       if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name} (${sy.need}) — ${sy.desc}`, 3.5);
     }
   }

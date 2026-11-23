@@ -9,21 +9,21 @@ import { THEMES, GW, FW, BW } from './terrain.js';
 // sky 위·아래, far 먼 산 세 겹, hill 언덕, leaf 솔잎(짙은·가운데·밝은), sand 들판, grass 풀(가운데·밝은·짙은), bloom 꽃나무(가운데·밝은·짙은)
 const BASE = {
   sky: ['#bcd3df', '#f6ead0'], far: ['#7c93a8', '#9cb0bf', '#c0ccd2'], hill: ['#6f8c6c', '#8fa77a'], leaf: ['#2f5440', '#557d48', '#8fb260'],
-  trunk: '#5a3e2e', sand: ['#ceb47c', '#b99a62'], grass: ['#8fa64a', '#b3c35e', '#66843a'], bloom: ['#f0a6ba', '#fcd8e1', '#d4728e'],
+  trunk: '#5a3e2e', sand: ['#ceb47c', '#b99a62'], grass: ['#8fa64a', '#b3c35e', '#66843a'], bloom: ['#f9e1e6', '#ffffff', '#c23a4a'], plum: true,
   rock: ['#b5ad9c', '#8e8676'], wood: '#8c6a48', roof: '#4f5866', wall: '#cfc6b2', light: [255, 236, 196], sun: true,
 };
 const PT = {
   pass: {},
   autumn: { sky: ['#dcd0bc', '#f4e2c2'], far: ['#a2958c', '#b9ac9e', '#cfc3b0'], hill: ['#a0884e', '#b99c60'], leaf: ['#4a5a3a', '#6f7a44', '#a3a05a'], grass: ['#b8a04e', '#d0b462', '#937a3c'], sand: ['#ead2a0', '#d8b882'], bloom: ['#d8662c', '#f2a446', '#a9402a'] },
-  grove: { sky: ['#c6dccf', '#eef0d8'], far: ['#86a397', '#a2b9ab', '#c2d0bf'], hill: ['#6a9468', '#84a774'], leaf: ['#2f5a3c', '#4f7c46', '#86a85c'], grass: ['#84a04c', '#a2b85e', '#62833e'], sand: ['#e0d09c', '#cdb984'], bloom: ['#f3efdc', '#fffcec', '#d8d2a8'] },
+  grove: { sky: ['#c6dccf', '#eef0d8'], far: ['#86a397', '#a2b9ab', '#c2d0bf'], hill: ['#6a9468', '#84a774'], leaf: ['#2f5a3c', '#4f7c46', '#86a85c'], grass: ['#84a04c', '#a2b85e', '#62833e'], sand: ['#e0d09c', '#cdb984'], bloom: ['#fbf8ee', '#ffffff', '#b8863a'], plum: true },
   snow: { sky: ['#c3d1de', '#eaeff3'], far: ['#a2b3c4', '#bccad6', '#d8e0e8'], hill: ['#bccad4', '#d4dde4'], leaf: ['#3e5a56', '#5f7c74', '#e8f0f2'], grass: ['#c2ced4', '#dfe7ec', '#9aaab4'], sand: ['#ccd7df', '#b3c2cd'], bloom: ['#e4edf2', '#ffffff', '#aebdc8'], bare: true, rock: ['#c4cad0', '#9aa4ac'], light: [236, 244, 255] },
-  mist: { sky: ['#d3d8ce', '#e9e8da'], far: ['#a2aba6', '#b8bfb9', '#cfd3cb'], hill: ['#8b9b8c', '#a3ae9f'], leaf: ['#3f5a4c', '#5d7660', '#8fa384'], grass: ['#96a276', '#adb688', '#7a8862'], sand: ['#ddd8be', '#cbc5a8'], bloom: ['#e8e2ef', '#f6f4f9', '#c4bad6'] },
+  mist: { sky: ['#d3d8ce', '#e9e8da'], far: ['#a2aba6', '#b8bfb9', '#cfd3cb'], hill: ['#8b9b8c', '#a3ae9f'], leaf: ['#3f5a4c', '#5d7660', '#8fa384'], grass: ['#96a276', '#adb688', '#7a8862'], sand: ['#ddd8be', '#cbc5a8'], bloom: ['#efe9f4', '#ffffff', '#8a5a8a'], plum: true },
   ember: { sky: ['#a89488', '#d8b89a'], far: ['#7c726e', '#938680', '#ab9c92'], hill: ['#6a6058', '#7e7268'], leaf: ['#3a3630', '#4e4840', '#6e6458'], grass: ['#7a705e', '#8e826c', '#5a5246'], sand: ['#bdb2a4', '#a39788'], wood: '#4e3e34', smoke: true, bare: true, bloom: ['#4e4038', '#b8582a', '#2a221e'], rock: ['#9a928a', '#726a64'], light: [255, 196, 140] },   // 불탄 숲: 검게 그은 가지에 불씨가 남았다
   storm: { sky: ['#a7b6bf', '#ccd6d8'], far: ['#788b96', '#90a2aa', '#adbbc0'], hill: ['#6a8284', '#829698'], leaf: ['#2f4e4e', '#4a6a66', '#7a9a8e'], grass: ['#7d987e', '#93ac8e', '#607c66'], sand: ['#cdd1c6', '#b7bcb0'], bloom: ['#cfe2e6', '#eef6f8', '#98bccb'], light: [220, 236, 244], sun: false },
   dusk: { sky: ['#2a2c56', '#c98a74'], far: ['#45506e', '#5a6584', '#707b98'], hill: ['#3a4560', '#4b5672'], leaf: ['#26343e', '#3a4a52', '#5c6e78'], grass: ['#4c5c66', '#5e6e78', '#3c4a54'], sand: ['#8a90a2', '#767c90'], bloom: ['#b9a2e2', '#dccdf4', '#8a72ba'], rock: ['#8a8ea0', '#646878'], wood: '#5a4c48', wall: '#9aa0b0', light: [196, 206, 255], night: true },
   under: { sky: ['#140f1e', '#5a2a4a'], far: ['#3a2c4c', '#4c3a5e', '#62486e'], hill: ['#2c2a3a', '#3a3a4a'], leaf: ['#1e2a2c', '#2e3e40', '#4e6264'], grass: ['#34484a', '#466064', '#24343a'], sand: ['#5c6c6e', '#48585c'], bloom: ['#d0422f', '#ec7060', '#8a2420'], rock: ['#8a8292', '#625a6c'], wood: '#4a3a40', wall: '#9a90a6', light: [255, 170, 160], night: true },
 };
-export const pal = id => Object.assign({}, BASE, PT[id] || {}, { night: !!(PT[id] && PT[id].night) || !!(THEMES[id] && THEMES[id].night) });
+export const pal = id => Object.assign({}, BASE, PT[id] || {}, { night: !!(PT[id] && PT[id].night) || !!(THEMES[id] && THEMES[id].night), plum: ['pass', 'grove', 'mist'].includes(id) || !PT[id] });   // 봄·숲·안개 고개의 꽃나무는 매화
 
 // ── 붓질 도구 ──
 export const hx = c => [1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16));
@@ -147,9 +147,10 @@ export function umbrellaPine(g, x, y, s, P, R, flip) {
 }
 // ── 꽃나무: 검붉은 가지가 비스듬히 뻗고, 가지 끝마다 꽃송이 구름이 핀다 ──
 export function bloomTree(g, x, y, s, P, R, flip) {
-  const f = flip ? -1 : 1, tr = mix(P.trunk, '#2a1c18', 0.35), tips = [];
+  const f = flip ? -1 : 1, tr = mix(P.trunk, '#2a1c18', P.plum ? 0.55 : 0.35), tips = [], segs = [];
   dab(g, x + 20 * s * f, y + 2, 110 * s, 12 * s, '#2a2014', P.night ? 0.3 : 0.2);
   const branch = (x0, y0, a, len, w, d) => {
+    if (P.plum) return plumBranch(x0, y0, a, len, w, d);
     const x1 = x0 + Math.cos(a) * len, y1 = y0 + Math.sin(a) * len, mx = (x0 + x1) / 2 + Math.sin(a) * len * 0.12 * (R() - 0.5), my = (y0 + y1) / 2 - Math.cos(a) * len * 0.12 * (R() - 0.5);
     g.globalAlpha = 1; g.strokeStyle = tr; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(mx, my, x1, y1); g.stroke();
     if (w > 5) { g.globalAlpha = 0.35; g.strokeStyle = mix(tr, '#e8c8a8', 0.4); g.lineWidth = w * 0.25; g.beginPath(); g.moveTo(x0 - w * 0.2, y0); g.quadraticCurveTo(mx - w * 0.2, my, x1 - w * 0.2, y1); g.stroke(); }
@@ -157,8 +158,28 @@ export function bloomTree(g, x, y, s, P, R, flip) {
     const n = d > 2 ? 2 : 2 + (R() < 0.4 ? 1 : 0); for (let i = 0; i < n; i++) branch(x1, y1, a + (i - (n - 1) / 2) * (0.55 + R() * 0.35) + (R() - 0.5) * 0.3, len * (0.62 + R() * 0.18), w * 0.62, d - 1);
     if (d < 3) tips.push([x1, y1]);
   };
+  // 매화 가지: 곧게 뻗다 꺾이는 마디 가지 (구불거리지 않는다)
+  const plumBranch = (x0, y0, a, len, w, d) => {
+    const kx = x0 + Math.cos(a) * len * 0.5 + Math.cos(a + Math.PI / 2) * len * 0.16 * (R() < 0.5 ? -1 : 1), ky = y0 + Math.sin(a) * len * 0.5 + Math.sin(a + Math.PI / 2) * len * 0.16 * (R() < 0.5 ? -1 : 1);
+    const a2 = a + (R() - 0.5) * 0.7, x1 = kx + Math.cos(a2) * len * 0.5, y1 = ky + Math.sin(a2) * len * 0.5;
+    g.globalAlpha = 1; g.strokeStyle = tr; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'miter'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(kx, ky); g.lineTo(x1, y1); g.stroke();
+    if (w > 5) { g.globalAlpha = 0.3; g.strokeStyle = mix(tr, '#e8c8a8', 0.4); g.lineWidth = w * 0.22; g.beginPath(); g.moveTo(x0 - w * 0.25, y0); g.lineTo(kx - w * 0.25, ky); g.lineTo(x1 - w * 0.25, y1); g.stroke(); }
+    if (w < 9) { segs.push([x0, y0, kx, ky]); segs.push([kx, ky, x1, y1]); }
+    // 잔가지: 꺾인 마디에서 곧은 가지가 하나씩 솟는다
+    if (w < 8 && R() < 0.7) { const a3 = a - (R() < 0.5 ? 1 : -1) * (0.6 + R() * 0.4), l3 = len * 0.4; const ex = kx + Math.cos(a3) * l3, ey = ky + Math.sin(a3) * l3; g.globalAlpha = 1; g.lineWidth = Math.max(1, w * 0.45); g.beginPath(); g.moveTo(kx, ky); g.lineTo(ex, ey); g.stroke(); segs.push([kx, ky, ex, ey]); }
+    if (d <= 0 || len < 14 * s) { tips.push([x1, y1]); return; }
+    const n = 2; for (let i = 0; i < n; i++) plumBranch(x1, y1, a + (i - 0.5) * (0.6 + R() * 0.5) + (R() - 0.5) * 0.3, len * (0.6 + R() * 0.2), w * 0.6, d - 1);
+  };
   branch(x, y, -Math.PI / 2 + 0.32 * f, 70 * s, 15 * s, 4);
   branch(x + 4 * s * f, y - 30 * s, -Math.PI / 2 + 1.05 * f, 54 * s, 8 * s, 3);
+  // 매화: 가지를 따라 다섯 잎 꽃이 띄엄띄엄 피고, 붉은 꽃봉오리가 섞인다
+  if (P.plum) {
+    const flower = (fx, fy, r) => { for (let k = 0; k < 5; k++) { const a = k / 5 * TAU + fx; dab(g, fx + Math.cos(a) * r * 0.62, fy + Math.sin(a) * r * 0.62, r * 0.55, r * 0.5, P.bloom[0], 0.95); } dab(g, fx - r * 0.2, fy - r * 0.25, r * 0.35, r * 0.3, P.bloom[1], 0.8); dab(g, fx, fy, r * 0.26, r * 0.26, P.bloom[2], 1); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + 0.4; dab(g, fx + Math.cos(a) * r * 0.45, fy + Math.sin(a) * r * 0.45, 0.7, 0.7, '#e8c24a', 1); } };
+    for (const [x0, y0, x1, y1] of segs) { const n = 1 + ((R() * 3) | 0); for (let k = 0; k < n; k++) { const q = 0.2 + R() * 0.8, fx = x0 + (x1 - x0) * q + (R() - 0.5) * 6 * s, fy = y0 + (y1 - y0) * q + (R() - 0.5) * 6 * s; if (R() < 0.22) dab(g, fx, fy, 2.2 * s, 2.6 * s, P.bloom[2], 1); else flower(fx, fy, (4.2 + R() * 2.4) * s); } }
+    for (const [tx, ty] of tips) { flower(tx, ty, 5.4 * s); dab(g, tx + 6 * s, ty - 4 * s, 2 * s, 2.4 * s, P.bloom[2], 1); }
+    for (let i = 0; i < 18; i++) dab(g, x + (R() - 0.3) * 150 * s * f, y - 2 + R() * 10, 2.2 * s, 1.4 * s, P.bloom[0], 0.8, R());
+    g.globalAlpha = 1; return;
+  }
   // 꽃송이: 짙은 바탕 → 가운데 빛 → 밝은 꽃잎, 군데군데 흰 꽃잎 (빈 가지(bare)면 눈송이·불씨만 성기게 얹힌다)
   const nb = P.bare ? 0.4 : 1;
   for (const [tx, ty] of tips) { const r = (16 + R() * 14) * s; for (let i = 0; i < 12 * nb; i++) { const a = R() * TAU, d = R() * r; dab(g, tx + Math.cos(a) * d, ty + Math.sin(a) * d * 0.75, (5 + R() * 6) * s, (4 + R() * 4) * s, P.bloom[2], 0.55); } }

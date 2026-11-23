@@ -23,7 +23,7 @@ export class HeroScene {
     brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
     // 영웅 일곱
     HEROES.forEach((id, i) => {
-      const d = UNITS[id], x = 44 + i * 172, y = 80, w = 160, h = 146, on = this.sel === i, locked = !heroOpen(id);
+      const d = UNITS[id], x = 44 + i * 172, y = 74, w = 160, h = 158, on = this.sel === i, locked = !heroOpen(id);
       if (tapped('h' + i, x, y, w, h)) { this.sel = i; sfx('card'); }
       // 옻칠 액자: 금테 안에 영웅의 빛깔로 물든 하늘, 고른 영웅은 빛살과 함께 살짝 떠오른다
       const lift = on ? -4 : 0, yy = y + lift, col = HERO_COL[id];
@@ -37,8 +37,8 @@ export class HeroScene {
       if (locked) { g.globalAlpha = 0.45; g.filter = 'grayscale(1) brightness(0.6)'; } portrait(g, id, x + w / 2 - 4, yy + 104, 0.86, this.t, on); g.filter = 'none'; g.globalAlpha = 1; g.restore();
       g.fillStyle = foil(g, x, x + w); g.fillRect(x + 6, yy + 104, w - 12, 2.4);
       g.fillStyle = vgrad2(g, yy + 106, yy + h - 4); g.fillRect(x + 6, yy + 106.4, w - 12, h - 112);
-      if (on) goldText(g, d.name, x + w / 2, yy + 123, { size: 22, glow: false }); else text(g, d.name, x + w / 2, yy + 123, { size: 21, font: FONT_B, fill: locked ? '#8a8070' : '#f3e6c4' });
-      text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, yy + 141, { size: 14, fill: locked ? '#e07a66' : '#cbb894' });
+      if (on) goldText(g, d.name, x + w / 2, yy + 125, { size: 22, glow: false }); else text(g, d.name, x + w / 2, yy + 125, { size: 21, font: FONT_B, fill: locked ? '#8a8070' : '#f3e6c4' });
+      text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, yy + 145, { size: 15, fill: locked ? '#e07a66' : '#cbb894' });
       if (locked) seal(g, x + w - 24, yy + 24, 26, '?', '#5a5346');
       const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, yy + 10, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, yy + 21.5, { size: 13.5, fill: C.cream }); }
       if (on) { rr(g, x - 3, yy - 3, w + 6, h + 6, 11, null, '#f3d27c', 3); shine(g, x, yy, w, h, 9, 3.6, 0.25); }
@@ -66,7 +66,7 @@ export class HeroScene {
     });
     cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
-    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) nav.go('prologue', { hero: id });
+    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52, style: 'red' })) nav.go('prologue', { hero: id });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
     // 험로를 한 번이라도 열었으면 여기서 바로 고른다 (평정할 때마다 한 단계씩 열린다). 아직이면 길잡이 글
     if (meta.hardMax > 0) {
