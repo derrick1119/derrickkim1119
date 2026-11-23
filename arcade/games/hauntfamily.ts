@@ -181,23 +181,23 @@ export const STAGES: StageDef[] = [
   {
     fam: '집들이 파티', ch: 0, key: 'party', news: '손님 열 명! 비명이 이 방 저 방 터져요', big: true, pal: 3,
     mems: [M('dad', LOUD, '아빠', 'milk'), M('mom', DARK, '엄마'), M('guestF', LOUD, '손님', 'plate', undefined, undefined, undefined, 55), M('guestM', SPIDER, '손님', 'none', undefined, undefined, undefined, 55), M('guestF', WATER, '손님', 'none', undefined, undefined, undefined, 55), M('guestM', LOUD, '손님', 'milk', undefined, undefined, undefined, 55), M('guestF', DARK, '손님', 'none', undefined, undefined, undefined, 55), M('guestM', WATER, '손님', 'plate', undefined, undefined, undefined, 55), M('guestF', SPIDER, '손님', 'none', undefined, undefined, undefined, 55), M('guestM', LOUD, '손님', 'none', undefined, undefined, undefined, 55), M('grandpa', LOUD, '손님', 'none', undefined, undefined, undefined, 55), M('girl', DARK, '손님', 'none', undefined, undefined, undefined, 55)],
-    dog: 3, boxes: 12, unpack: 420, star2: 'box', star: { k: 'pack', n: 5 },
+    dog: 3, boxes: 12, unpack: 420, star2: 'box', star: { k: 'chain', n: 8 },
   },
-  { fam: '음악가네', ch: 1, key: 'doll', news: '노래하는 인형·피아노 — 노래를 무서워하는 사람!', mems: [M('dad', DOLL, '아빠'), M('mom', LOUD, '엄마', 'plate'), M('girl', DOLL, '누나'), M('grandma', LOUD, '할머니'), M('boy', SPIDER, '형', 'book')], dog: 5, boxes: 10, unpack: 280, star2: 'box', star: { k: 'chain', n: 4 }, pal: 4 },
-  { fam: '개구쟁이네', ch: 1, key: 'kid', news: '겁 없는 꼬마 — 꼬마 옆에선 까르르, 덜 놀라요', mems: [M('kid', LOUD, '꼬마'), M('dad', WATER, '아빠'), M('mom', DARK, '엄마', 'milk'), M('grandma', LOUD, '할머니'), M('boy', DOLL, '형')], dog: 5, boxes: 10, unpack: 270, star2: 'box', star: { k: 'pack', n: 2 }, pal: 5 },
-  { fam: '퇴마사네', ch: 1, key: 'exorcist', news: '퇴마사 할머니 방에서 장난치면 소금! 옆방에서 놀래요', mems: [M('exorcist', LOUD, '퇴마사 할머니'), M('dad', SPIDER, '아빠'), M('mom', DOLL, '엄마', 'plate'), M('boy', LOUD, '형'), M('girl', WATER, '누나')], dog: 5, boxes: 10, unpack: 270, star2: 'salt', star: { k: 'fast', n: 50 }, pal: 6 },
+  { fam: '음악가네', ch: 1, key: 'doll', news: '노래하는 인형·피아노 — 노래를 무서워하는 사람!', mems: [M('dad', DOLL, '아빠'), M('mom', LOUD, '엄마', 'plate'), M('girl', DOLL, '누나'), M('grandma', LOUD, '할머니'), M('boy', SPIDER, '형', 'book')], dog: 5, boxes: 10, unpack: 280, star2: 'box', star: { k: 'fast', n: 50 }, pal: 4 },
+  { fam: '개구쟁이네', ch: 1, key: 'kid', news: '겁 없는 꼬마 — 꼬마 옆에선 까르르, 덜 놀라요', mems: [M('kid', LOUD, '꼬마'), M('dad', LOUD, '아빠'), M('mom', DARK, '엄마', 'milk'), M('grandma', LOUD, '할머니'), M('boy', WATER, '형')], dog: 5, boxes: 10, unpack: 270, star2: 'box', star: { k: 'pack', n: 2 }, pal: 5 },
+  { fam: '퇴마사네', ch: 1, key: 'exorcist', news: '퇴마사 할머니 방에서 장난치면 소금! 옆방에서 놀래요', mems: [M('exorcist', LOUD, '퇴마사 할머니'), M('dad', SPIDER, '아빠'), M('mom', DOLL, '엄마', 'plate'), M('boy', LOUD, '형'), M('girl', WATER, '누나')], dog: 5, boxes: 12, unpack: 360, star2: 'salt', star: { k: 'fast', n: 50 }, pal: 6 },
   {
     fam: '할로윈 밤', ch: 1, key: 'pumpkin', news: '호박등 — 어둠도 큰 소리도 한꺼번에! 분장한 손님들', big: true, pal: 7,
-    mems: [M('dad', DOLL, '아빠', 'none', undefined, undefined, undefined, undefined, 1), M('mom', SPIDER, '엄마', 'none', undefined, undefined, undefined, undefined, 2), M('kid', LOUD, '꼬마', 'none', undefined, undefined, undefined, undefined, 3), M('guestF', DARK, '손님', 'plate', undefined, undefined, undefined, 60, 4), M('guestM', LOUD, '손님', 'none', undefined, undefined, undefined, 60, 1), M('guestF', WATER, '손님', 'none', undefined, undefined, undefined, 60, 2), M('guestM', DARK, '손님', 'milk', undefined, undefined, undefined, 60, 4), M('girl', LOUD, '손님', 'none', undefined, undefined, undefined, 60, 3), M('boy', SPIDER, '손님', 'none', undefined, undefined, undefined, 60, 1)],
+    mems: [M('dad', DOLL, '아빠', 'none', undefined, undefined, undefined, undefined, 1), M('mom', SPIDER, '엄마', 'none', undefined, undefined, undefined, undefined, 2), M('kid', LOUD, '꼬마', 'none', undefined, undefined, undefined, undefined, 3), M('guestF', DARK, '손님', 'plate', undefined, undefined, undefined, 60, 4), M('guestM', LOUD, '손님', 'none', undefined, undefined, undefined, 60, 1), M('guestF', LOUD, '손님', 'none', undefined, undefined, undefined, 60, 2), M('guestM', DARK, '손님', 'milk', undefined, undefined, undefined, 60, 4), M('girl', LOUD, '손님', 'none', undefined, undefined, undefined, 60, 3), M('boy', SPIDER, '손님', 'none', undefined, undefined, undefined, 60, 1)],
     dog: 5, boxes: 12, unpack: 360, star2: 'box', star: { k: 'pack', n: 3 },
   },
-  { fam: '멋쟁이네', ch: 2, key: 'mirror', news: '거울에 얼굴 — 그 방 사람이 모두 크게 놀라요', mems: [M('dad', WATER, '아빠'), M('mom', DOLL, '엄마', 'milk'), M('grandpa', DARK, '할아버지'), M('girl', SPIDER, '누나'), M('boy', LOUD, '형', 'book')], dog: 5, boxes: 10, unpack: 260, star2: 'box', star: { k: 'chain', n: 4 }, pal: 8 },
+  { fam: '멋쟁이네', ch: 2, key: 'mirror', news: '거울에 얼굴 — 그 방 사람이 모두 크게 놀라요', mems: [M('dad', WATER, '아빠'), M('mom', DOLL, '엄마', 'milk'), M('grandpa', LOUD, '할아버지'), M('girl', SPIDER, '누나'), M('boy', LOUD, '형', 'book')], dog: 5, boxes: 10, unpack: 260, star2: 'box', star: { k: 'fast', n: 28 }, pal: 8 },
   { fam: '책벌레네', ch: 2, key: 'books', news: '책 날리기 — 책이 벽을 넘어 옆방까지 휙휙!', mems: [M('dad', LOUD, '아빠', 'book'), M('mom', SPIDER, '엄마', 'book'), M('grandma', DARK, '할머니'), M('boy', LOUD, '형', 'book'), M('girl', DOLL, '누나')], dog: 5, boxes: 10, unpack: 250, star2: 'box', star: { k: 'chain', n: 4 }, pal: 9 },
-  { fam: '수다쟁이네', ch: 2, key: 'radio', news: '라디오 목소리 — 같은 층 모든 방에 "나가…"', mems: [M('dad', DOLL, '아빠'), M('mom', DOLL, '엄마', 'plate'), M('grandma', LOUD, '할머니'), M('boy', WATER, '형'), M('girl', DARK, '누나'), M('grandpa', SPIDER, '할아버지')], dog: 5, boxes: 11, unpack: 250, star2: 'box', star: { k: 'chain', n: 4 }, pal: 10 },
+  { fam: '수다쟁이네', ch: 2, key: 'radio', news: '라디오 목소리 — 같은 층 모든 방에 "나가…"', mems: [M('dad', DOLL, '아빠'), M('mom', DOLL, '엄마', 'plate'), M('grandma', LOUD, '할머니'), M('boy', LOUD, '형'), M('girl', DARK, '누나'), M('grandpa', SPIDER, '할아버지')], dog: 5, boxes: 11, unpack: 250, star2: 'box', star: { k: 'pack', n: 3 }, pal: 10 },
   {
     fam: '유튜버 가족', ch: 2, key: 'youtuber', news: '유튜버 방에선 불 끄기만! 다른 장난은 찍혀요', big: true, pal: 11,
     mems: [M('youtuber', DARK, '유튜버'), M('mom', LOUD, '엄마', 'milk'), M('girl', DOLL, '누나'), M('boy', SPIDER, '형', 'book'), M('grandpa', WATER, '할아버지'), M('grandma', LOUD, '할머니'), M('kid', DARK, '꼬마')],
-    dog: 5, boxes: 12, unpack: 300, star2: 'cam', star: { k: 'chain', n: 4 },
+    dog: 5, boxes: 12, unpack: 300, star2: 'cam', star: { k: 'fast', n: 35 },
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -677,6 +677,8 @@ function newChain(s: HauntState, x: number, y: number): Chain {
   return c;
 }
 const chainOf = (s: HauntState, id: number) => s.chains.find((c) => c.id === id);
+/** 집에 (꼬마 빼고) 혼자 남았다 — 무엇에든 놀란다 (남은 사람 찾아 헤매는 기다림이 없게) */
+const lonely = (s: HauntState) => s.people.reduce((a, q) => a + (awake(q) && q.k !== 'kid' ? 1 : 0), 0) <= 1;
 /** 반응이 나른 겁 (점선 화살로 이어 보이는 것) */
 const CARRY: EK[] = ['spill', 'bugs', 'crash', 'teeth', 'wig', 'drip'];
 function push(s: HauntState, e: Omit<Pend, 'fear2' | 'all'> & { fear2?: number; all?: boolean }) {
@@ -858,8 +860,8 @@ function land(s: HauntState, e: Pend) {
     }
     // 몸짓 중이거나 겁이 꽉 찬 사람은 더 놀라지 않는다 (짐 싸러 간다)
     if (!awake(p) || p.hb.includes(c.id) || p.st === 'react' || p.fv >= p.max) continue;
-    // 겁이 반 넘게 찬 사람은 조마조마 — 무엇에든 크게 놀란다 (조금 덜)
-    const match = e.all || p.fear === e.fear || p.fear === e.fear2, jumpy = p.fv >= p.max * JUMPY;
+    // 겁이 반 넘게 찬 사람·둘만 남은 집의 사람은 조마조마 — 무엇에든 크게 놀란다 (조금 덜)
+    const match = e.all || p.fear === e.fear || p.fear === e.fear2, jumpy = p.fv >= p.max * JUMPY || lonely(s);
     if ((match || jumpy) && e.kind !== 'leak') {
       if (CARRY.includes(e.kind)) {
         s.links.push({ t: s.t, x0: e.x, y0: e.y, x1: p.x, y1: p.y - personH(r) * 0.55, fear: e.fear });
@@ -1184,6 +1186,7 @@ export function judge(s: HauntState, o: Obj): { v: number; big: number; packs: n
   } else q.push({ room: r.i, fear: d.fear, fear2: d.mode === 'two' ? LOUD : -1, all: d.mode === 'all', depth: 1, kind: 'prank', src: -1 });
   for (const n of r.nb) q.push({ room: n, fear: d.fear, fear2: -1, all: false, depth: 1, kind: 'leak', src: -1 });
   let v = 0, big = 0, packs = 0, smallMul = s.perk[1] === 2 ? 2 : 1;
+  const alone = lonely(s);
   const barked = new Set<number>();
   for (let i = 0; i < q.length && i < 80; i++) {
     const e = q[i];
@@ -1202,7 +1205,7 @@ export function judge(s: HauntState, o: Obj): { v: number; big: number; packs: n
         continue;
       }
       if (!p.on || p.big) continue;
-      const match = e.all || p.fear === e.fear || p.fear === e.fear2, jumpy = p.fv >= p.max * JUMPY;
+      const match = e.all || p.fear === e.fear || p.fear === e.fear2, jumpy = p.fv >= p.max * JUMPY || alone;
       if ((match || jumpy) && e.kind !== 'leak') {
         const amt = (e.kind === 'prank' ? BIG : BIG_SCREAM) * (1 + DEPTH_UP * Math.min(6, e.depth - 1)) * mul * damp * (match ? 1 : JUMPY_MUL), gain = Math.min(p.max - p.fv, amt);
         p.fv += gain;
@@ -1253,7 +1256,8 @@ export const hauntfamilySmart: Bot<HauntState> = {
       // 별 셋째(한 번에 N명)를 아직 못 땄으면 길게 번지는 수를 더 친다
       if (!s.starOk[2]) {
         if (st.k === 'chain') v += j.big * j.big * 5 + (j.big >= st.n ? 80 : 0);
-        else if (st.k === 'pack') v += j.packs * j.packs * 25 + (j.packs >= st.n ? 80 : 0);
+        // 한꺼번에 이사: 한 명씩 따로 내보내면 나중에 모아 터뜨릴 사람이 줄어든다
+        else if (st.k === 'pack') v += (j.packs >= 2 ? j.packs * j.packs * 30 : j.packs === 1 && s.people.filter((p) => awake(p) && p.k !== 'kid').length > st.n ? -25 : 0) + (j.packs >= st.n ? 80 : 0);
       }
       if (v > bv) (bv = v), (best = o);
     }
@@ -4355,7 +4359,12 @@ function drawGhostNow(ctx: C2, s: HauntState, X: (x: number) => number, Y: (y: n
 
 // ───────────────────────────── 그리기: 띠 · 결과 · 선물 ─────────────────────────────
 /** 위 띠 상자 막대: 시작 x · 폭 */
-const BOXBAR: [number, number] = [0.37, 0.21];
+const BOXBAR: [number, number] = [0.365, 0.235];
+/** 상자 막대 칸 자리 (8개 넘으면 두 줄: 윗줄 = 별 둘째로 지킬 반) → [x, y(바닥), 크기] px */
+function boxSlot(i: number, n: number, w: number): [number, number, number] {
+  const rows = n > 8 ? 2 : 1, per = Math.ceil(n / rows), cell = (BOXBAR[1] / per) * w, row = Math.floor(i / per), col = i % per;
+  return [BOXBAR[0] * w + cell * (col + 0.5), w * (rows === 1 ? 0.07 : 0.047 + row * 0.04), Math.min(w * (rows === 1 ? 0.045 : 0.04), cell * 1.45)];
+}
 const starWord = (s: HauntState) => {
   const d = STAGES[s.stage];
   return [
@@ -4448,20 +4457,29 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
     while (ctx.measureText(nm).width > X(BOXBAR[0] - 0.13) && nm.length > 3) nm = nm.slice(0, -1);
     text(nm, X(0.112), Y(0.052), INK);
     // 남은 짐: 상자가 하나씩 사라지는 막대 (반 표시 = 별 둘째)
-    const [bx0, bw] = BOXBAR, cell = bw / d.boxes, bu = Math.min(R(0.032), R(cell) * 1.05);
-    rr(ctx, X(bx0) - 3, Y(0.024), R(bw) + 6, Y(0.054), R(0.012));
+    const [bx0, bw] = BOXBAR, two = d.boxes > 8, keep = Math.ceil(d.boxes / 2);
+    rr(ctx, X(bx0) - 3, Y(0.012), R(bw) + 6, Y(0.078), R(0.012));
     ctx.fillStyle = '#f1e2c2';
     ctx.fill();
+    // 별 둘째: 이 반은 남겨야 한다 (노란 바탕)
+    if (two) {
+      rr(ctx, X(bx0) - 2, Y(0.014), R(bw) + 4, Y(0.036), R(0.01));
+      ctx.fillStyle = '#ffe9a0';
+      ctx.fill();
+    } else {
+      const [hx] = boxSlot(keep - 1, d.boxes, w), [hx2] = boxSlot(keep, d.boxes, w);
+      rr(ctx, X(bx0) - 2, Y(0.014), (hx + hx2) / 2 - X(bx0) + 2, Y(0.074), R(0.01));
+      ctx.fillStyle = '#ffe9a0';
+      ctx.fill();
+    }
     for (let i = 0; i < d.boxes; i++) {
-      const cx = X(bx0) + R(cell) * (i + 0.5);
+      const [cx, cy, bu] = boxSlot(i, d.boxes, w);
       ctx.save();
-      ctx.translate(cx, Y(0.068));
-      if (i >= s.boxLeft) ctx.globalAlpha = 0.18;
+      ctx.translate(cx, cy + bu * 0.15);
+      if (i >= s.boxLeft) ctx.globalAlpha = 0.16;
       ctx.drawImage(boxSpr(bu * scD), -0.5 * bu, -0.9 * bu, 1.2 * bu, 1.2 * bu);
       ctx.restore();
     }
-    const half = X(bx0) + R(cell) * (d.boxes - Math.ceil(d.boxes / 2));
-    seg(ctx, half, Y(0.02), half, Y(0.082), 2, '#e03a2a');
     for (let i = 0; i < 3; i++) {
       heartPath(ctx, X(0.62 + i * 0.05), Y(0.05), R(0.017));
       ctx.fillStyle = i < s.hearts ? '#ff4d5e' : '#e6d6bc';
@@ -4484,14 +4502,14 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
   if (s.boxLeft <= 3 && !d.safe && s.phase === 'play' && (t >> 4) % 2) {
     ctx.strokeStyle = '#ff3b30';
     ctx.lineWidth = 2.5;
-    rr(ctx, X(BOXBAR[0]) - 4, Y(0.02), R(BOXBAR[1]) + 8, Y(0.062), R(0.015));
+    rr(ctx, X(BOXBAR[0]) - 5, Y(0.01), R(BOXBAR[1]) + 10, Y(0.082), R(0.015));
     ctx.stroke();
   }
   // 방금 풀린 상자가 위 막대로 휙 (짐이 줄어드는 게 보이게)
   for (const e of s.events) {
     const age = t - e.t;
     if (e.k !== 'unpack' || age > 30) continue;
-    const q = age / 30, cell = BOXBAR[1] / d.boxes, tx = X(BOXBAR[0]) + R(cell) * (e.n + 0.5), ty = Y(0.068), x = X(e.x) + (tx - X(e.x)) * q, y = Y(e.y) + (ty - Y(e.y)) * q - Math.sin(q * Math.PI) * R(0.1), bu = R(0.04) * (1 - q * 0.3);
+    const [tx, ty] = boxSlot(e.n, d.boxes, w), q = age / 30, x = X(e.x) + (tx - X(e.x)) * q, y = Y(e.y) + (ty - Y(e.y)) * q - Math.sin(q * Math.PI) * R(0.1), bu = R(0.04) * (1 - q * 0.3);
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(q * 6);
@@ -4522,6 +4540,7 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
   else if (kidIn) tip = '꼬마 옆에선 까르르 — 덜 무서워해요';
   else if (s.boxLeft <= 3 && !d.safe) tip = '짐이 거의 다 풀렸어요! 다 풀면 눌러앉아요';
   else if (s.started && s.stage < 3 && s.boxLeft < d.boxes) tip = '놀라지 않은 사람은 짐을 풀어요 — 위 상자 막대';
+  else if (s.started && lonely(s)) tip = '혼자 남으면 무엇에든 펄쩍!';
   else if (jumpy) tip = '겁이 반 넘게 찬 사람은 무엇에든 펄쩍!';
   else if (s.stage === 2) tip = '쏟은 우유도 물! 물을 무서워하는 사람 옆에서';
   else if (s.stage === 1) tip = '할아버지 가발이 옆방으로 — 거미인 줄 알아요';

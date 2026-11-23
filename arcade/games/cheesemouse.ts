@@ -36,7 +36,7 @@ const SUS_T = 40, ALERT_T = 24, SEARCH_T = 70, YAWN_T = 46, PLAY_T = 150, DIZZY_
 /** 와락 덮치기: 거리 · 날아가는 틱 · 헛방 뒤 쉼 */
 const POUNCE_R = 0.1, POUNCE_T = 13, MISS_T = 26;
 /** 생쥐: 기본 빠르기 · 잡힌 뒤 쥐구멍까지 · 지나가며 줍는 거리 */
-const M_SPD = 0.0074, CAUGHT_T = 56, GRAB_R = 0.034, GRAB_T = 14;
+const M_SPD = 0.0074, CAUGHT_T = 60, GRAB_R = 0.034, GRAB_T = 14;
 /** 고양이 빠르기: 볼일 보러 가기 · 도망 · 추격(판마다 배수) · 잡는 거리 · 서로 부딪는 거리 · 물건을 엎는 거리 */
 const C_GO = 0.0044, C_FLEE = 0.0062, CATCH_R = 0.05, BONK_R = 0.072, KNOCK_R = 0.07;
 /** 소리 물건이 부르는 거리 · 냄새 맡는 거리 · 냄새 나는 보따리 크기 · 청소기 빠르기 · 청소기를 무서워하는 거리 */
@@ -138,7 +138,7 @@ export const STAGES: StageDef[] = [
     hides: [['cup', 6, 2], ['pot', 12, 13], ['bread', 2, 9]],
     lures: [['spoon', 9, 5, 17, 13], ['spoon', 5, 17, 13, 17]],
     cheese: [['ched', 10, 2], ['swiss', 2, 14], ['swiss', 14, 9], ['ched', 8, 15], ['swiss', 17, 4]],
-    star: { k: 'lure', n: 2 }, chase: 0.84,
+    star: { k: 'lure', n: 2 }, chase: 0.8,
   },
   {
     name: '졸보', ch: 0, key: 'sleepy', news: '졸보는 자다 깨다 — Zzz가 작아지면 곧 깨요',
@@ -305,10 +305,11 @@ const cellAt = (x: number, y: number) => colAt(x) + rowAt(y) * COLS;
 const ev = (s: MouseState, k: string, x: number, y: number, n = 0, x2 = 0, y2 = 0, text = '') => void (s.sim || s.events.push({ t: s.t, k, x, y, n, x2, y2, text }));
 const see = (s: MouseState, key: string) => void (s.sim || s.seen.add(key));
 const visible = (m: Mouse) => m.st === RUN || m.st === IDLE;
+/** 큰 순간: 큰 띠는 한 번에 하나 — 별 셋째와 정말 큰 순간(왕 깸·여럿 따돌림·판의 첫 아슬아슬·밥 시간)에만. 나머지는 짧은 글자 하나(그리기 쪽) */
 function wow(s: MouseState, text: string, n = 0, star = false) {
   s.wowN++;
   if (s.firstBig < 0) s.firstBig = s.t;
-  if (!s.sim && (!s.big || s.t - s.big.t > 40 || star)) s.big = { text, t: s.t, n, star, y: s.m ? s.m.y : 1 };
+  if (!s.sim && (!s.big || s.t - s.big.t > 62 || star)) s.big = { text, t: s.t, n, star, y: s.m ? s.m.y : 1 };
 }
 
 // ───────────────────────────── 길 찾기 ─────────────────────────────
@@ -407,7 +408,9 @@ function inCone(s: MouseState, c: Cat, x: number, y: number, extra = 0): boolean
 const awakeEyes = (c: Cat) => c.mode !== SLEEP && c.mode !== DIZZY && c.mode !== HAPPY && c.mode !== FLEE && c.mode !== EAT && c.mode !== ALERT && c.mode !== CHASE && c.mode !== ROLL && c.mode !== HOLD && c.mode !== POUNCE && c.mode !== MISS;
 const calm = (c: Cat) => c.mode === PATROL || c.mode === PAUSE || c.mode === GO || c.mode === PLAY || c.mode === SLEEP || c.mode === YAWN || c.mode === PEEK || c.mode === SEARCH || c.mode === SUSP || c.mode === HOLD || c.mode === FOLLOW;
 const lvSpd = (s: MouseState) => 1 + 0.01 * (s.lv - 1);
-const mouseSpd = (s: MouseState) => M_SPD * lvSpd(s) * (s.perk[1] === 1 ? 1.12 : 1) * Math.max(0.62, 1 - 0.055 * s.m.bag);
+/** 쫓기는 동안은 생쥐도 젖먹던 힘까지 (조금 빨라진다 — 아슬아슬하게 쏙) */
+const chased = (s: MouseState) => s.cats.some((c2) => c2.mode === CHASE || c2.mode === POUNCE || c2.mode === MISS || c2.mode === ROLL);
+const mouseSpd = (s: MouseState) => M_SPD * lvSpd(s) * (s.perk[1] === 1 ? 1.12 : 1) * Math.max(0.62, 1 - 0.055 * s.m.bag) * (chased(s) ? 1.25 : 1);
 const chaseSpd = (s: MouseState) => M_SPD * lvSpd(s) * STAGES[s.stage].chase;
 const bell = (s: MouseState) => (s.perk[0] === 2 ? 1.5 : 1);
 const holeTgt = (s: MouseState): Tgt => ({ k: 'hole', id: 0, x: s.hx, y: s.hy });
@@ -495,13 +498,25 @@ function newStage(s: MouseState) {
     kc.face = 0;
   }
   s.vac = d.vac ? (() => { const rt = routeOf(s, d.vac!, true); return { x: rt.pts[0].x, y: rt.pts[0].y, route: rt.pts, ri: 1, face: 0 }; })() : null;
-  // 1판: 첫 톡 전엔 줄무늬가 찻잔 옆에 앉아 세수 — 첫 톡에 일어나 찻잔 앞을 지나간다
-  if (s.stage === 0) {
-    const a = s.cats[0];
-    a.mode = HOLD;
-    a.face = 0;
-  }
   s.m = { x: s.hx, y: s.hy, st: HOLE, mt: 0, path: [], pi: 0, tgt: null, hide: -1, bag: 0, bagK: [], face: Math.PI / 2, dir: 1, at: 0, trail: [], hop: -99, popT: -99, busy: 0, next: null, vx: 0, vy: 0 };
+  // 1판 첫 장면: 생쥐는 찻잔 바로 옆에 서 있고, 줄무늬가 찻잔 쪽으로 걸어오다 눈길이 닿기 한 뼘 앞에서 앉아 세수 —
+  // 첫 톡에 생쥐는 0.2초 만에 쏙, 줄무늬는 일어나 찻잔 코앞까지 와서 킁킁 → 하품 (톡 뒤 1초 안)
+  if (s.stage === 0) {
+    const a = s.cats[0], cup = s.hides[0];
+    s.m.x = cup.x - 0.062;
+    s.m.y = cup.y + 0.008;
+    s.m.st = IDLE;
+    s.m.dir = 1;
+    a.x = cxOf(14);
+    a.y = cup.y + CH;
+    a.path = [{ x: cup.x + 0.205, y: cup.y + CH }];
+    a.pi = 0;
+    a.after = HOLD;
+    a.mode = GO;
+    a.face = Math.PI;
+    a.flip = -1;
+  }
+  coverHides(s);
   s.catches = 0;
   s.alerts = 0;
   s.bestBag = 0;
@@ -523,6 +538,26 @@ function newStage(s: MouseState) {
   s.spot = { k: d.key, t: s.t };
   for (const k of new Set(d.cats.map((q) => q.k).concat(d.king ? ['king'] : []))) meetCat(s, k as CatK);
   ev(s, 'stage', 0.5, 0.7);
+}
+/** 숨을 곳 채우기: 어디서 들켜도 두세 걸음(화면 폭 약 20%) 안에 숨을 곳이나 쥐구멍이 있게 — 가장 먼 빈칸부터 하나씩 */
+const COVER: HK[][] = [['pot', 'bread', 'boot', 'cup'], ['cushion', 'box', 'slipper'], ['basket', 'cushion', 'bag', 'box']];
+function coverHides(s: MouseState) {
+  const ch = STAGES[s.stage].ch, kinds = COVER[ch];
+  const cap = s.stage < 2 ? s.hides.length + 1 : 7;
+  for (let it = 0; it < 6 && s.hides.length < cap; it++) {
+    let best = -1, bd = 0;
+    for (let i = 0; i < CELLS; i++) {
+      const cc = i % COLS, r = (i - cc) / COLS;
+      if (s.blk[i] || r < 1 || r > ROWS - 2 || cc < 1 || cc > COLS - 2) continue;
+      const x = cxOf(cc), y = cyOf(r);
+      if (s.cheese.some((q) => dist(q.x, q.y, x, y) < 0.1) || s.lures.some((l) => dist(l.ax, l.ay, x, y) < 0.1 || dist(l.bx, l.by, x, y) < 0.08) || s.clutter.some((q) => dist(q.x, q.y, x, y) < 0.08)) continue;
+      let d = dist(s.hx, s.hy, x, y);
+      for (const h of s.hides) d = Math.min(d, dist(h.x, h.y, x, y));
+      if (d > bd) (bd = d), (best = i);
+    }
+    if (best < 0 || bd <= 0.22) break;
+    s.hides.push({ id: s.hides.length, k: kinds[it % kinds.length], x: cxOf(best % COLS), y: cyOf(Math.floor(best / COLS)), shake: 0 });
+  }
 }
 function meetCat(s: MouseState, k: CatK) {
   if (s.dexC.includes(k)) return;
@@ -576,7 +611,7 @@ function onTap(s: MouseState, x: number, y: number) {
   if (s.firstTap < 0) s.firstTap = s.t;
   if (!s.tapped) {
     s.tapped = true;
-    for (const c2 of s.cats) if (c2.mode === HOLD) (c2.mode = PATROL), (c2.mt = 0), (c2.jumpT = s.t);
+    for (const c2 of s.cats) if (c2.mode === HOLD || (c2.mode === GO && c2.after === HOLD)) (c2.mode = PATROL), (c2.mt = 0), (c2.jumpT = s.t), (c2.ri = 1), (c2.rdir = 1);
   }
   if (s.m.busy > 0 && s.m.st !== CAUGHT) return void ((s.m.next = tg), ev(s, 'tap', tg.x, tg.y, 0, 0, 0, tg.k));
   if (goTo(s, tg)) ev(s, 'tap', tg.x, tg.y, 0, 0, 0, tg.k);
@@ -607,7 +642,6 @@ function deposit(s: MouseState) {
   ev(s, 'deposit', s.hx, s.hy, n, gain);
   const d = STAGES[s.stage];
   if (d.star.k === 'bag' && prevBest < d.star.n && n >= d.star.n) wow(s, `한 보따리 ${n}조각!`, n, true), ev(s, 'star3', s.hx, s.hy + 0.05);
-  else if (n >= 3 && n > prevBest) wow(s, `치즈 ${n}조각!`, n);
 }
 function kick(s: MouseState, l: Lure) {
   const d = LD[l.k];
@@ -652,9 +686,11 @@ function arrive(s: MouseState) {
 }
 function phew(s: MouseState, n: number) {
   if (s.t - s.phewT < 120) return;
+  const first = s.phewT < 0 || s.phewT < s.t - s.st;
   s.phewT = s.t;
-  ev(s, 'phew', s.m.x, s.m.y, n);
-  wow(s, n > 1 ? `아슬아슬! ${n}마리 따돌림` : '아슬아슬!', n);
+  ev(s, 'phew', s.m.x, s.m.y, n, first || n >= 3 ? 1 : 0);
+  // 판의 첫 아슬아슬 · 셋 넘게 따돌리면 큰 띠, 그 뒤는 작은 '휴~'
+  if (first || n >= 3) wow(s, n > 1 ? `${n}마리 따돌림!` : '아슬아슬!', n);
 }
 function mouseStep(s: MouseState) {
   const m = s.m, px = m.x, py = m.y;
@@ -877,14 +913,16 @@ function peekHide(s: MouseState, c: Cat): boolean {
   ev(s, 'peek', h.x, h.y, c.id);
   return true;
 }
-function patrolStep(c: Cat) {
+function patrolStep(s: MouseState, c: Cat) {
   const kd = KD[c.k];
   if (c.route.length === 1) return void (setMode(c, PAUSE), (c.pauseT = 1e9));
   const t = c.route[c.ri];
   c.path = [t];
   c.pi = 0;
-  if (moveCat(c, kd.walk)) {
-    if (c.stop[c.ri]) (c.prev = PATROL), setMode(c, PAUSE), (c.pauseT = 46 + (c.seed % 30));
+  // 1판 첫 장면의 줄무늬는 찻잔까지 서둘러 온다
+  const hurry = s.stage === 0 && c === s.cats[0] && !s.seen.has('peekwow') && s.firstTap >= 0 && s.t - s.firstTap < 100 ? 2.2 : 1;
+  if (moveCat(c, kd.walk * hurry)) {
+    if (c.stop[c.ri] && hurry === 1) (c.prev = PATROL), setMode(c, PAUSE), (c.pauseT = 46 + (c.seed % 30));
     if (c.pp) {
       if (c.ri + c.rdir < 0 || c.ri + c.rdir >= c.route.length) c.rdir = -c.rdir;
       c.ri += c.rdir;
@@ -903,7 +941,9 @@ function chaseStep(s: MouseState, c: Cat) {
     c.jx = c.x;
     c.jy = c.y;
     // 달리는 쪽을 앞질러 덮친다 — 열린 바닥에선 숨을 곳까지 달려야 산다
-    const lx = clamp(m.x + m.vx * POUNCE_T * 0.8, 0.04, 0.96), ly = clamp(m.y + m.vy * POUNCE_T * 0.8, GY0 + 0.01, FY1 - 0.01);
+    // (배우는 1·2판은 앞지르지 않는다 — 계속 달리면 헛방)
+    const lead = s.stage < 2 ? 0 : POUNCE_T * 0.8;
+    const lx = clamp(m.x + m.vx * lead, 0.04, 0.96), ly = clamp(m.y + m.vy * lead, GY0 + 0.01, FY1 - 0.01);
     c.gx = s.blk[cellAt(lx, ly)] ? m.x : lx;
     c.gy = s.blk[cellAt(lx, ly)] ? m.y : ly;
     c.flip = c.gx > c.x ? 1 : -1;
@@ -946,7 +986,7 @@ function catStep(s: MouseState, c: Cat) {
       if (d < 0.055) return alertCat(s, c);
       sees = inCone(s, c, m.x, m.y);
       if (sees) {
-        c.sus = Math.min(1, c.sus + (d < 0.09 ? 3 : d < kd.vr * 0.55 ? 2 : 1) / (SUS_T * (s.stage === 0 ? 1.7 : s.stage === 1 ? 1.35 : 1)));
+        c.sus = Math.min(1, c.sus + (d < 0.09 ? 3 : d < kd.vr * 0.55 ? 2 : 1) / (SUS_T * (s.stage === 0 ? 1.7 : s.stage === 1 ? 1.5 : 1)));
         c.susMax = Math.max(c.susMax, c.sus);
         c.lx = m.x;
         c.ly = m.y;
@@ -971,7 +1011,7 @@ function catStep(s: MouseState, c: Cat) {
       break;
     case PATROL:
       if (peekHide(s, c)) break;
-      patrolStep(c);
+      patrolStep(s, c);
       if (c.k === 'sleepy' && ++c.awake >= AWAKE_T) (c.awake = 0), setMode(c, SLEEP), ev(s, 'doze', c.x, c.y);
       break;
     case PAUSE:
@@ -1033,7 +1073,7 @@ function catStep(s: MouseState, c: Cat) {
       }
       break;
     case PEEK:
-      if (c.mt >= PEEK_T) {
+      if (c.mt >= (s.stage === 0 && !s.seen.has('peekwow') ? 18 : PEEK_T)) {
         setMode(c, YAWN);
         ev(s, 'yawn', c.x, c.y, c.id, 1);
         // 첫 3초 장면 (1판 첫 숨기) · 아니면 작은 '휴'
@@ -1173,7 +1213,6 @@ function bumps(s: MouseState) {
       s.bonkN++;
       ev(s, 'bonk', (a.x + b.x) / 2, (a.y + b.y) / 2, s.bonkN);
       see(s, 'bonk');
-      wow(s, s.bonkN > 1 ? `쿵! ${s.bonkN}번째` : '쿵! 박치기', s.bonkN);
       break;
     }
     if (a.mode !== CHASE && a.mode !== ROLL && a.mode !== POUNCE) continue;
@@ -1185,7 +1224,6 @@ function bumps(s: MouseState) {
         ev(s, 'crash', q.x, q.y, 0, 0, 0, q.k);
         see(s, 'crash');
         noise(s, q.x, q.y, 0.3, 'crash');
-        if (!s.seen.has('crashwow') || a.k === 'king') (see(s, 'crashwow'), wow(s, '와장창!', 1));
       }
     for (const l of s.lures)
       if (!l.used && !l.fly && l.cool <= 0 && l.k !== 'bowl' && l.k !== 'balloon' && dist(a.x, a.y, l.x, l.y) < KNOCK_R) kick(s, l);
@@ -1233,17 +1271,15 @@ function lureStep(s: MouseState) {
         const was = s.scareMax;
         s.scareMax = Math.max(s.scareMax, n);
         if (d.star.k === 'scare' && was < d.star.n && n >= d.star.n) wow(s, `펑! ${n}마리 깜짝`, n, true), ev(s, 'star3', l.x, l.y);
-        else if (n >= 2) wow(s, `펑! ${n}마리 깜짝`, n);
       } else if (kind === 'bowl') {
         const was = s.bowlMax;
         s.bowlMax = Math.max(s.bowlMax, n);
         if (d.star.k === 'bowl' && was < d.star.n && n >= d.star.n) wow(s, `밥 시간! ${n}마리 우르르`, n, true), ev(s, 'star3', l.x, l.y);
-        else wow(s, `밥 시간! ${n}마리 우르르`, n);
+        else if (n >= 4) wow(s, `밥 시간! ${n}마리 우르르`, n);
       } else {
         const was = s.lureMax;
         s.lureMax = Math.max(s.lureMax, n);
         if (d.star.k === 'lure' && was < d.star.n && n >= d.star.n) wow(s, `땡그랑! ${n}마리 우르르`, n, true), ev(s, 'star3', l.x, l.y);
-        else if (n >= 2) wow(s, `땡그랑! ${n}마리 우르르`, n);
       }
     }
   }
@@ -1546,7 +1582,9 @@ export const cheesemouseSmart: Bot<MouseState> = {
       if (!r.bad) return NO;
     }
     if (danger) me.next = s.t + 9;
-    const tg = decide(s, danger, me.wait > 360);
+    let tg = decide(s, danger, me.wait > 360);
+    // 너무 오래 막혔으면 (15초) 남은 치즈나 쥐구멍으로 무릅쓰고 간다
+    if (!tg && me.wait > 900 && (m.st === HIDE || m.st === HOLE)) tg = m.bag > 0 && m.st !== HOLE ? holeTgt(s) : near(s, s.cheese, 1)[0] ? tgtOf('cheese', near(s, s.cheese, 1)[0]) : null;
     if (!tg) {
       if (m.st === HIDE || m.st === HOLE) me.wait += 12;
       return NO;
@@ -2287,7 +2325,7 @@ function paintMouse(g: C2, pose: number, tier: number) {
 /** 보따리: 막대 끝 보자기 (조각 수만큼 커짐, 치즈가 삐죽) */
 function drawBundle(ctx: C2, x: number, y: number, u: number, n: number, dir: number, t: number) {
   if (n <= 0) return;
-  const r = u * (0.32 + 0.07 * Math.min(9, n)), bx = x - dir * u * 0.75, by = y - u * 1.25 - r * 0.6 + Math.sin(t * 0.4) * u * 0.04;
+  const r = u * (0.3 + 0.1 * Math.min(9, n)), bx = x - dir * u * 0.75, by = y - u * 1.25 - r * 0.6 + Math.sin(t * 0.4) * u * 0.04;
   ctx.save();
   ctx.lineJoin = 'round';
   line(ctx, x + dir * u * 0.2, y - u * 0.6, bx, by + r * 0.2, OUT, Math.max(1.5, u * 0.14));
@@ -3094,8 +3132,9 @@ function furnSpr(ch: number, i: number, w: number, sc: number) {
 }
 /** 판 바닥 한 장: 방 배경 + 발자국(순찰 길) — 프레임마다 큰 그림은 한 번만 찍는다 */
 const PAWS = new Map<string, HTMLCanvasElement>();
+const pawKey = (s: MouseState, w: number, sc: number) => `${s.stage}:${s.seed}:${s.cats.length}:${w}:${sc}`;
 function pawLayer(s: MouseState, w: number, h: number, sc: number) {
-  const key = `${s.stage}:${s.seed}:${s.cats.length}:${w}:${sc}`;
+  const key = pawKey(s, w, sc);
   let cv = PAWS.get(key);
   if (cv) return cv;
   if (PAWS.size > 4) PAWS.clear();
@@ -3143,7 +3182,7 @@ function starWord(st: { k: StarK; n: number }): string {
 }
 const STAR_WORDS = (s: MouseState) => ['치즈 다 훔치기', '안 잡히기', starWord(STAGES[s.stage].star)];
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
-const PART_MAX = 90;
+const PART_MAX = 60;
 /** 자주 쓰는 짧은 글자는 한 번 구워 찍는다 (느린 폰에서 글자 모양 잡기가 무겁다) */
 const GLY = new Map<string, HTMLCanvasElement>();
 function gtext(ctx: C2, str: string, x: number, y: number, px: number, wgt: number, fill: string, stroke: string, lw: number) {
@@ -3169,14 +3208,58 @@ function gtext(ctx: C2, str: string, x: number, y: number, px: number, wgt: numb
   }
   ctx.drawImage(cv, x - cv.width / sc / 2, y - cv.height / sc / 2, cv.width / sc, cv.height / sc);
 }
-/** 벽 쪽 구경꾼 (종류 · x · y(발) · 크기) */
-const DECOR: [CatK, number, number, number][][] = [
-  [['gray', 0.27, 0.268, 0.62], ['sleepy', 0.565, 0.247, 0.5]],
-  [['sleepy', 0.69, 0.302, 0.6], ['gray', 0.9, 0.124, 0.45]],
-  [['siam', 0.36, 0.292, 0.6], ['sleepy', 0.6, 0.243, 0.48]],
+/** 구경꾼 고양이 (자거나 밥 먹는 — 놀이와 무관, 와장창·쿵에 깜짝): 종류 · x · y(발) · 크기 · 자세(0 잠 · 1 냠냠) · 올라앉은 가구(-1 벽 쪽) */
+type Deco = [CatK, number, number, number, number, number];
+const WALL_DECO: Deco[][] = [
+  [['gray', 0.27, 0.268, 0.62, 0, -1], ['sleepy', 0.565, 0.247, 0.5, 0, -1]],
+  [['sleepy', 0.69, 0.302, 0.6, 0, -1], ['gray', 0.9, 0.124, 0.45, 0, -1]],
+  [['siam', 0.36, 0.292, 0.6, 0, -1], ['sleepy', 0.6, 0.243, 0.48, 0, -1]],
 ];
+const D_FRIDGE: Deco = ['black', 0.875, 0.178, 0.6, 0, 1], D_TABLE: Deco = ['siam', 0.75, 0.962, 0.6, 0, 3], D_BIN: Deco = ['tabby', 0.925, 0.79, 0.5, 0, 4], D_ISLAND: Deco = ['party', 0.43, 0.725, 0.6, 0, 0], D_EAT: Deco = ['gray', 0.085, 0.27, 0.55, 1, -1];
+const D_SOFA: Deco = ['tabby', 0.2, 0.43, 0.62, 0, 0], D_ARM: Deco = ['black', 0.85, 0.64, 0.6, 0, 2], D_CHEST: Deco = ['siam', 0.1, 1.02, 0.55, 0, 4], D_TV: Deco = ['party', 0.3, 0.3, 0.5, 1, -1];
+const D_COUNTER: Deco = ['tabby', 0.925, 0.3, 0.6, 0, 4], D_TAB1: Deco = ['gray', 0.425, 0.665, 0.52, 0, 2], D_TAB2: Deco = ['black', 0.625, 0.955, 0.52, 0, 3], D_TOW0: Deco = ['party', 0.075, 0.47, 0.55, 0, 0], D_TOW1: Deco = ['sniff', 0.825, 0.77, 0.55, 0, 1];
+/** 판마다 구경꾼 — 4판(뚱보 왕)부터는 깨어 있는 놈과 합쳐 부엌에 열 마리 (고양이 소굴) */
+const STAGE_DECO: Deco[][] = [
+  [D_FRIDGE, D_TABLE], [D_FRIDGE, D_TABLE, D_BIN], [D_FRIDGE, D_TABLE, D_BIN, D_ISLAND], [D_FRIDGE, D_TABLE, D_BIN, D_EAT],
+  [D_SOFA, D_ARM, D_CHEST], [D_SOFA, D_ARM, D_CHEST], [D_SOFA, D_CHEST, D_TV], [D_SOFA, D_ARM],
+  [D_COUNTER, D_TAB1, D_TAB2, D_TOW0, D_TOW1], [D_COUNTER, D_TAB1, D_TAB2], [D_COUNTER, D_TOW0], [],
+];
+const decoOf = (st: number) => [...WALL_DECO[STAGES[st].ch], ...STAGE_DECO[st]];
+/** 눈길 부채꼴은 미리 그려 둔 한 장을 돌려 찍는다 (가구에 가려지면 그 모양으로 오려 찍는다) */
+const CONE = new Map<string, HTMLCanvasElement>();
+function coneSpr(va: number, col: string, a0: number, a1: number, px: number) {
+  const q = Math.max(8, Math.round(px)), key = `${va.toFixed(2)}|${col}|${a0}|${q}`;
+  let cv = CONE.get(key);
+  if (!cv) {
+    if (CONE.size > 80) CONE.clear();
+    cv = layer(q * 2 + 4, q * 2 + 4, (g) => {
+      g.translate(q + 2, q + 2);
+      const full = va >= Math.PI - 1e-6;
+      g.beginPath();
+      g.moveTo(0, 0);
+      if (full) g.arc(0, 0, q, 0, TAU);
+      else g.arc(0, 0, q, -va, va);
+      g.closePath();
+      const gr = g.createRadialGradient(0, 0, q * 0.06, 0, 0, q);
+      gr.addColorStop(0, `rgba(${col},${a0})`);
+      gr.addColorStop(0.7, `rgba(${col},${(a0 + a1) / 2})`);
+      gr.addColorStop(1, `rgba(${col},${a1})`);
+      g.fillStyle = gr;
+      g.fill();
+      g.beginPath();
+      if (full) g.arc(0, 0, q - 1.5, 0, TAU);
+      else g.arc(0, 0, q - 1.5, -va, va);
+      g.strokeStyle = `rgba(${col},0.95)`;
+      g.lineWidth = 2.5;
+      g.stroke();
+    });
+    CONE.set(key, cv);
+  }
+  return cv;
+}
+
 /** 스티커 크기(화면 폭 비율): 고양이 · 생쥐 · 숨을 곳 · 소리 물건 · 치즈 · 잡동사니 · 청소기 · 왕 */
-const U_CAT = 0.066, U_MOUSE = 0.05, U_HIDE = 0.05, U_LURE = 0.042, U_Q = 0.04, U_CL = 0.04, U_VAC = 0.062, U_KING = 0.13;
+const U_CAT = 0.066, U_MOUSE = 0.075, U_HIDE = 0.05, U_LURE = 0.042, U_Q = 0.052, U_CL = 0.04, U_VAC = 0.062, U_KING = 0.13;
 const catSpr = (k: CatK, pose: number, px: number) => spr('c' + k + pose, F_CAT, px, (g) => paintCat(g, k, pose));
 const kingSpr = (pose: number, px: number) => spr('k' + pose, F_KING, px, (g) => paintKing(g, pose));
 const mouseSpr = (pose: number, tier: number, px: number) => spr('m' + pose + ':' + tier, F_MOUSE, px, (g) => paintMouse(g, pose, tier));
@@ -3194,7 +3277,7 @@ function wantStage(st: number, w: number, h: number, sc: number) {
   want(`bg${d.ch}:${w}:${h}:${sc}`, () => bakeBg(d.ch, room.hole, w, h, sc));
   room.furn.forEach((_, i) => want(`f${d.ch}:${i}:${w}:${sc}`, () => furnSpr(d.ch, i, w, sc)));
   const kinds = new Set<CatK>(d.cats.map((q) => q.k));
-  for (const [k] of DECOR[d.ch]) (want(`c${k}${PSLEEP}:${sprQ(R(U_CAT))}`, () => catSpr(k, PSLEEP, R(U_CAT))), want(`c${k}${PSCARED}:${sprQ(R(U_CAT))}`, () => catSpr(k, PSCARED, R(U_CAT))));
+  for (const [k] of decoOf(st)) for (const p of [PSLEEP, PSCARED, PEAT]) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
   for (const k of kinds) for (let p = 0; p < POSES; p++) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
   if (d.king) for (let p = 0; p < 3; p++) want(`k${p}:${sprQ(R(U_KING))}`, () => kingSpr(p, R(U_KING)));
   for (const [k] of d.hides) want(`h${k}:${sprQ(R(U_HIDE))}`, () => hideSpr(k, R(U_HIDE)));
@@ -3202,6 +3285,8 @@ function wantStage(st: number, w: number, h: number, sc: number) {
   for (const [k] of d.cheese) want(`q${k}:${sprQ(R(U_Q))}`, () => qSpr(k, R(U_Q)));
   for (const [k] of room.clutter) want(`x${k}:${sprQ(R(U_CL))}`, () => clSpr(k, R(U_CL)));
   if (d.vac) want(`vac:${sprQ(R(U_VAC))}`, () => vacSpr(R(U_VAC)));
+  for (const k of kinds) want(`cone${k}:${w}`, () => coneSpr(KD[k].va, '255,215,70', 0.62, 0.22, KD[k].vr * w * sc2));
+  if (d.king) want(`coneking:${w}`, () => coneSpr(Math.PI, '255,110,80', 0.62, 0.22, 0.17 * w * sc2));
   const tier = tierOf(st + 1);
   for (let p = 0; p < 6; p++) want(`m${p}:${tier}:${sprQ(R(U_MOUSE))}`, () => mouseSpr(p, tier, R(U_MOUSE)));
 }
@@ -3359,11 +3444,14 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
   const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
     if (fx.particles.length < PART_MAX) fx.burst(x, y, col, Math.min(n, PART_MAX - fx.particles.length), spd, size);
   };
-  const say = (x: number, y: number, str: string, col: string, size: number) => {
+  /** 사건 하나에 짧은 글자 하나, 화면에 동시에 둘까지 (중요한 것(hi)은 가장 오래된 것을 밀어낸다) */
+  const say = (x: number, y: number, str: string, col: string, size: number, hi = false) => {
     let rec = recent.get(s);
     if (!rec) recent.set(s, (rec = []));
-    // 짧은 글자는 한꺼번에 둘까지 (큰 글자 18px 이상은 늘 보인다) — 겹쳐 쌓이지 않게
-    if (size < 18 && rec.filter((q) => t - q.t < 40).length >= 2) return;
+    if (fx.popups.length >= 2) {
+      if (!hi) return;
+      while (fx.popups.length >= 2) fx.popups.shift();
+    }
     x = clamp(x, w * 0.12, w * 0.88);
     y = Math.max(Y(0.14), y);
     for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y -= size * 0.9;
@@ -3380,25 +3468,41 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
 
   ctx.save();
   fx.begin(ctx);
-  ctx.drawImage(pawLayer(s, Math.round(w), Math.round(h), sc), 0, 0, w, h);
-  // ── 벽 쪽에서 자는 구경꾼 고양이 (방마다 둘) — 와장창·쿵에 깜짝 깬다 ──
   {
-    const jolt = Math.min(since('crash'), since('bonk'), since('caught'), since('kingwake'));
-    for (const [k, x, y, sz] of DECOR[ch]) {
-      const up = jolt < 50, u = R(U_CAT) * sz;
-      ctx.save();
-      ctx.translate(X(x), Y(y) - (up ? Math.sin((jolt / 50) * Math.PI) * R(0.025) : 0));
-      if (x > 0.5) ctx.scale(-1, 1);
-      stamp(ctx, catSpr(k, up ? PSCARED : PSLEEP, Q(U_CAT)), F_CAT, u);
-      ctx.restore();
-      if (!up) {
-        const f = ((t * 0.012 + x * 3) % 1);
-        ctx.globalAlpha = 1 - f;
-        gtext(ctx, 'z', X(x) + (x > 0.5 ? -1 : 1) * R(0.04) + f * R(0.02), Y(y) - u * 1.3 - f * R(0.03), R(0.03), 900, '#7fa8f0', '#ffffff', 3);
-        ctx.globalAlpha = 1;
-      }
+    // 판 바닥(배경+발자국) 한 장은 그림 프레임 밖에서 굽고, 그동안은 방 배경만 찍는다 (판 첫 프레임이 끊기지 않게)
+    const pk = pawKey(s, Math.round(w), sc), pl = PAWS.get(pk);
+    if (pl) ctx.drawImage(pl, 0, 0, w, h);
+    else {
+      ctx.drawImage(bakeBg(ch, room.hole, Math.round(w), Math.round(h), sc), 0, 0, w, h);
+      const ws = Math.round(w), hs = Math.round(h);
+      want('paw' + pk, () => pawLayer(s, ws, hs, sc));
+      idlePump();
     }
   }
+  // ── 구경꾼 고양이 (자거나 밥 먹는 — 와장창·쿵에 깜짝 깬다) ──
+  const jolt = Math.min(since('crash'), since('bonk'), since('caught'), since('kingwake'), since('roll'));
+  const drawDeco = (dc: Deco) => {
+    const [k, x, y, sz, pose] = dc, up = jolt < 50, u = R(U_CAT) * sz;
+    ctx.save();
+    ctx.translate(X(x), Y(y) - (up ? Math.sin((jolt / 50) * Math.PI) * R(0.025) : 0));
+    if (x > 0.5) ctx.scale(-1, 1);
+    if (pose === 1 && !up) {
+      // 밥그릇 (먹는 고개가 까딱까딱)
+      ell(ctx, u * 1.05, -u * 0.12, u * 0.42, u * 0.16);
+      ink(ctx, '#5aa0ff', 1.2);
+      ctx.translate(0, Math.abs(Math.sin(t * 0.15 + x * 9)) * u * 0.06);
+    }
+    stamp(ctx, catSpr(k, up ? PSCARED : pose === 1 ? PEAT : PSLEEP, Q(U_CAT)), F_CAT, u);
+    ctx.restore();
+    if (!up && pose === 0) {
+      const f = (t * 0.012 + x * 3) % 1;
+      ctx.globalAlpha = 1 - f;
+      gtext(ctx, 'z', X(x) + (x > 0.5 ? -1 : 1) * R(0.04) + f * R(0.02), Y(y) - u * 1.3 - f * R(0.03), R(0.03), 900, '#7fa8f0', '#ffffff', 3);
+      ctx.globalAlpha = 1;
+    }
+  };
+  const decos = decoOf(s.stage);
+  for (const dc of decos) if (dc[5] < 0) drawDeco(dc);
   // ── 살아 있는 부엌: 주전자 김 · 햇살 먼지 ──
   if (ch === 0) {
     for (let i = 0; i < 3; i++) {
@@ -3447,27 +3551,34 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
       ink(ctx, '#ffc531', 1.2);
     }
   }
-  // ── 노란 눈길 (가구에 가려진다) ──
+  // ── 노란 눈길 (미리 그린 부채꼴 한 장을 돌려 찍고, 가구에 가려지면 가려진 모양으로 오린다) ──
   for (const c2 of s.cats) {
     const kd = KD[c2.k], sus = c2.mode === SUSP ? c2.sus : 0;
     const open = c2.k === 'king' ? c2.mode === ROLL : awakeEyes(c2);
     const drowsy = c2.k === 'sleepy' && c2.mode === SLEEP && c2.sleepLen - c2.mt < 90;
     if (!open && !drowsy) continue;
-    const vr = c2.k === 'king' ? 0.17 : kd.vr, va = kd.va, a0 = c2.face + c2.look, N = c2.k === 'king' ? 16 : 10;
-    ctx.beginPath();
-    ctx.moveTo(X(c2.x), Y(c2.y));
+    const isK = c2.k === 'king', vr = isK ? 0.17 : kd.vr, va = isK ? Math.PI : kd.va, a0 = c2.face + c2.look, N = isK ? 16 : 10;
+    let cut = false;
+    const pts: number[] = [];
     for (let i = 0; i <= N; i++) {
-      const a = c2.k === 'king' ? (i / N) * TAU : a0 - va + (2 * va * i) / N, ca = Math.cos(a), sa = Math.sin(a);
+      const a = isK ? (i / N) * TAU : a0 - va + (2 * va * i) / N, ca = Math.cos(a), sa = Math.sin(a);
       let dd = 0.03;
       for (; dd < vr; dd += 0.028) {
         const x = c2.x + ca * dd, y = c2.y + sa * dd * YS;
         if (x < 0.005 || x > 0.995 || y < GY0 || y > FY1 || s.blk[cellAt(x, y)]) break;
       }
+      if (dd < vr) cut = true;
       dd = Math.min(dd, vr);
-      ctx.lineTo(X(c2.x + ca * dd), Y(c2.y + sa * dd * YS));
+      pts.push(X(c2.x + ca * dd), Y(c2.y + sa * dd * YS));
     }
-    ctx.closePath();
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(X(c2.x), Y(c2.y));
+      for (let i = 0; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+      ctx.closePath();
+    };
     if (drowsy) {
+      path();
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = `rgba(255,210,60,${0.4 + 0.3 * Math.sin(t * 0.3)})`;
       ctx.lineWidth = 1.5;
@@ -3475,12 +3586,17 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
       ctx.setLineDash([]);
       continue;
     }
-    const col = sus > 0 ? `255,${Math.round(190 - 110 * sus)},60` : c2.k === 'king' ? '255,120,80' : '255,222,90';
-    ctx.fillStyle = `rgba(${col},${0.4 + sus * 0.25})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgba(${sus > 0 ? col : '245,190,40'},${0.85})`;
-    ctx.lineWidth = 1.6 + sus * 2;
-    ctx.stroke();
+    const lvl = sus > 0.66 ? 2 : sus > 0 ? 1 : 0;
+    const col = isK ? '255,110,80' : lvl === 2 ? '255,110,60' : lvl === 1 ? '255,170,60' : '255,215,70';
+    const img = coneSpr(va, col, 0.62, 0.22, R(vr) * sc2);
+    ctx.save();
+    if (cut) (path(), ctx.clip());
+    ctx.translate(X(c2.x), Y(c2.y));
+    ctx.scale(1, YS);
+    if (!isK) ctx.rotate(a0);
+    const q = Math.max(8, Math.round(R(vr) * sc2)), f = R(vr) / q;
+    ctx.drawImage(img, -(q + 2) * f, -(q + 2) * f, (2 * q + 4) * f, (2 * q + 4) * f);
+    ctx.restore();
   }
   // ── 소리 고리 · 가는 길 미리 보기 ──
   for (const e of s.events) {
@@ -3543,6 +3659,7 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
     const fr = furnRect(f);
     items.push({ y: fr.y1 - 0.002, f: () => { const o = furnSpr(ch, i, Math.round(w), sc); ctx.drawImage(o.c, X(o.x), Y(o.y), R(o.w), R(o.h)); } });
   });
+  for (const dc of decos) if (dc[5] >= 0 && room.furn[dc[5]]) items.push({ y: furnRect(room.furn[dc[5]]).y1 + 0.0005, f: () => drawDeco(dc) });
   const shadow = (x: number, y: number, rx: number) => {
     ell(ctx, X(x), Y(y), rx, rx * 0.3);
     ctx.fillStyle = 'rgba(60,35,10,.2)';
@@ -3556,11 +3673,19 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
       ctx.translate(X(hd.x), Y(hd.y));
       ctx.rotate(sh);
       if (mine) {
-        // 숨은 생쥐: 귀와 눈만 빼꼼
-        const tremble = s.cats.some((c2) => (c2.mode === PEEK || c2.mode === SUSP || c2.mode === CHASE || c2.mode === FOLLOW) && dist(c2.x, c2.y, hd.x, hd.y) < 0.25) ? Math.sin(t * 1.7) * u * 0.04 : 0;
-        const top = hd.k === 'slipper' || hd.k === 'cushion' ? -0.95 : -1.3;
-        for (const [ex, r] of [[-0.3, 0.3], [0.15, 0.26]] as [number, number][]) (ell(ctx, ex * u + tremble, top * u - r * u * 0.7, r * u, r * u), ink(ctx, M_BODY, Math.max(1, u * 0.06)), ell(ctx, ex * u + tremble, top * u - r * u * 0.7, r * u * 0.6, r * u * 0.6), (ctx.fillStyle = M_PINK), ctx.fill());
-        for (const ex of [-0.12, 0.08]) (ell(ctx, ex * u + tremble, top * u - u * 0.02, u * 0.07, u * 0.09), (ctx.fillStyle = '#1e1410'), ctx.fill());
+        // 숨은 생쥐: 발밑 고리 + 큰 귀 둘과 눈이 빼꼼 ('내가 저기 있다')
+        const mu = R(U_MOUSE) * depthK(hd.y), pul = 0.5 + 0.5 * Math.sin(t * 0.15);
+        ell(ctx, 0, 0, u * (1.25 + 0.1 * pul), u * (0.45 + 0.04 * pul));
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([5, 4]);
+        ctx.lineDashOffset = -t * 0.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const tremble = s.cats.some((c2) => (c2.mode === PEEK || c2.mode === SUSP || c2.mode === CHASE || c2.mode === FOLLOW) && dist(c2.x, c2.y, hd.x, hd.y) < 0.25) ? Math.sin(t * 1.7) * mu * 0.05 : 0;
+        const top = (hd.k === 'slipper' || hd.k === 'cushion' ? -0.95 : -1.3) * u;
+        for (const [ex, r] of [[-0.3, 0.34], [0.22, 0.3]] as [number, number][]) (ell(ctx, ex * mu + tremble, top - r * mu * 0.55, r * mu, r * mu), ink(ctx, M_BODY, Math.max(1.2, mu * 0.06)), ell(ctx, ex * mu + tremble, top - r * mu * 0.55, r * mu * 0.6, r * mu * 0.6), (ctx.fillStyle = M_PINK), ctx.fill());
+        for (const ex of [-0.1, 0.12]) (ell(ctx, ex * mu + tremble, top + mu * 0.02, mu * 0.075, mu * 0.095), (ctx.fillStyle = '#1e1410'), ctx.fill(), ell(ctx, ex * mu + tremble - mu * 0.02, top - mu * 0.01, mu * 0.025, mu * 0.025), (ctx.fillStyle = '#ffffff'), ctx.fill());
       }
       stamp(ctx, hideSpr(hd.k, Q(U_HIDE)), F_PROP, u);
       ctx.restore();
@@ -3706,21 +3831,31 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
     items.push({ y: m.y + 0.001, f: () => {
       const u = R(U_MOUSE) * depthK(m.y), tier = tierOf(s.lv);
       if (m.st === CAUGHT) {
+        // 찍! 발밑에 납작 (0.25초) → 빙글빙글 빠져나와 쥐구멍으로 쏙 (0.75초)
         const f = m.mt / CAUGHT_T;
         ctx.save();
-        ctx.translate(X(m.x), Y(m.y));
-        ctx.globalAlpha = f > 0.75 ? Math.max(0, 1 - (f - 0.75) * 4) : 1;
-        stamp(ctx, mouseSpr(MFLAT, tier, Q(U_MOUSE)), F_MOUSE, u);
-        ctx.globalAlpha = 1;
+        if (f < 0.25) {
+          ctx.translate(X(m.x), Y(m.y));
+          stamp(ctx, mouseSpr(MFLAT, tier, Q(U_MOUSE)), F_MOUSE, u);
+        } else {
+          const q = (f - 0.25) / 0.75, e2 = q * q * (3 - 2 * q), x = m.x + (s.hx - m.x) * e2, y = m.y + (s.hy - m.y) * e2 - Math.sin(q * Math.PI) * 0.1;
+          ctx.translate(X(x), Y(y));
+          ctx.rotate(q * TAU * 2.5);
+          ctx.translate(0, u * 0.6);
+          ctx.globalAlpha = q > 0.85 ? Math.max(0, 1 - (q - 0.85) * 6.6) : 1;
+          stamp(ctx, mouseSpr(MR0, tier, Q(U_MOUSE)), F_MOUSE, u * (1 - q * 0.35));
+          ctx.globalAlpha = 1;
+        }
         ctx.restore();
         return;
       }
-      // 내 생쥐는 늘 눈에 띄게: 발밑 하얀 고리
-      ell(ctx, X(m.x), Y(m.y), u * 1.25, u * 0.42);
-      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      // 내 생쥐는 늘 눈에 띄게: 발밑 밝은 고리 (두근두근)
+      const pul = 0.5 + 0.5 * Math.sin(t * 0.18);
+      ell(ctx, X(m.x), Y(m.y), u * (1.15 + 0.08 * pul), u * (0.42 + 0.03 * pul));
+      ctx.fillStyle = 'rgba(255,248,190,.7)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,.95)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
       ctx.stroke();
       const busy = m.busy > 0, pose = busy ? MGRAB : m.st === RUN ? ((m.at >> 2) & 1 ? MR1 : MR0) : MST;
       const hop = m.st === RUN ? Math.abs(Math.sin(m.at * 0.4)) * u * 0.12 : 0;
@@ -3811,7 +3946,7 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
     const ex = X(e.x), ey = Y(e.y);
     switch (e.k) {
       case 'tap': snd('tick', 1.6, 0.5); fx.ring(X(e.x), Y(e.y), '#ffffff', R(0.05), 3); break;
-      case 'grab': snd('coin', 1 + Math.min(8, e.n) * 0.06, 0.8); puff(ex, ey - R(0.02), '#ffd23a', 8, 3, 2.6); say(ex, ey - R(0.06), e.n >= 3 ? `덥석! ×${e.n}` : '덥석!', '#ffe36b', 15); break;
+      case 'grab': snd('coin', 1 + Math.min(8, e.n) * 0.06, 0.8); puff(ex, ey - R(0.02), '#ffd23a', 8, 3, 2.6); say(ex, ey - R(0.06), '+1', '#ffe36b', 17); break;
       case 'magnet': snd('coin', 1.4, 0.6); puff(ex, ey, '#ff4f5a', 4, 2.4, 2.2); break;
       case 'hide': snd('pop', 1.1, 0.9); puff(ex, ey - R(0.03), '#ffffff', 6, 2.4, 2.4); say(ex, ey - R(0.08), '쏙!', '#ffffff', 16); break;
       case 'unhide': snd('pop', 0.8, 0.5); break;
@@ -3821,11 +3956,11 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
         snd('coin', 0.9, 0.9);
         puff(ex, ey, '#ffd23a', 6 + e.n * 2, 4, 3);
         fx.ring(ex, ey, '#ffd23a', R(0.08 + e.n * 0.012), 4);
-        say(ex, ey + R(0.03), `+${e.x2}`, '#ffd23a', 16 + Math.min(8, e.n));
+        say(ex, ey + R(0.03), `+${e.x2}`, '#ffd23a', 16 + Math.min(8, e.n), true);
         if (e.n >= 3) fx.kick(3 + e.n);
         break;
       }
-      case 'kick': snd('whoosh', 1.5, 0.7); say(ex, ey - R(0.05), '툭!', '#ffffff', 14); break;
+      case 'kick': snd('whoosh', 1.5, 0.7); break;
       case 'land': {
         const k = e.text as LK;
         if (k === 'balloon') (snd('pop', 0.5, 1.4), snd('crack', 0.9, 1), fx.kick(10), fx.blink('#ffd6d6', 0.3), puff(ex, ey - R(0.07), '#ff3b4a', 14, 5.5, 3), say(ex, ey - R(0.1), '펑!', '#ff6b6b', 22));
@@ -3838,21 +3973,21 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
       case 'yarnstop': snd('boing', 0.8, 0.6); break;
       case 'yarncat': snd('tick', 1.8, 0.4); break;
       case 'huh': snd('tick', 2.2, 0.5); break;
-      case 'alert': snd('zap', 1.2, 0.8); snd('boing', 1.8, 0.6); fx.kick(4); say(ex, ey - R(0.13), '냐앗!', '#ff8a7a', 16); break;
+      case 'alert': snd('zap', 1.2, 0.8); snd('boing', 1.8, 0.6); fx.kick(4); break;
       case 'chase': snd('whoosh', 1.1, 0.8); break;
       case 'pounce': snd('whoosh', 1.8, 0.7); break;
       case 'miss': snd('thud', 1.3, 0.8); snd('boing', 0.7, 0.7); fx.kick(5); puff(ex, ey, '#f3dfb0', 8, 3, 2.6); say(ex, ey - R(0.08), '헛방!', '#ffe9a0', 18); break;
       case 'skid': snd('whoosh', 0.6, 0.6); puff(ex, ey, '#ffffff', 4, 2, 2); say(ex, ey - R(0.05), '끼익', '#ffffff', 13); break;
       case 'crash': snd('crack', 0.9, 1.1); snd('thud', 0.9, 1); fx.kick(9); puff(ex, ey - R(0.02), '#ffffff', 10, 4.5, 2.8); puff(ex, ey, '#ffd27a', 6, 4, 2.4); say(ex, ey - R(0.07), '와장창!', '#ffffff', 21); break;
       case 'bonk': snd('thud', 0.6, 1.3); snd('boing', 0.9, 0.9); fx.kick(11); fx.blink('#fff6c8', 0.2); puff(ex, ey - R(0.05), '#ffe36b', 12, 5, 3); say(ex, ey - R(0.1), '쿵!', '#ffe36b', 24); break;
-      case 'caught': snd('fail', 1.1, 1); snd('thud', 1.2, 0.9); fx.kick(10); fx.blink('#ff8a7a', 0.25); puff(ex, ey - R(0.02), '#ffd23a', 10, 5, 3); say(ex, ey - R(0.09), '찍!', '#ff8a7a', 22); if (e.n) say(ex, ey - R(0.15), `-${e.n}조각`, '#ffe36b', 15); if (s.stage > 1) say(ex, ey - R(0.21), '하트 -1', '#ff8a7a', 15); break;
+      case 'caught': snd('fail', 1.1, 1); snd('thud', 1.2, 0.9); fx.kick(10); fx.blink('#ff8a7a', 0.25); puff(ex, ey - R(0.02), '#ffd23a', 10, 5, 3); say(ex, ey - R(0.09), e.n ? '팡! 찍!' : '찍!', '#ff8a7a', 22, true); if (e.n) puff(ex, ey - R(0.05), '#ffc531', 14, 6, 3.4); break;
       case 'helmet': snd('ding', 0.8, 1.2); fx.kick(6); puff(ex, ey - R(0.04), '#e6eaf0', 10, 4, 2.6); say(ex, ey - R(0.09), '땡! 골무', '#e6f0ff', 19); break;
       case 'respawn': snd('pop', 1.4, 0.6); puff(ex, ey, '#ffffff', 6, 2.4, 2.4); break;
       case 'yawn': snd('swell', 0.7, 0.5); say(ex + R(0.03), ey - R(0.13), '하암~', '#ffffff', 14); break;
-      case 'peek': snd('tick', 0.9, 0.5); say(ex, ey - R(0.12), '킁킁?', '#ffffff', 13); break;
+      case 'peek': snd('tick', 0.9, 0.5); break;
       case 'close': snd('chime', 1.4, 0.4); say(ex, ey - R(0.1), '휴~', '#bff3ff', 14); break;
-      case 'phew': snd('chime', 1.25, 0.9); puff(ex, ey - R(0.04), '#bff3ff', 8, 3, 2.4); break;
-      case 'flush': snd('pop', 0.7, 1); snd('zap', 1.6, 0.6); say(ex, ey - R(0.1), '들켰다!', '#ff8a7a', 16); break;
+      case 'phew': snd('chime', 1.25, 0.9); puff(ex, ey - R(0.04), '#bff3ff', 8, 3, 2.4); if (!e.x2) say(ex, ey - R(0.1), '휴~', '#bff3ff', 15); break;
+      case 'flush': snd('pop', 0.7, 1); snd('zap', 1.6, 0.6); break;
       case 'sniff': snd('tick', 1.2, 0.4); break;
       case 'eek': snd('boing', 2.1, 0.7); say(ex, ey - R(0.12), '꺅!', '#ffd0e0', 15); break;
       case 'stir': snd('tick', 0.6, 0.5); say(ex, ey - R(0.2), '음냐…', '#ffffff', 14); break;
@@ -4054,7 +4189,7 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
     ctx.lineWidth = 3;
     ctx.stroke();
     drawHand(ctx, hx, hy + R(0.04), R(0.085), press);
-    gtext(ctx, '톡!', X(hd.x) - R(0.005), Y(hd.y) - R(0.115) - press * R(0.01), R(0.046), 900, '#ffffff', INK, 4);
+    gtext(ctx, '톡!', X(hd.x) - R(0.06), Y(hd.y) + R(0.075) + press * R(0.006), R(0.046), 900, '#ffffff', INK, 4);
   }
   // ── 큰 순간 띠 (한 번에 하나, 벽 쪽에) ──
   if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
@@ -4110,9 +4245,10 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
   }
   void fx;
 }
-/** 판 결과: 별 · 점수 · 생쥐 레벨 · 쥐구멍 마을 · 도감 */
-function drawResult(ctx: C2, s: MouseState, w: number, sc2: number) {
-  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t, d = STAGES[s.stage], fx = juice(s);
+/** 판 결과: 별 · 점수 · 생쥐 레벨 · 쥐구멍 마을 · 도감 — 카드 바탕은 한 번 구워 두고, 별·새 집·'톡'만 움직인다 */
+function drawResult(main: C2, s: MouseState, w: number, sc2: number) {
+  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t, d = STAGES[s.stage], fx = juice(s), scD = devScale(main);
+  let ctx: C2 = main;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -4121,86 +4257,108 @@ function drawResult(ctx: C2, s: MouseState, w: number, sc2: number) {
   };
   const INK = '#4a2c1d', MUTED = '#a08a70';
   const pt = s.pt, a = Math.min(1, pt / 10), slide = (1 - a) * R(0.06);
-  const cx0 = X(0.06), cy0 = Y(0.13) - slide, cw = R(0.88), chh = R(0.69);
+  const base = Y(0.13), top = base - R(0.03), chh = R(0.69), cw = R(0.88), hh = chh + R(0.03) + 8;
+  const key = `${s.stage}|${s.got}|${s.town}|${s.dexC.join()}|${s.dexQ.join()}|${s.lv}|${s.gain}|${s.won}`;
+  const card = bar('result', w, hh, scD, key, (g) => {
+    ctx = g;
+    ctx.translate(0, -top);
+    const cx0 = X(0.06), cy0 = base;
+    rr(ctx, cx0, cy0 + 4, cw, chh, R(0.04));
+    ctx.fillStyle = 'rgba(74,44,29,.25)';
+    ctx.fill();
+    rr(ctx, cx0, cy0, cw, chh, R(0.04));
+    ink(ctx, '#fffaf0', 2.5, INK);
+    rr(ctx, X(0.2), cy0 - R(0.012), R(0.6), R(0.07), R(0.02));
+    ink(ctx, '#ffb800', 2.5, INK);
+    ctx.textAlign = 'center';
+    font(0.046, 900);
+    text(s.won ? '모든 판을 깼다!' : `${s.stage + 1}판 깼다!`, w / 2, cy0 + R(0.025), '#ffffff', INK, 3);
+    for (let i = 0; i < 3; i++) {
+      const sx0 = X(0.23 + i * 0.27), sy0 = cy0 + R(0.125);
+      starPath(ctx, sx0, sy0, R(0.052));
+      ink(ctx, '#eadfc8', 2, '#cdbd9c');
+      font(0.031, 800);
+      text(STAR_WORDS(s)[i], sx0, sy0 + R(0.078), s.starOk[i] ? INK : '#b8a688');
+    }
+    rr(ctx, X(0.12), cy0 + R(0.243), R(0.76), R(0.058), R(0.02));
+    ctx.fillStyle = '#fff0cc';
+    ctx.fill();
+    font(0.044, 900);
+    text(`+${fmt(s.gain)}점`, X(0.34), cy0 + R(0.273), '#d9480f');
+    font(0.032, 800);
+    text(`별 ${s.got}개 = 판 점수 ×${STAR_MUL[s.got]}`, X(0.66), cy0 + R(0.274), INK);
+    ctx.save();
+    ctx.translate(X(0.14), cy0 + R(0.37));
+    stamp(ctx, mouseSpr(MCHEER, tierOf(s.lv), R(U_MOUSE) * sc2 * 1.1), F_MOUSE, R(0.026));
+    ctx.restore();
+    ctx.textAlign = 'left';
+    font(0.036, 900);
+    text(`생쥐 Lv${s.lv - 1} → Lv${s.lv}`, X(0.19), cy0 + R(0.345), '#7a5cff');
+    const lw0 = ctx.measureText(`생쥐 Lv${s.lv - 1} → Lv${s.lv}`).width;
+    font(0.031, 700);
+    text(LV_GIFT[s.lv] ?? '조금 더 빨라져요', X(0.19) + lw0 + R(0.02), cy0 + R(0.347), LV_GIFT[s.lv] ? '#d9480f' : INK);
+    font(0.031, 800);
+    text(`쥐구멍 마을 ${s.town}/${TOWN.length}`, X(0.1), cy0 + R(0.405), MUTED);
+    ctx.textAlign = 'right';
+    text(`새 집: ${TOWN[s.town - 1] ?? ''}!`, X(0.9), cy0 + R(0.405), '#d9480f');
+    ctx.textAlign = 'center';
+    rr(ctx, X(0.09), cy0 + R(0.425), R(0.82), R(0.085), R(0.02));
+    ctx.fillStyle = '#8a5a3a';
+    ctx.fill();
+    ctx.fillStyle = '#6a3a1a';
+    ctx.fillRect(X(0.09), cy0 + R(0.495), R(0.82), R(0.015));
+    for (let i = 0; i < TOWN.length; i++) {
+      if (i === s.town - 1) continue;
+      drawHouse(ctx, i, X(0.125 + i * 0.0685), cy0 + R(0.5), R(0.026), i < s.town, 0);
+      if (i === s.town) (font(0.03, 900), text('?', X(0.125 + i * 0.0685), cy0 + R(0.475), '#ffe36b', '#4a2c1d', 3));
+    }
+    font(0.03, 800);
+    ctx.textAlign = 'left';
+    text(`도감 — 고양이 ${s.dexC.length}/${CAT_DEX.length} · 치즈 ${s.dexQ.length}/${Q_DEX.length}`, X(0.1), cy0 + R(0.54), MUTED);
+    ctx.textAlign = 'center';
+    CAT_DEX.forEach((k, i) => {
+      const has = s.dexC.includes(k), px = X(0.1 + i * 0.058), py = cy0 + R(0.605), u = R(0.02);
+      ctx.save();
+      ctx.translate(px, py);
+      // 이미 구워 둔 큰 스티커를 줄여 찍는다 (결과 화면에서 새로 굽지 않게)
+      if (has) stamp(ctx, k === 'king' ? kingSpr(0, R(U_KING) * sc2 * 1.1) : catSpr(k, PST, R(U_CAT) * sc2 * 1.1), k === 'king' ? F_KING : F_CAT, k === 'king' ? u * 0.75 : u);
+      else (ell(ctx, 0, -u * 0.6, u * 0.8, u * 0.7), (ctx.fillStyle = '#e6d6bc'), ctx.fill(), font(0.028, 900), text('?', 0, -u * 0.6, '#b8a688'));
+      ctx.restore();
+    });
+    Q_DEX.forEach((k, i) => {
+      const has = s.dexQ.includes(k), px = X(0.705 + (i % 4) * 0.058), py = cy0 + R(0.57 + Math.floor(i / 4) * 0.05);
+      ctx.save();
+      ctx.translate(px, py);
+      if (has) stamp(ctx, qSpr(k, R(U_Q) * sc2 * 1.1), F_PROP, R(0.019));
+      else (ell(ctx, 0, -R(0.008), R(0.016), R(0.012)), (ctx.fillStyle = '#e6d6bc'), ctx.fill());
+      ctx.restore();
+    });
+    const nx = STAGES[s.stage + 1];
+    font(0.036, 900);
+    if (nx) text(s.stage % 4 === 3 ? `다음 집: ${CHAPTERS[nx.ch]}` : `다음 판: ${nx.name} (NEW)`, w / 2, cy0 + chh - R(0.028), MUTED);
+    ctx = main;
+  });
   ctx.globalAlpha = a;
-  rr(ctx, cx0, cy0 + 4, cw, chh, R(0.04));
-  ctx.fillStyle = 'rgba(74,44,29,.25)';
-  ctx.fill();
-  rr(ctx, cx0, cy0, cw, chh, R(0.04));
-  ink(ctx, '#fffaf0', 2.5, INK);
-  rr(ctx, X(0.2), cy0 - R(0.012), R(0.6), R(0.07), R(0.02));
-  ink(ctx, '#ffb800', 2.5, INK);
-  ctx.textAlign = 'center';
-  font(0.046, 900);
-  text(s.won ? '모든 판을 깼다!' : `${s.stage + 1}판 깼다!`, w / 2, cy0 + R(0.025), '#ffffff', INK, 3);
+  ctx.drawImage(card, 0, top - slide, w, hh);
+  const cy0 = base - slide;
+  // 움직이는 것: 별 셋 (차례로 팡) · 새 집 (반짝 · 쿵) · 톡
   for (let i = 0; i < 3; i++) {
     const at = 12 + i * 12, sx0 = X(0.23 + i * 0.27), sy0 = cy0 + R(0.125), on = s.starOk[i] && pt >= at, pop = on ? 1 + Math.max(0, 1 - (pt - at) / 8) * 0.6 : 1;
+    if (!on) continue;
     starPath(ctx, sx0, sy0, R(0.052) * pop);
-    ink(ctx, on ? '#ffc93c' : '#eadfc8', 2, on ? '#a06a12' : '#cdbd9c');
-    if (on && (fx.memo['st' + i] ?? -1) !== s.stage) (fx.memo['st' + i] = s.stage), fx.sound('ding', 1 + i * 0.18, 0.9), fx.burst(sx0, sy0, '#ffd84a', 10, 3, 2.4);
-    font(0.031, 800);
-    const lab = STAR_WORDS(s)[i];
-    text(lab, sx0, sy0 + R(0.078), s.starOk[i] ? INK : '#b8a688');
+    ink(ctx, '#ffc93c', 2, '#a06a12');
+    if ((fx.memo['st' + i] ?? -1) !== s.stage) (fx.memo['st' + i] = s.stage), fx.sound('ding', 1 + i * 0.18, 0.9), fx.burst(sx0, sy0, '#ffd84a', 10, 3, 2.4);
   }
-  rr(ctx, X(0.12), cy0 + R(0.243), R(0.76), R(0.058), R(0.02));
-  ctx.fillStyle = '#fff0cc';
-  ctx.fill();
-  font(0.044, 900);
-  text(`+${fmt(s.gain)}점`, X(0.34), cy0 + R(0.273), '#d9480f');
-  font(0.032, 800);
-  text(`별 ${s.got}개 = 판 점수 ×${STAR_MUL[s.got]}`, X(0.66), cy0 + R(0.274), INK);
-  // 생쥐 레벨
-  ctx.save();
-  ctx.translate(X(0.14), cy0 + R(0.37));
-  stamp(ctx, mouseSpr(MCHEER, tierOf(s.lv), R(0.026) * sc2), F_MOUSE, R(0.026));
-  ctx.restore();
-  ctx.textAlign = 'left';
-  font(0.036, 900);
-  text(`생쥐 Lv${s.lv - 1} → Lv${s.lv}`, X(0.19), cy0 + R(0.345), '#7a5cff');
-  const lw0 = ctx.measureText(`생쥐 Lv${s.lv - 1} → Lv${s.lv}`).width;
-  font(0.031, 700);
-  text(LV_GIFT[s.lv] ?? '조금 더 빨라져요', X(0.19) + lw0 + R(0.02), cy0 + R(0.347), LV_GIFT[s.lv] ? '#d9480f' : INK);
-  // 쥐구멍 마을 (집이 하나씩)
-  font(0.031, 800);
-  text(`쥐구멍 마을 ${s.town}/${TOWN.length}`, X(0.1), cy0 + R(0.405), MUTED);
-  ctx.textAlign = 'right';
-  text(`새 집: ${TOWN[s.town - 1] ?? ''}!`, X(0.9), cy0 + R(0.405), '#d9480f');
-  ctx.textAlign = 'center';
-  rr(ctx, X(0.09), cy0 + R(0.425), R(0.82), R(0.085), R(0.02));
-  ctx.fillStyle = '#8a5a3a';
-  ctx.fill();
-  ctx.fillStyle = '#6a3a1a';
-  ctx.fillRect(X(0.09), cy0 + R(0.495), R(0.82), R(0.015));
-  for (let i = 0; i < TOWN.length; i++) {
-    const built = i < s.town, isNew = i === s.town - 1, bob = isNew ? Math.max(0, 1 - pt / 20) : 0;
-    drawHouse(ctx, i, X(0.125 + i * 0.0685), cy0 + R(0.5) - bob * R(0.05), R(0.026), built || (i === s.town && false), isNew ? 0.6 + 0.4 * Math.sin(t * 0.2) : 0);
-    if (i === s.town && i < TOWN.length) (font(0.03, 900), text('?', X(0.125 + i * 0.0685), cy0 + R(0.475), '#ffe36b', '#4a2c1d', 3));
+  if (s.town > 0) {
+    const i = s.town - 1, bob = Math.max(0, 1 - pt / 20);
+    drawHouse(ctx, i, X(0.125 + i * 0.0685), cy0 + R(0.5) - bob * R(0.05), R(0.026), true, 0.6 + 0.4 * Math.sin(t * 0.2));
   }
-  // 도감: 고양이 · 치즈
-  font(0.03, 800);
-  ctx.textAlign = 'left';
-  text(`도감 — 고양이 ${s.dexC.length}/${CAT_DEX.length} · 치즈 ${s.dexQ.length}/${Q_DEX.length}`, X(0.1), cy0 + R(0.54), MUTED);
-  ctx.textAlign = 'center';
-  CAT_DEX.forEach((k, i) => {
-    const has = s.dexC.includes(k), px = X(0.1 + i * 0.058), py = cy0 + R(0.605), u = R(0.02);
-    ctx.save();
-    ctx.translate(px, py);
-    if (has) stamp(ctx, k === 'king' ? kingSpr(0, R(0.018) * sc2 * 2) : catSpr(k, PST, R(0.02) * sc2 * 2), k === 'king' ? F_KING : F_CAT, k === 'king' ? u * 0.75 : u);
-    else (ell(ctx, 0, -u * 0.6, u * 0.8, u * 0.7), (ctx.fillStyle = '#e6d6bc'), ctx.fill(), font(0.028, 900), text('?', 0, -u * 0.6, '#b8a688'));
-    ctx.restore();
-  });
-  Q_DEX.forEach((k, i) => {
-    const has = s.dexQ.includes(k), px = X(0.705 + (i % 4) * 0.058), py = cy0 + R(0.57 + Math.floor(i / 4) * 0.05);
-    ctx.save();
-    ctx.translate(px, py);
-    if (has) stamp(ctx, qSpr(k, R(0.019) * sc2 * 2), F_PROP, R(0.019));
-    else (ell(ctx, 0, -R(0.008), R(0.016), R(0.012)), (ctx.fillStyle = '#e6d6bc'), ctx.fill());
-    ctx.restore();
-  });
-  font(0.036, 900);
-  const nx = STAGES[s.stage + 1];
-  if (pt >= RES_MIN) text(s.won ? '톡!' : s.stage % 4 === 3 && d.ch < PERKS.length ? '톡 하면 장 끝 선물!' : '톡 하면 다음 판', w / 2, cy0 + chh - R(0.028), (t >> 3) % 2 ? '#d9480f' : '#ff8a3d');
-  else if (nx) text(s.stage % 4 === 3 ? `다음 집: ${CHAPTERS[nx.ch]}` : `다음 판: ${nx.name} (NEW)`, w / 2, cy0 + chh - R(0.028), MUTED);
+  if (pt >= RES_MIN) {
+    rr(ctx, X(0.12), cy0 + chh - R(0.055), R(0.76), R(0.052), R(0.02));
+    ctx.fillStyle = '#fffaf0';
+    ctx.fill();
+    gtext(ctx, s.won ? '톡!' : s.stage % 4 === 3 && d.ch < PERKS.length ? '톡 하면 장 끝 선물!' : '톡 하면 다음 판', w / 2, cy0 + chh - R(0.028), R(0.036), 900, (t >> 3) % 2 ? '#d9480f' : '#ff8a3d', '', 0);
+  }
   ctx.globalAlpha = 1;
 }
 function drawPick(ctx: C2, s: MouseState, w: number) {

@@ -19,7 +19,10 @@
  *   → [대장] 얼음 고개 → 불꽃 화산 → 구름 과수원 → 보물 언덕 → [대장] 천둥 용 봉우리. 큰 판의 대장은 길을 막고 선다 — 성으로 쿵! 쿵!(성이 클수록 세다)
  * 성장: 판을 깨면 거인 Lv+1(보폭·쿵 크기, 목도리 → 모자 → 허리띠 → 망토 → 왕관) · 성 층수는 다음 판으로 이어짐 · 세계 지도에 지나온 길 ·
  *   장 끝 세상 속 큰 물건 둘 중 하나(거대한 바퀴 / 큰 종 · 쇠망치 / 바람 돛) · 도감 = 성 부품 9 + 사람 직업 8.
- * 별(쉬운 말 셋): 새 땅까지 가기 · 폭풍에 아무도 안 날리기 · 판마다 다른 솜씨(한 번 쿵에 N개 · 사람 N명 · 몬스터 찌부 · 대장에게 성 쿵 N번 …).
+ * 별(쉬운 말 셋): 새 땅까지 가기 · 폭풍에 아무도 안 날리기 · 판마다 다른 솜씨 — 모두 '어디에 쿵 하나'를 묻는다:
+ *   한 번 쿵에 N개(빽빽한 곳 한가운데) · 식구 N명 · 몬스터 찌부 N(몬스터 바로 위 — 앞줄·뒷줄을 겨눠야) · 쿵 N번 안에 새 땅(좋은 곳만 골라 건너뛰기)
+ *   · 한 번에 N명 데려오기(떠돌이 넷 사이) · 대장을 N초 안에(대장 곁에 닿으면 재기 시작 — 쿵! 쿵! 쿵!).
+ *   버릇 봇(늘 바로 앞 땅 · 늘 폭풍 직전까지 머물기)은 3판부터 별 셋이 드물다(폭풍 앞 바람이 오래 머문 일꾼을 날린다).
  * 점수: 나른 것 하나 1점(금 3점) · 부품 15점 · 찌부 10점 · 새 식구 5점, 판 점수는 별 수로 곱해진다(×1·×2·×4).
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
@@ -41,7 +44,7 @@ const WALK_V = 0.0125, STRIDE = 0.19, DROP_DX = 0.15, DROP_T = 16, LIFT_T = 14, 
 /** 성 반폭(발자리) · 몬스터 찌부 판정(성 밑 가운데) */
 const HALF = 0.085, SQ_X = 0.066, SQ_Y = 0.058;
 /** 사람: 걷기 · 나르기 · 달려 돌아오기 (틱당) · 쏟아져 나오는 간격 · 처음 사람 수 · 최대 · 먹을 것 몇 개에 한 명 */
-const P_WALK = 0.0048, P_CARRY = 0.0042, P_SPRINT = 0.014, POUR_EVERY = 2, POP0 = 10, POP_MAX = 40, FOOD_PER = 4;
+const P_WALK = 0.0048, P_CARRY = 0.0042, P_SPRINT = 0.014, POUR_EVERY = 1, POP0 = 12, POP_MAX = 40, FOOD_PER = 4;
 /** 일하는 범위(성에서 좌우) · 쿵 범위 (부품·레벨로 넓어진다) */
 const WORK_R = 0.26, THUD_R = 0.15;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 / 끝 */
@@ -50,6 +53,10 @@ const RES_MIN = 90, RES_AUTO = 60 * 9, PICK_MIN = 40, PICK_AUTO = 60 * 20, PICK_
 const ARRIVE_T = 84, CLEAR_PTS = 30, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 150;
 /** 폭풍 앞자락 앞으로 바람이 미치는 거리 */
 const REACH = 0.1;
+/** 쿵 소리에 떠돌이가 달려오는 거리 */
+const JOIN_R = 0.14;
+/** 대장 곁(이 안에 성을 내려놓으면 대장 싸움이 시작된 것) — 대포가 닿는 거리 */
+const BOSS_NEAR = 0.7;
 /** 큰 띠: 한 번 쿵에 이만큼 떨어지면 */
 const WOW_N = 7;
 
@@ -70,7 +77,7 @@ export const ZD: Record<ZK, { name: string; gets: Item[]; w: number }> = {
   river: { name: '강가', gets: ['fish'], w: 0.17 },
   den: { name: '몬스터 소굴', gets: ['coin'], w: 0.3 },
   mine: { name: '광산', gets: ['stone'], w: 0.27 },
-  village: { name: '떠돌이 마을', gets: [], w: 0.27 },
+  village: { name: '떠돌이 마을', gets: [], w: 0.4 },
   swamp: { name: '버섯 늪', gets: ['shroom'], w: 0.28 },
   ice: { name: '얼음 호수', gets: ['fish'], w: 0.26 },
   volcano: { name: '불꽃 바위', gets: ['stone', 'coin'], w: 0.28 },
@@ -117,7 +124,7 @@ export const PART_DEX: PK[] = ['tower', 'mill', 'wheel', 'cannon', 'wall', 'flag
 /** 땅마다 나오는 것(바라는 부품을 고를 때 이 판에서 구할 수 있는 것만) */
 const ZRES: Partial<Record<ZK, Res[]>> = { forest: ['wood'], field: ['food'], river: ['food'], den: ['gold'], mine: ['stone'], swamp: ['food'], ice: ['food', 'stone'], volcano: ['stone', 'gold'], cloud: ['food'], lair: ['gold'] };
 
-type StarK = 'thud' | 'pop' | 'squash' | 'slam' | 'parts' | 'join' | 'floors' | 'gold';
+type StarK = 'thud' | 'pop' | 'squash' | 'slam' | 'parts' | 'join' | 'floors' | 'gold' | 'drops' | 'boss';
 interface StageDef { key: string; ch: number; name: string; news: string; zones: ZK[]; storm: number; star: [StarK, number]; boss?: MK; newZ?: ZK; newP?: PK }
 export const CHAPTERS = ['풀빛 골짜기', '바위 고개', '구름 너머'];
 /**
@@ -128,15 +135,15 @@ export const STAGES: StageDef[] = [
   { key: 'forest', ch: 0, name: '숲과 밀밭', news: '쿵! 하면 통나무가 우수수 — 나무꾼이 우르르', zones: ['forest', 'field', 'forest', 'field', 'forest', 'field', 'forest'], storm: 0.0009, star: ['thud', 8], newZ: 'forest' },
   { key: 'river', ch: 0, name: '물고기 강', news: '강가에 쿵 — 물고기 펄떡! 먹을 것은 새 식구', zones: ['field', 'river', 'forest', 'river', 'field', 'forest', 'river', 'field'], storm: 0.001, star: ['pop', 16], newZ: 'river' },
   { key: 'den', ch: 0, name: '몬스터 소굴', news: '몬스터 바로 위에 쿵 — 찌부! 보물이 와르르', zones: ['forest', 'den', 'field', 'river', 'den', 'forest', 'den', 'field'], storm: 0.00105, star: ['squash', 2], newZ: 'den' },
-  { key: 'troll', ch: 0, name: '거대 트롤 산', news: '길을 막은 산 트롤 — 성으로 쿵! 쿵!', zones: ['forest', 'field', 'den', 'river', 'forest', 'lair'], storm: 0.0008, star: ['slam', 3], boss: 'troll' },
-  { key: 'mine', ch: 1, name: '바위 광산', news: '광산에 쿵 — 돌이 쩍! 돌 성벽은 쿵을 키워요', zones: ['mine', 'forest', 'mine', 'river', 'field', 'mine', 'den', 'mine'], storm: 0.0011, star: ['thud', 12], newZ: 'mine' },
+  { key: 'troll', ch: 0, name: '거대 트롤 산', news: '길을 막은 산 트롤 — 성으로 쿵! 쿵!', zones: ['forest', 'field', 'den', 'river', 'forest', 'lair'], storm: 0.0008, star: ['boss', 15], boss: 'troll' },
+  { key: 'mine', ch: 1, name: '바위 광산', news: '광산에 쿵 — 돌이 쩍! 돌 성벽은 쿵을 키워요', zones: ['mine', 'forest', 'mine', 'river', 'field', 'mine', 'den', 'mine'], storm: 0.0011, star: ['drops', 7], newZ: 'mine' },
   { key: 'village', ch: 1, name: '떠돌이 마을', news: '떠돌이 곁에 쿵 — "성이다!" 우르르 식구가 돼요', zones: ['village', 'mine', 'forest', 'village', 'den', 'field', 'village', 'river', 'mine'], storm: 0.00115, star: ['join', 4], newZ: 'village' },
-  { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['pop', 34], newZ: 'swamp' },
-  { key: 'yeti', ch: 1, name: '얼음 고개', news: '얼음 호수에 쿵 — 쩍! 끝엔 얼음 털보', zones: ['ice', 'mine', 'forest', 'ice', 'den', 'village', 'lair'], storm: 0.001, star: ['slam', 4], boss: 'yeti', newZ: 'ice' },
-  { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['gold', 16], newZ: 'volcano' },
-  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 14], newZ: 'cloud' },
+  { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['drops', 7], newZ: 'swamp' },
+  { key: 'yeti', ch: 1, name: '얼음 고개', news: '얼음 호수에 쿵 — 쩍! 끝엔 얼음 털보', zones: ['ice', 'mine', 'forest', 'ice', 'den', 'village', 'lair'], storm: 0.001, star: ['boss', 15], boss: 'yeti', newZ: 'ice' },
+  { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['thud', 22], newZ: 'volcano' },
+  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 21], newZ: 'cloud' },
   { key: 'gold', ch: 2, name: '보물 언덕', news: '소굴이 셋! 황금 지붕을 올려 봐요', zones: ['den', 'field', 'den', 'mine', 'cloud', 'den', 'volcano', 'village'], storm: 0.00135, star: ['squash', 3], newP: 'roof' },
-  { key: 'drake', ch: 2, name: '천둥 용 봉우리', news: '마지막 대장 천둥 용 — 성으로 쿵! 쿵! 쿵!', zones: ['cloud', 'volcano', 'den', 'village', 'mine', 'cloud', 'lair'], storm: 0.0011, star: ['slam', 5], boss: 'drake' },
+  { key: 'drake', ch: 2, name: '천둥 용 봉우리', news: '마지막 대장 천둥 용 — 성으로 쿵! 쿵! 쿵!', zones: ['cloud', 'volcano', 'den', 'village', 'mine', 'cloud', 'lair'], storm: 0.0011, star: ['boss', 15], boss: 'drake' },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(세상 속 큰 물건) */
@@ -185,6 +192,8 @@ export interface GiantState {
   goalX: number;
   /** 이번 판: 내려놓은 수 · 한 번 쿵 최고 · 찌부 · 대장 쿵 · 한 번에 들어온 최고 · 지은 부품 · 금 · 판 틱 · 도착 잔치 */
   drops: number; bestThud: number; squash: number; slam: number; joinBest: number; partsStage: number; goldStage: number; stageT: number; arrive: number;
+  /** 대장: 싸움이 시작된 틱(대장 곁 — 대포가 닿는 거리 — 에 처음 성을 내려놓거나 처음 맞은 때) · 쓰러진 틱 (없으면 -1) */
+  boss0: number; bossKO: number;
   /** 지나온 길(세계 지도): 판마다 별 */
   route: number[];
   firstTap: number; firstBig: number; wowN: number; freeze: number; down: boolean;
@@ -270,17 +279,20 @@ function genZone(s: GiantState, k: ZK, x0: number, w: number, zi: number, di: nu
     case 'volcano': grid(3, 2, (x, y, i) => (i === 2 || i === 5 ? obj(s, 'geyser', x, y, zi) : obj(s, 'hot', x, y, zi, amt('hot')))); break;
     case 'den': {
       const ms = denMons(s.stage, di);
+      // 몬스터는 소굴 앞줄·뒷줄에 번갈아 (가운데 아무 데나 쿵 해서는 찌부가 안 되게 — 겨눠야 한다)
       ms.forEach((mk, i) => {
-        const m = monster(s, mk, x0 + w * (0.2 + (0.6 * i) / Math.max(1, ms.length - 1)) + (r() - 0.5) * 0.02, B0 + 0.08 + ((i * 0.37 + r() * 0.3) % 1) * (B1 - B0 - 0.16), zi);
+        const m = monster(s, mk, x0 + w * (0.15 + (0.7 * i) / Math.max(1, ms.length - 1)) + (r() - 0.5) * 0.02, (i + di) % 2 ? B0 + 0.07 + r() * 0.03 : B1 - 0.1 + r() * 0.03, zi);
         m.hy = m.y;
       });
       const c = obj(s, 'cage', x0 + w * 0.5, B0 + 0.03, zi, 2 + (s.stage > 5 ? 1 : 0));
       c.amt = c.max;
       break;
     }
-    case 'village': grid(2, 2, (x, y, i) => i < 3 + (s.stage >= 5 ? 1 : 0) && obj(s, 'folk', x, y, zi, 1)); break;
+    case 'village': grid(3, 2, (x, y, i) => (i + di) % 6 < 4 + (s.stage >= 5 ? 1 : 0) && obj(s, 'folk', x, y, zi, 1)); break;
     case 'lair': {
       const m = monster(s, STAGES[s.stage].boss!, x0 + w * 0.6, FEET, zi);
+      // 성이 클수록 쿵이 세다 — 대장은 쿵 네댓 번은 버티게
+      m.hp = m.hpMax = Math.max(m.hpMax, 3.5 * slamDmg(s) + 100);
       m.hy = m.y;
       break;
     }
@@ -327,6 +339,7 @@ function newStage(s: GiantState) {
   s.hits = 0;
   s.lost = 0;
   s.drops = s.bestThud = s.squash = s.slam = s.joinBest = s.partsStage = s.goldStage = s.stageT = s.arrive = 0;
+  s.boss0 = s.bossKO = -1;
   s.canT = 0;
   s.geyT = 0;
   s.star3At = -1;
@@ -449,11 +462,13 @@ function star3(s: GiantState): boolean {
     case 'join': return s.joinBest >= n;
     case 'floors': return floors(s) >= n;
     case 'gold': return s.goldStage >= n;
+    case 'drops': return s.phase === 'result' && s.drops <= n;
+    case 'boss': return s.bossKO >= 0 && s.bossKO - s.boss0 <= n * 60;
   }
 }
 /** 별 셋째를 판 중에 처음 딴 순간: 띠 + 반짝 */
 function checkStar3(s: GiantState) {
-  if (s.star3At >= 0 || s.phase !== 'play' || !star3(s)) return;
+  if (s.star3At >= 0 || s.phase !== 'play' || STAGES[s.stage].star[0] === 'drops' || !star3(s)) return;
   s.star3At = s.t;
   ev(s, 'star3', s.cdown ? s.cx : s.gx, castleTop(s));
   if (s.big && s.big.t === s.t) s.big.star = true;
@@ -470,12 +485,15 @@ export const starWord = (st: [StarK, number]) => {
     case 'join': return `한 번에 ${n}명 데려오기`;
     case 'floors': return `성 ${n}층`;
     case 'gold': return `금 ${n}개`;
+    case 'drops': return `쿵 ${n}번 안에 새 땅`;
+    case 'boss': return `대장을 ${n}초 안에`;
   }
 };
 export const starProg = (s: GiantState): [number, number] => {
   const [k, n] = STAGES[s.stage].star;
-  const v = k === 'thud' ? s.bestThud : k === 'pop' ? pop(s) : k === 'squash' ? s.squash : k === 'slam' ? s.slam : k === 'parts' ? s.partsStage : k === 'join' ? s.joinBest : k === 'floors' ? floors(s) : s.goldStage;
-  return [Math.min(v, n), n];
+  if (k === 'boss') return [s.boss0 >= 0 ? Math.min(n, Math.floor(((s.bossKO >= 0 ? s.bossKO : s.t) - s.boss0) / 60)) : 0, n];
+  const v = k === 'thud' ? s.bestThud : k === 'pop' ? pop(s) : k === 'squash' ? s.squash : k === 'slam' ? s.slam : k === 'parts' ? s.partsStage : k === 'join' ? s.joinBest : k === 'floors' ? floors(s) : k === 'drops' ? s.drops : s.goldStage;
+  return [k === 'drops' ? v : Math.min(v, n), n];
 };
 
 // ───────────────────────────── 톡 ─────────────────────────────
@@ -526,7 +544,7 @@ function loot(s: GiantState, it: Item, x: number, y: number, z: number, vx: numb
   return o;
 }
 function thud(s: GiantState) {
-  const x = s.cx, y = s.cy, R = thudR(s), wr = workR(s);
+  const x = s.cx, y = s.cy, R = thudR(s);
   let n = 0, joined = 0, sq = 0;
   s.drops++;
   for (const o of [...s.objs]) {
@@ -541,7 +559,8 @@ function thud(s: GiantState) {
       continue;
     }
     if (o.k === 'folk') {
-      if (dx < wr) join(s, o), joined++;
+      // 쿵 소리가 닿은 떠돌이만 "성이다!" (멀리 있는 이는 성이 곁에 오래 있으면 천천히 온다)
+      if (de < JOIN_R) join(s, o), joined++;
       continue;
     }
     if (o.k === 'loot' || o.k === 'chest' || o.k === 'cage' || o.k === 'geyser') continue;
@@ -569,6 +588,8 @@ function thud(s: GiantState) {
   const prev = s.bestThud;
   s.bestThud = Math.max(s.bestThud, n);
   if (joined > s.joinBest) s.joinBest = joined;
+  const bb = bossOf(s);
+  if (bb && s.boss0 < 0 && Math.abs(bb.x - x) < BOSS_NEAR) s.boss0 = s.t;
   ev(s, 'thud', x, y, n, floors(s), sq);
   if (!s.awake && s.stage >= 0) (s.awake = true), (s.swait = 150), ev(s, 'wake', s.sx, 0.5), see(s, 'storm');
   if (joined) ev(s, 'joinall', x, y - 0.1, joined);
@@ -586,16 +607,18 @@ function join(s: GiantState, o: Obj) {
   ev(s, 'join', o.x, o.y - 0.05, pop(s));
   checkStar3(s);
 }
+const slamDmg = (s: GiantState) => 22 + 3 * floors(s) + 5 * s.parts.wall + 2 * s.lv;
 function bossSlam(s: GiantState, o: Obj) {
-  const dmg = 22 + 3 * floors(s) + 5 * s.parts.wall + 2 * s.lv;
+  const dmg = slamDmg(s);
   o.hp -= dmg;
   o.hitT = s.t;
   o.slamT = s.t;
   o.stun = 70;
   s.slam++;
+  if (s.boss0 < 0) s.boss0 = s.t;
   ev(s, 'slam', o.x, o.y - MD[o.mk!].r * 1.2, Math.round(dmg), s.slam);
   if (o.hp <= 0) kill(s, o, false);
-  else (o.x += 0.07), (o.hx = o.x), wow(s, `대장에게 쿵! ${s.slam}`, s.slam);
+  else (o.x = Math.min(o.x + 0.11, s.goalX - 0.25)), (o.hx = o.x), wow(s, `대장에게 쿵! ${s.slam}`, s.slam);
   checkStar3(s);
 }
 /** 몬스터가 쓰러진다: 보물 상자 · 소굴이 비면 갇힌 사람들이 풀려난다 */
@@ -610,6 +633,8 @@ function kill(s: GiantState, o: Obj, squash: boolean) {
   if (squash) (s.squash++, (s.sp += 10)), see(s, 'squash');
   ev(s, squash ? 'squash' : 'mdie', o.x, o.y, md.boss ? 2 : 1, 0, 0, o.mk!);
   if (md.boss) {
+    s.bossKO = s.t;
+    if (s.boss0 < 0) s.boss0 = s.t;
     s.sp += 80;
     wow(s, `${md.name}을 물리쳤다!`, 10);
     see(s, 'bosskill');
@@ -689,6 +714,12 @@ function moveTo(p: Per, x: number, y: number, v: number) {
 const gateY = (s: GiantState) => s.cy + 0.03;
 function personStep(s: GiantState, p: Per) {
   const slow = slowAt(s, p.x) ? 0.6 : 1, flag = 1 + 0.12 * s.parts.flag, sprint = P_SPRINT * (s.perk[0] === 2 ? 1.6 : 1);
+  if (p.z > 0 && (p.st === P_OUT || p.st === P_IDLE)) {
+    // 쏟아져 나올 때의 폴짝
+    p.z += p.vz;
+    p.vz -= 0.0009;
+    if (p.z <= 0) (p.z = 0), (p.vz = 0);
+  }
   switch (p.st) {
     case P_OUT: {
       const o = p.tgt;
@@ -716,7 +747,8 @@ function personStep(s: GiantState, p: Per) {
         if (o.hp <= 0) return assign(s, p);
         if (--p.tm <= 0) {
           p.tm = 34;
-          o.hp -= (MD[o.mk!].boss ? 0.5 : 1) * (s.parts.forge ? 2 : 1);
+          o.hp -= (MD[o.mk!].boss ? 0.25 : 1) * (s.parts.forge ? 2 : 1);
+          if (MD[o.mk!].boss && s.boss0 < 0) s.boss0 = s.t;
           o.hitT = s.t;
           if (s.t % 3 === 0) ev(s, 'whack', o.x + (p.x - o.x) * 0.5, o.y - 0.02);
           if (o.hp <= 0) kill(s, o, false);
@@ -812,7 +844,9 @@ function pourStep(s: GiantState) {
   s.pourQ--;
   p.x = s.cx + (s.rng() - 0.5) * 0.02;
   p.y = gateY(s);
-  p.z = 0;
+  // 성문에서 폴짝 튀어나온다 (개미떼처럼 쏟아지는 모습이 나무 위로 보이게)
+  p.z = 0.001;
+  p.vz = 0.008 + s.rng() * 0.006;
   p.dir = p.id % 2 ? 1 : -1;
   if (s.arrive > 0) {
     p.st = P_IDLE;
@@ -876,8 +910,8 @@ function objStep(s: GiantState) {
       if (++o.atkT >= md.atk) (o.atkT = 0), (o.wind = md.boss ? 34 : 24), ev(s, 'wind', o.x, o.y - md.r * 2);
     } else if (!md.boss) {
       // 어슬렁 (소굴 안에서만)
-      o.x = o.hx + Math.sin((s.t + o.v) * 0.015) * 0.03;
-      o.y = o.hy + Math.sin((s.t + o.v) * 0.011) * 0.02;
+      o.x = o.hx + Math.sin((s.t + o.v) * 0.015) * 0.02;
+      o.y = o.hy + Math.sin((s.t + o.v) * 0.011) * 0.012;
       o.dir = Math.cos((s.t + o.v) * 0.015) > 0 ? 1 : -1;
     }
   }
@@ -912,7 +946,7 @@ function cannonStep(s: GiantState) {
   const n = s.parts.cannon;
   if (!n || !s.cdown || s.gst !== G_DOWN || s.arrive) return;
   if (++s.canT < Math.max(36, 110 - 25 * (n - 1))) return;
-  let best: Obj | null = null, bd = 0.7;
+  let best: Obj | null = null, bd = BOSS_NEAR;
   for (const o of s.objs) if (o.k === 'mon' && alive(o) && Math.abs(o.x - s.cx) < bd) (bd = Math.abs(o.x - s.cx)), (best = o);
   if (!best) return;
   s.canT = 0;
@@ -1048,6 +1082,7 @@ function clearStage(s: GiantState) {
   s.phase = 'result';
   s.pt = 0;
   s.starOk = [true, s.lost === 0 && s.hits === 0, star3(s)];
+  if (STAGES[s.stage].star[0] === 'drops' && s.starOk[2]) s.star3At = s.t;
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
   s.gain = (s.sp + CLEAR_PTS + pop(s) * 2) * STAR_MUL[s.got];
@@ -1114,7 +1149,7 @@ const game: GameDef<GiantState> & { wows(s: GiantState): number } = {
       dexP: [], dexJ: [], newDex: [], zones: [], objs: [], people: [], nid: 0, shots: [], canT: 0, geyT: 0,
       gx: 0.28, gy: FEET, gst: G_STAND, gt: 0, tx: NaN, ty: FEET, pend: NaN, pendY: FEET, gdir: 1, wph: 0, gdz: 0, cdown: false, cx: 0.28, cy: FEET, pourQ: 0, cam: 0,
       sx: 0.03, awake: false, swait: 0, hits: 0, lost: 0, goalX: 3,
-      drops: 0, bestThud: 0, squash: 0, slam: 0, joinBest: 0, partsStage: 0, goldStage: 0, stageT: 0, arrive: 0, route: [],
+      drops: 0, bestThud: 0, squash: 0, slam: 0, joinBest: 0, partsStage: 0, goldStage: 0, stageT: 0, arrive: 0, boss0: -1, bossKO: -1, route: [],
       firstTap: -1, firstBig: -1, wowN: 0, freeze: 0, down: false, seen: new Set<string>(), events: [], banner: null, spot: null, big: null, star3At: -1,
     } as GiantState;
     for (let i = 0; i < POP0; i++) newPerson(s, 0.25, FEET, P_IN);
@@ -1186,7 +1221,8 @@ export function spotValue(s: GiantState, x: number, y: number, cur = false): num
       continue;
     }
     if (o.k === 'folk') {
-      if (dx < wr) (v += 6), joined++;
+      if (!cur && de < JOIN_R) (v += 6), joined++;
+      else if (dx < wr) v += 2;
       continue;
     }
     if (o.k === 'loot') {
@@ -1211,20 +1247,28 @@ export function spotValue(s: GiantState, x: number, y: number, cur = false): num
   if (want3 && sk === 'join' && joined >= sn) v += 25;
   return v;
 }
+/** 쿵 횟수 별: 남은 횟수로 새 땅까지 가려면 이번엔 얼마나 앞으로 가야 하나 */
+function dropsPush(s: GiantState): number {
+  const [k, n] = STAGES[s.stage].star;
+  if (k !== 'drops' || s.drops >= n) return 0;
+  const left = n - s.drops, need = (s.goalX - (s.cdown ? s.cx : s.gx)) / Math.max(1, left);
+  return need;
+}
 /** 화면 안에서 가장 좋은 내려놓을 자리 (가는 시간·폭풍까지 셈) */
 const DEPTHS = [B0 + 0.06, 0.88, FEET, 1.07, B1 - 0.05];
 function bestSpot(s: GiantState): { x: number; y: number; v: number } {
   const v = stormV(s), lo = Math.max(s.cam + 0.04, s.awake ? s.sx + 0.3 : 0.2), hi = Math.min(s.cam + 0.98, s.goalX - 0.04);
   let bx = hi, by = FEET, bv = -1e9;
+  const push = s.star3At < 0 ? dropsPush(s) : 0, from0 = s.cdown ? s.cx : s.gx + DROP_DX;
   for (let x = lo; x <= hi; x += 0.025)
     for (const y of DEPTHS) {
       if (s.cdown && Math.abs(x - s.cx) < 0.12 && Math.abs(y - s.cy) < 0.1) continue;
       const fx = s.cdown ? s.cx - DROP_DX : s.gx, fy = s.cdown ? s.cy : s.gy, travel = hyp(x - DROP_DX - fx, y - fy) / walkV(s) + (s.cdown ? 70 : 16);
       const safe = !s.awake || s.sx + v * 1.4 * (travel + 300) < x - HALF - 0.05;
-      const val = spotValue(s, x, y) - travel * 0.04 - (safe ? 0 : 30);
+      const val = spotValue(s, x, y) - travel * 0.04 - (safe ? 0 : 30) - (push > 0 && x - from0 < push * 0.85 ? 60 : 0);
       if (val > bv) (bv = val), (bx = x), (by = y);
     }
-  if (s.goalX < s.cam + 1.0 && !bossOf(s) && bv < 14) return { x: s.goalX, y: FEET, v: 99 };
+  if (s.goalX < s.cam + 1.0 && !bossOf(s) && (bv < 14 || (push > 0 && STAGES[s.stage].star[1] - s.drops <= 1))) return { x: s.goalX, y: FEET, v: 99 };
   return { x: bx, y: by, v: bv };
 }
 /** 봇: 성이 바라는 것 + 땅의 양 + 폭풍 거리를 셈해 내려놓고, 덜 남으면 메고 떠난다 */
@@ -1234,6 +1278,8 @@ export const castlegiantSmart: Bot<GiantState> = {
     const mid = between(s, s.stage < 4);
     if (mid) return mid;
     if (!can(s)) return NO;
+    const [sk, sn] = STAGES[s.stage].star;
+    if (s.gst === G_WALK && sk === 'drops' && s.star3At < 0 && sn - s.drops <= 1 && !bossOf(s) && s.tx < s.goalX - 0.01 && s.t % 12 === 0) return at(s, Math.min(s.goalX, s.cam + 0.98));
     if (s.gst !== G_DOWN && s.gst !== G_STAND) return NO;
     if (s.gst === G_DOWN) {
       if (s.gt < 30 || s.t % 6) return NO;
@@ -1243,7 +1289,7 @@ export const castlegiantSmart: Bot<GiantState> = {
       const idle = s.people.filter((p) => p.st === P_IDLE).length / Math.max(1, pop(s));
       const rem = spotValue(s, s.cx, s.cy, true);
       const b = bossOf(s);
-      if (!danger && !(b && Math.abs(b.x - s.cx) < 0.5 && b.stun <= 0) && idle < 0.55 && s.gt < 900) {
+      if (!danger && !(b && Math.abs(b.x - s.cx) < BOSS_NEAR + 0.05) && idle < 0.55 && s.gt < 900) {
         const c = bestSpot(s);
         if (rem > Math.max(5, c.v * 0.35)) return NO;
         return at(s, c.x, c.y);
@@ -3053,7 +3099,7 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
 }
 
 // ───────────────────────────── 그리기: 장면 ─────────────────────────────
-const PH = 0.042, TREE_H = 0.13, CROP_W = 0.055, ITEM_S = 0.022;
+const PH = 0.048, TREE_H = 0.13, CROP_W = 0.055, ITEM_S = 0.022;
 /** 스티커는 가장 앞(가장 큰 크기)으로 한 번만 굽고, 깊이에 따라 줄여 찍는다 — 걷거나 성이 날아가는 동안 새로 굽지 않게 */
 const DMAX = 1.22;
 type RF = (v: number) => number;
@@ -3428,7 +3474,7 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
         break;
       }
       case 'wake': fx.sound('thud', 0.35, 1.2); fx.sound('zap', 0.5, 0.7); say(Math.max(R(0.15), ex - R(0.1)), Y(0.36), '우르릉!', '#d8dcff', 18); break;
-      case 'pour': snd('pop', 0.8 + Math.min(1.2, e.n * 0.04), 0.55); break;
+      case 'pour': snd('pop', 0.8 + Math.min(1.2, e.n * 0.04), 0.55); puff(ex, ey, '#f6e6c4', 2, 2.2, 2.4); break;
       case 'chop': if (t - (fx.memo.chopT ?? -99) > 5) (fx.memo.chopT = t), snd('crack', 1.7, 0.35), puff(ex, ey, '#e8c890', 2, 2, 2); break;
       case 'clink': if (t - (fx.memo.clinkT ?? -99) > 5) (fx.memo.clinkT = t), snd('tick', 2.2, 0.4), puff(ex, ey, '#fff3a0', 3, 2.5, 1.8); break;
       case 'topple': if (t - (fx.memo.topT ?? -99) > 2) (fx.memo.topT = t), snd('crack', 1.0 + hsh(e.t + e.x) * 0.3, 0.6); puff(ex, ey - R(0.04), e.text === 'rock' || e.text === 'hot' ? '#d8d0c4' : '#9fe070', 5, 3.2, 2.6); break;
@@ -3635,7 +3681,7 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
     case P_OUT:
     case P_JOIN:
     case P_RUN:
-      fr = walk;
+      fr = p.z > 0.003 ? 4 : walk;
       break;
     case P_BACK:
       fr = 3;
@@ -3661,7 +3707,7 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
       break;
   }
   const x = X(p.x), y = Y(p.y) - R(p.z) - bob;
-  if (fr === 4 && p.z < 0.03) {
+  if (fr === 4) {
     ctx.fillStyle = 'rgba(40,30,20,.2)';
     ell(ctx, x, Y(p.y), u * 0.26, u * 0.07);
     ctx.fill();
@@ -4108,7 +4154,8 @@ function drawHud(ctx: C2, s: GiantState, w: number, h: number, sc2: number) {
 
   // ── 아래 띠: 별 셋 · 도움말 · 성 · 식구 (내용이 바뀔 때만 다시 그린다) ──
   const res = s.phase === 'result', [pv, pn] = starProg(s);
-  const state = [res ? 1 : 0, s.lost > 0 || s.hits > 0 ? -1 : res ? 1 : 0, s.star3At >= 0 || (res && s.starOk[2]) ? 1 : res ? -1 : 0];
+  const dropsOver = (d.star[0] === 'drops' && s.drops > d.star[1]) || (d.star[0] === 'boss' && s.boss0 >= 0 && s.star3At < 0 && (s.bossKO >= 0 ? s.bossKO : s.t) - s.boss0 > d.star[1] * 60);
+  const state = [res ? 1 : 0, s.lost > 0 || s.hits > 0 ? -1 : res ? 1 : 0, s.star3At >= 0 || (res && s.starOk[2]) ? 1 : res || dropsOver ? -1 : 0];
   const words = STAR_WORDS(s), labels = words.map((q, i) => q + (i === 2 && state[2] === 0 && pv > 0 ? ` ${pv}/${pn}` : ''));
   const b = bossOf(s), idle = s.cdown && s.gst === G_DOWN && s.pourQ === 0 && s.people.every((p) => p.st === P_IN || p.st === P_IDLE);
   let tip = `${d.name}: ${d.news}`;
