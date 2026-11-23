@@ -1,15 +1,15 @@
 // 3D 장면. 2D 장면(Scene)의 연출 로직(기체 움직임, 시선, 들킴 추격, 효과)을 그대로 물려받고,
 // 세계(무대·기체·지구인·표본·빔)는 three.js 로 그린다. 숫자 팝업·말풍선·고리·반짝이는 위의 투명 2D 층에 그린다.
-import { FORMS, WATCHERS } from '../data/content.js';
+import { FORMS, WATCHERS, CAUSE_BY_ID } from '../data/content.js';
 import { Scene } from '../render/scene.js';
-import { C, TAU, clamp, lerp, easeIn, easeOut, easeBack, circle, star, withAlpha, label } from '../render/draw.js';
-import { t as tr } from '../i18n/index.js';
+import { C, TAU, clamp, lerp, easeIn, easeOut, easeBack, circle, star, withAlpha, label, rrect, FONT_BODY } from '../render/draw.js';
+import { t as tr, tPick } from '../i18n/index.js';
 import { THREE, PAL, canvasTexture, cloud3d } from './kit.js';
 import { Engine, PX } from './engine.js';
 
 export { webglAvailable } from './engine.js';
 import { createUfo, UFO_TILT } from './ufo3d.js';
-import { createWatcher } from './people3d.js';
+import { createWatcher, WATCHER_TYPES } from './people3d.js';
 import { createSpecimen } from './specimens3d.js';
 import { buildStage } from './stages.js';
 import { renderIcon3d } from './studio.js';
@@ -30,6 +30,25 @@ const BEAM_CAUGHT = '#ff6b5e';
 const CONE = '#fff3a8';
 const CONE_SPOTTED = '#ff6b5e';
 const CONE_CLOAKED = '#b79cff';
+const CONE_SOURCE = '#cfe9ff';
+/** 엄폐 구름 모양(가로 -1..1 에 맞춘 덩어리들) */
+const COVER_BLOBS = [
+  [-0.72, -0.05, 0, 0.36],
+  [-0.38, 0.16, 0.05, 0.48],
+  [0.05, 0.24, 0, 0.56],
+  [0.45, 0.12, 0.05, 0.46],
+  [0.78, -0.06, 0, 0.32],
+  [-0.2, -0.16, 0.25, 0.42],
+  [0.25, -0.14, 0.28, 0.44],
+];
+const SMOKE_BLOBS = [
+  [0, -0.7, 0, 0.42],
+  [0.12, -0.25, 0.05, 0.5],
+  [-0.1, 0.2, 0, 0.55],
+  [0.08, 0.62, 0.05, 0.5],
+];
+/** 아직 3D 모델이 없는 지구인은 비슷한 사람으로 그린다. */
+const WATCHER_FALLBACK = { hunter: 'photographer' };
 const MAX_DPR = 2;
 /**
  * 자동 화질 단계: 프레임이 계속 밀리면 한 단계씩 내린다(올리지는 않는다).
@@ -141,11 +160,20 @@ export class Scene3D extends Scene {
     this.rays = 0;
     this.lookTarget = new THREE.Vector3();
     this.camTarget = new THREE.Vector3();
+    this.coverObjs = new Map(); // 엄폐물 id → 3D 구름
+    this.culprit = null; // 들킨 순간 당겨 보여 줄 범인
+    this.quote = '';
+    this.focus = { x: 0, y: 0, z: 1 };
     world.on('absorbed', (sp) => {
       this.gulp = sp.auto ? 0.5 : 1;
     });
-    game.on('discovered', () => {
+    game.on('discovered', (report) => {
       this.burst = { t: 0, text: tr('report.burst') };
+      this._pickCulprit(report);
+    });
+    game.on('excused', () => {
+      this.burst = null;
+      this.culprit = null;
     });
     game.on('formUp', () => {
       this.rays = 1.6;
@@ -318,6 +346,7 @@ export class Scene3D extends Scene {
 
   render() {
     this._sync3d();
+    this._updateFocus();
     let sx = 0;
     let sy = 0;
     if (this.shakeT > 0) {
@@ -328,6 +357,92 @@ export class Scene3D extends Scene {
     this.engine.setShake(sx, sy);
     this.engine.render();
     this._renderOverlay(sx, sy);
+  }
+
+  // ───────── 들킨 순간: 범인과 기체를 당겨 보여 주기 ─────────
+
+  _pickCulprit(report) {
+    const { world } = this;
+    this.culprit = null;
+    this.quote = '';
+    const cause = CAUSE_BY_ID[report?.cause];
+    if (!cause || cause.kind === 'mission' || !this.ufoVisible) return;
+    const hs = world.humans.filter((h) => !h.leaving);
+    let h = hs.find((x) => x.spotted) || (report.ctx?.watcher && hs.find((x) => x.type === report.ctx.watcher));
+    const src = !h && world.sources.find((x) => x.spotted);
+    if (src) {
+      this.culprit = { source: src };
+      this.quote = tPick(`quotes.${src.kind}`);
+      return;
+    }
+    if (!h && report.cause !== 'lightning') {
+      // 표본·특수 사건: 가장 가까운 사람이 알아챈다
+      for (const x of hs) if (!h || Math.abs(x.x - this.ufo.x) < Math.abs(h.x - this.ufo.x)) h = x;
+    }
+    if (!h) {
+      this.culprit = { none: true };
+      return;
+    }
+    h.spotted = true;
+    this.culprit = { human: h.id };
+    this.quote = (h.type && tPick(`quotes.${h.type}`)) || tPick('quotes.generic');
+  }
+
+  /** 범인이 서 있는 화면 자리(머리 위). */
+  _culpritPoint() {
+    const c = this.culprit;
+    if (!c) return null;
+    if (c.source) return { x: c.source.ox, y: c.source.oy };
+    if (c.human) {
+      const h = this.world.humans.find((x) => x.id === c.human);
+      if (!h) return null;
+      const entry = this.watchers.get(h.id);
+      const sc = WATCHERS[h.type]?.scale || 1;
+      const topY = entry ? entry.obj.topY * sc : 1;
+      return { x: this._humanX(h), y: this._humanBase(h) - topY * PX };
+    }
+    return null;
+  }
+
+  _updateFocus() {
+    const { game, w, h } = this;
+    let z = 1;
+    let ox = 0;
+    let oy = 0;
+    if (game.phase === 'discovered' && this.culprit && !this.reducedMotion) {
+      const T = this.foundT;
+      const k = easeOut(clamp((T - 0.1) / 0.4)) * (1 - easeIn(clamp((T - 2.1) / 0.45)));
+      if (k > 0.001) {
+        const u = this.ufo;
+        let x0 = u.x - 80;
+        let x1 = u.x + 80;
+        let y0 = u.y - 130;
+        let y1 = u.y + 50;
+        const c = this._culpritPoint();
+        if (c) {
+          x0 = Math.min(x0, c.x - 70);
+          x1 = Math.max(x1, c.x + 70);
+          y0 = Math.min(y0, c.y - 70);
+          y1 = Math.max(y1, c.y + 110);
+        }
+        const zt = clamp(Math.min(w / (x1 - x0), h / (y1 - y0)), 1, 1.65);
+        z = 1 + (zt - 1) * k;
+        const vw = w / z;
+        const vh = h / z;
+        ox = clamp((x0 + x1) / 2 - vw / 2, 0, w - vw);
+        oy = clamp((y0 + y1) / 2 - vh / 2, 0, h - vh);
+      }
+    }
+    this.focus.x = ox;
+    this.focus.y = oy;
+    this.focus.z = z;
+    this.engine.setFocus(ox, oy, z);
+  }
+
+  /** 화면 좌표 → 초점(당겨 보기)이 적용된 화면 좌표 */
+  _fp(x, y) {
+    const f = this.focus;
+    return { x: (x - f.x) * f.z, y: (y - f.y) * f.z };
   }
 
   /** 화면 좌표(px) → 행동 평면 위 3D 점 */
@@ -401,10 +516,16 @@ export class Scene3D extends Scene {
       }
       if (sp.age < 0.25 && sp.state === 'live') scale *= easeBack(sp.age / 0.25);
       if (sp.mode === 'ground' && sp.state !== 'beam') y = this.groundY - (GROUND_LIFT[sp.kind] || 14);
+      // 꾹 누르는 중: 소는 빔에 들려 조금씩 떠오르고 버둥거린다, 풍선은 살짝 눌린다
+      if (sp.held && sp.state === 'live') {
+        y -= sp.hold * (sp.kind === 'cow' ? 26 : 6);
+        x += Math.sin(t * 38) * 1.4 * sp.hold;
+        if (sp.kind === 'balloon') scale *= 1 - 0.08 * sp.hold;
+      }
       this._w(x, y, root.position);
       root.scale.setScalar(Math.max(scale, 0.001));
       root.rotation.set(0, spin, 0);
-      entry.obj.update(t + sp.phase, sp.dir);
+      entry.obj.update((sp.flee > 0 ? t * 3 : t) + sp.phase, sp.dir);
     }
     for (const [id, entry] of this.specs) {
       if (alive.has(id)) continue;
@@ -416,6 +537,9 @@ export class Scene3D extends Scene {
 
     // 지구인
     const waving = game.phase === 'ending' && game.state.flags.trueEnding;
+    const wk = world.weather?.kind;
+    const wet = wk === 'rain' || wk === 'storm' ? 1 : 0;
+    const dark = wk === 'night' ? 1 : 0;
     const ufoW = ufo.root.position;
     const seen = new Set();
     for (const hmn of world.humans) {
@@ -423,7 +547,8 @@ export class Scene3D extends Scene {
       let entry = this.watchers.get(hmn.id);
       if (!entry) {
         const pool = this.watcherPool.get(hmn.type);
-        const obj = pool && pool.length ? pool.pop() : createWatcher(hmn.type);
+        const model = WATCHER_TYPES.includes(hmn.type) ? hmn.type : WATCHER_FALLBACK[hmn.type] || 'walker';
+        const obj = pool && pool.length ? pool.pop() : createWatcher(model);
         entry = { type: hmn.type, obj };
         this.watchers.set(hmn.id, entry);
         this.engine.actors.add(obj.root);
@@ -443,6 +568,8 @@ export class Scene3D extends Scene {
         shock: found,
         wave: waving,
         target: ufoW,
+        umbrella: wet,
+        flashlight: dark,
       });
     }
     for (const [id, entry] of this.watchers) {
@@ -482,29 +609,71 @@ export class Scene3D extends Scene {
     }
     for (; bi < this.beams.length; bi++) this.beams[bi].visible = false;
 
-    // 시선 원뿔: 머리 → 기체
+    // 시선 원뿔: 머리 → 시선이 머무는 하늘(기체 높이). 넓은 끝의 반지름 = 시선 반폭.
+    // 기체를 덮으면 빨갛게, 비켜 있으면 노랗게.
     let ci = 0;
+    const laneY = this.home.y;
     for (const hmn of world.humans) {
-      if (hmn.state !== 'look' && !(found && hmn.spotted)) continue;
+      const spottedNow = found && hmn.spotted;
+      if ((hmn.state !== 'look' && !spottedNow) || hmn.gx == null) continue;
       const entry = this.watchers.get(hmn.id);
-      if (!entry || !visible) continue;
+      if (!entry) continue;
       const head = entry.obj.headWorld(new THREE.Vector3());
       const cone = this.cones[ci] || this._newCone(this.cones);
       ci++;
       cone.visible = true;
-      // 넓은 끝이 기체를 감싸도록
-      placeCone(cone, head, ufoW, Math.min((this.home.r / PX) * 0.6, 0.55));
-      const color = cloaked ? CONE_CLOAKED : hmn.spotted ? CONE_SPOTTED : CONE;
-      cone.material.color.set(color);
-      cone.material.opacity = cloaked ? 0.12 : hmn.spotted ? 0.36 : 0.22;
+      const gx = spottedNow ? u.x : hmn.gx;
+      placeCone(cone, head, this._w(gx, laneY, tmpV2), Math.max(hmn.gw / PX, 0.2));
+      const hot = hmn.sees || spottedNow;
+      cone.material.color.set(cloaked ? CONE_CLOAKED : hot ? CONE_SPOTTED : CONE);
+      cone.material.opacity = cloaked ? 0.1 : hot ? 0.34 : 0.2;
+    }
+    // 무대 시선: 창문·천문대 돔·우주 정거장·손전등
+    for (const src of world.sources) {
+      if (src.phase !== 'on' && !(found && src.spotted)) continue;
+      const cone = this.cones[ci] || this._newCone(this.cones);
+      ci++;
+      cone.visible = true;
+      const from = this._w(src.ox, src.oy, new THREE.Vector3());
+      from.z = src.kind === 'iss' ? -2 : -0.5;
+      placeCone(cone, from, this._w(src.gx, laneY, tmpV2), Math.max(src.gw / PX, 0.15));
+      const hot = src.sees || (found && src.spotted);
+      cone.material.color.set(cloaked ? CONE_CLOAKED : hot ? CONE_SPOTTED : CONE_SOURCE);
+      cone.material.opacity = cloaked ? 0.08 : hot ? 0.36 : src.kind === 'flashlight' ? 0.3 : 0.22;
     }
     for (; ci < this.cones.length; ci++) this.cones[ci].visible = false;
+
+    // 엄폐물: 기체 앞(카메라 쪽)에 떠 있어 기체를 가린다
+    const liveCovers = new Set();
+    for (const c of world.covers) {
+      liveCovers.add(c.id);
+      let obj = this.coverObjs.get(c.id);
+      if (!obj) {
+        obj =
+          c.kind === 'smoke'
+            ? cloud3d(SMOKE_BLOBS, { color: '#f1ecf6', shadeColor: '#a59cbd', opacity: 0.88, fog: false })
+            : cloud3d(COVER_BLOBS, { opacity: 0.93, fog: false });
+        this.coverObjs.set(c.id, obj);
+        this.engine.actors.add(obj);
+      }
+      this._w(c.x, c.y, obj.position);
+      obj.position.z = 1.1;
+      const k = 0.35 + 0.65 * easeOut(clamp(c.a));
+      if (c.kind === 'smoke') obj.scale.set((c.rx / PX) * k, (c.ry / PX) * 0.9 * k, (c.rx / PX) * 0.6 * k);
+      else obj.scale.set((c.rx / PX) * k, (c.ry / PX) * 1.7 * k, (c.rx / PX) * 0.45 * k);
+      obj.rotation.z = Math.sin(t * 0.5 + c.id) * 0.03;
+    }
+    for (const [id, obj] of this.coverObjs) {
+      if (liveCovers.has(id)) continue;
+      this.engine.actors.remove(obj);
+      this.coverObjs.delete(id);
+    }
 
     // 연줄
     let si = 0;
     if (!this.airborne) {
       for (const sp of world.specimens) {
-        if (sp.kind !== 'kite' || sp.state === 'beam') continue;
+        if (sp.kind !== 'kite' || sp.state === 'beam' || sp.cut) continue;
         const entry = this.specs.get(sp.id);
         if (!entry) continue;
         const line = this.strings[si] || this._newString();
@@ -579,8 +748,11 @@ export class Scene3D extends Scene {
     const { ctx, w, h, dpr, game, world, t } = this;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    const f = this.focus;
+    ctx.setTransform(dpr * f.z, 0, 0, dpr * f.z, -f.x * dpr * f.z, -f.y * dpr * f.z);
     ctx.save();
     ctx.translate(sx, sy);
+    this._drawPlayHints();
     const found = game.phase === 'discovered';
     const cloaked = game.cloaked;
     // 승급: 기체 뒤로 회전하는 빛줄기
@@ -645,7 +817,9 @@ export class Scene3D extends Scene {
       ctx.globalAlpha = 1;
     }
     this._layers('overlay', ctx);
+    this._drawQuote();
     ctx.restore();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // 화면 전체 효과
     if (this.gazeAmt > 0.01) {
       const g = ctx.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.35, w / 2, h * 0.45, Math.max(w, h) * 0.75);
@@ -665,6 +839,281 @@ export class Scene3D extends Scene {
     if (this.burst && game.phase === 'discovered') this._drawBurst(this.burst);
   }
 
+  // ───────── 관측 손맛 표시(2D 덧그림) ─────────
+
+  /** 시선 예고·화면 틀·의심 게이지·표본 다루기 표시. */
+  _drawPlayHints() {
+    const { ctx, world, game, t } = this;
+    if (!this.ufoVisible) return;
+    const laneY = this.home.y;
+    const playing = game.phase === 'play';
+    if (playing) {
+      // 고개 들 준비: 시선이 머물 자리를 미리 보여 준다(점선 띠 + ? + 남은 시간)
+      for (const h of world.humans) {
+        if (h.state !== 'notice' || h.gx == null || h.leaving) continue;
+        const gz = WATCHERS[h.type].gaze;
+        const total = Math.max(0.2, game.noticeTime * (gz.notice || 1));
+        const k = 1 - clamp(h.t / total);
+        this._gazeMark(h.gx, laneY, h.gw, k, h.type === 'hunter' ? '#ff5a4e' : '#ffcf4a', '?', gz.kind === 'sweep' ? Math.sign(h.gv || 1) : 0);
+      }
+      for (const src of world.sources) {
+        if (src.phase !== 'warn') continue;
+        const k = 1 - clamp(src.t / src.warn);
+        const gx = clamp(src.gx, 24, this.w - 24);
+        this._gazeMark(gx, laneY, src.gw, k, '#ff9a3c', '!', src.vx ? Math.sign(src.vx) : 0);
+      }
+    }
+    for (const src of world.sources) this._sourceIcon(src, src.phase === 'warn' ? 1 - clamp(src.t / src.warn) : 1);
+    // 사진작가·방송인: 하늘에 화면 틀이 보인다
+    for (const h of world.humans) {
+      if (h.state !== 'look' || h.gx == null) continue;
+      const kind = WATCHERS[h.type].gaze.kind;
+      if (kind === 'frame' || kind === 'selfie') this._viewfinder(h, laneY, kind);
+    }
+    // 의심 게이지
+    if (playing && world.suspicion > 0.01) {
+      const u = this.ufo;
+      const r = this.home.r;
+      const x = u.x + r * 0.95;
+      const y = u.y - r * 0.75 + (world.suspicion > 0.7 ? Math.sin(t * 40) * 1.5 : 0);
+      ctx.save();
+      circle(ctx, x, y, 16);
+      ctx.fillStyle = 'rgba(31,35,80,0.88)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, 16, -Math.PI / 2, -Math.PI / 2 + TAU * world.suspicion);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = world.suspicion > 0.66 ? '#ff4d5e' : '#ffb02e';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      // 눈 모양
+      ctx.beginPath();
+      ctx.ellipse(x, y, 9, 5.5, 0, 0, TAU);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      circle(ctx, x, y, 3);
+      ctx.fillStyle = '#1f2350';
+      ctx.fill();
+      ctx.restore();
+    }
+    // 표본 다루기
+    for (const sp of world.specimens) {
+      if (sp.state !== 'live') continue;
+      let y = sp.mode === 'ground' ? this.groundY - (GROUND_LIFT[sp.kind] || 14) : this._specimenY(sp);
+      const x = sp.x;
+      if (sp.held) {
+        y -= sp.hold * (sp.kind === 'cow' ? 26 : 6);
+        const R = sp.kind === 'cow' ? 34 : 26;
+        ctx.save();
+        circle(ctx, x, y, R);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(31,35,80,0.45)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + TAU * sp.hold);
+        ctx.strokeStyle = sp.kind === 'cow' ? '#7ef0ff' : '#ffb3c7';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (sp.kind === 'drone') {
+        const bx = x + 18;
+        const by = y - 20;
+        ctx.save();
+        rrect(ctx, bx - 4, by - 7, 34, 14, 7);
+        ctx.fillStyle = 'rgba(20,22,45,0.75)';
+        ctx.fill();
+        circle(ctx, bx + 4, by, 3.6);
+        ctx.fillStyle = sp.rec ? (Math.sin(t * 12) > -0.3 ? '#ff3b4e' : '#7a1b26') : '#56607e';
+        ctx.fill();
+        ctx.font = `700 9px ${FONT_BODY}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = sp.rec ? '#ffd3d8' : '#9aa3c2';
+        ctx.fillText('REC', bx + 10, by + 0.5);
+        ctx.restore();
+      }
+      if (sp.kind === 'meteor' && sp.age < 1.15) {
+        const k = sp.age / 1.15;
+        circle(ctx, x, y, 18 + 34 * (1 - k));
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = withAlpha('#ffd23f', 0.9 * (1 - k * 0.6));
+        ctx.stroke();
+      }
+    }
+  }
+
+  /** 시선이 곧 머물 자리: 기체 높이의 점선 띠, 위에 ?·! 표시와 남은 시간 고리. */
+  _gazeMark(x, y, gw, k, color, glyph, sweep) {
+    const { ctx, t } = this;
+    const ry = Math.max(10, gw * 0.3);
+    const pulse = 0.65 + 0.35 * Math.sin(t * 14);
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(x, y, gw, ry, 0, 0, TAU);
+    ctx.fillStyle = withAlpha(color, 0.1 + 0.12 * k);
+    ctx.fill();
+    ctx.setLineDash([7, 6]);
+    ctx.lineDashOffset = -t * 30;
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = withAlpha(color, 0.55 + 0.4 * pulse);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 훑는 방향
+    if (sweep) {
+      const ax = x + sweep * (gw + 14);
+      ctx.beginPath();
+      ctx.moveTo(ax - sweep * 10, y - 8);
+      ctx.lineTo(ax + sweep * 4, y);
+      ctx.lineTo(ax - sweep * 10, y + 8);
+      ctx.lineWidth = 3.5;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = withAlpha(color, 0.9);
+      ctx.stroke();
+    }
+    // 표시와 남은 시간
+    const by = y - ry - 18;
+    circle(ctx, x, by, 13);
+    ctx.fillStyle = '#1f2350';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, by, 13, -Math.PI / 2, -Math.PI / 2 + TAU * k);
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    label(ctx, glyph, x, by + 1, { size: 16, fill: color, lw: 0 });
+    ctx.restore();
+  }
+
+  /** 무대 시선이 나오는 곳: 불 켜지는 창문, 지나가는 정거장, 손전등. */
+  _sourceIcon(src, k) {
+    const { ctx, t } = this;
+    const x = src.ox;
+    const y = src.oy;
+    ctx.save();
+    if (src.kind === 'window') {
+      const on = src.phase === 'on' ? 1 : Math.sin(t * 22) > 0 ? k : k * 0.3;
+      const g = ctx.createRadialGradient(x, y, 2, x, y, 30);
+      g.addColorStop(0, withAlpha('#ffe9a0', 0.6 * on));
+      g.addColorStop(1, withAlpha('#ffe9a0', 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 30, y - 30, 60, 60);
+      rrect(ctx, x - 8, y - 10, 16, 20, 2);
+      ctx.fillStyle = withAlpha('#ffe07a', 0.35 + 0.65 * on);
+      ctx.fill();
+      // 창가의 사람 그림자
+      circle(ctx, x, y - 2, 3.4);
+      ctx.fillStyle = withAlpha('#3a2d1a', 0.8 * on);
+      ctx.fill();
+    } else if (src.kind === 'iss') {
+      const sx = src.phase === 'warn' ? clamp(src.gx, 18, this.w - 18) : x;
+      ctx.translate(sx, y);
+      ctx.globalAlpha = src.phase === 'warn' ? 0.5 + 0.5 * k : 1;
+      ctx.fillStyle = '#cfd8f0';
+      ctx.fillRect(-5, -4, 10, 8);
+      ctx.fillStyle = '#3d5fbf';
+      ctx.fillRect(-22, -6, 14, 12);
+      ctx.fillRect(8, -6, 14, 12);
+      ctx.fillStyle = '#ffe07a';
+      ctx.fillRect(-2, -1.5, 4, 3);
+    } else if (src.kind === 'flashlight') {
+      circle(ctx, x, y, 5);
+      ctx.fillStyle = withAlpha('#fff3b0', 0.4 + 0.6 * k);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /** 사진작가의 뷰파인더(3·2·1 뒤 찰칵), 방송인의 셀카 화면(LIVE). */
+  _viewfinder(h, laneY, kind) {
+    const { ctx, t } = this;
+    const x0 = h.gx - h.gw;
+    const x1 = h.gx + h.gw;
+    const hh = h.gw * 0.62;
+    const y0 = laneY - hh;
+    const y1 = laneY + hh;
+    const c = 14;
+    const col = h.sees ? '#ff5a4e' : '#ffffff';
+    ctx.save();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = withAlpha(col, 0.9);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const [x, y, dx, dy] of [
+      [x0, y0, 1, 1],
+      [x1, y0, -1, 1],
+      [x0, y1, 1, -1],
+      [x1, y1, -1, -1],
+    ]) {
+      ctx.moveTo(x, y + dy * c);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + dx * c, y);
+    }
+    ctx.stroke();
+    if (kind === 'frame') {
+      const n = Math.max(1, Math.min(3, Math.ceil((h.t / Math.max(0.1, h.lookDur)) * 3)));
+      label(ctx, String(n), h.gx, y0 - 16, { size: 24, fill: col, stroke: '#1f2350', lw: 6 });
+    } else {
+      rrect(ctx, x0 + 6, y0 + 6, 46, 16, 8);
+      ctx.fillStyle = 'rgba(255,59,78,0.9)';
+      ctx.fill();
+      circle(ctx, x0 + 14, y0 + 14, 3);
+      ctx.fillStyle = Math.sin(t * 8) > 0 ? '#ffffff' : '#ffb3bb';
+      ctx.fill();
+      ctx.font = `700 10px ${FONT_BODY}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('LIVE', x0 + 20, y0 + 14.5);
+    }
+    ctx.restore();
+  }
+
+  /** 들킨 순간 범인의 한마디 말풍선. */
+  _drawQuote() {
+    const { ctx, game } = this;
+    if (game.phase !== 'discovered' || !this.quote || !this.culprit) return;
+    const T = this.foundT;
+    if (T < 0.3 || T > 2.5) return;
+    const p = this._culpritPoint();
+    if (!p) return;
+    const pop = easeBack(clamp((T - 0.3) / 0.22));
+    const fade = 1 - clamp((T - 2.25) / 0.25);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.font = `700 13px ${FONT_BODY}`;
+    const tw = Math.min(ctx.measureText(this.quote).width, 210);
+    const bw = tw + 22;
+    const bh = 28;
+    const f = this.focus;
+    const minX = f.x + 8 + bw / 2;
+    const maxX = f.x + this.w / f.z - 8 - bw / 2;
+    const bx = clamp(p.x, minX, Math.max(minX, maxX));
+    const by = Math.max(f.y + 12 + bh / 2, p.y - 30);
+    ctx.translate(bx, by);
+    ctx.scale(pop, pop);
+    rrect(ctx, -bw / 2, -bh / 2, bw, bh, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#1f2350';
+    ctx.stroke();
+    // 꼬리
+    const tx = clamp(p.x - bx, -bw / 2 + 14, bw / 2 - 14);
+    ctx.beginPath();
+    ctx.moveTo(tx - 6, bh / 2 - 1);
+    ctx.lineTo(tx, bh / 2 + 9);
+    ctx.lineTo(tx + 6, bh / 2 - 1);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#1f2350';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.quote, 0, 1, 210);
+    ctx.restore();
+  }
+
   /** 들킨 순간 기체 옆에 쾅 찍히는 "들켰다!" — 별 모양 폭발 위에 굵은 글자. */
   _drawBurst(b) {
     const { ctx, w, t } = this;
@@ -672,13 +1121,16 @@ export class Scene3D extends Scene {
     if (k > 1.6) return;
     const pop = k < 0.18 ? easeBack(k / 0.18) : 1;
     const fade = k > 1.25 ? 1 - (k - 1.25) / 0.35 : 1;
-    const x = clamp(this.ufo.x, 120, w - 120);
-    const y = Math.max(this.insets.top + 50, this.ufo.y - 112); // 당황한 피포가 보이게 기체 위쪽에
+    // 당황한 피포가 가려지지 않게 기체 옆 위쪽에(빈 쪽으로) 찍는다
+    const fp = this._fp(this.ufo.x, this.ufo.y);
+    const side = fp.x < w / 2 ? 1 : -1;
+    const x = clamp(fp.x + side * 105, 96, w - 96);
+    const y = Math.max(this.insets.top + 64, fp.y - 70 * this.focus.z);
     ctx.save();
     ctx.globalAlpha = Math.max(0, fade);
     ctx.translate(x, y);
     ctx.rotate(-0.08 + Math.sin(t * 30) * 0.01);
-    ctx.scale(pop * 0.88, pop * 0.88);
+    ctx.scale(pop * 0.74, pop * 0.74);
     // 별 모양 폭발
     star(ctx, 0, 0, 108, 70, 14, t * 0.4);
     ctx.fillStyle = '#ffd23f';

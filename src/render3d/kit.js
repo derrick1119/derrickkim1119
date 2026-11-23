@@ -419,6 +419,8 @@ export function cloud3d(blobs, { color = '#ffffff', shadeColor = '#c4cff2', opac
 }
 
 const cloudMats = new Map();
+/** 지금까지 만든 구름 재질들(날씨가 밤·폭풍일 때 구름 빛을 낮추는 데 쓴다). */
+export const cloudMaterials = () => cloudMats.values();
 function cloudMaterial(color, shadeColor, opacity, fog) {
   const key = `${color}|${shadeColor}|${opacity}|${fog}`;
   let m = cloudMats.get(key);

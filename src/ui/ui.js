@@ -10,7 +10,7 @@ import { playMinigame } from './minigames/index.js';
 import './ext/index.js';
 
 const MISSION_SUSPENSE_MS = 2100;
-const REPORT_DELAY_MS = 1250;
+const REPORT_DELAY_MS = 2500; // 들킨 순간의 당겨 보기(범인 한마디)가 끝날 때까지
 const RECALL_MS = 650;
 const TOAST_MS = 2400;
 const TOAST_QUICK_MS = 1400; // 뒤에 밀린 알림이 있을 때
@@ -75,7 +75,12 @@ export class UI {
         console.warn(`확장 ${b.id}`, err);
       }
     }
-    this.scene.canvas.addEventListener('pointerdown', (e) => this._onPointer(e));
+    const cv = this.scene.canvas;
+    cv.addEventListener('pointerdown', (e) => this._onPointer(e));
+    cv.addEventListener('pointermove', (e) => this._onPointerMove(e));
+    cv.addEventListener('pointerup', (e) => this._onPointerUp(e));
+    cv.addEventListener('pointercancel', () => this._onPointerCancel());
+    cv.addEventListener('lostpointercapture', () => this._onPointerCancel());
     // 휴대폰이 소리를 멈췄다가(전화·잠금 등) 돌아왔을 때 다음 터치에서 다시 깨운다
     for (const type of ['pointerdown', 'click']) this.stage.addEventListener(type, () => this.audio.unlock(), { capture: true, passive: true });
   }
@@ -491,11 +496,12 @@ export class UI {
     let key = '';
     let who = '';
     if (game.phase === 'play' && this.started) {
-      const looking = world.watchers[0];
+      const looking = world.watchers.find((hm) => hm.sees) || world.watchers[0];
       const noticing = world.humans.find((hm) => hm.state === 'notice');
       if (looking) {
-        key = game.cloaked ? 'cloaked' : 'look';
+        key = game.cloaked ? 'cloaked' : world.hidden ? 'hidden' : looking.sees ? 'look' : 'near';
         who = looking.type;
+        if (key === 'near' && world._margin(looking.gx, looking.gw) > 60) key = '';
       } else if (noticing) {
         key = 'notice';
         who = noticing.type;
@@ -637,9 +643,39 @@ export class UI {
       this.closePanel();
       return;
     }
+    if (this.pointerId != null) return; // 손가락 하나만 쓴다
     const p = this.scene.toLocal(e);
-    const hit = this.world.tap(p.x, p.y);
-    if (!hit) this.scene.ring(p.x, p.y, '#ffffff', 14, 0.25);
+    const hit = this.world.pointerDown(p.x, p.y);
+    if (!hit) return;
+    this.pointerId = e.pointerId;
+    this.pointerStart = p;
+    try {
+      this.scene.canvas.setPointerCapture(e.pointerId);
+    } catch {
+      /* 이미 떨어진 손가락 */
+    }
+  }
+
+  _onPointerMove(e) {
+    if (e.pointerId !== this.pointerId) return;
+    const p = this.scene.toLocal(e);
+    this.world.pointerMove(p.x, p.y);
+  }
+
+  _onPointerUp(e) {
+    if (e.pointerId !== this.pointerId) return;
+    this.pointerId = null;
+    const p = this.scene.toLocal(e);
+    const res = this.world.pointerUp(p.x, p.y);
+    const s = this.pointerStart;
+    // 빈 하늘을 톡 쳤을 때: 작은 고리
+    if (!res && s && Math.hypot(p.x - s.x, p.y - s.y) < 8 && this.world.pointer == null) this.scene.ring(p.x, p.y, '#ffffff', 14, 0.25);
+  }
+
+  _onPointerCancel() {
+    if (this.pointerId == null) return;
+    this.pointerId = null;
+    this.world.pointerCancel();
   }
 
   _onMissionButton() {

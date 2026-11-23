@@ -266,6 +266,47 @@ export class GameAudio {
       case 'achievement':
         [79, 84, 91].forEach((n, i) => this._tone({ freq: NOTE(n), type: 'sine', at: i * 0.1, dur: 0.4, gain: 0.2 }));
         break;
+      case 'nearMiss':
+        // 휙 — 아슬아슬하게 비켜 간 바람 소리와 반짝 두 음
+        this._noise({ dur: 0.22, gain: 0.22, freq: 900, to: 4200, q: 1.2, type: 'bandpass' });
+        this._tone({ freq: NOTE(88), type: 'triangle', at: 0.08, dur: 0.1, gain: 0.2 });
+        this._tone({ freq: NOTE(95), type: 'triangle', at: 0.16, dur: 0.18, gain: 0.2 });
+        break;
+      case 'combo': {
+        const n = 76 + Math.min(tier, 12) * 2;
+        this._tone({ freq: NOTE(n), type: 'square', dur: 0.05, gain: 0.07 });
+        this._tone({ freq: NOTE(n + 7), type: 'sine', at: 0.04, dur: 0.1, gain: 0.1 });
+        break;
+      }
+      case 'pop':
+        this._noise({ dur: 0.08, gain: 0.7, freq: 2400, q: 0.5, type: 'highpass' });
+        this._tone({ freq: 900, to: 200, type: 'square', dur: 0.08, gain: 0.14 });
+        break;
+      case 'moo':
+        this._tone({ freq: 150, to: 110, type: 'sawtooth', dur: 0.55, gain: 0.16, vibrato: 6 });
+        this._tone({ freq: 300, to: 220, type: 'sine', dur: 0.55, gain: 0.08 });
+        break;
+      case 'cluck':
+        [0, 0.09, 0.16].forEach((at, i) => this._tone({ freq: 700 + i * 120, to: 420, type: 'square', at, dur: 0.06, gain: 0.08 }));
+        break;
+      case 'snip':
+        this._noise({ dur: 0.04, gain: 0.5, freq: 6000, q: 1, type: 'highpass' });
+        this._noise({ at: 0.06, dur: 0.04, gain: 0.4, freq: 7000, q: 1, type: 'highpass' });
+        break;
+      case 'drop':
+        this._tone({ freq: 500, to: 120, type: 'triangle', dur: 0.3, gain: 0.2 });
+        this._noise({ at: 0.28, dur: 0.12, gain: 0.4, freq: 200, q: 0.7, type: 'lowpass' });
+        break;
+      case 'shiny':
+        [88, 91, 95, 100].forEach((n, i) => this._tone({ freq: NOTE(n), type: 'sine', at: i * 0.05, dur: 0.22, gain: 0.13 }));
+        break;
+      case 'thunder':
+        this._noise({ dur: 1.4, gain: 0.5, freq: 160, to: 60, q: 0.5, type: 'lowpass' });
+        break;
+      case 'shutter':
+        this._noise({ dur: 0.04, gain: 0.55, freq: 4500, q: 0.6, type: 'highpass' });
+        this._noise({ at: 0.07, dur: 0.05, gain: 0.45, freq: 2500, q: 0.6, type: 'highpass' });
+        break;
       case 'ending':
         [60, 64, 67, 72, 76, 79, 84].forEach((n, i) => this._tone({ freq: NOTE(n), type: 'triangle', at: i * 0.14, dur: 0.9, gain: 0.2 }));
         break;

@@ -51,6 +51,7 @@ export function defaultState() {
       bestCombo: 0,
       nearMisses: 0,
       excuses: 0,
+      shinies: 0,
       playTime: 0,
       bySpecimen: {},
     },
@@ -133,6 +134,7 @@ export function sanitize(raw) {
     bestCombo: int(rs.bestCombo, 0),
     nearMisses: int(rs.nearMisses, 0),
     excuses: int(rs.excuses, 0),
+    shinies: int(rs.shinies, 0),
     playTime: num(rs.playTime, 0),
     bySpecimen: {},
   };

@@ -225,7 +225,9 @@ export class Engine {
     const cam = this.camera;
     cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfH / f));
     cam.aspect = w / (2 * halfH);
-    cam.setViewOffset(w, 2 * halfH, 0, halfH - horizonY, w, h);
+    // 초점(들킨 순간 범인과 기체를 당겨 보여 줄 때): 화면의 일부를 잘라 크게 본다
+    const fz = this.focus?.z || 1;
+    cam.setViewOffset(w, 2 * halfH, this.focus?.x || 0, halfH - horizonY + (this.focus?.y || 0), w / fz, h / fz);
     cam.position.set(this.shake.x / PX, camY - this.shake.y / PX, CAM_DIST);
     cam.lookAt(this.shake.x / PX, camY - this.shake.y / PX, 0);
     cam.updateProjectionMatrix();
@@ -235,6 +237,16 @@ export class Engine {
   setShadows(on) {
     if (this.sun.castShadow === on) return;
     this.sun.castShadow = on;
+  }
+
+  /** 화면의 (x, y) 를 왼쪽 위로 하는 w/z × h/z 영역을 화면 가득 보여 준다(z = 1 이면 원래대로). */
+  setFocus(x, y, z) {
+    const f = this.focus || (this.focus = { x: 0, y: 0, z: 1 });
+    if (f.x === x && f.y === y && f.z === z) return;
+    f.x = x;
+    f.y = y;
+    f.z = z;
+    this._applyCamera();
   }
 
   /** 화면 흔들림(px). */

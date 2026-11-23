@@ -20,22 +20,65 @@ export const GOAL_SIZE = 1500000;
 export const AIRBORNE_STAGES = new Set(['cloudsea', 'orbit']);
 
 /**
+ * 날씨. 대원이 도착할 때와 관측 중 가끔 바뀐다.
+ * weight = 무대별 확률 가중치, look = 올려다보기까지의 시간 배율, gaze = 시선 반폭 배율
+ */
+export const WEATHERS = {
+  clear: { look: 1, gaze: 1 },
+  rain: { look: 1.35, gaze: 0.85 },
+  fog: { look: 1, gaze: 0.6 },
+  storm: { look: 1.25, gaze: 0.85 },
+  night: { look: 1.1, gaze: 0.75 },
+};
+export const STAGE_WEATHER = {
+  farm: { clear: 6, rain: 1.4, fog: 1, storm: 0.6, night: 1 },
+  suburb: { clear: 6, rain: 1.6, fog: 1, storm: 0.8, night: 1.4 },
+  camp: { clear: 5, rain: 1.2, fog: 1.4, storm: 0.8, night: 2.2 },
+  city: { clear: 6, rain: 1.8, fog: 1, storm: 1, night: 1.6 },
+  observatory: { clear: 6, fog: 1, storm: 0.6, night: 2 },
+  cloudsea: { clear: 6, fog: 2, storm: 1.4 },
+  orbit: { clear: 1 },
+};
+
+/**
+ * 무대마다 다른 규칙. 엄폐물(구름·연기)과 사람 말고도 시선을 보내는 것들.
+ * covers = 엄폐물이 생기는 간격[초], source = 무대 고유 시선(예고 → 켜짐), every = 간격[초]
+ */
+export const STAGE_RULES = {
+  farm: { covers: [16, 26] },
+  suburb: { covers: [16, 26] },
+  camp: { covers: [14, 22], smoke: true },
+  city: { covers: [18, 28], source: { kind: 'window', cause: 'window_peek', every: [13, 21], warn: 1.1, on: 2.0, w: 0.11 } },
+  observatory: { covers: [18, 28], source: { kind: 'dome', cause: 'observatory_dome', every: [16, 24], warn: 1.3, on: 3.0, w: 0.08 } },
+  cloudsea: { covers: [5, 9] },
+  orbit: { covers: null, source: { kind: 'iss', cause: 'iss_window', every: [18, 27], warn: 1.6, on: 4.5, w: 0.13 } },
+};
+
+/**
  * 하늘을 올려다보는 지구인.
- * detect = 올려다보는 중에 빔을 쐈을 때 들킬 기본 확률
+ * detect = 시선 안에서 빔을 쐈을 때 들킬 기본 확률
  * walk/look = 걷는 시간, 올려다보는 시간의 [최소, 최대] 초
+ * gaze = 시선의 모양. 시선은 기체가 떠 있는 높이에서 [gx - 반폭, gx + 반폭] 구간을 본다.
+ *   w    = 반폭(화면 너비에 대한 비율)
+ *   aim  = 고개를 들 때 기체 쪽을 겨냥할 확률(아니면 하늘 아무 데나)
+ *   kind = aim(겨냥해서 가만히) · sudden(예고가 짧다) · drift(천천히 따라온다) · sweep(한쪽에서 반대쪽으로 훑는다)
+ *          selfie(등 뒤 하늘을 화면에 담는다) · frame(3·2·1 뒤 플래시 순간에만 찍힌다) · track(기체를 끈질기게 따라온다)
+ *   notice = 예고 시간 배율
  */
 export const WATCHERS = {
-  farmer: { cause: 'gaze_farmer', detect: 0.5, walk: [7, 13], look: [1.6, 2.6], speed: 14 },
-  kid: { cause: 'gaze_kid', detect: 0.7, walk: [6, 11], look: [1.2, 2.0], speed: 26, scale: 0.74 },
-  walker: { cause: 'gaze_walker', detect: 0.55, walk: [7, 13], look: [1.5, 2.4], speed: 22 },
-  camper: { cause: 'gaze_camper', detect: 0.6, walk: [8, 14], look: [2.0, 3.0], speed: 10 },
-  fisher: { cause: 'gaze_fisher', detect: 0.45, walk: [9, 15], look: [2.2, 3.4], speed: 8 },
-  worker: { cause: 'gaze_worker', detect: 0.4, walk: [8, 14], look: [1.2, 2.0], speed: 24 },
-  streamer: { cause: 'gaze_streamer', detect: 0.85, walk: [9, 15], look: [1.4, 2.2], speed: 18 },
-  astronomer: { cause: 'gaze_astronomer', detect: 0.8, walk: [6, 10], look: [2.2, 3.2], speed: 12 },
-  photographer: { cause: 'gaze_photographer', detect: 0.75, walk: [8, 13], look: [2.4, 3.4], speed: 12 },
-  balloonist: { cause: 'gaze_balloonist', detect: 0.65, walk: [7, 12], look: [1.8, 2.8], speed: 9 },
-  astronaut: { cause: 'gaze_astronaut', detect: 0.9, walk: [7, 12], look: [1.6, 2.6], speed: 7 },
+  farmer: { cause: 'gaze_farmer', detect: 0.5, walk: [7, 13], look: [1.6, 2.6], speed: 14, gaze: { kind: 'aim', w: 0.15, aim: 0.6 } },
+  kid: { cause: 'gaze_kid', detect: 0.7, walk: [6, 11], look: [1.2, 2.0], speed: 26, scale: 0.74, gaze: { kind: 'sudden', w: 0.12, aim: 0.5, notice: 0.55 } },
+  walker: { cause: 'gaze_walker', detect: 0.55, walk: [7, 13], look: [1.5, 2.4], speed: 22, gaze: { kind: 'aim', w: 0.15, aim: 0.55 } },
+  camper: { cause: 'gaze_camper', detect: 0.6, walk: [8, 14], look: [2.0, 3.0], speed: 10, gaze: { kind: 'drift', w: 0.19, aim: 0.35 } },
+  fisher: { cause: 'gaze_fisher', detect: 0.45, walk: [9, 15], look: [2.2, 3.4], speed: 8, gaze: { kind: 'drift', w: 0.17, aim: 0.5 } },
+  worker: { cause: 'gaze_worker', detect: 0.4, walk: [8, 14], look: [1.2, 2.0], speed: 24, gaze: { kind: 'sudden', w: 0.12, aim: 0.65, notice: 0.7 } },
+  streamer: { cause: 'gaze_streamer', detect: 0.85, walk: [9, 15], look: [1.8, 2.6], speed: 18, gaze: { kind: 'selfie', w: 0.17, aim: 0 } },
+  astronomer: { cause: 'gaze_astronomer', detect: 0.8, walk: [6, 10], look: [2.4, 3.2], speed: 12, gaze: { kind: 'sweep', w: 0.1, aim: 0 } },
+  photographer: { cause: 'gaze_photographer', detect: 0.75, walk: [8, 13], look: [2.4, 3.0], speed: 12, gaze: { kind: 'frame', w: 0.15, aim: 0.75 } },
+  balloonist: { cause: 'gaze_balloonist', detect: 0.65, walk: [7, 12], look: [1.8, 2.8], speed: 9, gaze: { kind: 'drift', w: 0.2, aim: 0.45 } },
+  astronaut: { cause: 'gaze_astronaut', detect: 0.9, walk: [7, 12], look: [1.8, 2.8], speed: 7, gaze: { kind: 'sweep', w: 0.16, aim: 0 } },
+  // 특별 손님: UFO 헌터. 무대에 정해져 있지 않고 가끔 찾아온다.
+  hunter: { cause: 'gaze_hunter', detect: 0.9, walk: [3.5, 6], look: [3.2, 4.4], speed: 20, guest: true, gaze: { kind: 'track', w: 0.1, aim: 1, notice: 0.8 } },
 };
 
 /**
@@ -83,11 +126,40 @@ export const MISSIONS = [
   { id: 'moon', cost: 6500, gain: 750000, risk: 0.66, causes: ['eclipse_live'] },
 ];
 
-/** 특수 사건. 표본도 시선도 임무도 아닌 곳에서 터진다. */
+/**
+ * 특수 사건. 표본도 시선도 임무도 아닌 곳에서 터진다.
+ * tier = 도감 등급(common · rare · legendary), hidden = 들키기 전까지 도감에 ??? 로만 보이는 숨은 사건
+ */
 export const SPECIALS = {
   sneeze: { risk: 0.02 }, // 은폐를 켜는 순간
   selfie: { risk: 0.04 }, // 형태가 바뀌는 순간
-  tickle: { risk: 1 }, // 기체를 연달아 건드렸을 때
+  tickle: { risk: 1, tier: 'rare', hidden: true }, // 기체를 연달아 건드렸을 때
+  // 표본 다루기 실수
+  cow_drop: { risk: 0.35 }, // 소를 들어 올리다 놓쳤을 때
+  balloon_pop: { risk: 0.45 }, // 풍선을 세게 눌러 터뜨렸을 때
+  kite_tangle: { risk: 0.3 }, // 연줄을 끊지 않고 연을 끌어당겼을 때
+  // 날씨·무대
+  lightning: { risk: 0.4, tier: 'rare' }, // 뇌우: 번개가 기체를 비췄을 때
+  flashlight: { risk: 0.6 }, // 밤: 순찰 손전등에 걸렸을 때
+  window_peek: { risk: 0.6 }, // 도시: 창밖을 내다본 사람
+  observatory_dome: { risk: 0.7, tier: 'rare' }, // 천문대: 큰 망원경이 훑을 때
+  iss_window: { risk: 0.75, tier: 'rare' }, // 궤도: 우주 정거장 창문
+  // 숨은 사건
+  viral: { risk: 0.5, tier: 'rare', hidden: true }, // 두 사람이 동시에 봤을 때
+  cow_union: { risk: 0.25, tier: 'rare', hidden: true }, // 소를 잇달아 셋이나 데려갔을 때
+  greedy: { risk: 0.3, tier: 'rare', hidden: true }, // 빔 다섯 줄을 한꺼번에 쐈을 때
+  photobomb: { risk: 1, tier: 'rare', hidden: true }, // 셀카에 지구인이 찍혔을 때
+};
+
+/** 표본·시선·임무 사건 가운데 등급이 높은 것. 나머지는 common. */
+const CAUSE_TIERS = {
+  meteor_wish: 'rare',
+  satellite_feed: 'rare',
+  gaze_astronaut: 'rare',
+  pyramid_photo: 'rare',
+  tower_clearance: 'rare',
+  eclipse_live: 'legendary',
+  gaze_hunter: 'legendary',
 };
 
 /** 기체를 이만큼 연달아 건드리면 간지럼 사건 판정. */
@@ -107,11 +179,18 @@ function buildCauses() {
       list.push({ id: WATCHERS[w].cause, kind: 'gaze', base: WATCHERS[w].detect, ref: w });
     }
   }
+  for (const [w, cfg] of Object.entries(WATCHERS)) {
+    if (cfg.guest) list.push({ id: cfg.cause, kind: 'gaze', base: cfg.detect, ref: w });
+  }
   for (const m of MISSIONS) {
     for (const c of m.causes) list.push({ id: c, kind: 'mission', base: m.risk, ref: m.id });
   }
   for (const [id, sp] of Object.entries(SPECIALS)) {
-    list.push({ id, kind: 'special', base: sp.risk, ref: id });
+    list.push({ id, kind: 'special', base: sp.risk, ref: id, tier: sp.tier, hidden: !!sp.hidden });
+  }
+  for (const c of list) {
+    c.tier = c.tier || CAUSE_TIERS[c.id] || 'common';
+    c.hidden = !!c.hidden;
   }
   return list;
 }
@@ -168,6 +247,9 @@ export const ACHIEVEMENTS = [
   { id: 'gen_100', reward: 800, goal: 100, stat: (s) => s.gen },
   { id: 'daredevil', reward: 120, goal: 1, stat: (s) => s.stats.daredevil },
   { id: 'patience', reward: 100, goal: 120, stat: (s) => s.stats.bestRunSpecimens },
+  { id: 'combo_15', reward: 80, goal: 15, stat: (s) => s.stats.bestCombo || 0 },
+  { id: 'near_miss_10', reward: 120, goal: 10, stat: (s) => s.stats.nearMisses || 0 },
+  { id: 'excuse_1', reward: 60, goal: 1, stat: (s) => s.stats.excuses || 0 },
   { id: 'tickle', reward: 50, goal: 1, stat: (s) => (s.seen.tickle ? 1 : 0), hidden: true },
   { id: 'clear_1', reward: 1500, goal: 1, stat: (s) => s.clears },
   { id: 'true_end', reward: 3000, goal: 1, stat: (s) => (s.flags.trueEnding ? 1 : 0), hidden: true },

@@ -18,6 +18,7 @@ import {
   star,
   withAlpha,
   label,
+  puffs,
 } from './draw.js';
 import { drawUfo, drawCloak, UFO_HALF_WIDTH, UFO_BELLY, UFO_TOP } from './ufo.js';
 import { drawWatcher, headOffset, topOffset } from './people.js';
@@ -29,6 +30,8 @@ const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
 /** 지상 표본의 중심이 땅에서 떠 있는 높이. */
 const GROUND_LIFT = { chicken: 15, cow: 16 };
 const MAX_DPR = 2;
+/** 2D 그림이 없는 지구인(특별 손님)은 비슷한 사람으로 그린다. */
+const model2d = (type) => (type === 'hunter' ? 'photographer' : type);
 /** 견인 빔 색: 직접 쏠 때 · 수집 드론 · 들킨 순간 */
 const BEAM = P.glow;
 const BEAM_AUTO = '#8dffc8';
@@ -274,6 +277,12 @@ export class Scene {
     this.ufo.mode = 'return';
     this.ufo.modeT = 0;
   }
+  /** 변명이 통했을 때: 들킨 자세를 풀고 다시 떠 있는다. */
+  ufoRecover() {
+    this.ufo.mode = 'hover';
+    this.ufo.modeT = 0;
+    this.foundT = 0;
+  }
   ufoRecall() {
     this.ufo.mode = 'recall';
     this.ufo.modeT = 0;
@@ -334,6 +343,8 @@ export class Scene {
       default:
         u.x = hx;
         u.y = hy + bob;
+        // 옆으로 미끄러질 때 살짝 기운다
+        u.rot += clamp(-(this.world.ufoVX || 0) * 0.0006, -0.22, 0.22);
     }
     if (this.wobbleT > 0) {
       this.wobbleT -= dt;
@@ -347,8 +358,8 @@ export class Scene {
     if (game.phase === 'discovered') return 'shock';
     if (game.phase === 'ending') return 'happy';
     if (game.cloaked) return this.happyT > 0 ? 'happy' : 'idle';
-    if (world.watchers.length) return 'hide';
-    if (world.noticing) return 'alert';
+    if (world.watchers.some((h) => h.sees) || world.suspicion > 0.3) return 'hide';
+    if (world.noticing || world.watchers.length) return 'alert';
     if (this.happyT > 0) return 'happy';
     return 'idle';
   }
@@ -358,11 +369,15 @@ export class Scene {
   update(dt) {
     const { game, world } = this;
     this.t += dt;
+    // 기체는 세계가 정한 가로 자리(끌기)를 따라간다
+    if (this.home && Number.isFinite(world.ufoX)) this.home.x = world.ufoX;
     this._updateUfo(dt);
     this.happyT = Math.max(0, this.happyT - dt);
-    const watched = world.watchers.length > 0 && !game.cloaked && game.phase === 'play';
+    const playing = !game.cloaked && game.phase === 'play';
+    const watched = world.watchers.length > 0 && playing;
+    const seen = playing && (world.watchers.some((h) => h.sees) || world.sources?.some((s) => s.sees));
     this.lit = lerp(this.lit, watched ? 0.08 : 1, Math.min(1, dt * 10));
-    this.gazeAmt = lerp(this.gazeAmt, watched ? 1 : 0, Math.min(1, dt * 8));
+    this.gazeAmt = lerp(this.gazeAmt, seen ? 1 : watched ? 0.3 : 0, Math.min(1, dt * 8));
     this.cloakAmt = lerp(this.cloakAmt, game.cloaked ? 1 : 0, Math.min(1, dt * 9));
     if (this.fadeT < 1) {
       this.fadeT = Math.min(1, this.fadeT + dt / 0.9);
@@ -447,13 +462,24 @@ export class Scene {
     const belly = this.bellyPoint();
     const showUfo = this.ufoVisible;
 
-    // 시선 원뿔
+    // 시선 원뿔: 시선이 머무는 하늘 구간까지
     for (const hmn of world.humans) {
       if (hmn.state !== 'look' && !(found && hmn.spotted)) continue;
       const s = WATCHERS[hmn.type].scale || 1;
-      const ho = headOffset(hmn.type, s);
-      const color = cloaked ? C.lilac : hmn.spotted ? C.coral : '#fff3a8';
-      this._cone(ho.x + this._humanX(hmn), this._humanBase(hmn) + ho.y, color, cloaked ? 0.2 : hmn.spotted ? 0.5 : 0.42);
+      const ho = headOffset(model2d(hmn.type), s);
+      const hot = hmn.sees || hmn.spotted;
+      const color = cloaked ? C.lilac : hot ? C.coral : '#fff3a8';
+      const tx = found && hmn.spotted ? this.home.x : hmn.gx ?? this.home.x;
+      this._cone(ho.x + this._humanX(hmn), this._humanBase(hmn) + ho.y, color, cloaked ? 0.2 : hot ? 0.5 : 0.42, tx, hmn.gw || 40);
+    }
+    for (const src of world.sources || []) {
+      if (src.phase !== 'on') continue;
+      this._cone(src.ox, src.oy, src.sees ? C.coral : '#cfe9ff', 0.4, src.gx, src.gw);
+    }
+    // 고개 들 준비: 시선이 머물 자리 미리 보기
+    if (game.phase === 'play') {
+      for (const hmn of world.humans) if (hmn.state === 'notice' && hmn.gx != null) this._preview(hmn.gx, hmn.gw, '#ffcf4a');
+      for (const src of world.sources || []) if (src.phase === 'warn') this._preview(Math.min(Math.max(src.gx, 24), w - 24), src.gw, '#ff9a3c');
     }
 
     // 연줄
@@ -484,6 +510,17 @@ export class Scene {
 
     // 기체
     if (showUfo) this._ufo();
+    // 엄폐물(구름·연기): 기체 앞을 지나간다
+    for (const c of world.covers || []) {
+      const k = 0.35 + 0.65 * clamp(c.a);
+      ctx.save();
+      ctx.globalAlpha = c.kind === 'smoke' ? 0.85 : 0.94;
+      ctx.translate(c.x, c.y);
+      ctx.scale((c.rx / 60) * k, (c.ry / 30) * k);
+      const blobs = c.kind === 'smoke' ? [[0, 18, 22], [4, -2, 26], [-4, -24, 24]] : [[-38, 4, 20], [-16, -8, 26], [10, -12, 30], [34, 0, 22], [0, 10, 26]];
+      puffs(ctx, blobs, c.kind === 'smoke' ? '#ece6f2' : '#ffffff', 0, C.ink);
+      ctx.restore();
+    }
 
     // 땅 위: 지상 표본과 지구인
     for (const sp of world.specimens) if (sp.mode === 'ground') this._specimen(sp, belly, cloaked);
@@ -498,7 +535,7 @@ export class Scene {
       ctx.save();
       ctx.translate(hx, base);
       ctx.scale(s, s);
-      drawWatcher(ctx, hmn.type, {
+      drawWatcher(ctx, model2d(hmn.type), {
         t: t + hmn.phase,
         dir: facing,
         walk: (hmn.state === 'walk' && game.playing) || (found && this.foundT < CHASE_TIME) ? 1 : 0,
@@ -507,7 +544,7 @@ export class Scene {
         wave: waving,
       });
       ctx.restore();
-      const top = base + topOffset(hmn.type, s);
+      const top = base + topOffset(model2d(hmn.type), s);
       if (found) this._bubble(hx, top, 'bang', t + hmn.phase);
       else if (hmn.state === 'notice') this._bubble(hx, top, 'ask', t);
       else if (hmn.state === 'look') this._bubble(hx, top, cloaked ? 'blind' : 'eye', t);
@@ -634,16 +671,15 @@ export class Scene {
   }
 
   /** 지구인의 시선: 머리에서 기체 쪽으로 퍼지는 빛. */
-  _cone(hx, hy, color, alpha) {
+  _cone(hx, hy, color, alpha, tx = this.home.x, gw = 48) {
     const { ctx } = this;
-    const tx = this.home.x;
     const ty = this.home.y;
     const dx = tx - hx;
     const dy = ty - hy;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len;
     const ny = dx / len;
-    const spread = Math.min(this.home.r * 0.95, 48);
+    const spread = gw;
     const g = ctx.createLinearGradient(hx, hy, tx, ty);
     g.addColorStop(0, withAlpha(color, alpha));
     g.addColorStop(1, withAlpha(color, alpha * 0.18));
@@ -654,6 +690,22 @@ export class Scene {
     ]);
     ctx.fillStyle = g;
     ctx.fill();
+  }
+
+  /** 시선이 곧 머물 자리(점선 타원). */
+  _preview(x, gw, color) {
+    const { ctx, t } = this;
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(x, this.home.y, gw, Math.max(10, gw * 0.3), 0, 0, TAU);
+    ctx.setLineDash([7, 6]);
+    ctx.lineDashOffset = -t * 30;
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = withAlpha(color, 0.9);
+    ctx.stroke();
+    ctx.fillStyle = withAlpha(color, 0.14);
+    ctx.fill();
+    ctx.restore();
   }
 
   /** 머리 위 말풍선: ask(?) · eye(보는 중) · blind(구름에 가려 못 봄) · bang(!) */

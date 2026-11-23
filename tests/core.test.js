@@ -388,7 +388,8 @@ test('표기', () => {
 
 test('콘텐츠 정합성', () => {
   assert.equal(new Set(CAUSES.map((c) => c.id)).size, CAUSES.length, '사건 id 중복 없음');
-  assert.equal(CAUSES.length, 38);
+  assert.equal(CAUSES.length, 51);
+  for (const c of CAUSES) assert.ok(['common', 'rare', 'legendary'].includes(c.tier), `${c.id} 등급`);
   for (let i = 1; i < SPECIMENS.length; i++) {
     assert.ok(SPECIMENS[i].cost > SPECIMENS[i - 1].cost);
     assert.ok(SPECIMENS[i].gain > SPECIMENS[i - 1].gain);
@@ -425,6 +426,7 @@ test('월드: 표본이 생기고, 누르면 모이고, 시선 중에 누르면 
   }
   assert.ok(looked);
   assert.equal(w.watchers.length, 1);
+  w.humans[0].gx = w.ufoX; // 시선이 기체를 향하게
   g.rng = always(0);
   const target = w.specimens.find((s) => s.state === 'live');
   assert.ok(target, '화면에 표본이 남아 있다');

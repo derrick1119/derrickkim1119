@@ -42,8 +42,8 @@ import './featureList.js';
 
 const POKE_WINDOW = 2.5; // 이 시간 동안 안 건드리면 간지럼 횟수가 풀린다
 const COMBO_WINDOW = 2.6; // 이 시간 안에 다음 표본을 모아야 콤보가 이어진다
-const COMBO_STEP = 0.04; // 콤보 하나당 성장 배율
-const COMBO_MAX_STEPS = 20; // 최대 1.8배
+const COMBO_STEP = 0.025; // 콤보 하나당 성장 배율
+const COMBO_MAX_STEPS = 16; // 최대 1.4배
 const EXCUSE_BASE = 0.35; // 변명이 통할 기본 확률
 
 export class Game extends Emitter {
@@ -230,11 +230,12 @@ export class Game extends Emitter {
   /**
    * 표본 하나를 모은다.
    * @param {string} id
-   * @param {{watchers?: string[], auto?: boolean, bonus?: number, perfect?: boolean}} [ctx]
-   *   watchers = 지금 이쪽을 보고 있는 지구인들(시선 범위 안), bonus = 성장 배율(아슬아슬·완벽 등)
+   * @param {{watchers?: string[], auto?: boolean, bonus?: number, perfect?: boolean, shiny?: boolean, specRisk?: number}} [ctx]
+   *   watchers = 지금 기체를 보고 있는 것들(지구인 종류 또는 사건 id: 창문·망원경 등). 둘 이상이면 '동시 목격'.
+   *   bonus = 성장 배율(반짝이·완벽 등), specRisk = 표본 자체 사건 확률 배율(드론 녹화등 등)
    * @returns {{ok: boolean, gain: number, formUps: object[], report: object|null, ending: object|null}}
    */
-  collect(id, { watchers = [], auto = false, bonus = 1, perfect = false } = {}) {
+  collect(id, { watchers = [], auto = false, bonus = 1, perfect = false, shiny = false, specRisk = 1 } = {}) {
     const none = { ok: false, gain: 0, formUps: [], report: null, ending: null };
     const spec = SPECIMEN_BY_ID[id];
     if (!this.playing || !spec || !this.state.unlocked.specimens[id]) return none;
@@ -242,13 +243,17 @@ export class Game extends Emitter {
 
     // 수집 드론과 구름 은폐 중에는 들키지 않는다.
     if (!auto && !this.cloaked) {
+      // 두 시선이 동시에 기체를 보면 '동시 목격' 이 먼저 걸린다
+      if (watchers.length >= 2 && this.rng() < this.chance('viral')) {
+        return { ...none, ok: true, report: this._discover('viral', { specimen: id, watcher: watchers[0] }) };
+      }
       for (const w of watchers) {
-        const cause = WATCHERS[w]?.cause;
+        const cause = WATCHERS[w]?.cause || (CAUSE_BY_ID_LOCAL[w] ? w : null);
         if (cause && this.rng() < this.chance(cause)) {
           return { ...none, ok: true, report: this._discover(cause, { specimen: id, watcher: w }) };
         }
       }
-      if (spec.cause && this.rng() < this.chance(spec.cause)) {
+      if (spec.cause && this.rng() < Math.min(1, this.chance(spec.cause) * specRisk)) {
         return { ...none, ok: true, report: this._discover(spec.cause, { specimen: id }) };
       }
     }
@@ -266,7 +271,8 @@ export class Game extends Emitter {
       s.stats.bestCombo = Math.max(s.stats.bestCombo || 0, s.run.combo);
       gain *= this.comboMult;
     }
-    this.emit('collected', { id, gain, auto, combo: s.run.combo || 0, bonus, perfect });
+    if (shiny) s.stats.shinies = (s.stats.shinies || 0) + 1;
+    this.emit('collected', { id, gain, auto, combo: s.run.combo || 0, bonus, perfect, shiny });
     // 구름 은폐 중이거나 드론이 모은 것은 승급 셀카로도 들키지 않는다
     const grown = this._addSize(gain, !auto && !this.cloaked);
     this.emit('change');
