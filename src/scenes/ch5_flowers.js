@@ -190,7 +190,11 @@
       let bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 190, sit: 1, wag: 0.5 });
       X.title();
       await X.wait(4.2);
+      /* years go by on the old stones above the cloud sea, where he goes to sit with Bean */
+      const ov = T.place ? T.place('overlook', { leoAge: 2 }) : null;
+      if (ov) { await X.view(ov, { color: '#fff6e6' }); T.announce('구름 위 오래된 돌 폐허, 꽃 핀 나무 아래 벤치. 레오와 빈이 나란히 앉아 구름바다를 본다.'); X.tween(ov.sun, 'k', 1, 9); }
       await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); X.wait(d * 0.4).then(() => { A.sfx('knock', 0.3); X.tween(ps, 'swing', 1, d * 0.4); }); } });
+      if (ov) await X.view(null, { color: '#fff6e6' });
       T.announce('사과나무가 자라고, 가지에 작은 그네가 걸렸다. 릴리에게 만들어 주겠다던 그네.');
 
       /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */

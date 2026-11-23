@@ -231,7 +231,6 @@
  "피피": "Pippi",
  "집배원": "Postman",
  "아나가 한 대로, 레오의 냄비에도 소금을 두 번 넣어 주세요": "Do as Ana did: tap Leo's pot to salt it, twice.",
- "기다리는 장면에서는 화면을 길게 누르거나 톡톡 두드리면 빨리 지나가요": "Where a scene is only passing time, hold the screen down or tap to move it along.",
  "혼자서는 못 하겠어.": "I can't do this alone.",
  "할 수 있어.": "You can.",
  "릴리랑 맛있는 거 많이 먹고, 많이 웃고,\n그 얘기 나중에 다 들려줘.": "Eat well with Lily. Laugh a lot.\nAnd tell me all of it, later.",

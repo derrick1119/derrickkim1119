@@ -294,7 +294,10 @@
       await TALK.say('leo', '다 해 놨어.\n이제 당신만 오면 돼.');
 
       /* ---- Pipi's father, at last; and then nobody is left for them to wait for ---- */
+      const ov = T.place ? T.place('overlook', { leoAge: 3 }) : null;
+      if (ov) { ov.sun.k = 0.4; await X.view(ov, { color: '#fff6e6' }); T.announce('구름 위 벤치. 늙은 레오와 빈이 저무는 구름바다를 본다.'); X.tween(ov.sun, 'k', 1, 7); }
       await X.years(40, 43, { age: 79 });
+      if (ov) await X.view(null, { color: '#1b2440' });
       let pipi2, pm2, pd, qleo2;
       X.toll(0);
       await quay(() => {
