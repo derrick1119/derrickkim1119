@@ -479,7 +479,7 @@
     await TALK.say('leo', '그러니까 천천히 오라고.');
     await k.wait(0.5);
     await TALK.say('leo', '어린 내가 울까 봐 한 말이었겠지.\n그래도 그 말 덕분에 덜 무서웠어.');
-    await TALK.say('leo', '나도 먼저 가서 그렇게 해놓을게.\n당신 왔을 때, 같이 행복할 수 있게.');
+    await TALK.say('leo', '나도 먼저 가서 그렇게 해놓을게.\n당신 오면, 따뜻한 밥부터 먹게.');
     A.pad(3, 0.14);
     const p = TALK.say('leo', '그러니까…  천천히 와.', { slow: true });
     k.wait(1.5).then(() => A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 }));

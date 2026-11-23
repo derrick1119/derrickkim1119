@@ -1,8 +1,9 @@
-/* Chapter 6 「다 지킨 약속」 — years thirty to forty-five. The house is finished and still
-   empty. Every year, on the day, he makes the stew the way he has watched her make it in the
-   lake; it gets better every year, and one year she puts in something he does not know: now she
-   is the one teaching. He crosses the list off, one line at a time,
-   until a single line is left that cannot be kept alone. */
+/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The house is finished and still
+   empty. Every year, on the anniversary of his death, Ana makes his stew and he makes it with her,
+   the way he watches her make it in the lake; one year she puts in something he does not know: now she
+   is the one teaching. Rosa's son keeps the dance he owed his wife, and the three of them cross; Pipi
+   gives her mother the tomato, shows her father the stars, and the three of them cross. He crosses off the
+   house, the cooking and the swing; the two lines left need Ana. He paints an aurora to practise. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -61,7 +62,7 @@
         const [qx, qy] = X.place.quay(); X.cam(qx, qy, 1.05); X.camSnap();
         more();
       });
-      const home = () => X.dip(async () => { S.actors = keep0; S.boats = []; X.cam(px + 60, py, 1); X.camSnap(); }, { out: 1, in: 1.2 });
+      const home = () => X.dip(async () => { S.actors = keep0; S.boats = []; ps.night = 0; X.cam(px + 60, py, 1); X.camSnap(); }, { out: 1, in: 1.2 });
       const keep0 = S.actors;
       const bite = async () => { await X.tween(leo, 'bite', 1, 0.5); X.note({ voice: 'pluck', vel: 0.4 }); await X.wait(0.25); await X.tween(leo, 'bite', 0, 0.45); };
       /* he ladles out his own: made the way he watched her make it */
@@ -70,7 +71,6 @@
         await X.tween(ps.food, 'drop', 1, 0.7, T.ease.out3);
         A.sfx('knock', 0.5);
       };
-      X.vowsAt([1, 1, 1, 1, 1, 1, 1], [1, 0, 1, 0, 0, 1, 0], ['', '', '', '', '두 번째: 빈이 고랑을 다 파헤침', '릴리 왼팔 옆에서, 끝까지', '']);
       const TALK = X.TALK;
       X.title();
       await X.wait(4.4);
@@ -85,16 +85,15 @@
         leo.x = PL.TABLE_X - 66; leo.chair = 1;
       };
       await X.years(25, 30, { age: 66 });
-      T.announce('해마다 그날이면, 레오는 호수에서 본 대로 아나의 스튜를 끓인다. 처음엔 차례만 지키면 된다.');
-      await X.TALK.say('leo', '해마다 이날이면,\n호수에 아나 부엌이 비쳐.');
-      await X.TALK.say('leo', '감자, 당근, 양파, 토마토.\n아나가 넣던 차례 그대로.');
+      T.announce('해마다 레오의 기일이면, 아나는 레오의 스튜를 끓인다. 레오는 호수에서 보며 똑같이 따라 끓인다. 처음엔 차례만 지키면 된다.');
+      await X.TALK.say('leo', '해마다 내 기일이면,\n아나는 이 스튜를 끓여.');
+      await X.TALK.say('leo', '그래서 나도 같이 끓여.\n아나가 넣는 차례 그대로.');
       await cookYear({ steps: ['potato', 'carrot', 'onion', 'tomato'], caption: '아나가 넣던 차례대로 재료를 눌러 넣으세요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
       leo.mood = 'good'; await X.wait(1.3); leo.mood = null;
       await bite(); ps.food.fill = 0;
       await X.wait(0.5);
-      await X.vowNote(3, '올해: 싱거웠다. 불은 약하게, 소금은 끝에');
 
       /* ---- Rosa's daughter-in-law comes; with her, the three of them have no one left to wait for ---- */
       let rosa, son, dil, qleo0;
@@ -123,6 +122,12 @@
       A.motif({ voice: 'box', vel: 0.34, beat: 0.7 });
       await TALK.say('dil', '…당신, 하나도 안 변했네.');
       await TALK.say('son', '변했지. 당신 기다리느라 목이 다 빠졌어.');
+      /* what he owed her: the dance at a wedding too poor for music */
+      await TALK.say('son', '춤 한 곡 빚졌잖아.\n결혼식 날 못 춘 거.');
+      await TALK.say('dil', '…그걸 여태 기억해요?');
+      /* SLOT: dance — Rosa's son and his wife sway slowly in each other's arms on the quay, no music but the sea */
+      T.announce('둘이 끌어안은 채 천천히 몸을 흔든다. 음악도 없이.');
+      await X.wait(3.2);
       await TALK.say('rosa', '이제 다 왔다.\n우리도 건너가자.');
       await X.wait(0.8);
       son.pose = null; dil.pose = null;
@@ -136,13 +141,16 @@
       X.toll(3); await X.wait(0.8);
       T.announce('배웅. 종이 울린 차례를 거꾸로 대답한다. 이번에는 대답하는 사이 등불이 자리를 바꾼다.');
       await X.play(T.puzzle.bell({ rounds: [[1, 3, 0], [2, 0, 3, 1]], reverse: true, shuffle: true }));
-      await X.vow(6, 'keep', '셋이 같이. 손 흔드는 것도 셋이');
       const wave = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4 + a2.x) * 0.2, b: 0.3 }; };
       [rosa, son, dil, qleo0].forEach((a) => { a.pose = wave; });
       X.sail(S.b2, -1500, 34);
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(6);
+      await X.wait(4.6);
+      /* SLOT: shooting star — ch6, Rosa's family: their white boat goes beyond, and a star falls down through the clouds into the living world */
+      T.announce('별 하나가 구름 아래로 떨어진다.');
+      A.sfx('star', 0.6);
+      await X.wait(2);
       await home();
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
@@ -173,7 +181,7 @@
       ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
       A.sfx('star', 0.6);
       await TALK.say('kid', '빨개졌다! 진짜 빨개졌어!');
-      await X.vowNote(4, '드디어: 울타리 치고, 빨간 거 스무 알');
+      await TALK.say('kid', '제일 빨간 건 엄마 거야.');
       await X.dip(async () => { S.actors.splice(S.actors.indexOf(pipi0), 1); leo.x = PL.TABLE_X - 66; leo.chair = 1; bean.x = PL.TABLE_X + 118; bean.flip = true; X.cam(px + 60, py, 1); X.camSnap(); });
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
@@ -200,7 +208,6 @@
       T.announce('이번엔 처음 보는 풀까지. 그 풀은 맨 마지막, 불을 끄기 직전에 넣는다.');
       await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt', 'herb'], pantry: ['potato', 'carrot', 'herb', 'onion', 'tomato', 'salt'], heat: true, caption: '공책대로 끓이고, 처음 보는 풀은 맨 마지막에 넣으세요' });
       ps.food.herb = true; ps.food.color = '#c8742f';
-      await X.vow(3, 'keep');
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.45;
       leo.mood = 'laugh'; await X.wait(1.4); leo.mood = null;
@@ -242,13 +249,12 @@
       A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
       await X.wait(1.2);
       await X.TALK.say('pmom', '…우리 피피, 그대로구나.', { slow: true });
-      await X.TALK.say('kid', '아빠는?');
-      await X.TALK.say('pmom', '아빠는 아직이야.\n할 일 다 하고, 천천히 오실 거야.');
-      await X.TALK.say('kid', '그럼 이제 엄마랑 같이 기다리면 되겠다.');
       await X.TALK.say('kid', '엄마, 이거. 내가 키운 토마토.\n레오 아저씨랑 같이.');
       T.announce('피피가 주머니에서 빨간 토마토를 꺼내 엄마 손에 쥐여 준다.');
       await X.TALK.say('pmom', '…베란다에서 키우던 거, 기억하는구나.');
-      await X.vow(4, 'keep');
+      await X.TALK.say('kid', '빨간 거 열리면 준다고 했잖아.');
+      await X.TALK.say('kid', '아빠는 아직 멀었지?\n괜찮아. 기다리는 건 내가 잘해.');
+      await X.TALK.say('pmom', '…다 컸네, 우리 피피.', { slow: true });
       await X.TALK.say('kid', '집 짓는 것도 도왔다?\n뼈대도 당기고, 지붕도 올리고.');
       await X.TALK.say('pmom', '…고맙습니다.\n우리 애 곁에 있어 주셔서.');
       await X.TALK.say('leo', '제가 도움을 받았는걸요.');
@@ -312,8 +318,19 @@
       await TALK.say('kid', '아니. 천천히 와서 좋았어.\n엄마가 아빠 얘기 다 해 줬어.');
       await X.walk(pm2, pd.x + 70, 60);
       await TALK.say('pmom', '이제 다 모였네.');
-      await X.wait(0.8);
+      await TALK.say('kid', '아빠, 밤 되면 보여 줄 거 있어.\n기다리면서 만든 별자리.');
+      await X.wait(0.6);
       pipi2.pose = null; pd.pose = null; pipi2.hug = null;
+      /* her promise to her father: the stars she joined up while she waited */
+      await X.dip(async () => { ps.night = 0.9; }, { color: '#141b36', out: 1, in: 0.6 });
+      T.announce('그날 밤, 부두. 피피가 아빠에게 기다리면서 만든 별자리를 하나씩 짚어 보인다.');
+      await X.play(T.puzzle.stars({ rounds: [
+        { name: '토마토', pts: [[0, -46], [44, -20], [44, 26], [0, 50], [-44, 26], [-44, -20], [0, -84]], edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 6]], at: [160, 320], scale: 1.25, filler: 14 },
+        { name: '별똥별', pts: [[0, -50], [48, -16], [29, 40], [-29, 40], [-48, -16], [-118, -58], [-176, -92]], edges: [[0, 2], [2, 4], [4, 1], [1, 3], [3, 0], [4, 5], [5, 6]], at: [-120, 330], scale: 1.2, rot: -0.2, filler: 20 },
+      ] }));
+      await TALK.say('pdad', '…이걸 다 우리 피피가?', { slow: true });
+      await TALK.say('kid', '응. 아빠 보여 주기로 했잖아.');
+      await X.wait(0.8);
       await X.walk(pipi2, qleo2.x - 50, 160);
       await TALK.say('kid', '아저씨. 우리 이제 건너가야 된대.');
       await TALK.say('leo', '그래. 다 왔으니까.');
@@ -321,7 +338,6 @@
       await TALK.say('leo', '빈도 있고, 토마토도 있고.\n…그리고 아나가 오잖아.');
       await TALK.say('kid', '아나 아줌마 오면, 내 얘기 해 줘.\n토마토 같이 키운 거.');
       await TALK.say('leo', '응. 제일 먼저 할게.');
-      await X.vow(1, 'keep', '다 같이 기다렸다. 피피네 셋이 건너감');
       S.b2 = X.boat({ x: -236, hull: '#e9e2d6', lamp: false, riders: [] });
       for (const [a, seat] of [[pd, -40], [pm2, -14], [pipi2, 12]]) { await X.walk(a, 60, 70); await X.board(a, S.b2, seat); a.flip = true; }
       T.announce('하얀 배. 이번엔 종을 치지 않는다. 피피가 손을 흔든다. 레오를 눌러 손을 흔들어 준다.');
@@ -330,7 +346,11 @@
       qleo2.pose = (o, a2, t) => { o.armF = { a: 2.3 + Math.sin(t * 4) * 0.2, b: 0.3 }; };
       X.sail(S.b2, -1500, 34);
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(6);
+      await X.wait(4.6);
+      /* SLOT: shooting star — ch6, the night quay: Pipi's family's white boat goes beyond, and a star falls down through the clouds into the living world */
+      T.announce('별 하나가 구름 아래로 길게 떨어진다.');
+      A.sfx('star', 0.9);
+      await X.wait(2);
       qleo2.pose = null;
       X.cam(...X.place.quay(), 1.05, 0.5);
       await X.wait(1.4);
@@ -382,18 +402,8 @@
       await X.paint({ goal: 2600 });
       A.promise();
       await TALK.say('leo', '당신 오면, 같이 보자.');
+      A.motif({ voice: 'felt', vel: 0.36, beat: 0.82 });
       await X.wait(2.2);
-      await X.card(PL.boardCard, {
-        init: { w: 5, cross: [1, 1, 0, 1, 0], glow: 0 }, max: 12,
-        run: async (c) => {
-          await X.wait(0.6);
-          await crossOff(c, 2);
-          T.announce('남은 줄은 하나. 같이 늙기.');
-          await X.wait(0.5);
-          await X.tween(c, 'glow', 0.9, 1.8);
-          A.motif({ voice: 'felt', vel: 0.36, beat: 0.82 });
-        },
-      });
       /* he keeps the other half of the swing free */
       await X.walk(leo, PL.TREE_X + 70, 60);
       leo.onSwing = true; leo.hill = 3; leo.x = PL.swingSeat(ps)[0] - 16; ps.spot = [leo.x];
