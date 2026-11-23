@@ -1120,11 +1120,16 @@ function kingStep(s: MouseState, c: Cat) {
       setMode(c, ROLL);
       c.ri = 0;
       let bd = 1e9;
+      // 섬 위에서 쿵 뛰어내려 둘레를 데굴데굴 (가까운 길목으로)
       for (let i = 0; i < c.route.length; i++) {
-        const d = dist(c.x, c.y, c.route[i].x, c.route[i].y);
+        const mm = s.m, d = dist(mm.x, mm.y, c.route[i].x, c.route[i].y);
         if (d < bd) (bd = d), (c.ri = i);
       }
+      c.x = c.route[c.ri].x;
+      c.y = c.route[c.ri].y;
+      c.ri = (c.ri + 1) % c.route.length;
       ev(s, 'roll', c.x, c.y);
+      noise(s, c.x, c.y, 0.28, 'crash');
     }
     return;
   }
@@ -3357,6 +3362,8 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
   const say = (x: number, y: number, str: string, col: string, size: number) => {
     let rec = recent.get(s);
     if (!rec) recent.set(s, (rec = []));
+    // 짧은 글자는 한꺼번에 둘까지 (큰 글자 18px 이상은 늘 보인다) — 겹쳐 쌓이지 않게
+    if (size < 18 && rec.filter((q) => t - q.t < 40).length >= 2) return;
     x = clamp(x, w * 0.12, w * 0.88);
     y = Math.max(Y(0.14), y);
     for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y -= size * 0.9;
@@ -3850,7 +3857,7 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
       case 'eek': snd('boing', 2.1, 0.7); say(ex, ey - R(0.12), '꺅!', '#ffd0e0', 15); break;
       case 'stir': snd('tick', 0.6, 0.5); say(ex, ey - R(0.2), '음냐…', '#ffffff', 14); break;
       case 'kingwake': snd('thud', 0.45, 1.5); snd('crack', 0.6, 1.2); fx.kick(16); fx.blink('#ffd6a0', 0.35); puff(ex, ey - R(0.1), '#ffd27a', 16, 6, 3.2); break;
-      case 'roll': snd('whoosh', 0.55, 1); break;
+      case 'roll': snd('thud', 0.5, 1.4); snd('whoosh', 0.55, 1); fx.kick(14); puff(ex, ey, '#f3dfb0', 14, 5, 3.2); say(ex, ey - R(0.12), '쿵! 데굴데굴', '#ffd27a', 20); break;
       case 'kinghome': snd('swell', 0.6, 0.6); break;
       case 'doze': snd('shrink', 0.8, 0.3); break;
       case 'wake': snd('swell', 0.9, 0.4); break;
@@ -3956,7 +3963,7 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
   else if (s.phase === 'end') tip = s.won ? '고양이 열 마리를 모두 따돌렸어요!' : '누르면 다시 해요';
   else if (!s.tapped && s.stage === 0) tip = '찻잔을 톡! 생쥐가 쪼르르 — 쏙 숨어요';
   else if (m.st === CAUGHT) tip = '찍! 치즈가 흩어졌어요 — 다시 주우면 돼요';
-  else if (chased) tip = '들켰다! 찻잔·쥐구멍 같은 숨을 곳을 톡!';
+  else if (chased) tip = '들켰다! 숨을 곳이나 쥐구멍을 톡!';
   else if (susp && (m.st === RUN || m.st === IDLE)) tip = '?가 다 차면 들켜요 — 눈길 밖으로, 숨을 곳으로!';
   else if (m.st === HIDE && s.cats.some((c2) => c2.mode === PEEK)) tip = '쉿… 숨은 생쥐는 고양이가 못 봐요';
   else if (m.bag > 0 && s.cheese.length === 0) tip = '쥐구멍을 톡 — 보따리를 저장하면 판 끝!';
@@ -4047,7 +4054,7 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
     ctx.lineWidth = 3;
     ctx.stroke();
     drawHand(ctx, hx, hy + R(0.04), R(0.085), press);
-    gtext(ctx, '톡!', hx + R(0.085), hy - R(0.01), R(0.046), 900, '#ffffff', INK, 4);
+    gtext(ctx, '톡!', X(hd.x) - R(0.005), Y(hd.y) - R(0.115) - press * R(0.01), R(0.046), 900, '#ffffff', INK, 4);
   }
   // ── 큰 순간 띠 (한 번에 하나, 벽 쪽에) ──
   if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
@@ -4055,7 +4062,7 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
     ctx.save();
     ctx.globalAlpha = a;
     // 생쥐가 위쪽(벽 가까이)에 있으면 띠는 아래로 — 지금 벌어진 일을 가리지 않게
-    ctx.translate(w / 2, Y(s.big.y < 0.8 ? 1.18 : 0.235));
+    ctx.translate(w / 2, Y(s.big.y < 0.8 ? 1.12 : 0.235));
     ctx.rotate(-0.04);
     ctx.scale(1, 0.5);
     burstPath(ctx, 0, 0, R(0.34) * Math.min(1.15, pop), 18, 0.8, age * 0.02);

@@ -37,9 +37,9 @@ const TOP = 0.17, BOT = 1.3;
 /** 카메라: 성을 메고 있으면 거인이 화면 왼쪽 CAM_G 자리에, 내려놓으면 성이 CAM_C 자리에 */
 const CAM_G = 0.3, CAM_C = 0.42;
 /** 거인: 걸음(틱당) · 보폭 · 거인과 성 사이(내려놓는 자리) · 내려놓기 · 들기 · 나팔 뒤 기다림 최대 · 폭풍에 맞고 어질 */
-const WALK_V = 0.0105, STRIDE = 0.19, DROP_DX = 0.15, DROP_T = 16, LIFT_T = 14, CALL_T = 40, DIZZY_T = 40;
-/** 성 반폭(발자리) */
-const HALF = 0.085;
+const WALK_V = 0.0125, STRIDE = 0.19, DROP_DX = 0.15, DROP_T = 16, LIFT_T = 14, CALL_T = 40, DIZZY_T = 40;
+/** 성 반폭(발자리) · 몬스터 찌부 판정(성 밑 가운데) */
+const HALF = 0.085, SQ_X = 0.066, SQ_Y = 0.058;
 /** 사람: 걷기 · 나르기 · 달려 돌아오기 (틱당) · 쏟아져 나오는 간격 · 처음 사람 수 · 최대 · 먹을 것 몇 개에 한 명 */
 const P_WALK = 0.0048, P_CARRY = 0.0042, P_SPRINT = 0.014, POUR_EVERY = 2, POP0 = 10, POP_MAX = 40, FOOD_PER = 4;
 /** 일하는 범위(성에서 좌우) · 쿵 범위 (부품·레벨로 넓어진다) */
@@ -49,7 +49,7 @@ const RES_MIN = 90, RES_AUTO = 60 * 9, PICK_MIN = 40, PICK_AUTO = 60 * 20, PICK_
 /** 도착 잔치 틱 · 판 점수 */
 const ARRIVE_T = 84, CLEAR_PTS = 30, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 150;
 /** 큰 띠: 한 번 쿵에 이만큼 떨어지면 */
-const WOW_N = 4;
+const WOW_N = 7;
 
 // ───────────────────────────── 땅 · 얻을 것 · 부품 ─────────────────────────────
 export type Res = 'wood' | 'stone' | 'food' | 'gold';
@@ -123,16 +123,16 @@ export const CHAPTERS = ['풀빛 골짜기', '바위 고개', '구름 너머'];
  * 별 셋째(솜씨)는 판마다 다르다 — 버릇 하나로는 안 되게(바로 앞 땅만 · 오래 머물기만).
  */
 export const STAGES: StageDef[] = [
-  { key: 'forest', ch: 0, name: '숲과 밀밭', news: '쿵! 하면 통나무가 우수수 — 나무꾼이 우르르', zones: ['forest', 'field', 'forest', 'field', 'forest', 'field', 'forest'], storm: 0.0009, star: ['thud', 6], newZ: 'forest' },
+  { key: 'forest', ch: 0, name: '숲과 밀밭', news: '쿵! 하면 통나무가 우수수 — 나무꾼이 우르르', zones: ['forest', 'field', 'forest', 'field', 'forest', 'field', 'forest'], storm: 0.0009, star: ['thud', 8], newZ: 'forest' },
   { key: 'river', ch: 0, name: '물고기 강', news: '강가에 쿵 — 물고기 펄떡! 먹을 것은 새 식구', zones: ['field', 'river', 'forest', 'river', 'field', 'forest', 'river', 'field'], storm: 0.001, star: ['pop', 16], newZ: 'river' },
   { key: 'den', ch: 0, name: '몬스터 소굴', news: '몬스터 바로 위에 쿵 — 찌부! 보물이 와르르', zones: ['forest', 'den', 'field', 'river', 'den', 'forest', 'den', 'field'], storm: 0.00105, star: ['squash', 2], newZ: 'den' },
   { key: 'troll', ch: 0, name: '거대 트롤 산', news: '길을 막은 산 트롤 — 성으로 쿵! 쿵!', zones: ['forest', 'field', 'den', 'river', 'forest', 'lair'], storm: 0.0008, star: ['slam', 3], boss: 'troll' },
-  { key: 'mine', ch: 1, name: '바위 광산', news: '광산에 쿵 — 돌이 쩍! 돌 성벽은 쿵을 키워요', zones: ['mine', 'forest', 'mine', 'river', 'field', 'mine', 'den', 'mine'], storm: 0.0011, star: ['parts', 3], newZ: 'mine' },
+  { key: 'mine', ch: 1, name: '바위 광산', news: '광산에 쿵 — 돌이 쩍! 돌 성벽은 쿵을 키워요', zones: ['mine', 'forest', 'mine', 'river', 'field', 'mine', 'den', 'mine'], storm: 0.0011, star: ['thud', 12], newZ: 'mine' },
   { key: 'village', ch: 1, name: '떠돌이 마을', news: '떠돌이 곁에 쿵 — "성이다!" 우르르 식구가 돼요', zones: ['village', 'mine', 'forest', 'village', 'den', 'field', 'village', 'river', 'mine'], storm: 0.00115, star: ['join', 4], newZ: 'village' },
-  { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['floors', 14], newZ: 'swamp' },
+  { key: 'swamp', ch: 1, name: '버섯 늪', news: '늪엔 버섯이 잔뜩 — 대신 사람들이 느릿느릿', zones: ['swamp', 'forest', 'swamp', 'mine', 'den', 'swamp', 'village', 'field'], storm: 0.0012, star: ['pop', 34], newZ: 'swamp' },
   { key: 'yeti', ch: 1, name: '얼음 고개', news: '얼음 호수에 쿵 — 쩍! 끝엔 얼음 털보', zones: ['ice', 'mine', 'forest', 'ice', 'den', 'village', 'lair'], storm: 0.001, star: ['slam', 4], boss: 'yeti', newZ: 'ice' },
   { key: 'volcano', ch: 2, name: '불꽃 화산', news: '뜨거운 바위엔 돌과 금 — 김 구멍은 펑!', zones: ['volcano', 'forest', 'volcano', 'river', 'den', 'volcano', 'mine', 'field'], storm: 0.00125, star: ['gold', 16], newZ: 'volcano' },
-  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 9], newZ: 'cloud' },
+  { key: 'cloud', ch: 2, name: '구름 과수원', news: '구름 나무에 쿵 — 열매가 주르르', zones: ['cloud', 'cloud', 'volcano', 'cloud', 'den', 'village', 'cloud', 'mine'], storm: 0.0013, star: ['thud', 14], newZ: 'cloud' },
   { key: 'gold', ch: 2, name: '보물 언덕', news: '소굴이 셋! 황금 지붕을 올려 봐요', zones: ['den', 'field', 'den', 'mine', 'cloud', 'den', 'volcano', 'village'], storm: 0.00135, star: ['squash', 3], newP: 'roof' },
   { key: 'drake', ch: 2, name: '천둥 용 봉우리', news: '마지막 대장 천둥 용 — 성으로 쿵! 쿵! 쿵!', zones: ['cloud', 'volcano', 'den', 'village', 'mine', 'cloud', 'lair'], storm: 0.0011, star: ['slam', 5], boss: 'drake' },
 ];
@@ -178,8 +178,8 @@ export interface GiantState {
   gx: number; gy: number; gst: number; gt: number; tx: number; ty: number; pend: number; pendY: number; gdir: number; wph: number; gdz: number;
   /** 성이 땅에 있나 · 그 x · 쏟아져 나올 사람 수 · 카메라(화면 왼쪽 끝의 세상 x) */
   cdown: boolean; cx: number; cy: number; pourQ: number; cam: number;
-  /** 폭풍 앞자락 x · 깨어났나 · 이번 판 폭풍에 맞은 수 · 날아간 사람 */
-  sx: number; awake: boolean; hits: number; lost: number;
+  /** 폭풍 앞자락 x · 깨어났나 · 깨어나 기지개 켜는 틱 · 이번 판 폭풍에 맞은 수 · 날아간 사람 */
+  sx: number; awake: boolean; swait: number; hits: number; lost: number;
   goalX: number;
   /** 이번 판: 내려놓은 수 · 한 번 쿵 최고 · 찌부 · 대장 쿵 · 한 번에 들어온 최고 · 지은 부품 · 금 · 판 틱 · 도착 잔치 */
   drops: number; bestThud: number; squash: number; slam: number; joinBest: number; partsStage: number; goldStage: number; stageT: number; arrive: number;
@@ -223,10 +223,9 @@ function wow(s: GiantState, text: string, n = 0, star = false) {
 }
 
 // ───────────────────────────── 판 만들기 ─────────────────────────────
-let OID = 0;
 function obj(s: GiantState, k: OK, x: number, y: number, zone: number, amt = 0): Obj {
   const o: Obj = {
-    id: ++OID, k, x, y, amt, max: amt, zone, v: Math.floor(s.rng() * 1000), sub: OD[k]?.sub ?? 'coin', shaken: false, rolled: false, workers: 0, claim: -1,
+    id: ++s.nid, k, x, y, amt, max: amt, zone, v: Math.floor(s.rng() * 1000), sub: OD[k]?.sub ?? 'coin', shaken: false, rolled: false, workers: 0, claim: -1,
     mk: null, hp: 1, hpMax: 1, atkT: 0, wind: 0, stun: 0, hx: x, hy: y, dir: 1, dead: false, z: 0, vz: 0, vx: 0, hitT: -99, fallT: -99, born: s.t, slamT: -99,
   };
   s.objs.push(o);
@@ -277,7 +276,7 @@ function genZone(s: GiantState, k: ZK, x0: number, w: number, zi: number, di: nu
       c.amt = c.max;
       break;
     }
-    case 'village': grid(2, 2, (x, y, i) => i < 3 + (s.stage > 6 ? 1 : 0) && obj(s, 'folk', x, y, zi, 1)); break;
+    case 'village': grid(2, 2, (x, y, i) => i < 3 + (s.stage >= 5 ? 1 : 0) && obj(s, 'folk', x, y, zi, 1)); break;
     case 'lair': {
       const m = monster(s, STAGES[s.stage].boss!, x0 + w * 0.6, FEET, zi);
       m.hy = m.y;
@@ -320,8 +319,9 @@ function newStage(s: GiantState) {
   s.cy = FEET;
   s.pourQ = 0;
   s.cam = 0;
-  s.sx = -0.36;
+  s.sx = 0.03;
   s.awake = false;
+  s.swait = 0;
   s.hits = 0;
   s.lost = 0;
   s.drops = s.bestThud = s.squash = s.slam = s.joinBest = s.partsStage = s.goldStage = s.stageT = s.arrive = 0;
@@ -380,10 +380,12 @@ function build(s: GiantState, depth = 0) {
   s.built.push(k);
   s.partsStage++;
   s.sp += 15;
-  if (!s.dexP.includes(k)) s.dexP.push(k), s.newDex.push('p:' + k), see(s, 'part:' + k);
-  ev(s, 'part', s.cdown ? s.cx : s.gx - 0.08, castleTop(s), floors(s), 0, 0, k);
-  wow(s, `${PD[k].name} 완성!`, floors(s));
-  s.big!.sub = PD[k].line;
+  const fresh = !s.dexP.includes(k);
+  if (fresh) s.dexP.push(k), s.newDex.push('p:' + k), see(s, 'part:' + k);
+  // 큰 띠는 새 부품이거나 다섯 층마다 — 나머지는 성 곁에 작은 글자
+  const band = fresh || floors(s) % 5 === 0;
+  ev(s, 'part', s.cdown ? s.cx : s.gx - 0.08, castleTop(s), floors(s), band ? 1 : 0, 0, k);
+  if (band) (wow(s, fresh ? `${PD[k].name} 완성!` : `성 ${floors(s)}층!`, floors(s)), (s.big!.sub = PD[k].line));
   checkStar3(s);
   s.wish = null;
   chooseWish(s, depth);
@@ -530,7 +532,7 @@ function thud(s: GiantState) {
     const dx = Math.abs(o.x - x), dy = Math.abs(o.y - y), de = hyp(dx, dy * 0.8);
     if (o.k === 'mon' && o.mk) {
       const md = MD[o.mk];
-      if (dx < HALF + md.r * 0.6 && dy < 0.075 + md.r * (md.boss ? 1.2 : 0.5)) {
+      if (dx < (md.boss ? HALF + md.r * 0.6 : SQ_X + md.r * 0.5) && dy < (md.boss ? 0.075 + md.r * 1.2 : SQ_Y + md.r * 0.5)) {
         if (md.boss) bossSlam(s, o);
         else (o.hp = 0), kill(s, o, true), sq++;
       } else if (de < R + md.r) (o.stun = Math.max(o.stun, 90)), (o.hitT = s.t);
@@ -566,12 +568,12 @@ function thud(s: GiantState) {
   s.bestThud = Math.max(s.bestThud, n);
   if (joined > s.joinBest) s.joinBest = joined;
   ev(s, 'thud', x, y, n, floors(s), sq);
-  if (!s.awake && s.stage >= 0) (s.awake = true), ev(s, 'wake', s.sx, 0.5), see(s, 'storm');
+  if (!s.awake && s.stage >= 0) (s.awake = true), (s.swait = 150), ev(s, 'wake', s.sx, 0.5), see(s, 'storm');
   if (joined) ev(s, 'joinall', x, y - 0.1, joined);
   // 큰 띠: 찌부 · 여럿 데려옴 · 이 판 최고 쿵
   if (sq) wow(s, sq > 1 ? `찌부! ×${sq}` : '찌부!', sq);
   else if (joined >= 3) wow(s, `+${joined}명! "성이다!"`, joined);
-  else if (n >= WOW_N && n > prev) wow(s, `쿵! ${n}개 우수수`, n);
+  else if ((n >= WOW_N && n > prev) || s.drops === 1) wow(s, n ? `쿵! ${n}개 우수수` : '쿵!', n);
   s.freeze = Math.max(s.freeze, n >= 6 || sq ? 5 : 3);
   checkStar3(s);
 }
@@ -950,7 +952,7 @@ function giantStep(s: GiantState) {
         s.cdown = true;
         s.pourQ = s.people.filter((p) => p.st === P_IN).length;
         const goal = s.cx >= s.goalX - 0.03;
-        if (goal) (s.arrive = 1), (s.awake = false), ev(s, 'arrive', s.cx, s.cy), see(s, 'arrive');
+        if (goal) (s.arrive = 1), (s.awake = false), ev(s, 'arrive', s.cx, s.cy), see(s, 'arrive'), wow(s, '새 땅에 쿵!', 5);
         thud(s);
         if (!isNaN(s.pend)) {
           const q = s.pend;
@@ -991,6 +993,7 @@ function giantStep(s: GiantState) {
 // ───────────────────────────── 폭풍 ─────────────────────────────
 function stormStep(s: GiantState) {
   if (!s.awake || s.arrive) return;
+  if (s.swait > 0) return void s.swait--;
   const body = s.cdown ? s.cx - HALF : s.gx - 0.05, gap = body - s.sx;
   // 멀리 처지면 서둘러 따라온다(늘 뒤에 보이게)
   s.sx += stormV(s) * (gap > 0.95 ? 2 : gap > 0.7 ? 1.4 : 1);
@@ -1107,7 +1110,7 @@ const game: GameDef<GiantState> & { wows(s: GiantState): number } = {
       parts: { tower: 0, mill: 0, wheel: 0, cannon: 0, wall: 0, flag: 0, forge: 0, garden: 0, roof: 0 }, built: [], store: zero(), wish: null, wishGot: zero(), food: 0,
       dexP: [], dexJ: [], newDex: [], zones: [], objs: [], people: [], nid: 0, shots: [], canT: 0, geyT: 0,
       gx: 0.28, gy: FEET, gst: G_STAND, gt: 0, tx: NaN, ty: FEET, pend: NaN, pendY: FEET, gdir: 1, wph: 0, gdz: 0, cdown: false, cx: 0.28, cy: FEET, pourQ: 0, cam: 0,
-      sx: -0.36, awake: false, hits: 0, lost: 0, goalX: 3,
+      sx: 0.03, awake: false, swait: 0, hits: 0, lost: 0, goalX: 3,
       drops: 0, bestThud: 0, squash: 0, slam: 0, joinBest: 0, partsStage: 0, goldStage: 0, stageT: 0, arrive: 0, route: [],
       firstTap: -1, firstBig: -1, wowN: 0, freeze: 0, down: false, seen: new Set<string>(), events: [], banner: null, spot: null, big: null, star3At: -1,
     } as GiantState;
@@ -1175,7 +1178,7 @@ export function spotValue(s: GiantState, x: number, y: number, cur = false): num
     if (o.k === 'mon' && o.mk) {
       const md = MD[o.mk];
       if (o.hp <= 0) continue;
-      if (!cur && dx < HALF + md.r * 0.6 && dy < 0.075 + md.r * (md.boss ? 1.2 : 0.5)) v += md.boss ? 40 + (want3 && sk === 'slam' ? 30 : 0) : md.gold * 3 + 12 + (want3 && sk === 'squash' ? 30 : 0);
+      if (!cur && dx < (md.boss ? HALF + md.r * 0.6 : SQ_X + md.r * 0.5) && dy < (md.boss ? 0.075 + md.r * 1.2 : SQ_Y + md.r * 0.5)) v += md.boss ? 40 + (want3 && sk === 'slam' ? 30 : 0) : md.gold * 3 + 12 + (want3 && sk === 'squash' ? 30 : 0);
       else if (dx < wr) v += md.boss ? 6 : md.gold * 3 * (pop(s) >= 8 || s.parts.cannon ? 0.6 : 0.3);
       continue;
     }
@@ -2066,6 +2069,22 @@ function paintMon(g: C2, mk: MK, mood: number) {
         }
       for (const sx of [-0.45, 0.45]) rr(g, sx - 0.22, -0.5, 0.44, 0.5, 0.15), ink(g, C[2], lw);
       if (mk === 'troll') club(g, -0.85, -1.0, wind ? -1.0 : -0.3, 1.3, '#9a9a92');
+      // 굵은 팔 + 주먹 (내리치려 하면 번쩍 든다)
+      for (const sx of [-1, 1]) {
+        if (mk === 'troll' && sx < 0) continue;
+        const ay = wind ? -1.9 : -0.75;
+        g.beginPath();
+        g.moveTo(sx * 0.75, -1.2);
+        g.quadraticCurveTo(sx * 1.25, -1.1, sx * 1.15, ay);
+        g.lineWidth = 0.34;
+        g.strokeStyle = OUT;
+        g.stroke();
+        g.lineWidth = 0.24;
+        g.strokeStyle = C[1];
+        g.stroke();
+        ell(g, sx * 1.15, ay, 0.24, 0.22);
+        ink(g, C[1], lw);
+      }
       ell(g, 0, -1.05, 1.0, 0.95);
       ink(g, radg(g, -0.35, -1.5, 0.1, 1.3, [0, C[0]], [0.65, C[1]], [1, C[2]]), lw);
       ell(g, 0.05, -0.82, 0.55, 0.45);
@@ -3120,6 +3139,17 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
       put(ctx, cs, CLF, R(x), Y(0.3 + hsh(i * 7) * 0.25), k);
     }
   }
+  // 새 (하늘을 가로질러 난다)
+  ctx.strokeStyle = ch === 2 ? '#8a78c8' : '#4b3a3a';
+  ctx.lineWidth = 1.6;
+  for (let i = 0; i < 3; i++) {
+    const sp = 0.0011 + i * 0.0004, bx = (((hsh(i * 5 + 1) + t * sp - s.cam * 0.2) % 1.4) + 1.4) % 1.4 - 0.2, byy = 0.24 + hsh(i * 9) * 0.18 + Math.sin(t * 0.03 + i) * 0.01, fl = Math.sin(t * 0.3 + i * 2) * 0.008;
+    ctx.beginPath();
+    ctx.moveTo(R(bx) - R(0.014), Y(byy) - R(fl));
+    ctx.quadraticCurveTo(R(bx) - R(0.006), Y(byy) - R(0.008), R(bx), Y(byy));
+    ctx.quadraticCurveTo(R(bx) + R(0.006), Y(byy) - R(0.008), R(bx) + R(0.014), Y(byy) - R(fl));
+    ctx.stroke();
+  }
   for (const [near, par, top] of [[false, 0.12, HZ - 0.36], [true, 0.35, HZ - 0.28]] as [boolean, number, number][]) {
     const c = hillBg(ch, W0, sc2, near), off = -((((s.cam * par) % 2) + 2) % 2) * w;
     ctx.drawImage(c, off, Y(top), w * 2, w * 0.5);
@@ -3141,6 +3171,24 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
   for (const z of s.zones) {
     if (!vis(z.x0, z.x1) || z.k === 'plain') continue;
     ctx.drawImage(zoneTex(z.k, ch, W0, sc2), X(z.x0), Y(HZ + 0.02), R(z.x1 - z.x0), R(ZONE_BAND));
+  }
+  // 새 땅 팻말
+  {
+    const gx0 = X(s.goalX - 0.02), gy0 = Y(B0 + 0.04);
+    if (gx0 > -R(0.2) && gx0 < w + R(0.2)) {
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(gx0, gy0);
+      ctx.lineTo(gx0, gy0 - R(0.1));
+      ctx.stroke();
+      rr(ctx, gx0 - R(0.07), gy0 - R(0.15), R(0.14), R(0.06), R(0.012));
+      ink(ctx, '#f6dca0', 2);
+      ctx.textAlign = 'center';
+      ctx.font = `900 ${Math.max(12, Math.round(R(0.034)))}px system-ui, sans-serif`;
+      ctx.fillStyle = '#7a3a12';
+      ctx.fillText('새 땅', gx0, gy0 - R(0.118));
+    }
   }
   // NEW 땅 스포트라이트
   if (s.spot && s.phase === 'play' && t - s.spot.t < 900) {
@@ -3309,12 +3357,17 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
       }
       put(ctx, stormSpr(ch, R(1) * sc2), SF, fx0, Y(0.5) + bob, R(1) * (awake ? 1 : 0.85));
       // 얼굴
-      const fxx = fx0 - R(awake ? 0.12 : 0.1), fyy = Y(0.5) + bob;
+      const fxx = fx0 - R(awake ? 0.06 : 0.035), fyy = Y(0.5) + bob;
       if (fxx > -R(0.1)) {
         ctx.fillStyle = '#1e1a2e';
         ctx.strokeStyle = '#1e1a2e';
         ctx.lineWidth = 3;
-        if (awake) {
+        if (awake && s.swait > 0) {
+          // 막 깨어나 기지개: 졸린 눈 · 하품
+          for (const sx of [-1, 1]) ctx.beginPath(), ctx.moveTo(fxx + sx * R(0.045), fyy), ctx.lineTo(fxx + sx * R(0.015), fyy), ctx.stroke();
+          ell(ctx, fxx, fyy + R(0.06), R(0.022), R(0.03 + 0.01 * Math.sin(t * 0.2)));
+          ctx.fill();
+        } else if (awake) {
           for (const sx of [-1, 1]) {
             ell(ctx, fxx + sx * R(0.035), fyy, R(0.018), R(0.022));
             ctx.fillStyle = '#fff6c8';
@@ -3389,6 +3442,8 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
         }
         break;
       case 'part': {
+        fx.memo.partT = e.t;
+        if (!e.x2) say(ex, ey - R(0.04), `${PD[e.text as PK]?.name ?? ''} +1층`, '#fff3c4', 15);
         fx.sound('chime', 1, 1);
         fx.sound('clear', 1.2, 0.8);
         fx.kick(8);
@@ -3398,7 +3453,7 @@ function drawAll(ctx: C2, s: GiantState, w: number, h: number, _th: Theme) {
         break;
       }
       case 'born': snd('boing', 1.7, 0.5); say(ex + R(0.04), ey, '+1 식구', '#ffd0e0', 14); puff(ex, ey, '#ff9ecb', 5, 2.4, 2.4); break;
-      case 'join': snd('chime', 1.3, 0.6); say(ex, ey, '성이다!', '#ffffff', 15); break;
+      case 'join': snd('chime', 1.3, 0.6); if (t - (fx.memo.joinT ?? -99) > 24) (fx.memo.joinT = t), say(ex, ey, '성이다!', '#ffffff', 15); break;
       case 'joinall': snd('swell', 1.3, 0.8); break;
       case 'free': snd('chime', 1.1, 0.8); say(ex, ey, '풀려났다!', '#ffffff', 16); puff(ex, ey, '#ffe9a0', 10, 3.6, 2.8); break;
       case 'horn': fx.sound('swell', 0.55, 1); snd('whoosh', 0.6, 0.6); say(ex, ey - R(0.05), '뿌우~', '#fff3c4', 18); break;
@@ -3585,7 +3640,7 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
       fr = (t + p.id * 3) % 22 < 11 ? 5 : 6;
       break;
     case P_IDLE:
-      if (s.arrive > 0 || (t + p.id * 13) % 220 < 36) (fr = 4), (bob = Math.abs(Math.sin(t * 0.25 + p.id)) * R(0.012));
+      if (s.arrive > 0 || (t + p.id * 13) % 220 < 36 || t - (juice(s).memo.partT ?? -99) < 50) (fr = 4), (bob = Math.abs(Math.sin(t * 0.25 + p.id)) * R(0.012));
       else fr = Math.abs(p.x - p.hx) > 0.004 ? walk : 0;
       break;
     case P_FLY:
@@ -3675,6 +3730,44 @@ function drawCastle(ctx: C2, s: GiantState, x: number, y: number, rot: number, s
       ctx.fill();
     }
   });
+  // 성문: 내려놓은 뒤 쏟아져 나오는 동안 활짝 (안이 어둡고 문짝이 양옆으로)
+  const open = s.cdown && (s.pourQ > 0 || s.gst === G_CALL || t - (juice(s).memo.landT ?? -99) < 50) ? 1 : 0;
+  if (open) {
+    ctx.beginPath();
+    ctx.moveTo(-0.15 * cu, 0);
+    ctx.lineTo(-0.15 * cu, -0.21 * cu);
+    ctx.arc(0, -0.21 * cu, 0.15 * cu, Math.PI, TAU);
+    ctx.lineTo(0.15 * cu, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#2a1a14';
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,200,120,.35)';
+    ctx.fillRect(-0.12 * cu, -0.12 * cu, 0.24 * cu, 0.12 * cu);
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sd * 0.16 * cu, 0);
+      ctx.lineTo(sd * 0.27 * cu, 0.02 * cu);
+      ctx.lineTo(sd * 0.27 * cu, -0.3 * cu);
+      ctx.lineTo(sd * 0.16 * cu, -0.36 * cu);
+      ctx.closePath();
+      ctx.fillStyle = '#8a5428';
+      ctx.fill();
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  } else if (!s.cdown && s.phase === 'play') {
+    // 창문에서 손 흔드는 식구들
+    for (const [wx, wy, ph] of [[-0.33, -0.31, 0], [0.33, -0.31, 1.7]]) {
+      const a = Math.sin(t * 0.25 + ph) * 0.6;
+      ctx.strokeStyle = SKIN[ph ? 0 : 1];
+      ctx.lineWidth = Math.max(1.5, cu * 0.025);
+      ctx.beginPath();
+      ctx.moveTo(wx * cu + (wx < 0 ? -0.03 : 0.03) * cu, wy * cu);
+      ctx.lineTo(wx * cu + (wx < 0 ? -0.08 : 0.08) * cu, (wy - 0.06) * cu + a * 0.03 * cu);
+      ctx.stroke();
+    }
+  }
   const py = -(BASE_H + n * fh + 0.56) * cu, wv = Math.sin(t * 0.15) * 0.04 * cu;
   ctx.beginPath();
   ctx.moveTo(0, py);
@@ -4220,7 +4313,7 @@ function drawResult(ctx: C2, s: GiantState, w: number, sc2: number) {
   font(0.032, 700);
   text(LV_GIFT[s.lv] ?? '보폭이 넓어지고 쿵이 커져요', R(0.22), cy0 + R(0.372), LV_GIFT[s.lv] ? '#d9480f' : INK);
   text(`성 ${floors(s)}층 · 식구 ${pop(s)}명`, R(0.22), cy0 + R(0.408), INK);
-  drawCastle(ctx, s, R(0.83), cy0 + R(0.43), 0, 1, CQ(R, sc2), Math.min(R(0.24), R(0.22) / Math.max(0.5, castleH(floors(s)) / CW)));
+  drawCastle(ctx, s, R(0.86), cy0 + R(0.445), 0, 1, CQ(R, sc2), Math.min(R(0.2), R(0.14) / Math.max(0.5, castleH(floors(s)) / CW)));
   // 세계 지도: 장 셋 × 판 넷 — 지나온 길
   ctx.textAlign = 'left';
   font(0.032, 800);

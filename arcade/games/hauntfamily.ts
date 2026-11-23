@@ -55,14 +55,15 @@ type Place = 'wall' | 'ceil' | 'floor' | 'shelf';
 interface Layout { name: string; rooms: RoomDef[]; stairs: Stair[]; roofY: number; objs: [OK, number, number, Place, number?][]; spots: [number, number, Act][] }
 /** 사람이 하는 일 (자리마다 하나) */
 export type Act = 'cook' | 'wash' | 'tv' | 'sofa' | 'bath' | 'brush' | 'nap' | 'window' | 'desk' | 'piano' | 'read' | 'fridge' | 'look';
-const DOOR_X = 0.045, CAR_X = 0.27, CAR_Y = 1.245;
+/** 집이 꽉 차게(2차): 지붕 처마 · 집 바닥(땅) — 그 사이가 방. 그 아래 얇은 길에 차 */
+const ROOF = 0.265, GY = 1.165, DOOR_X = 0.045, CAR_X = 0.26, CAR_Y = 1.25;
 const L2F = (y0: number, y1: number, k0: RK, k1: RK): RoomDef[] => [{ x0: 0.045, y0, x1: 0.5, y1, kind: k0 }, { x0: 0.5, y0, x1: 0.955, y1, kind: k1 }];
 export const LAYOUTS: Layout[] = [
   {
     name: '아담한 이층집',
-    rooms: [...L2F(0.38, 0.73, 'bath', 'bed'), ...L2F(0.73, 1.08, 'kitchen', 'living')],
+    rooms: [...L2F(ROOF, 0.715, 'bath', 'bed'), ...L2F(0.715, GY, 'kitchen', 'living')],
     stairs: [{ lo: 3, hi: 1, xl: 0.845, xh: 0.915 }],
-    roofY: 0.38,
+    roofY: ROOF,
     objs: [
       ['web', 0, 0.09, 'ceil', 1], ['lamp', 0, 0.29, 'ceil'], ['tub', 0, 0.32, 'floor'], ['stool', 0, 0.45, 'floor'],
       ['wardrobe', 1, 0.565, 'floor'], ['frame', 1, 0.75, 'wall', 1], ['curtain', 1, 0.655, 'wall'], ['lamp', 1, 0.75, 'ceil'],
@@ -78,9 +79,9 @@ export const LAYOUTS: Layout[] = [
   },
   {
     name: '삼층 타운하우스',
-    rooms: [...L2F(0.33, 0.58, 'study', 'music'), ...L2F(0.58, 0.83, 'bath', 'bed'), ...L2F(0.83, 1.08, 'kitchen', 'living')],
+    rooms: [...L2F(ROOF, 0.565, 'study', 'music'), ...L2F(0.565, 0.865, 'bath', 'bed'), ...L2F(0.865, GY, 'kitchen', 'living')],
     stairs: [{ lo: 5, hi: 3, xl: 0.845, xh: 0.915 }, { lo: 3, hi: 1, xl: 0.845, xh: 0.915 }],
-    roofY: 0.33,
+    roofY: ROOF,
     objs: [
       ['web', 0, 0.09, 'ceil'], ['frame', 0, 0.3, 'wall'], ['lamp', 0, 0.25, 'ceil'], ['musicbox', 0, 0.43, 'shelf'],
       ['piano', 1, 0.6, 'floor'], ['doll', 1, 0.79, 'shelf'], ['curtain', 1, 0.7, 'wall'], ['chair', 1, 0.77, 'floor'],
@@ -100,9 +101,9 @@ export const LAYOUTS: Layout[] = [
   },
   {
     name: '언덕 위 저택',
-    rooms: [...L2F(0.33, 0.58, 'study', 'bed'), ...L2F(0.58, 0.83, 'bath', 'music'), ...L2F(0.83, 1.08, 'kitchen', 'living')],
+    rooms: [...L2F(ROOF, 0.565, 'study', 'bed'), ...L2F(0.565, 0.865, 'bath', 'music'), ...L2F(0.865, GY, 'kitchen', 'living')],
     stairs: [{ lo: 5, hi: 3, xl: 0.845, xh: 0.915 }, { lo: 3, hi: 1, xl: 0.845, xh: 0.915 }],
-    roofY: 0.33,
+    roofY: ROOF,
     objs: [
       ['books', 0, 0.42, 'shelf'], ['web', 0, 0.09, 'ceil'], ['lamp', 0, 0.25, 'ceil'], ['frame', 0, 0.2, 'wall'], ['musicbox', 0, 0.3, 'shelf'],
       ['wardrobe', 1, 0.565, 'floor'], ['frame', 1, 0.75, 'wall'], ['curtain', 1, 0.655, 'wall'], ['doll', 1, 0.81, 'shelf'],
@@ -258,7 +259,7 @@ const see = (s: HauntState, key: string) => void s.seen.add(key);
 const layoutOf = (s: HauntState) => LAYOUTS[STAGES[s.stage].ch];
 const floorY = (r: RoomDef) => r.y1 - 0.02;
 /** 사람 키 (방 높이에 맞춤) */
-export const personH = (r: RoomDef) => Math.min(0.19, (r.y1 - r.y0) * 0.54);
+export const personH = (r: RoomDef) => Math.min(0.225, (r.y1 - r.y0) * 0.54);
 const human = (p: Person) => p.k !== 'dog' && p.k !== 'cat';
 /** 놀랄 수 있는 사람(집 안에서 살고 있음) */
 const awake = (p: Person) => human(p) && p.st !== 'pack' && p.st !== 'flee' && p.st !== 'out' && p.st !== 'gone';
@@ -370,8 +371,8 @@ function newStage(s: HauntState) {
   s.gStun = 0;
   s.gReady = 0;
   const frame = s.objs.find((o) => o.k === d.key) ?? s.objs[0];
-  s.gx = s.stage === 0 ? 0.62 : 0.5;
-  s.gy = s.stage === 0 ? 0.3 : 0.27;
+  s.gx = s.stage === 0 ? 0.64 : 0.5;
+  s.gy = ROOF - 0.03;
   s.gFace = 1;
   s.gLast = -1;
   s.started = false;
@@ -2631,7 +2632,7 @@ function stampO(ctx: C2, c: HTMLCanvasElement, u: number) {
   ctx.drawImage(c, -OOX * u, -OOY * u, OW * u, OH * u);
 }
 /** 물건 크기 배수 (방이 낮은 집은 조금 작게) */
-const objK = (r: RoomDef) => Math.sqrt((r.y1 - r.y0) / 0.33);
+const objK = (r: RoomDef) => Math.sqrt((r.y1 - r.y0) / 0.33) * 1.1;
 /** 물건 그림 기준점: 바닥·선반은 바닥, 벽은 가운데, 천장은 매단 곳 */
 function objAnchor(s: HauntState, o: Obj): [number, number] {
   const r = s.rooms[o.room];
@@ -2993,12 +2994,12 @@ function bakeBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement
     }
     g.globalAlpha = 1;
     // 달
-    g.fillStyle = radg(g, X(0.84), Y(0.2), R(0.02), R(0.16), [0, 'rgba(255,246,200,.45)'], [1, 'rgba(255,246,200,0)']);
-    g.fillRect(X(0.66), Y(0.04), R(0.36), R(0.34));
-    ell(g, X(0.84), Y(0.2), R(0.055), R(0.055));
-    g.fillStyle = lin(g, X(0.79), Y(0.15), X(0.89), Y(0.25), [0, '#fffbe6'], [1, '#ffe7a0']);
+    g.fillStyle = radg(g, X(0.88), Y(0.16), R(0.02), R(0.12), [0, 'rgba(255,246,200,.45)'], [1, 'rgba(255,246,200,0)']);
+    g.fillRect(X(0.74), Y(0.04), R(0.3), R(0.26));
+    ell(g, X(0.88), Y(0.16), R(0.038), R(0.038));
+    g.fillStyle = lin(g, X(0.84), Y(0.12), X(0.92), Y(0.2), [0, '#fffbe6'], [1, '#ffe7a0']);
     g.fill();
-    for (const [dx, dy, r] of [[-0.015, -0.01, 0.012], [0.02, 0.015, 0.008], [0.005, 0.03, 0.006]] as [number, number, number][]) (ell(g, X(0.84 + dx), Y(0.2 + dy), R(r), R(r)), (g.fillStyle = 'rgba(230,200,120,.4)'), g.fill());
+    for (const [dx, dy, r] of [[-0.01, -0.008, 0.009], [0.014, 0.01, 0.006], [0.003, 0.02, 0.004]] as [number, number, number][]) (ell(g, X(0.88 + dx), Y(0.16 + dy), R(r), R(r)), (g.fillStyle = 'rgba(230,200,120,.4)'), g.fill());
     // 구름
     for (const [x, y, k] of [[0.14, 0.17, 1], [0.6, 0.12, 0.8], [0.95, 0.3, 0.7]] as [number, number, number][]) {
       g.fillStyle = 'rgba(200,200,255,.16)';
@@ -3007,100 +3008,95 @@ function bakeBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement
     // 먼 언덕·나무
     g.fillStyle = '#1c2a4a';
     g.beginPath();
-    g.moveTo(0, Y(1.02));
-    for (let i = 0; i <= 12; i++) g.lineTo(X(i / 12), Y(0.98 - Math.sin(i * 0.9 + ch) * 0.025 - hsh(i + ch) * 0.02));
-    g.lineTo(w, Y(1.1));
-    g.lineTo(0, Y(1.1));
+    g.moveTo(0, Y(GY - 0.04));
+    for (let i = 0; i <= 12; i++) g.lineTo(X(i / 12), Y(GY - 0.08 - Math.sin(i * 0.9 + ch) * 0.025 - hsh(i + ch) * 0.02));
+    g.lineTo(w, Y(GY + 0.02));
+    g.lineTo(0, Y(GY + 0.02));
     g.fill();
     // 땅: 풀 · 보도 · 길
-    g.fillStyle = lin(g, 0, Y(1.08), 0, Y(1.17), [0, '#3f7a4a'], [1, '#2f5f3a']);
-    g.fillRect(0, Y(1.08), w, R(0.09));
+    g.fillStyle = lin(g, 0, Y(GY), 0, Y(GY + 0.045), [0, '#3f7a4a'], [1, '#2f5f3a']);
+    g.fillRect(0, Y(GY), w, R(0.045));
     g.fillStyle = '#9a95a8';
-    g.fillRect(0, Y(1.165), w, R(0.035));
+    g.fillRect(0, Y(GY + 0.045), w, R(0.025));
     g.fillStyle = 'rgba(255,255,255,.18)';
-    for (let x = 0; x < 1; x += 0.08) g.fillRect(X(x), Y(1.165), 1, R(0.035));
-    g.fillStyle = lin(g, 0, Y(1.2), 0, h, [0, '#3a3a4c'], [1, '#2a2a38']);
-    g.fillRect(0, Y(1.2), w, h - Y(1.2));
+    for (let x = 0; x < 1; x += 0.08) g.fillRect(X(x), Y(GY + 0.045), 1, R(0.025));
+    g.fillStyle = lin(g, 0, Y(GY + 0.07), 0, h, [0, '#3a3a4c'], [1, '#2a2a38']);
+    g.fillRect(0, Y(GY + 0.07), w, h - Y(GY + 0.07));
     g.fillStyle = 'rgba(255,230,140,.6)';
-    for (let x = 0.03; x < 1; x += 0.14) g.fillRect(X(x), Y(1.275), R(0.07), R(0.006));
-    // 가로등 (오른쪽)
-    g.fillStyle = radg(g, X(0.93), Y(1.04), R(0.01), R(0.2), [0, 'rgba(255,220,140,.35)'], [1, 'rgba(255,220,140,0)']);
-    g.fillRect(X(0.73), Y(0.84), R(0.4), R(0.4));
-    seg(g, X(0.93), Y(1.19), X(0.93), Y(1.02), R(0.008), '#2a2a38');
-    ell(g, X(0.93), Y(1.02), R(0.018), R(0.014));
-    ink(g, '#ffe8a0', R(0.004), '#2a2a38');
-    // 수풀·꽃
+    for (let x = 0.03; x < 1; x += 0.14) g.fillRect(X(x), Y(1.285), R(0.07), R(0.005));
+    // 수풀·꽃 (집 앞)
     for (let i = 0; i < 9; i++) {
-      const x = 0.4 + i * 0.07 + hsh(i + 3) * 0.02;
-      if (x > 0.9) break;
-      ell(g, X(x), Y(1.1), R(0.03), R(0.022));
+      const x = 0.42 + i * 0.065 + hsh(i + 3) * 0.02;
+      if (x > 0.95) break;
+      ell(g, X(x), Y(GY + 0.022), R(0.026), R(0.017));
       ink(g, i % 2 ? '#3f8a4a' : '#4a9a52', R(0.003), '#1f3a2a');
-      if (i % 3 === 0) (ell(g, X(x + 0.008), Y(1.095), R(0.006), R(0.006)), (g.fillStyle = '#ff9fb2'), g.fill());
+      if (i % 3 === 0) (ell(g, X(x + 0.008), Y(GY + 0.014), R(0.005), R(0.005)), (g.fillStyle = '#ff9fb2'), g.fill());
     }
     // ── 집 ──
     const top = L.roofY, x0 = 0.03, x1 = 0.97;
     // 지붕
     g.save();
     g.beginPath();
+    const RH = ch === 1 ? 0.055 : 0.085;
     if (ch === 1) {
       g.moveTo(X(x0 - 0.02), Y(top));
-      g.lineTo(X(x0 + 0.06), Y(top - 0.13));
-      g.lineTo(X(x1 - 0.06), Y(top - 0.13));
+      g.lineTo(X(x0 + 0.05), Y(top - RH));
+      g.lineTo(X(x1 - 0.05), Y(top - RH));
       g.lineTo(X(x1 + 0.02), Y(top));
     } else {
       g.moveTo(X(x0 - 0.025), Y(top));
-      g.lineTo(X(0.5), Y(top - (ch === 2 ? 0.2 : 0.22)));
+      g.lineTo(X(0.5), Y(top - RH));
       g.lineTo(X(x1 + 0.025), Y(top));
     }
     g.closePath();
-    g.fillStyle = lin(g, 0, Y(top - 0.22), 0, Y(top), [0, P.roof], [1, P.roof2]);
+    g.fillStyle = lin(g, 0, Y(top - RH), 0, Y(top), [0, P.roof], [1, P.roof2]);
     g.fill();
     g.clip();
     g.strokeStyle = 'rgba(0,0,0,.22)';
     g.lineWidth = 1.2;
-    for (let y = top - 0.22; y < top; y += 0.022) {
+    for (let y = top - RH; y < top; y += 0.018) {
       seg(g, 0, Y(y), w, Y(y), 1.2, 'rgba(0,0,0,.22)');
       for (let x = ((y * 50) % 2) * 0.02; x < 1; x += 0.04) seg(g, X(x), Y(y), X(x), Y(y + 0.022), 1, 'rgba(0,0,0,.15)');
     }
     g.restore();
     g.beginPath();
-    if (ch === 1) (g.moveTo(X(x0 - 0.02), Y(top)), g.lineTo(X(x0 + 0.06), Y(top - 0.13)), g.lineTo(X(x1 - 0.06), Y(top - 0.13)), g.lineTo(X(x1 + 0.02), Y(top)));
-    else (g.moveTo(X(x0 - 0.025), Y(top)), g.lineTo(X(0.5), Y(top - (ch === 2 ? 0.2 : 0.22))), g.lineTo(X(x1 + 0.025), Y(top)));
+    if (ch === 1) (g.moveTo(X(x0 - 0.02), Y(top)), g.lineTo(X(x0 + 0.05), Y(top - RH)), g.lineTo(X(x1 - 0.05), Y(top - RH)), g.lineTo(X(x1 + 0.02), Y(top)));
+    else (g.moveTo(X(x0 - 0.025), Y(top)), g.lineTo(X(0.5), Y(top - RH)), g.lineTo(X(x1 + 0.025), Y(top)));
     g.strokeStyle = OUT;
     g.lineWidth = R(0.006);
     g.stroke();
     // 굴뚝
-    rr(g, X(0.72), Y(top - 0.17), R(0.055), R(0.12), 0);
+    rr(g, X(0.74), Y(top - RH - 0.03), R(0.045), R(0.07), 0);
     ink(g, '#a0503a', R(0.005));
-    rr(g, X(0.71), Y(top - 0.185), R(0.075), R(0.02), R(0.004));
+    rr(g, X(0.732), Y(top - RH - 0.042), R(0.061), R(0.016), R(0.004));
     ink(g, '#8a4030', R(0.005));
     // 다락 동그란 창 (불빛)
-    const ay = top - (ch === 1 ? 0.065 : 0.085);
-    g.fillStyle = radg(g, X(0.5), Y(ay), R(0.01), R(0.07), [0, 'rgba(255,220,120,.5)'], [1, 'rgba(255,220,120,0)']);
-    g.fillRect(X(0.42), Y(ay - 0.08), R(0.16), R(0.16));
-    ell(g, X(0.5), Y(ay), R(0.032), R(0.032));
-    ink(g, lin(g, 0, Y(ay - 0.03), 0, Y(ay + 0.03), [0, '#ffe8a0'], [1, '#ffb84a']), R(0.006), '#f4ead6');
-    seg(g, X(0.5), Y(ay - 0.032), X(0.5), Y(ay + 0.032), R(0.004), '#f4ead6');
-    seg(g, X(0.468), Y(ay), X(0.532), Y(ay), R(0.004), '#f4ead6');
+    const ay = top - RH * 0.42;
+    g.fillStyle = radg(g, X(0.5), Y(ay), R(0.008), R(0.05), [0, 'rgba(255,220,120,.5)'], [1, 'rgba(255,220,120,0)']);
+    g.fillRect(X(0.44), Y(ay - 0.06), R(0.12), R(0.12));
+    ell(g, X(0.5), Y(ay), R(0.02), R(0.02));
+    ink(g, lin(g, 0, Y(ay - 0.02), 0, Y(ay + 0.02), [0, '#ffe8a0'], [1, '#ffb84a']), R(0.005), '#f4ead6');
+    seg(g, X(0.5), Y(ay - 0.02), X(0.5), Y(ay + 0.02), R(0.003), '#f4ead6');
+    seg(g, X(0.48), Y(ay), X(0.52), Y(ay), R(0.003), '#f4ead6');
     if (ch === 2) {
       // 저택 탑
-      rr(g, X(0.08), Y(top - 0.14), R(0.09), R(0.14), 0);
+      rr(g, X(0.08), Y(top - 0.09), R(0.08), R(0.09), 0);
       ink(g, P.wall, R(0.005));
       g.beginPath();
-      g.moveTo(X(0.065), Y(top - 0.14));
-      g.lineTo(X(0.125), Y(top - 0.26));
-      g.lineTo(X(0.185), Y(top - 0.14));
+      g.moveTo(X(0.067), Y(top - 0.09));
+      g.lineTo(X(0.12), Y(top - 0.17));
+      g.lineTo(X(0.173), Y(top - 0.09));
       g.closePath();
       ink(g, P.roof, R(0.005));
-      ell(g, X(0.125), Y(top - 0.08), R(0.018), R(0.024));
+      ell(g, X(0.12), Y(top - 0.05), R(0.014), R(0.019));
       ink(g, '#ffd88a', R(0.004));
     }
     // 바깥벽 (두께) + 기초
-    rr(g, X(x0 - 0.012), Y(top - 0.004), R(x1 - x0 + 0.024), Y(1.09) - Y(top - 0.004), R(0.004));
+    rr(g, X(x0 - 0.012), Y(top - 0.004), R(x1 - x0 + 0.024), Y(GY + 0.01) - Y(top - 0.004), R(0.004));
     ink(g, P.wall, R(0.006));
-    rr(g, X(x0 - 0.02), Y(1.078), R(x1 - x0 + 0.04), R(0.026), R(0.004));
-    ink(g, lin(g, 0, Y(1.078), 0, Y(1.104), [0, '#a8a0b0'], [1, '#7a7488']), R(0.004));
-    for (let x = x0; x < x1; x += 0.06) seg(g, X(x), Y(1.08), X(x), Y(1.102), 1, 'rgba(0,0,0,.25)');
+    rr(g, X(x0 - 0.02), Y(GY - 0.002), R(x1 - x0 + 0.04), R(0.02), R(0.004));
+    ink(g, lin(g, 0, Y(GY), 0, Y(GY + 0.02), [0, '#a8a0b0'], [1, '#7a7488']), R(0.004));
+    for (let x = x0; x < x1; x += 0.06) seg(g, X(x), Y(GY), X(x), Y(GY + 0.016), 1, 'rgba(0,0,0,.25)');
     // 방마다: 벽지(불빛) · 바닥 · 걸레받이 · 가구
     for (const [i, r] of L.rooms.entries()) {
       const fl = floorY(r), H = r.y1 - r.y0, [p0, p1] = P.paper[r.kind];
@@ -3185,7 +3181,7 @@ function bakeBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement
       }
     }
     for (const r of L.rooms) {
-      if (r.y1 > 1.07) continue;
+      if (r.y1 > GY - 0.01) continue;
       g.fillStyle = lin(g, 0, Y(r.y1 - 0.004), 0, Y(r.y1 + 0.006), [0, '#7a5038'], [1, '#5a3828']);
       g.fillRect(X(r.x0), Y(r.y1 - 0.003), R(r.x1 - r.x0), R(0.009));
     }
@@ -3204,16 +3200,16 @@ function bakeBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement
       g.fillStyle = 'rgba(200,80,80,.6)';
       g.fill();
       // 바깥 계단 (현관에서 보도로)
-      for (let k = 0; k < 3; k++) (rr(g, X(0.0), Y(1.105 + k * 0.02), R(0.1 - k * 0.012), R(0.02), R(0.002)), ink(g, '#b8b0c0', R(0.003), '#6a6478'));
+      for (let k = 0; k < 3; k++) (rr(g, X(0.0), Y(GY + 0.012 + k * 0.016), R(0.1 - k * 0.012), R(0.016), R(0.002)), ink(g, '#b8b0c0', R(0.003), '#6a6478'));
     }
     // 바깥벽 테두리 선 (문틈 위)
-    rr(g, X(x0), Y(top), R(x1 - x0), Y(1.08) - Y(top), 0);
+    rr(g, X(x0), Y(top), R(x1 - x0), Y(GY) - Y(top), 0);
     g.strokeStyle = shade(P.trim, -20);
     g.lineWidth = R(0.005);
     g.stroke();
     // 우편함 · 울타리
-    seg(g, X(0.16), Y(1.165), X(0.16), Y(1.12), R(0.006), '#6a4a3a');
-    rr(g, X(0.142), Y(1.105), R(0.036), R(0.022), R(0.006));
+    seg(g, X(0.9), Y(GY + 0.045), X(0.9), Y(GY + 0.012), R(0.006), '#6a4a3a');
+    rr(g, X(0.882), Y(GY - 0.002), R(0.036), R(0.02), R(0.006));
     ink(g, P.trim, R(0.004));
   });
   if (BGS.size > 6) BGS.clear();
@@ -3315,9 +3311,9 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   ctx.drawImage(bakeBg(ch, Math.round(w), Math.round(h), sc), 0, 0, w, h);
   // 굴뚝 연기 · 하늘 반짝
   for (let i = 0; i < 3; i++) {
-    const f = (t * 0.006 + i / 3) % 1, top = LAYOUTS[ch].roofY;
+    const f = (t * 0.006 + i / 3) % 1, top = LAYOUTS[ch].roofY - (ch === 1 ? 0.055 : 0.085);
     ctx.globalAlpha = 0.35 * (1 - f);
-    ell(ctx, X(0.75 + f * 0.05 + Math.sin(t * 0.02 + i) * 0.01), Y(top - 0.19 - f * 0.12), R(0.015 + f * 0.02), R(0.012 + f * 0.015));
+    ell(ctx, X(0.765 + f * 0.05 + Math.sin(t * 0.02 + i) * 0.01), Y(top - 0.05 - f * 0.08), R(0.015 + f * 0.02), R(0.012 + f * 0.015));
     ctx.fillStyle = '#d8d8ee';
     ctx.fill();
   }
@@ -3327,19 +3323,19 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   if (s.perk[0] === 1) {
     const ring = s.events.some((e) => e.k === 'clock' && t - e.t < 40), sh = ring ? Math.sin(t * 1.2) * 0.06 : 0;
     ctx.save();
-    ctx.translate(X(0.55), Y(1.165));
+    ctx.translate(X(0.6), Y(GY + 0.06));
     ctx.rotate(sh);
-    drawPerk(ctx, 0, 0, 0, 0, R(0.13), t);
+    drawPerk(ctx, 0, 0, 0, 0, R(0.1), t);
     ctx.restore();
   } else if (s.perk[0] === 2) {
-    const ay = LAYOUTS[ch].roofY - (ch === 1 ? 0.065 : 0.085);
-    drawPerk(ctx, 0, 1, X(0.5), Y(ay + 0.03), R(0.07), t);
+    const ay = LAYOUTS[ch].roofY - (ch === 1 ? 0.055 : 0.085) * 0.42;
+    drawPerk(ctx, 0, 1, X(0.5), Y(ay + 0.02), R(0.045), t);
   }
   if (s.perk[1] === 2) {
     for (let i = 0; i < 6; i++) {
       const f = (t * 0.002 + i / 6) % 1;
       ctx.globalAlpha = 0.22 * Math.sin(f * Math.PI);
-      ell(ctx, X(-0.1 + f * 1.2), Y(1.06 + (i % 3) * 0.035), R(0.16), R(0.035));
+      ell(ctx, X(-0.1 + f * 1.2), Y(GY - 0.02 + (i % 3) * 0.03), R(0.16), R(0.035));
       ctx.fillStyle = '#d8d0f0';
       ctx.fill();
     }
@@ -3521,7 +3517,7 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   {
     const leaving = s.phase === 'result' || (s.phase === 'end' && s.won) || s.phase === 'pick';
     const drive = leaving ? Math.min(1, Math.max(0, (s.pt - 20) / 80)) : 0;
-    const cx = CAR_X - drive * drive * 0.9, cy = CAR_Y + 0.045, cu = R(0.3), bounce = s.events.some((e) => e.k === 'seat' && t - e.t < 10) ? Math.sin((t % 10) * 0.6) * R(0.006) : 0;
+    const cx = CAR_X - drive * drive * 0.9, cy = 1.3, cu = R(0.25), bounce = s.events.some((e) => e.k === 'seat' && t - e.t < 10) ? Math.sin((t % 10) * 0.6) * R(0.006) : 0;
     ctx.save();
     ctx.translate(X(cx), Y(cy) + bounce);
     // 지붕 짐 (탄 사람만큼)
@@ -3554,7 +3550,7 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
     for (const p of s.people) {
       if (p.st !== 'out') continue;
       const q = p.outT / 70, L = lookOf(p, s.stage), u = R(personH(s.rooms[doorRoom(s)])) * 0.85;
-      const x = q < 0.25 ? 0.07 - q * 0.12 : 0.04 + ((q - 0.25) / 0.75) * (CAR_X - 0.08), y = q < 0.25 ? 1.1 + q * 0.32 : 1.19 + Math.abs(Math.sin(q * 20)) * -0.01;
+      const x = q < 0.25 ? 0.07 - q * 0.12 : 0.04 + ((q - 0.25) / 0.75) * (CAR_X - 0.1), y = q < 0.25 ? GY + q * 0.24 : GY + 0.06 - Math.abs(Math.sin(q * 20)) * 0.008;
       ctx.save();
       ctx.translate(X(x), Y(y));
       ctx.globalAlpha = q < 0.05 ? q / 0.05 : 1;
@@ -3568,7 +3564,7 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
       if (dog && drive < 0.3) {
         const u = R(0.06), x = 0.06 + Math.min(1, s.pt / 40) * (CAR_X - 0.05);
         ctx.save();
-        ctx.translate(X(x), Y(1.2));
+        ctx.translate(X(x), Y(GY + 0.065));
         stampA(ctx, petSpr(false, (t >> 3) % 2 ? 'walk0' : 'walk1', u * sc2), u);
         ctx.restore();
       }
@@ -4163,11 +4159,11 @@ function drawBubble(ctx: C2, s: HauntState, p: Person, X: (x: number) => number,
 }
 function drawGhostNow(ctx: C2, s: HauntState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number) {
   if (s.phase === 'end' && !s.won) return;
-  const k = R(0.052), bob = Math.sin(t * 0.08) * R(0.008);
+  const k = R(0.058), bob = Math.sin(t * 0.08) * R(0.008);
   const recentPrank = s.events.some((e) => e.k === 'prank' && t - e.t < 26);
   const mood = s.gStun > 0 ? 3 : s.fly ? 1 : recentPrank ? 2 : s.phase === 'result' || (s.big && t - s.big.t < 60) ? 4 : 0;
   let gx = s.gx, gy = s.gy;
-  if (s.phase !== 'play') (gx = 0.5 + Math.sin(t * 0.03) * 0.2), (gy = (LAYOUTS[STAGES[s.stage].ch].roofY - 0.06));
+  if (s.phase !== 'play') (gx = 0.5 + Math.sin(t * 0.03) * 0.2), (gy = LAYOUTS[STAGES[s.stage].ch].roofY - 0.03);
   // 날아온 자취
   if (s.fly) {
     const f = s.fly, o = s.objs.find((q) => q.id === f.obj);
