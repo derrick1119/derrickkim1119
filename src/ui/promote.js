@@ -9,7 +9,7 @@ import { G, save, unitStats, pendingPromos, promote } from '../state.js';
 import { CARDS, cardName } from '../data/cards.js';
 import { UNITS } from '../data/units.js';
 import { BRANCHES, AXES, branchOf } from '../data/branches.js';
-import { portrait } from '../render/sprites.js';
+import { portrait, lookOf } from '../render/sprites.js';
 import { symbol } from '../render/symbols.js';
 import { sfx } from '../audio.js';
 import { juice } from './juice.js';
@@ -51,7 +51,7 @@ export class PromoOverlay extends Overlay {
       const sk = g.createLinearGradient(0, sy, 0, sy + sh); sk.addColorStop(0, ax.col); sk.addColorStop(1, '#f3e2b0'); g.globalAlpha *= 0.9; g.fillStyle = sk; g.fillRect(sx, sy, sw, sh); g.globalAlpha = off ? 0.35 : 1;
       g.save(); g.globalAlpha *= 0.22; g.translate(cx, sy + sh); for (let q = 0; q < 9; q++) { g.rotate(0.35); g.fillStyle = '#fff4d0'; g.fillRect(-3, -sh * 1.4, 6, sh * 1.4); } g.restore();
       g.fillStyle = 'rgba(60,70,40,0.35)'; g.fillRect(sx, sy + sh - 34, sw, 34); ell(g, cx, sy + sh - 20, 80, 10, 'rgba(20,14,8,0.35)');
-      portrait(g, type, cx, sy + sh - 18 + (on ? -Math.abs(Math.sin(this.pt * 9)) * 10 : 0), BIG[type] || 2.15, t, true, c.wpn || B.arm || undefined);
+      portrait(g, lookOf(type, B.id), cx, sy + sh - 14 + (on ? -Math.abs(Math.sin(this.pt * 9)) * 8 : 0), (BIG[type] || 2.15) * 0.86, t, true, c.wpn || B.arm || undefined);
       g.restore(); rr(g, sx, sy, sw, sh, 6, null, '#2a1a10', 2);
       // 설명과 효과
       text(g, B.desc, cx, y + 302, { size: 21, font: FONT_B, fill: '#3a2a1a', maxW: PW - 50 });

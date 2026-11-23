@@ -1,7 +1,7 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
 import { W, H, VIEW, MID_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
-import { getLook, getWeapon, blinking, leftover } from './sprites.js';
+import { getLook, getWeapon, blinking, leftover, lookOf } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { CALL_R } from '../data/bossalt.js';
 import { HERO_COL, HERO_SEAL, HERO_SKILLS } from '../data/units.js';
@@ -24,7 +24,7 @@ const HIT_T = 0.22, HIT_PX = 6;
 // T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
 export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   // 그슨대는 살아 있는 동안 점점 커진다
-  const L = getLook(u.look || (u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : u.type)), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
+  const L = getLook(u.look || (u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : lookOf(u.type, u.def && u.def.br))), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
   if (u._dir === undefined) { u._dir = u.team === 0 ? 1 : -1; u._flipT = -9; }

@@ -8,7 +8,7 @@ import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { branchOf, AXES } from '../data/branches.js';
 import { G, unitStats, equip, canUp, canTemper, weaponOf, pouchCap, tacticCards } from '../state.js';
-import { portrait, weaponIcon } from '../render/sprites.js';
+import { portrait, weaponIcon, lookOf } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { symbol } from '../render/symbols.js';
 import { sfx } from '../audio.js';
@@ -41,7 +41,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   const wg = g.createRadialGradient(cx, cy, ss * 0.1, cx, cy, ss * 1.1); wg.addColorStop(0, col + '3c'); wg.addColorStop(1, col + '00'); g.fillStyle = wg; g.fillRect(x, y + hh + 3, w, ah + 24);
   if (unit) {
     const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7); gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, ah); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
-    const L = CARD_K[d.unit] || 1; portrait(g, d.unit, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn || (branchOf(c.br) && branchOf(c.br).arm) || undefined);
+    const lk = lookOf(d.unit, c.br), L = (CARD_K[d.unit] || 1) * (lk === d.unit ? 1 : 0.88); portrait(g, lk, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn || (branchOf(c.br) && branchOf(c.br).arm) || undefined);
   }
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + 24, y + hh + 24, 25, d.sym || k.sym, col); }   // 패의 종류 표식은 그림 칸의 오른쪽 위 모서리에

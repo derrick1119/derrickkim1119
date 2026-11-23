@@ -1,7 +1,7 @@
 // 병종 인형 스프라이트 — 몸 한 장 + (사람·도깨비는) 머리 한 장 + 손에 든 무기 한 장. 그림은 figures.js
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
-import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
+import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, cartRocket, cartBronze, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 import { mulgwisin, dalgyal, agwi, yeongno, myodusa, centipede, gangcheori, bat, foxTailOne, caneItem, lureLamp, gamtuCap } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
@@ -396,6 +396,54 @@ for (const [k, base, o] of [['tigerboss', LOOKS.tigerboss, TTEOK], ['jangsan', L
   LOOKS[k + '_sleep'] = Object.assign({}, base, { body: g => tiger(g, Object.assign({ blink: true }, q)), blinkBody: null, h: 30 });
 }
 for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho, { body: g => gumiho(g, { tails: n }), blinkBody: g => gumiho(g, { tails: n, blink: true }) });
+// ───────────── 승급한 병사의 모습 (data/branches.js 의 갈래마다 하나) ─────────────
+// 밑 병종의 인형에 갑옷·투구·깃·소품을 더한다. 승급하면 더 단단하고 화려해 보이고, 같은 병종의 두 갈래는 색과 갑옷이 서로 다르다
+// 조선 군영의 차림: 두정갑(징 박은 갑옷)·경번갑(사슬)·쇠미늘, 투구의 붉은 상모, 전립의 공작 깃, 등에 꽂은 영기
+const GOLD = '#e2b85a';
+const brLook = (base, o, extra = {}) => Object.assign({}, LOOKS[base], { base, scale: (LOOKS[base].scale || 1) * (extra.k || 1.07) }, extra, o ? { doll: Object.assign({}, LOOKS[base].doll, o) } : {});
+const BR_LOOKS = {
+  // 쌍검수: 붉은 치마에 검은 저고리, 금징 박은 붉은 전복, 공작 깃 꽂은 전립. 허리 뒤로 붉은 띠가 길게 나부낀다 (날랜 칼잡이)
+  ssanggeom: brLook('sword', { robe: '#8a2a26', top: '#26252e', sleeve: '#26252e', vest: '#b8342a', studs: true, git: '#1f1e26', collar: WHITE, cuff: '#b8342a', legs: '#2f2d38', sash: '#1f1e26', hem: GOLD, bracer: '#2b2a30', hat: 'jeonrip', plume: 'peacock', rank: 1, brow: 'stern', eyes: 'sharp', mouth: 'grit', scar: true, back: ITEM.tails('#c8402f') }),
+  // 본국검수: 쪽빛 두정갑에 가슴 호심경, 은빛 투구와 붉은 상모, 어깨 갑옷과 토시 (굳게 버티는 정예 검수)
+  bonguk: brLook('sword', { robe: '#22385c', top: '#2a3a66', sleeve: '#2a3a66', legs: '#2f2d38', cuff: GOLD, sash: GOLD, hem: GOLD, armor: { kind: 'dujeong', col: '#2a3a66', trim: GOLD, mirror: true }, pauldron: '#c9ced2', bracer: '#c9ced2', hat: 'tugu', metal: '#c9ced2', flap: '#2a3a66', plume: RED, rank: 2, brow: 'thick', eyes: 'calm', beard: 'mustache', mouth: 'flat' }),
+  // 철벽 등패수: 쇠미늘 갑옷과 쇠 투구, 범 얼굴을 그린 큰 등패 (움직이는 성벽)
+  cheolbyeok: brLook('shield', { robe: '#3a4a52', top: '#4a5a62', sleeve: '#4a5a62', legs: '#2f2d38', cuff: '#8a2a26', sash: '#8a2a26', hem: '#8a2a26', armor: { kind: 'lamellar', col: '#7d8790', trim: '#8a2a26' }, pauldron: '#6a737c', bracer: '#6a737c', hat: 'tugu', metal: '#8d969c', flap: '#5a1f1c', plume: RED, rank: 2, eyes: 'calm', brow: 'flat', beard: 'short', mouth: 'grit', item: ITEM.tigerShield }, { k: 1.1 }),
+  // 돌격 등패수: 붉은 옷에 짧은 사슬 갑옷, 쇠뿔 달린 등패, 등에 노란 영기. 붉은 머리띠를 질끈 동였다
+  dolgyeok: brLook('shield', { robe: '#9a3a2a', top: '#b8553a', sleeve: '#b8553a', legs: CREAM, cuff: WHITE, sash: '#2b2a30', hem: '#5a1f1c', armor: { kind: 'mail', col: '#6a7880', trim: RED, short: true }, bracer: '#7a4a2c', hat: 'band', bandCol: RED, rank: 1, eyes: 'glare', brow: 'bushy', mouth: 'grit', item: ITEM.spikeShield, back: ITEM.flag('#e0b23c') }),
+  // 장창수: 붉은 두정갑, 붉은 깃 꽂은 전립, 등에 푸른 영기 (창진의 맨 앞줄)
+  jangchang: brLook('spear', { robe: '#7a1f1c', top: '#8a2a26', sleeve: '#8a2a26', vest: null, git: '#5a1f1c', legs: '#2f2d38', shoe: null, cuff: GOLD, sash: GOLD, hem: GOLD, armor: { kind: 'dujeong', col: '#8a2a26', trim: GOLD }, bracer: '#7a4a2c', hat: 'jeonrip', plume: RED, rank: 2, eyes: 'calm', brow: 'stern', beard: 'mustache', mouth: 'flat', back: ITEM.flag('#2f4d7e') }),
+  // 낭선수: 푸른 옷에 사슬 갑옷, 녹색 드림의 작은 투구 (원앙진에서 대창으로 묶는 병사)
+  nangseon: brLook('spear', { robe: '#3f6b5c', top: '#4f7a6a', sleeve: '#4f7a6a', vest: null, git: '#2c4f44', legs: '#e3d9bf', shoe: null, cuff: CREAM, sash: '#2c4f44', hem: '#2c4f44', armor: { kind: 'mail', col: '#7d8790', trim: '#2c4f44', short: true }, bracer: '#8d969c', hat: 'tugu', metal: '#8d969c', flap: '#3f6b5c', rank: 1, eyes: 'calm', brow: 'stern', beard: 'stubble', mouth: 'flat' }),
+  // 기창 돌격대: 비늘 마갑을 입힌 흑마, 붉은 두정갑에 금빛 투구와 붉은 상모, 붉은 망토 (가장 무거운 기병)
+  gichang: brLook('knight', { robe: '#8a2a26', top: '#a8302a', sleeve: '#a8302a', legs: '#2b2a30', studs: false, sash: GOLD, hem: GOLD, armor: { kind: 'dujeong', col: '#a8302a', trim: GOLD, mirror: true }, pauldron: '#d9b24a', bracer: '#d9b24a', hat: 'tugu', metal: '#d9b24a', flap: '#7a1f1c', plume: RED, rank: 3, back: g => ITEM.cape(g, '#5a1f1c'),
+    under: g => { g.save(); g.translate(3, 0); g.scale(1.35, 1.35); horse(g, { coat: '#3a2a26', mane: '#1a161c', saddle: '#7a1f1c', tack: '#d6a640', barding: '#5e6470', bardTrim: '#d6a640', chamfron: '#d9b24a' }); g.restore(); } }, { k: 1.05 }),
+  // 마상편곤수: 얼룩 백마, 쪽빛 옷에 사슬 갑옷, 공작 깃 꽂은 전립과 검푸른 망토 (말 위에서 편곤을 휘두른다)
+  masang: brLook('knight', { robe: '#22385c', top: '#2f4d7e', sleeve: '#2f4d7e', legs: '#2a2c38', studs: false, sash: '#e0b23c', hem: '#e0b23c', armor: { kind: 'mail', col: '#7d8790', trim: '#22385c' }, pauldron: null, bracer: '#8d969c', hat: 'jeonrip', plume: 'peacock', rank: 2, beard: 'goatee', back: g => ITEM.cape(g, '#1f2a44'),
+    under: g => { g.save(); g.translate(3, 0); g.scale(1.35, 1.35); horse(g, { coat: '#cfc8bc', mane: '#5a5a62', saddle: '#2f4d7e', tack: '#2f4d7e', blaze: false }); g.restore(); } }, { k: 1.05 }),
+  // 애기살 사수: 흰 저고리에 쪽빛 전복, 푸른 깃 꽂은 전립, 허리에 통아와 가죽 팔찌 (멀리 쏘는 명사수)
+  aegisal: brLook('xbow', { robe: '#22385c', top: '#f6f0e2', vest: '#2f4d7e', git: GOLD, legs: CREAM, sash: GOLD, hem: GOLD, bracer: '#7a4a2c', hat: 'jeonrip', plume: '#2f4d7e', rank: 1, eyes: 'sharp', brow: 'thin', mouth: 'flat', item: ITEM.tube }),
+  // 육량전 사수: 밤빛 두정갑에 쇠 투구와 흰 상모, 굵은 화살을 꽂은 큰 전동 (무거운 화살을 쏘는 장사)
+  yungnyang: brLook('xbow', { robe: '#5a3a26', top: '#6b3a26', sleeve: '#6b3a26', vest: null, legs: '#3a3640', cuff: GOLD, sash: GOLD, hem: GOLD, armor: { kind: 'dujeong', col: '#6b3a26', trim: GOLD }, pauldron: '#8a6a4a', bracer: '#8a6a4a', hat: 'tugu', metal: '#a8a8a0', flap: '#6b3a26', plume: '#f3ead2', rank: 2, jaw: 'square', brow: 'thick', eyes: 'calm', beard: 'full', mouth: 'flat', back: ITEM.bigQuiver }),
+  // 빙결 도사: 서릿빛 도포에 흑립, 흰 수염, 몸을 두른 눈꽃 (얼음 부적의 노도사)
+  binggyeol: brLook('wizard', { robe: '#dfeef4', top: '#eef6f8', git: '#5f9ac8', collar: WHITE, sash: '#5f9ac8', hem: '#5f9ac8', dots: '#9cc8e4', hat: 'gat', hair: '#d8dde0', beard: 'long', brow: 'arch', browCol: '#8a9aa6', eyes: 'narrow', rank: 2, back: ITEM.frost }),
+  // 삼매 도사: 진홍 도포에 금빛 띠를 어깨에 걸치고, 몸을 두른 삼매진화 (불의 도사)
+  sammae: brLook('wizard', { robe: '#7a1f1c', top: '#a8302a', git: '#e0b23c', collar: '#f6efdc', sash: '#2b2a30', hem: '#e0b23c', dots: '#f0a040', cross: ['#e0b23c'], hat: 'yugeon', eyes: 'glare', brow: 'arch', rank: 2, back: ITEM.fire }),
+  // 굿무녀: 장군거리 차림. 붉은 동다리에 검푸른 쾌자, 공작 깃 꽂은 전립, 등에 오방기
+  gutmu: brLook('priest', { robe: '#2f4d7e', top: '#c8402f', sleeve: '#c8402f', stripes: [GOLD, '#3f6b5c', WHITE], vest: '#1f2a44', git: GOLD, goreum: GOLD, sash: '#e0b23c', hem: GOLD, hat: 'jeonrip', plume: 'peacock', rank: 1, back: ITEM.flag(['#c8402f', '#e0b23c', '#f6efdc', '#3f6b5c', '#2f4d7e'], '#e0b23c') }),
+  // 신내림 무녀: 높은 종이 고깔에 큰 종이꽃, 오방 띠가 몸을 휘감는다. 신이 내려 눈을 감았다
+  sinnaerim: brLook('priest', { robe: WHITE, top: '#fffaf0', stripes: ['#c8402f', '#e0b23c', '#3f6b5c', '#2f4d7e'], git: '#2f4d7e', goreum: RED, sash: RED, hem: '#2f4d7e', hat: 'gokkal2', eyes: 'closed', mouth: 'flat', rank: 2, item: ITEM.ribbons }),
+  // 신기전 화차: 백 구멍 신기전기를 가파르게 세우고 약통 단 불화살을 빽빽이 꽂았다
+  singijeon: brLook('cannon', null, { body: cartRocket, h: 54 }),
+  // 총통 화차: 쇠테 두른 수레에 청동 총통 셋을 층층이 얹었다
+  chongtong: brLook('cannon', null, { body: cartBronze, h: 50 }),
+  // 도리깨 장사: 봉두난발에 범 가죽 띠를 비스듬히 두르고 쇠 팔목을 찼다 (짐승 같은 장사)
+  dorikkae: brLook('berserk', { robe: '#7a5236', legs: '#c9bd9f', sash: '#8a2a26', hem: '#d9963f', hat: 'wild', hair: '#2b2a30', skin: '#d39e70', beard: 'full', eyes: 'glare', brow: 'bushy', wrist: '#4a4a55', strap: '#5a3a26', item: ITEM.pelt }, { wide: 1.2, k: 1.08 }),
+  // 철갑 장사: 검은 쇠미늘 갑옷을 껴입고 호심경, 쇠 투구에 붉은 상모 (걸어 다니는 쇳덩이)
+  cheolgap: brLook('berserk', { robe: '#2b2a30', top: '#3a3a44', sleeve: '#3a3a44', legs: '#2b2a30', bare: false, bareChest: false, cuff: '#8a2a26', sash: '#8a2a26', hem: '#8a2a26', armor: { kind: 'lamellar', col: '#4e4f5c', trim: '#8a2a26', mirror: true }, pauldron: '#5e5e6c', bracer: '#5e5e6c', hat: 'tugu', metal: '#5e5e6c', flap: '#3a3a44', plume: RED, beard: 'full', rank: 3 }, { wide: 1.2, k: 1.1 }),
+};
+for (const [id, L] of Object.entries(BR_LOOKS)) { delete L.k; LOOKS['br_' + id] = L; }
+// 패·부대의 모습: 승급한 갈래가 있으면 그 갈래의 인형, 없으면 병종의 인형
+export const lookOf = (type, br) => (br && LOOKS['br_' + br] && LOOKS['br_' + br].base === type ? 'br_' + br : type);
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
   const d = LOOKS[type]; if (!d) throw new Error('unknown look ' + type);
@@ -434,7 +482,7 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false
   const L = getLook(type), k = s * L.scale, yy = y - (bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0), h = L.hold, bl = shut || (t > 0 && blinking(t, type.length));
   drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, yy, k, k);
   if (L.head) drawSprite(g, bl && L.blink ? L.blink : L.head, x, yy + (bob ? Math.sin(t * 5) * 0.5 * s : 0), k, k);
-  const W = wpn === 'none' ? null : getWeapon(wpn || baseWeapon(type));   // 'none' = 빈손 (인형극에서 쓴다)
+  const W = wpn === 'none' ? null : getWeapon(wpn || baseWeapon(LOOKS[type] && LOOKS[type].base || type));   // 'none' = 빈손 (인형극에서 쓴다)
   if (W) {
     if (W.hand === 'L') drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
     else if (W.hand === 'C') drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a);
