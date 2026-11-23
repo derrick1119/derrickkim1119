@@ -234,7 +234,17 @@
         for (const a of b.riders) if (a.boat === b && (a.hop || 0) < 0.4 && !a.hidden) drawOne(g, a, t);
         g.save(); g.translate(b.x, y); g.rotate(tilt);
         if (b.big) K.bigBoat(g, 'front');
-        else { P.fill(g, P.soft([[-66, -22], [66, -22], [84, -30], [70, 4], [44, 16], [-44, 16], [-70, 4]]), b.hull); P.fill(g, P.rr(-64, -24, 132, 7, 3), T.shade(b.hull, 0.18)); }
+        else {
+          const hullP = P.soft([[-66, -22], [66, -22], [84, -30], [70, 4], [44, 16], [-44, 16], [-70, 4]]);
+          const rgb = T.hex(b.hull), pale = rgb[0] + rgb[1] + rgb[2] > 620;
+          if (pale) P.glow(g, 0, -6, 120, '#fff4dc', 0.4);   /* the white boat carries a little light of its own, so it shows on white cloud */
+          P.fill(g, hullP, b.hull);
+          if (pale) {
+            g.save(); g.clip(hullP); P.fill(g, P.rr(-90, -2, 180, 30, 0), 'rgba(150,120,160,0.28)'); g.restore();   /* its belly in shadow */
+            g.strokeStyle = 'rgba(120,96,130,0.55)'; g.lineWidth = 2.2; g.stroke(hullP);
+          }
+          P.fill(g, P.rr(-64, -24, 132, 7, 3), T.shade(b.hull, pale ? -0.12 : 0.18));
+        }
         g.restore();
         g.restore();
       }
