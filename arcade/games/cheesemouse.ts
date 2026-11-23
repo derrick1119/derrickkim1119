@@ -1758,7 +1758,7 @@ function stamp(ctx: C2, cv: HTMLCanvasElement, fr: Frame, u: number) {
 }
 /** 미리 굽기 줄: 그림 프레임 밖(setTimeout)에서 조금씩 — 놀이 중 한 프레임이 길어지지 않게 */
 const WQ: (() => void)[] = [], WK = new Set<string>();
-let pumping = false;
+let pumping = false, pumpBudget = 6;
 function want(key: string, make: () => void) {
   if (WK.has(key)) return;
   WK.add(key);
@@ -1769,7 +1769,7 @@ function idlePump() {
   pumping = true;
   const go = () => {
     const a = performance.now();
-    while (WQ.length && performance.now() - a < 6) WQ.shift()!();
+    while (WQ.length && performance.now() - a < pumpBudget) WQ.shift()!();
     if (WQ.length) setTimeout(go, 16);
     else pumping = false;
   };
@@ -3274,21 +3274,26 @@ function wantStage(st: number, w: number, h: number, sc: number) {
   if (WK.has(tag)) return;
   WK.add(tag);
   const d = STAGES[st], sc2 = Math.min(2, sc), R = (r: number) => r * w * sc2 * 1.1, room = ROOMS[d.ch];
+  const kinds = new Set<CatK>(d.cats.map((q) => q.k));
+  // 먼저 판이 시작하자마자 보일 것들: 배경 · 가구 · 눈길 · 물건 · 생쥐 · 고양이의 걷기·서기·자기
   want(`bg${d.ch}:${w}:${h}:${sc}`, () => bakeBg(d.ch, room.hole, w, h, sc));
   room.furn.forEach((_, i) => want(`f${d.ch}:${i}:${w}:${sc}`, () => furnSpr(d.ch, i, w, sc)));
-  const kinds = new Set<CatK>(d.cats.map((q) => q.k));
-  for (const [k] of decoOf(st)) for (const p of [PSLEEP, PSCARED, PEAT]) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
-  for (const k of kinds) for (let p = 0; p < POSES; p++) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
-  if (d.king) for (let p = 0; p < 3; p++) want(`k${p}:${sprQ(R(U_KING))}`, () => kingSpr(p, R(U_KING)));
+  for (const k of kinds) want(`cone${k}:${w}`, () => coneSpr(KD[k].va, '255,215,70', 0.62, 0.22, KD[k].vr * w * sc2));
+  if (d.king) want(`coneking:${w}`, () => coneSpr(Math.PI, '255,110,80', 0.62, 0.22, 0.17 * w * sc2));
   for (const [k] of d.hides) want(`h${k}:${sprQ(R(U_HIDE))}`, () => hideSpr(k, R(U_HIDE)));
+  for (const k of COVER[d.ch]) want(`h${k}:${sprQ(R(U_HIDE))}`, () => hideSpr(k, R(U_HIDE)));
   for (const [k] of d.lures) want(`l${k}:${sprQ(R(U_LURE))}`, () => lureSpr(k, R(U_LURE)));
   for (const [k] of d.cheese) want(`q${k}:${sprQ(R(U_Q))}`, () => qSpr(k, R(U_Q)));
   for (const [k] of room.clutter) want(`x${k}:${sprQ(R(U_CL))}`, () => clSpr(k, R(U_CL)));
   if (d.vac) want(`vac:${sprQ(R(U_VAC))}`, () => vacSpr(R(U_VAC)));
-  for (const k of kinds) want(`cone${k}:${w}`, () => coneSpr(KD[k].va, '255,215,70', 0.62, 0.22, KD[k].vr * w * sc2));
-  if (d.king) want(`coneking:${w}`, () => coneSpr(Math.PI, '255,110,80', 0.62, 0.22, 0.17 * w * sc2));
   const tier = tierOf(st + 1);
   for (let p = 0; p < 6; p++) want(`m${p}:${tier}:${sprQ(R(U_MOUSE))}`, () => mouseSpr(p, tier, R(U_MOUSE)));
+  const first = [PW0, PW1, PST, PSLEEP, PSIT];
+  for (const k of kinds) for (const p of first) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
+  for (const [k] of decoOf(st)) for (const p of [PSLEEP, PEAT, PSCARED]) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
+  if (d.king) for (let p = 0; p < 3; p++) want(`k${p}:${sprQ(R(U_KING))}`, () => kingSpr(p, R(U_KING)));
+  // 그다음 나머지 몸짓
+  for (const k of kinds) for (let p = 0; p < POSES; p++) want(`c${k}${p}:${sprQ(R(U_CAT))}`, () => catSpr(k, p, R(U_CAT)));
 }
 function catPose(c: Cat, t: number): number {
   switch (c.mode) {
@@ -3438,6 +3443,7 @@ function drawAll(ctx: C2, s: MouseState, w: number, h: number, _th: Theme) {
   const snd = (n: Parameters<typeof fx.sound>[0], p = 1, v = 1) => void (sn++ < 2 && fx.sound(n, p, v));
   // 결과·선물·끝 화면이 뜨면 떠 있던 짧은 글자는 걷는다 (카드 위에 겹치지 않게)
   if (s.phase !== 'play' && fx.memo.clr !== s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)) (fx.memo.clr = s.stage * 10 + (s.phase === 'result' ? 1 : s.phase === 'pick' ? 2 : 3)), (fx.popups.length = 0);
+  pumpBudget = s.phase === 'play' ? 5 : 12;
   wantStage(s.stage, Math.round(w), Math.round(h), sc);
   if ((s.phase === 'result' || s.phase === 'pick') && s.stage + 1 < STAGES.length) wantStage(s.stage + 1, Math.round(w), Math.round(h), sc);
   idlePump();
@@ -4104,7 +4110,7 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
   else if (m.bag > 0 && s.cheese.length === 0) tip = '쥐구멍을 톡 — 보따리를 저장하면 판 끝!';
   else if (s.stage === 0 && m.bag === 0 && s.tapped && s.total === 0) tip = '치즈를 톡 — 덥석! 다 모으면 쥐구멍으로';
   else if (s.stage === 1 && s.lureMax === 0 && since('kick') > 600) tip = '숟가락을 톡 — 땡그랑! 고양이가 그쪽으로 가요';
-  const botKey = `${labels.join('|')}|${state.join('')}|${tip}|${s.town}|${s.dexC.length}|${s.dexQ.length}`;
+  const botKey = `${labels.join('|')}|${state.join('')}|${s.town}|${s.dexC.length}|${s.dexQ.length}`;
   main.drawImage(bar('bot', w, h - B0, scD, botKey, (g) => {
   ctx = g;
   ctx.translate(0, -B0);
@@ -4134,12 +4140,18 @@ function drawHud(main: C2, s: MouseState, w: number, h: number, sc2: number, sin
     cx += cw + gap;
   });
   ctx.textAlign = 'center';
-  font(0.034, 800);
-  text(tip, w / 2, Y(1.402), INK);
   font(0.031, 700);
   text(`쥐구멍 마을 ${s.town}/${TOWN.length} · 고양이 도감 ${s.dexC.length}/${CAT_DEX.length} · 치즈 ${s.dexQ.length}/${Q_DEX.length}`, w / 2, Y(1.452), MUTED);
   ctx = main;
   }), 0, B0, w, h - B0);
+  // 도움말 한 줄은 따로 (자주 바뀐다 — 바뀔 때 이 줄만 다시)
+  main.drawImage(bar('tip', w, R(0.044), scD, tip, (g) => {
+    ctx = g;
+    ctx.textAlign = 'center';
+    font(0.034, 800);
+    text(tip, w / 2, R(0.022), INK);
+    ctx = main;
+  }), 0, Y(1.402) - R(0.022), w, R(0.044));
 
   // ── 판 시작 띠 (NEW 한 줄) — 한 장 구워 미끄러뜨린다 ──
   if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
