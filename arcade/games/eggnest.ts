@@ -22,7 +22,7 @@ const MX = 0.81, MY = 0.43, MU = 0.095;
 const TAPS = 8, NESTS = 7, HEARTS = 3;
 const TAP_T = 8, HIT_T = 7, POP_T = 12, END_WAIT = 40, RES_MIN = 30, RES_AUTO = 60 * 45, END_T = 220;
 const EGG_H = 2.4, VS = 1.3;
-const SHARD_R = 0.16, CONE = 0.34, GAP = 0.03, SMALL_P = [0.62, 0.46, 0.4, 0.38, 0.36, 0.34, 0.32];
+const SHARD_R = 0.16, CONE = 0.34, GAP = 0.03, SMALL_P = [0.8, 0.46, 0.4, 0.38, 0.36, 0.34, 0.32];
 const HOLES = [0, 1, 1, 2, 1, 1, 1];
 const NEST_N = [22, 24, 26, 27, 28, 29, 30];
 const CHAIN_GOAL = [6, 8, 14, 15, 18, 20, 22];
@@ -553,7 +553,7 @@ const game: GameDef<NestState> & { wows(s: NestState): number } = {
   rules: [
     '알을 톡 — 쩍! 나온 아기가 저마다 다른 짓으로 옆 알을 깨요.',
     '무늬가 힌트: 점박이는 콕콕, 불꽃은 에취 불, 물방울은 물 뿜기.',
-    '톡은 둥지마다 8번. 한 번에 길게 이을수록 점수가 커요.',
+    '톡은 둥지마다 8번. 큰 알은 두 번 맞아야 깨져요 — 길게 이을수록 점수가 커요.',
   ],
   controls: 'touch',
   hint: '알을 톡 — 쩍! 줄줄이 부화 / 화살표로 고르고 스페이스',
@@ -2069,7 +2069,7 @@ function drawAll(ctx: C2, s: NestState, w: number, h: number, _th: Theme) {
         if (rare) (snd('swell', 1, 1), fx.blink('#fff6c8', 0.5), fx.kick(12), puff(ex, ez - u * 2, '#ffd84a', 20, 6, 3.4));
         fx.ring(ex, ez - u * 1.4, rare ? '#ffd84a' : '#ff9ecb', R(rare ? 0.3 : 0.14), rare ? 6 : 4);
         if (!rare) (puff(ex, ez - u * 1.8, '#ff9ecb', 6, 3.5, 2.6), puff(ex, ez - u * 1.8, '#fff3a0', 6, 3.5, 2.6), fx.blink('#fff8e0', 0.12));
-        if (rare) say(X(0.5), Y(0.42), 'NEW!', '#ffd84a', 34);
+        if (rare) say(X(0.5), Y(0.56), 'NEW!', '#ffd84a', 36);
         fx.memo.momT = t;
         fx.memo.momP = M_WOW;
         break;
@@ -2486,8 +2486,10 @@ function drawHud(ctx: C2, s: NestState, w: number, h: number) {
       ctx.globalAlpha = 1;
     }
     // ── 둥지 시작: 둥지 이름 · 새 알 ──
-    if (s.lt < 120 && (s.nest > 0 || s.hearts < HEARTS)) {
-      ctx.globalAlpha = clamp((120 - s.lt) / 20, 0, 1) * clamp(s.lt / 6, 0, 1);
+    // 둥지 이름·새 알 띠: 2.5초, 또는 첫 톡에서 0.15초 만에 걷힌다
+    const bl = s.taps === TAPS ? 150 : s.taps === TAPS - 1 ? Math.min(150, s.lastTap + 10) : 0;
+    if (s.lt < bl && (s.nest > 0 || s.hearts < HEARTS)) {
+      ctx.globalAlpha = clamp((bl - s.lt) / 10, 0, 1) * clamp(s.lt / 6, 0, 1);
       gtext(ctx, `둥지 ${s.nest + 1}`, X(0.3), Y(0.255), R(0.062), 900, '#ffffff', '#7a4214', 6);
       if (s.newT) {
         const u = R(0.03);

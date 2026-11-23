@@ -18,7 +18,9 @@ const A = 1.5, TAU = Math.PI * 2;
 const HZ = 1.12;
 const NIGHTS = 7, VOLLEYS = 3, EMBERS = 3, MAX_EMBERS = 9;
 /** 옮겨붙고 터지기까지 · 마지막 불꽃 뒤 연쇄가 살아 있는 틱 · 이만큼 지나면 등불이 빨리 날아감 */
-const FUSE = 5, LINGER = 36, RISE_T = 60 * 14;
+const FUSE = 5, RISE_T = 60 * 14;
+/** 이음: 연쇄 끝 등불 둘레 빛 고리 — 처음 반지름 · 고리가 사는 틱(줄어들며 꺼짐) · 끝 등불 몇 개까지 · 곱 최대 */
+const JOIN_R = 0.24, JOIN_T = 96, JOIN_ENDS = 3, MULT_MAX = 9;
 /** 결과: 톡 받기 시작 · 저절로 다음 밤 · 피날레 간격 · 남은 불씨 보너스 · 하늘을 다 밝히면 */
 const RES_MIN = 60, RES_AUTO = 60 * 7, FIN_STEP = 13, FIN_PTS = 25, CLEAR_PTS = 300;
 /** 마을에서 띄우기: 최소 틱 · 더하는 틱 · 늦게 뜨는 틱 */
@@ -72,12 +74,13 @@ interface Lan {
   x: number; y: number; tx: number; ty: number; x0: number; y0: number;
   born: number; rel: number; vy: number; ph: number; amp: number; sz: number;
   /** 0 떠 있음 · 1 옮겨붙음 · 2 터짐 · 3 날아감 */
-  st: number; fuse: number; sa: number; dir: number; feat: boolean;
+  st: number; fuse: number; sa: number; dir: number; feat: boolean; ch: number;
 }
-interface Burst { id: number; k: BK; x: number; y: number; t0: number; R: number; H: number; grow: number; life: number; n: number; col: number; seed: number }
-interface Mover { id: number; k: 'sub' | 'dive' | 'drag'; x0: number; y0: number; t0: number; dur: number; a: number; dir: number; col: number; dead: boolean }
-interface Chain { id: number; n: number; last: number; cx: number; cy: number; taps: number }
-interface Ev { id: number; t: number; k: string; x: number; y: number; n: number; kind?: BK }
+interface Burst { id: number; k: BK; x: number; y: number; t0: number; R: number; H: number; grow: number; life: number; n: number; col: number; seed: number; ch: number }
+interface Mover { id: number; k: 'sub' | 'dive' | 'drag'; x0: number; y0: number; t0: number; dur: number; a: number; dir: number; col: number; dead: boolean; ch: number }
+/** 연쇄: 터진 수 · 곱(이음마다 +1) · 마지막으로 움직인 틱 · 끝 등불(이음 고리 자리) */
+export interface Chain { id: number; n: number; mult: number; last: number; cx: number; cy: number; taps: number; ends: [number, number, number][] }
+interface Ev { id: number; t: number; k: string; x: number; y: number; n: number; kind?: BK; ax?: number; ay?: number }
 
 export interface FwState {
   rng: Rng; seed: number; t: number;
@@ -86,7 +89,8 @@ export interface FwState {
   phase: 'play' | 'finale' | 'result' | 'end';
   pt: number; embers: number; fin: number;
   lans: Lan[]; bursts: Burst[]; movers: Mover[];
-  chain: Chain | null; nid: number;
+  /** 지금 살아 있는 연쇄들 (고리 밖을 톡 하면 새 연쇄가 따로 선다) */
+  chains: Chain[]; nid: number;
   pts: number; nightPts: number; released: number; lit: number; bestChain: number; volN: number; volLit: number;
   nights: number[]; bestNight: number; newBest: boolean; got: number; stars: boolean[];
   newKind: Kind | null; spot: number;
@@ -100,9 +104,24 @@ export interface FwState {
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const easeOut3 = (u: number) => 1 - (1 - clamp(u, 0, 1)) ** 3;
 const settled = (s: FwState, L: Lan) => s.t - L.born >= L.rel;
+/** 이음 고리 반지름 (끝 등불이 터진 뒤 age틱): 크게 시작해 줄어들다 꺼진다 */
+export const ringR = (age: number) => (age >= JOIN_T ? 0 : JOIN_R * (1 - 0.72 * (age / JOIN_T)));
+const chainOf = (s: FwState, id: number) => s.chains.find((c) => c.id === id);
+/** 가장 큰 살아 있는 연쇄 (위 배지에 보이는 것) */
+export const topChain = (s: FwState) => s.chains.reduce<Chain | null>((a, c) => (!a || c.n > a.n ? c : a), null);
+/** 이 자리가 어느 연쇄의 이음 고리 안인가 (여럿이면 큰 쪽) */
+export function joinAt(s: FwState, x: number, y: number, k = 1): { c: Chain; ax: number; ay: number } | null {
+  let best: { c: Chain; ax: number; ay: number } | null = null;
+  for (const c of s.chains)
+    for (const [ax, ay, at] of c.ends) {
+      const r = ringR(s.t - at) * k;
+      if (r > 0 && (x - ax) ** 2 + (y - ay) ** 2 < r * r && (!best || c.n > best.c.n)) best = { c, ax, ay };
+    }
+  return best;
+}
 
-function ev(s: FwState, k: string, x: number, y: number, n = 0, kind?: BK) {
-  s.events.push({ id: ++s.evN, t: s.t, k, x, y, n, kind });
+function ev(s: FwState, k: string, x: number, y: number, n = 0, kind?: BK, ax?: number, ay?: number) {
+  s.events.push({ id: ++s.evN, t: s.t, k, x, y, n, kind, ax, ay });
   if (s.events.length > 100) s.events.splice(0, s.events.length - 80);
 }
 
@@ -128,34 +147,26 @@ function inB(b: Burst, x: number, y: number, f: number) {
 }
 
 // ───────────────────────────── 하늘 만들기 ─────────────────────────────
-function gauss(r: Rng) {
-  return Math.sqrt(-2 * Math.log(Math.max(1e-9, r()))) * Math.cos(TAU * r());
-}
-/** 무리 몇 개 + 흩어진 것 — 무리 사이 틈을 넓은 등불이 잇는다 */
-function layout(s: FwState, N: number): [number, number][] {
-  // 무리 자리: 3×3 칸 중 몇 칸(칸 안에서 흔들기) — 무리 사이가 넉넉히 떨어지게
-  const r = s.rng, cells = [0, 1, 2, 3, 4, 5, 6, 7, 8], C = 4 + Math.floor(r() * 2), cs: [number, number][] = [];
+/** 떨어진 무리 몇 개 — 톡 한 번은 한 무리, 이어 붙여야 하늘 가득 (무리 사이 틈은 이음 고리 + 불씨로 건너는 거리) */
+function layout(s: FwState): [number, number][] {
+  const r = s.rng, cells = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const C = Math.min(6, 3 + (s.stage >= 2 ? 1 : 0) + (s.stage >= 5 ? 1 : 0) + (r() < 0.35 ? 1 : 0)), cs: [number, number][] = [];
   for (let i = cells.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1));
     [cells[i], cells[j]] = [cells[j], cells[i]];
   }
-  for (const c of cells.slice(0, C)) cs.push([0.18 + (c % 3) * 0.32 + (r() - 0.5) * 0.08, 0.3 + Math.floor(c / 3) * 0.27 + (r() - 0.5) * 0.06]);
+  for (const c of cells.slice(0, C)) cs.push([0.17 + (c % 3) * 0.33 + (r() - 0.5) * 0.05, 0.29 + Math.floor(c / 3) * 0.285 + (r() - 0.5) * 0.04]);
   const pts: [number, number][] = [];
-  for (let i = 0; i < N; i++) {
-    for (let k = 0; k < 30; k++) {
-      let x: number, y: number;
-      if (r() < 0.88) {
-        const c = cs[Math.floor(r() * C)];
-        x = c[0] + gauss(r) * 0.046;
-        y = c[1] + gauss(r) * 0.038;
-      } else (x = 0.06 + r() * 0.88), (y = 0.22 + r() * 0.7);
-      x = clamp(x, 0.05, 0.95);
-      y = clamp(y, 0.2, 0.94);
-      if (pts.every((q) => (q[0] - x) ** 2 + (q[1] - y) ** 2 > 0.046 ** 2)) {
-        pts.push([x, y]);
-        break;
+  for (const [cx, cy] of cs) {
+    const n = 7 + Math.floor(r() * 3) + (s.stage >= 4 ? 1 : 0);
+    for (let i = 0; i < n; i++)
+      for (let k = 0; k < 30; k++) {
+        const a = r() * TAU, d = Math.sqrt(r()) * 0.08, x = clamp(cx + Math.cos(a) * d, 0.05, 0.95), y = clamp(cy + Math.sin(a) * d * 0.9, 0.2, 0.94);
+        if (pts.every((q) => (q[0] - x) ** 2 + (q[1] - y) ** 2 > 0.044 ** 2)) {
+          pts.push([x, y]);
+          break;
+        }
       }
-    }
   }
   return pts;
 }
@@ -182,7 +193,7 @@ function makeLan(s: FwState, k: Kind, x: number, y: number, now: boolean): Lan {
   const r = s.rng;
   const L: Lan = {
     id: ++s.nid, k, col: Math.floor(r() * 3), x, y, tx: x, ty: y, x0: clamp(x + (r() - 0.5) * 0.1, 0.05, 0.95), y0: 1.03 + r() * 0.04,
-    born: now ? -9999 : s.t + Math.floor(r() * REL_DELAY), rel: now ? 0 : REL_MIN + Math.floor(r() * REL_VAR),
+    born: now ? -9999 : s.t + Math.floor(r() * REL_DELAY), rel: now ? 0 : REL_MIN + Math.floor(r() * REL_VAR), ch: 0,
     vy: 0.00011 + r() * 0.00009, ph: r() * TAU, amp: 0.005 + r() * 0.012, sz: 0.92 + r() * 0.22, st: 0, fuse: 0, sa: r() * TAU, dir: dragDir(x), feat: false,
   };
   if (!now) (L.x = L.x0), (L.y = L.y0);
@@ -195,7 +206,7 @@ function spawnVolley(s: FwState) {
   s.vt = 0;
   s.wind = (s.rng() - 0.5) * 0.00007;
   const first = s.stage === 0 && s.vol === 0;
-  const pts = first ? webLayout(s) : layout(s, 36 + s.stage * 2 + s.vol * 2);
+  const pts = first ? webLayout(s) : layout(s);
   const ks = pts.map(() => pickKind(s));
   const nk = UNLOCK[s.stage][0];
   if (first) {
@@ -239,85 +250,96 @@ function spawnVolley(s: FwState) {
 }
 
 // ───────────────────────────── 터짐 · 옮겨붙음 ─────────────────────────────
-function mkBurst(s: FwState, k: BK, x: number, y: number, n: number, col = 0): Burst {
+function mkBurst(s: FwState, k: BK, x: number, y: number, n: number, col = 0, ch = 0): Burst {
   const P = BP[k];
-  const b: Burst = { id: ++s.nid, k, x, y, t0: s.t, R: P.R, H: P.H, grow: P.grow, life: P.life, n, col, seed: (s.nid * 7919) % 10007 };
+  const b: Burst = { id: ++s.nid, k, x, y, t0: s.t, R: P.R, H: P.H, grow: P.grow, life: P.life, n, col, seed: (s.nid * 7919) % 10007, ch };
   s.bursts.push(b);
   return b;
 }
-function mkMover(s: FwState, k: Mover['k'], x0: number, y0: number, a = 0, col = 0) {
-  const m: Mover = { id: ++s.nid, k, x0, y0, t0: s.t, dur: 0, a, dir: dragDir(x0), col, dead: false };
+function mkMover(s: FwState, k: Mover['k'], x0: number, y0: number, a = 0, col = 0, ch = 0) {
+  const m: Mover = { id: ++s.nid, k, x0, y0, t0: s.t, dur: 0, a, dir: dragDir(x0), col, dead: false, ch };
   m.dur = k === 'sub' ? 14 : k === 'dive' ? diveDur(y0) : dragDur(x0);
   s.movers.push(m);
 }
-function ignite(s: FwState, L: Lan) {
+function newChain(s: FwState, x: number, y: number): Chain {
+  const c: Chain = { id: ++s.nid, n: 0, mult: 1, last: s.t, cx: x, cy: y, taps: 0, ends: [] };
+  s.chains.push(c);
+  return c;
+}
+function ignite(s: FwState, L: Lan, ch: number) {
   L.st = 1;
+  L.ch = ch;
   L.fuse = s.t + FUSE + Math.floor(s.rng() * 4);
 }
 function explode(s: FwState, L: Lan) {
   L.st = 2;
-  if (!s.chain) s.chain = { id: ++s.nid, n: 0, last: s.t, cx: L.x, cy: L.y, taps: 0 };
-  const c = s.chain;
+  const c = chainOf(s, L.ch) ?? newChain(s, L.x, L.y), ch = c.id;
   c.n++;
   c.cx = L.x;
   c.cy = L.y;
-  s.pts += c.n;
-  s.nightPts += c.n;
+  c.last = s.t;
+  c.ends.push([L.x, L.y, s.t]);
+  if (c.ends.length > JOIN_ENDS) c.ends.shift();
+  // n번째 등불 = n점 × 이음 곱
+  s.pts += c.n * c.mult;
+  s.nightPts += c.n * c.mult;
   s.lit++;
   s.volLit++;
   s.bestChain = Math.max(s.bestChain, c.n);
   s.cheer = Math.min(1, s.cheer + 0.035 + c.n * 0.0014);
   if (L.k === 'split') {
-    mkBurst(s, 'split', L.x, L.y, c.n, L.col);
-    for (let j = 0; j < 5; j++) mkMover(s, 'sub', L.x, L.y, L.sa + (j * TAU) / 5, L.col);
+    mkBurst(s, 'split', L.x, L.y, c.n, L.col, ch);
+    for (let j = 0; j < 5; j++) mkMover(s, 'sub', L.x, L.y, L.sa + (j * TAU) / 5, L.col, ch);
   } else if (L.k === 'fish') {
-    mkBurst(s, 'fish', L.x, L.y, c.n, L.col);
-    mkMover(s, 'dive', L.x, L.y, 0, L.col);
-  } else if (L.k === 'dragon') mkMover(s, 'drag', L.x, L.y, 0, L.col);
+    mkBurst(s, 'fish', L.x, L.y, c.n, L.col, ch);
+    mkMover(s, 'dive', L.x, L.y, 0, L.col, ch);
+  } else if (L.k === 'dragon') mkMover(s, 'drag', L.x, L.y, 0, L.col, ch);
   else {
-    mkBurst(s, L.k, L.x, L.y, c.n, L.col);
+    mkBurst(s, L.k, L.x, L.y, c.n, L.col, ch);
     if (L.k === 'candy') (s.embers = Math.min(MAX_EMBERS, s.embers + 1)), ev(s, 'candy', L.x, L.y, s.embers);
   }
-  ev(s, 'burst', L.x, L.y, c.n, L.k);
+  ev(s, 'burst', L.x, L.y, c.n, L.k, c.mult);
   if (c.n === 12 || c.n === 30 || c.n === 60) (s.wowN++), ev(s, 'wow', L.x, L.y, c.n);
 }
-/** 한 틱: 퍼지는 불꽃 · 날아가는 것 · 옮겨붙은 등불 */
+/** 한 틱: 퍼지는 불꽃 · 날아가는 것 · 옮겨붙은 등불 (연쇄마다 따로 센다) */
 function propagate(s: FwState) {
-  let busy = false;
+  const busy = new Set<number>();
   for (const b of s.bursts) {
     const age = s.t - b.t0;
     if (b.grow < 0 || age > b.grow + 1) continue;
-    busy = true;
+    busy.add(b.ch);
     const f = easeOut3((age + 1) / (b.grow + 1));
-    for (const L of s.lans) if (L.st === 0 && settled(s, L) && inB(b, L.x, L.y, f)) ignite(s, L);
+    for (const L of s.lans) if (L.st === 0 && settled(s, L) && inB(b, L.x, L.y, f)) ignite(s, L, b.ch);
   }
   for (const m of s.movers) {
-    busy = true;
+    busy.add(m.ch);
     const tau = s.t - m.t0, [x, y] = mpos(m, tau), r = MR[m.k];
-    for (const L of s.lans) if (L.st === 0 && settled(s, L) && (L.x - x) ** 2 + (L.y - y) ** 2 < r * r) ignite(s, L);
+    for (const L of s.lans) if (L.st === 0 && settled(s, L) && (L.x - x) ** 2 + (L.y - y) ** 2 < r * r) ignite(s, L, m.ch);
     if (tau >= m.dur) {
       m.dead = true;
-      const n = s.chain?.n ?? 0;
-      if (m.k === 'sub') mkBurst(s, 'mini', x, y, n, m.col);
-      else if (m.k === 'dive') mkBurst(s, 'splash', x, HZ - 0.005, n), ev(s, 'splash', x, HZ, n);
-      else mkBurst(s, 'dragon', x, y, n), ev(s, 'dragonEnd', x, y, n);
+      const n = chainOf(s, m.ch)?.n ?? 0;
+      if (m.k === 'sub') mkBurst(s, 'mini', x, y, n, m.col, m.ch);
+      else if (m.k === 'dive') mkBurst(s, 'splash', x, HZ - 0.005, n, 0, m.ch), ev(s, 'splash', x, HZ, n);
+      else mkBurst(s, 'dragon', x, y, n, 0, m.ch), ev(s, 'dragonEnd', x, y, n);
     }
   }
   if (s.movers.some((m) => m.dead)) s.movers = s.movers.filter((m) => !m.dead);
   for (const L of s.lans)
     if (L.st === 1) {
-      busy = true;
+      busy.add(L.ch);
       if (s.t >= L.fuse) explode(s, L);
     }
-  if (busy && s.chain) s.chain.last = s.t;
+  for (const c of s.chains) if (busy.has(c.id)) c.last = s.t;
 }
+/** 연쇄가 지금 퍼지는 중인가 (조용해지면 이음 고리가 줄어든다) */
+export const busyChain = (s: FwState, c: Chain) => s.t - c.last < 3;
 
 function moveLans(s: FwState) {
   const boost = s.vt > RISE_T ? 1 + (s.vt - RISE_T) / 40 : 1;
   let floating = 0;
   for (const L of s.lans) if (L.st === 0) floating++;
   // 몇 개 안 남으면 바람이 데려간다 (남은 하나를 기다리지 않게)
-  const sweep = !s.chain && floating <= 3 && s.vt > 150 ? 14 : 1;
+  const sweep = !s.chains.length && floating <= 3 && s.vt > 150 ? 14 : 1;
   for (const L of s.lans) {
     if (L.st === 3) {
       L.ty -= 0.0075;
@@ -359,19 +381,26 @@ function tap(s: FwState, px: number, py: number) {
   s.lastTap = s.t;
   if (s.firstTap < 0) s.firstTap = s.t;
   const x = clamp(px, 0.04, 0.96), y = clamp(py * A, 0.12, 0.98);
-  const joined = !!s.chain;
-  if (!s.chain) s.chain = { id: ++s.nid, n: 0, last: s.t, cx: x, cy: y, taps: 0 };
-  else (s.joins++), s.seen.add('join');
-  s.chain.taps++;
-  s.chain.last = s.t;
-  mkBurst(s, 'ember', x, y, s.chain.n);
-  ev(s, 'tap', x, y, joined ? s.chain.n : 0);
+  // 꺼져 가는 끝 등불의 빛 고리 안이면 이음: 같은 연쇄로 이어지고 곱 +1
+  const j = joinAt(s, x, y);
+  let c: Chain;
+  if (j) {
+    c = j.c;
+    c.mult = Math.min(MULT_MAX, c.mult + 1);
+    c.ends = [];
+    s.joins++;
+    s.seen.add('join');
+    ev(s, 'join', x, y, c.mult, undefined, j.ax, j.ay);
+  } else c = newChain(s, x, y);
+  c.taps++;
+  c.last = s.t;
+  mkBurst(s, 'ember', x, y, c.n, 0, c.id);
+  ev(s, 'tap', x, y, j ? c.mult : 0);
   s.hint = -1;
 }
-function endChain(s: FwState) {
-  const c = s.chain!;
+function endChain(s: FwState, c: Chain) {
   ev(s, 'chainEnd', c.cx, c.cy, c.n);
-  s.chain = null;
+  s.chains = s.chains.filter((q) => q !== c);
 }
 function endVolley(s: FwState) {
   if (s.volN > 0 && s.volLit >= s.volN) {
@@ -466,8 +495,9 @@ function inZ(z: Zone, px: number, py: number) {
     default: return Math.abs(px - z[1]) < z[3] && py > z[2] && py < z[4];
   }
 }
-/** 지금 톡 하면 몇 개가 터지나 — 이미 터질 것(지금 연쇄)은 빼고, 가장 많이 잇는 자리 */
-export function plan(s: FwState): { x: number; y: number; n: number } | null {
+/** 지금 톡 하면 몇 개가 터지나 — 이미 터질 것(지금 연쇄)은 빼고 셈한다.
+ *  join = true: 이음 고리 안 자리만 (고리 안 0.85배까지 — 손가락 오차 여유) — 값은 (이어지는 번호 × 늘어난 곱)으로 */
+export function plan(s: FwState, join = false): { x: number; y: number; n: number; v: number; join: boolean } | null {
   const L = s.lans.filter((l) => l.st === 0 && settled(s, l) && l.y > 0.1);
   const n = L.length;
   if (!n) return null;
@@ -490,25 +520,47 @@ export function plan(s: FwState): { x: number; y: number; n: number } | null {
       for (let j = 0; j < n; j++) if (zf.some((z) => inZ(z, L[j].x, L[j].y))) mark(j);
     }
   while (q.length) for (const j of adj[q.pop()!]) mark(j);
-  let best: { x: number; y: number; n: number; v: number } | null = null;
-  const vis = new Uint8Array(n), st: number[] = [];
-  for (let i = 0; i < n; i++) {
-    if (doom[i]) continue;
+  const vis = new Uint8Array(n), st: number[] = [], r2 = (R_EMBER * 0.85) ** 2;
+  /** 이 자리에 불씨를 놓으면 (몇 개, 값) */
+  const count = (px: number, py: number): [number, number] => {
     vis.fill(0);
     let cnt = 0, val = 0;
-    const r2 = (R_EMBER * 0.9) ** 2;
-    for (let j = 0; j < n; j++) if (!doom[j] && (L[j].x - L[i].x) ** 2 + (L[j].y - L[i].y) ** 2 < r2) (vis[j] = 1), st.push(j);
+    for (let j = 0; j < n; j++) if (!doom[j] && (L[j].x - px) ** 2 + (L[j].y - py) ** 2 < r2) (vis[j] = 1), st.push(j);
     while (st.length) {
       const a = st.pop()!;
       cnt++;
       val += L[a].k === 'candy' ? 3 : 1;
       for (const b of adj[a]) if (!vis[b] && !doom[b]) (vis[b] = 1), st.push(b);
     }
+    return [cnt, val];
+  };
+  let best: { x: number; y: number; n: number; v: number; join: boolean } | null = null;
+  const consider = (px: number, py: number, k: number) => {
+    const [cnt, val] = count(px, py);
+    if (!cnt) return;
     // 같으면 하늘 가운데 쪽 (사람처럼 — 손가락 안내도 같은 자리)
-    const v = val - Math.hypot(L[i].x - 0.5, L[i].y - 0.6) * 0.5;
-    if (!best || v > best.v) best = { x: L[i].x, y: L[i].y, n: cnt, v };
+    const v = val * k - Math.hypot(px - 0.5, py - 0.6) * 0.5;
+    if (!best || v > best.v) best = { x: px, y: py, n: cnt, v, join };
+  };
+  if (!join) {
+    for (let i = 0; i < n; i++) if (!doom[i]) consider(L[i].x, L[i].y, 1);
+    return best;
   }
-  return best && { x: best.x, y: best.y, n: best.n };
+  for (const c of s.chains) {
+    // 이어 붙이면: 번호가 c.n부터 이어지고 곱이 하나 는다 → 한 개당 대략 (c.n + 개수/2) × (곱+1)
+    const k = (c.n + 4) * Math.min(MULT_MAX, c.mult + 1);
+    for (const [ax, ay, at] of c.ends) {
+      const r = ringR(s.t - at + 4) * 0.85;
+      if (r <= 0.02) continue;
+      for (let i = 0; i < n; i++) {
+        if (doom[i]) continue;
+        const d = Math.hypot(L[i].x - ax, L[i].y - ay);
+        if (d < r) consider(L[i].x, L[i].y, k);
+        else if (d < r + R_EMBER * 0.8) consider(ax + ((L[i].x - ax) * r) / d, ay + ((L[i].y - ay) * r) / d, k);
+      }
+    }
+  }
+  return best;
 }
 
 // ───────────────────────────── 게임 ─────────────────────────────
@@ -520,7 +572,7 @@ const game: GameDef<FwState> & { wows(s: FwState): number } = {
   rules: [
     '밤하늘을 톡 — 불꽃이 펑, 가까운 등불에 옮겨붙어 줄줄이 터져요.',
     '등불마다 터지는 모양이 달라요. 하늘마다 불씨 3개, 남으면 다음 하늘로.',
-    '터지는 동안 또 톡 하면 연쇄가 이어져요 — n번째 등불은 n점!',
+    '연쇄가 꺼져 가는 빛 고리 안을 톡 → 이음! 번호가 이어지고 곱 ×2, ×3…',
   ],
   controls: 'touch',
   hint: '밤하늘을 톡 = 불꽃 / 화살표로 옮기고 스페이스',
@@ -537,7 +589,7 @@ const game: GameDef<FwState> & { wows(s: FwState): number } = {
   create(seed) {
     const s: FwState = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, vol: 0, vt: 0, phase: 'play', pt: 0, embers: 0, fin: 0,
-      lans: [], bursts: [], movers: [], chain: null, nid: 0,
+      lans: [], bursts: [], movers: [], chains: [], nid: 0,
       pts: 0, nightPts: 0, released: 0, lit: 0, bestChain: 0, volN: 0, volLit: 0,
       nights: [], bestNight: 0, newBest: false, got: 0, stars: [false, false, false], newKind: null, spot: -1,
       seen: new Set<string>(), wowN: 0, cheer: 0, down: false, firstTap: -1, lastTap: -999, taps: 0, joins: 0,
@@ -563,8 +615,8 @@ const game: GameDef<FwState> & { wows(s: FwState): number } = {
       if (fresh) tap(s, p!.x, p!.y);
       moveLans(s);
       propagate(s);
-      if (s.chain && s.t - s.chain.last > LINGER) endChain(s);
-      if (!s.chain && s.vt > 20 && (s.embers <= 0 || !s.lans.some((L) => L.st === 0 || L.st === 1))) endVolley(s);
+      for (const c of [...s.chains]) if (s.t - c.last > JOIN_T) endChain(s, c);
+      if (!s.chains.length && s.vt > 20 && (s.embers <= 0 || !s.lans.some((L) => L.st === 0 || L.st === 1))) endVolley(s);
     } else if (s.phase === 'finale') {
       s.pt++;
       moveLans(s);
@@ -597,14 +649,20 @@ const NO: Input = { tap: false, dir: 0, pointer: null };
 const at = (x: number, wy: number): Input => ({ tap: false, dir: 0, pointer: { x, y: wy / A } });
 const releasing = (s: FwState) => s.vt < 80 && s.lans.some((l) => l.st === 0 && !settled(s, l));
 
-/** 잘하는 봇: 가장 많이 잇는 자리(모양별 닿는 범위로 내다봄) · 연쇄가 잦아들면 바로 이어 붙이기 */
+/** 잘하는 봇: 모양별 닿는 범위로 내다봐 가장 많이 잇는 무리 · 연쇄가 잦아들면 이음 고리 안에서 다음 무리로 이어 붙이기 */
 export const nightfireworkSmart: Bot<FwState> = {
-  name: '가장 많이 잇는 곳 · 연쇄가 잦아들 때 이어 붙이기',
+  name: '가장 많이 잇는 곳 · 고리 안에서 이어 붙이기',
   act(s) {
     if (s.down) return NO;
     if (s.phase === 'result') return s.pt > RES_MIN + 3 ? at(0.5, 0.7) : NO;
     if (s.phase !== 'play' || s.embers <= 0 || s.t - s.lastTap < 6) return NO;
-    if (s.chain ? s.t - s.chain.last < 3 : releasing(s)) return NO;
+    if (s.chains.length) {
+      if (s.chains.some((c) => busyChain(s, c))) return NO;
+      const j = plan(s, true), p = plan(s);
+      if (j && (!p || j.v >= p.v)) return at(j.x, j.y);
+      return p ? at(p.x, p.y) : NO;
+    }
+    if (releasing(s)) return NO;
     const p = plan(s);
     return p ? at(p.x, p.y) : NO;
   },
@@ -633,7 +691,7 @@ export const nightfireworkRandom: Bot<FwState> = {
 function habit(s: FwState, f: () => Input): Input {
   if (s.down) return NO;
   if (s.phase === 'result') return s.pt > RES_MIN + 3 ? at(0.5, 0.7) : NO;
-  if (s.phase !== 'play' || s.embers <= 0 || s.chain || releasing(s) || s.t - s.lastTap < 20) return NO;
+  if (s.phase !== 'play' || s.embers <= 0 || s.chains.length || releasing(s) || s.t - s.lastTap < 20) return NO;
   return f();
 }
 /** 버릇 봇: 늘 하늘 가운데 */
@@ -815,9 +873,9 @@ function num(ctx: C2, str: string, x: number, y: number, px: number, fill: strin
   }
 }
 /** 숫자 글자 모양: [크기, 색, 테 색, 테 굵기] — 이것만 쓴다 */
-const N_POP: [number, string, string, number] = [15, '#ffffff', '#1a0f33', 3], N_POP10: [number, string, string, number] = [22, '#ffe066', '#1a0f33', 3];
+const N_POP: [number, string, string, number] = [15, '#ffffff', '#1a0f33', 3];
 const N_HUD: [number, string, string, number] = [26, '#ffe27a', '#1a0f33', 4], N_BADGE: [number, string, string, number] = [24, '#ffe066', '#1a0f33', 4];
-const N_BIG: [number, string, string, number] = [52, '#ffe27a', '#2a1040', 6], N_RES: [number, string, string, number] = [44, '#ffe27a', '#2a1040', 6];
+const N_RES: [number, string, string, number] = [44, '#ffe27a', '#2a1040', 6];
 const numS = (ctx: C2, str: string, x: number, y: number, st: [number, string, string, number], scale = 1) => num(ctx, str, x, y, st[0], st[1], st[2], st[3], 'center', scale);
 
 // ── 미리 굽기: 그림 프레임 밖(setTimeout)에서 조금씩 — 놀이 중 한 프레임이 길어지지 않게 ──
@@ -1496,11 +1554,12 @@ function lakeLayer(w: number, h: number, K: number) {
 
 // ── 그리기 쪽 기억 (연출만 — 시뮬레이션과 무관) ──
 interface Pop { x: number; y: number; str: string; big: boolean; t0: number; life: number }
-interface VM { pops: Pop[]; streaks: [number, number, number][]; ripples: [number, number, number][]; flies: [number, number, number][]; shown: number; nPulse: number; bigN: number; bigT: number; resShown: number; star: number; hint: { t: number; x: number; y: number } | null; lastN: number }
+type Link = [number, number, number, number, number];
+interface VM { links: Link[]; multT: number; pops: Pop[]; streaks: [number, number, number][]; ripples: [number, number, number][]; flies: [number, number, number][]; shown: number; nPulse: number; bigN: number; bigT: number; resShown: number; star: number; hint: { t: number; x: number; y: number } | null; lastN: number }
 const VMS = new WeakMap<object, VM>();
 const vmOf = (s: FwState) => {
   let v = VMS.get(s);
-  if (!v) VMS.set(s, (v = { pops: [], streaks: [], ripples: [], flies: [], shown: s.pts, nPulse: -99, bigN: 0, bigT: -999, resShown: 0, star: 0, hint: null, lastN: 0 }));
+  if (!v) VMS.set(s, (v = { links: [], multT: -99, pops: [], streaks: [], ripples: [], flies: [], shown: s.pts, nPulse: -99, bigN: 0, bigT: -999, resShown: 0, star: 0, hint: null, lastN: 0 }));
   return v;
 };
 /** 연쇄 번호 → 음 (도레미…) */
@@ -1611,7 +1670,7 @@ function prewarm(w: number, h: number, K: number) {
   for (const on of [false, true]) for (const r of [0.026, 0.05]) want(`star${on}${r}:${w}:${K}`, () => spr('star' + (on ? 1 : 0), F_STAR, R(r) * K, (g) => paintStar(g, on)));
   want(`hand:${w}:${K}`, () => spr('hand', F_HAND, R(0.06) * K, paintHand));
   for (let p = 0; p < 3; p++) want(`moon${p}:${w}:${K}`, () => spr('moon' + p, F_MOON, R(0.05) * K, (g) => paintMoon(g, p)));
-  for (const st of [N_POP, N_POP10, N_HUD, N_BADGE, N_BIG, N_RES]) for (const ch of '0123456789,+') want(`d${ch}${st[0]}${K}`, () => glyph(ch, st[0], st[1], st[2], st[3], K));
+  for (const st of [N_POP, N_HUD, N_BADGE, N_RES]) for (const ch of '0123456789,+') want(`d${ch}${st[0]}${K}`, () => glyph(ch, st[0], st[1], st[2], st[3], K));
   pump();
 }
 
@@ -1636,28 +1695,38 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
     const ex = X(e.x), ey = X(e.y);
     switch (e.k) {
       case 'tap':
-        sound('thud', e.n ? 1.1 : 0.85, 0.9);
-        sound('crack', 1.2, 0.55);
-        fx.kick(e.n ? 4 : 3);
-        fx.ring(ex, ey, e.n ? '#ffd45a' : '#fff0c0', R(R_EMBER), e.n ? 5 : 3);
+        if (!e.n) sound('thud', 0.85, 0.9), sound('crack', 1.2, 0.55);
+        fx.kick(3);
+        fx.ring(ex, ey, '#fff0c0', R(R_EMBER), 3);
         vm.streaks.push([e.x, e.y, t]);
-        if (e.n) pop(ex, ey - 18, '+', true, 30, true);
         break;
+      case 'join': {
+        // 이음! — 꺼져 가던 끝 등불에서 톡 자리로 금빛 줄, 곱 글자, 한 단계 높은 소리
+        const m = e.n, up = 2 ** (((m - 1) * 2) / 12);
+        sound('chime', 0.9 * up, 1.1);
+        sound('thud', 1.05 * up, 1);
+        sound('swell', 1.1 * up, 0.6);
+        fx.kick(6 + m);
+        fx.ring(ex, ey, '#ffd45a', R(JOIN_R), 6);
+        fx.blink('#ffe39a', 0.07);
+        vm.links.push([e.ax ?? e.x, e.ay ?? e.y, e.x, e.y, t]);
+        pop(ex, ey - 26, `이음 ×${m}`, true, 56, true);
+        vm.multT = t;
+        break;
+      }
       case 'empty':
         sound('fail', 1.5, 0.35);
         break;
       case 'burst': {
-        const n = e.n, k = e.kind as Kind;
-        sound('pop', notePitch(n), 0.75);
+        const n = e.n, k = e.kind as Kind, up = 2 ** ((((e.ax ?? 1) - 1) * 2) / 12);
+        sound('pop', notePitch(n) * up, 0.75);
         fx.kick(Math.min(6, 1.2 + n / 14));
-        if (k === 'mum') sound('thud', 0.55, 1.2), sound('swell', 0.8, 1), fx.blink('#fff1c0', 0.42), fx.kick(10);
+        if (k === 'mum') sound('thud', 0.55, 1.2), sound('swell', 0.8, 1), fx.blink('#fff1c0', 0.3), fx.kick(10);
         else if (k === 'swirl') sound('whoosh', 1.4, 0.8);
         else if (k === 'split') sound('zap', 1.5, 0.6);
         else if (k === 'long') sound('crack', 1.5, 0.7);
         else if (k === 'fish') sound('whoosh', 0.7, 0.8);
         else if (k === 'dragon') sound('whoosh', 0.55, 1), sound('boing', 0.6, 0.6);
-        // 숫자는 아껴서: 처음 셋 · 5마다 (10마다 크게)
-        if (n <= 3 || n % 5 === 0) pop(ex, ey - 10, String(n), n % 10 === 0, 44, n % 10 === 0);
         if (n > vm.lastN) vm.nPulse = t;
         vm.lastN = n;
         break;
@@ -1673,22 +1742,19 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
         break;
       case 'dragonEnd':
         sound('thud', 0.6, 1);
-        fx.blink('#ffe0c0', 0.25);
+        fx.blink('#ffe0c0', 0.14);
         break;
       case 'wow':
-        sound('chime', 1 + Math.min(0.5, e.n / 120), 1);
         sound('swell', 1.2, 0.7);
-        fx.blink('#ffe9a8', 0.14);
         break;
       case 'skyclear':
         sound('clear', 1, 1);
-        fx.blink('#fff3c8', 0.35);
+        fx.blink('#fff3c8', 0.22);
         fx.kick(8);
         vm.bigN = -1;
         vm.bigT = t;
         break;
       case 'chainEnd':
-        if (e.n >= 8) (vm.bigN = e.n), (vm.bigT = t), sound('chime', 0.8 + Math.min(0.6, e.n / 80), 0.9);
         vm.lastN = 0;
         break;
       case 'volley':
@@ -1911,7 +1977,7 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
   // ── 꼬마와 불씨 배 ──
   {
     const bob = Math.sin(t * 0.05) * R(0.006), bx = X(BOAT_X), by = X(BOAT_Y) + bob;
-    const pose = s.phase === 'play' && t - s.lastTap < 16 ? 1 : ex > 0.45 || (s.chain && s.chain.n >= 10) || s.phase === 'result' ? 2 : s.phase === 'play' && s.embers <= 0 ? 3 : 0;
+    const tc = topChain(s), pose = s.phase === 'play' && t - s.lastTap < 16 ? 1 : ex > 0.45 || (tc && tc.n >= 10) || s.phase === 'result' ? 2 : s.phase === 'play' && s.embers <= 0 ? 3 : 0;
     // 배 그림자 · 물결
     ctx.fillStyle = 'rgba(5,8,30,.45)';
     ell(ctx, bx, by + R(0.045), R(0.19), R(0.022));
@@ -1926,7 +1992,7 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
     stamp(ctx, spr('boat', F_BOAT, R(0.16) * K, paintBoat), F_BOAT, R(0.16));
     ctx.restore();
     // 불씨 (남은 수만큼, 깜빡깜빡) — 연쇄 중엔 "이어 붙여요" 하고 더 밝게
-    const ne = s.phase === 'play' ? s.embers : 0, lit = !!s.chain && ne > 0;
+    const ne = s.phase === 'play' ? s.embers : 0, lit = s.chains.length > 0 && ne > 0;
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < Math.min(6, ne); i++) {
       const ox = X(POT_X) + (i - (Math.min(6, ne) - 1) / 2) * R(0.026), oy = X(POT_Y) + bob - R(0.022) - (i % 2) * R(0.008);
@@ -1973,7 +2039,12 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
   for (const p of vm.pops) {
     const u = (t - p.t0) / p.life, sc = u < 0.12 ? 1.35 - u * 3 : 1;
     ctx.globalAlpha = u > 0.65 ? (1 - u) / 0.35 : 1;
-    numS(ctx, p.str, p.x, p.y - u * 22, p.big ? N_POP10 : N_POP, sc);
+    const px = clamp(p.x, 60, w - 60);
+    ctx.save();
+    ctx.translate(px, p.y - u * 22);
+    ctx.scale(sc, sc);
+    txt(ctx, p.str, 0, 0, 24, 900, '#ffe27a', '#3a1420', 5);
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
   // 연쇄 끝 큰 숫자 (하늘 가득이면 금빛 테)
@@ -1981,7 +2052,6 @@ function drawAll(ctx: C2, s: FwState, w: number, h: number, _th: Theme) {
     const u = (t - vm.bigT) / 70, sc = u < 0.15 ? 0.6 + u * 3.2 : u > 0.8 ? 1 - (u - 0.8) * 2 : 1.08;
     ctx.globalAlpha = u > 0.8 ? (1 - u) * 5 : 1;
     if (vm.bigN < 0) txt(ctx, '하늘 가득!', w / 2, X(0.5), 34 * sc, 900, '#fff0a0', '#5a2a10', 6);
-    else numS(ctx, String(vm.bigN), w / 2, X(0.48), N_BIG, sc);
     ctx.globalAlpha = 1;
   }
   ctx.restore();
@@ -2088,9 +2158,10 @@ function drawHud(ctx: C2, s: FwState, w: number, vm: VM, K: number) {
   }
   // 셋째 별의 목표 (한 번에 몇 개)
   if (s.phase === 'play') txt(ctx, String(STAR3[s.stage]), X(0.93), X(0.092), 12, 800, s.bestChain >= STAR3[s.stage] ? '#ffe27a' : '#b8b0e8', '#120a30', 3);
-  // 연쇄 배지: 숫자 + 이어 붙일 수 있는 시간 고리
-  if (s.chain && s.chain.n >= 2 && s.phase === 'play') {
-    const c = s.chain, quiet = clamp((t - c.last) / LINGER, 0, 1), cx = w / 2, cy = X(0.185), r = R(0.05) + Math.min(6, c.n * 0.15);
+  // 연쇄 배지: 숫자 하나 + 이음 곱 + 이어 붙일 수 있는 시간 고리
+  const tc = topChain(s);
+  if (tc && tc.n >= 2 && s.phase === 'play') {
+    const c = tc, quiet = clamp((t - c.last) / JOIN_T, 0, 1), cx = w / 2, cy = X(0.185), r = R(0.05) + Math.min(6, c.n * 0.15);
     const pu = t - vm.nPulse < 6 ? 1.12 : 1;
     ctx.globalCompositeOperation = 'lighter';
     glow(ctx, '255,190,80', cx, cy, r * 2, 0.45);
@@ -2108,11 +2179,33 @@ function drawHud(ctx: C2, s: FwState, w: number, vm: VM, K: number) {
     ctx.arc(cx, cy, r * pu, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - quiet));
     ctx.stroke();
     numS(ctx, String(c.n), cx, cy + 1, N_BADGE, pu * (1 + Math.min(0.15, c.n / 200)));
+    if (c.mult > 1) {
+      const mb = t - vm.multT < 10 ? 1.35 - (t - vm.multT) * 0.035 : 1;
+      ctx.save();
+      ctx.translate(cx + r + R(0.045), cy - r * 0.45);
+      ctx.scale(mb, mb);
+      rr(ctx, -R(0.045), -12, R(0.09), 24, 12);
+      ctx.fillStyle = '#ff5a4a';
+      ctx.fill();
+      ctx.strokeStyle = '#ffe27a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      txt(ctx, `×${c.mult}`, 0, 0, 16, 900, '#ffffff');
+      ctx.restore();
+    }
   }
   // ── 손가락 안내 (첫 톡 전 · 오래 안 누르면) ──
   const hl = s.hint >= 0 ? s.lans.find((L) => L.id === s.hint && L.st === 0) : undefined;
   let hint: [number, number] | null = hl ? [hl.x, hl.y] : null;
-  if (!hint && s.phase === 'play' && s.embers > 0 && !s.chain && s.vt > 90 && t - Math.max(s.lastTap, t - s.vt) > 300) {
+  // 밤 1 둘째 하늘부터 처음 한 번: 연쇄가 잦아들면 손가락이 꺼져 가는 고리 안을 가리킨다
+  const teachJoin = s.phase === 'play' && s.stage === 0 && s.vol >= 1 && s.joins === 0 && s.embers > 0 && s.chains.some((c) => !busyChain(s, c) && c.ends.length > 0);
+  if (teachJoin) {
+    if (!vm.hint || t - vm.hint.t > 20) {
+      const p = plan(s, true);
+      vm.hint = p ? { t, x: p.x, y: p.y } : null;
+    }
+    if (vm.hint) hint = [vm.hint.x, vm.hint.y];
+  } else if (!hint && s.phase === 'play' && s.embers > 0 && !s.chains.length && s.vt > 90 && t - Math.max(s.lastTap, t - s.vt) > 300) {
     if (!vm.hint || t - vm.hint.t > 40) {
       const p = plan(s);
       vm.hint = p ? { t, x: p.x, y: p.y } : null;
@@ -2132,7 +2225,7 @@ function drawHud(ctx: C2, s: FwState, w: number, vm: VM, K: number) {
     ctx.restore();
   }
   // 한 줄 안내
-  const line = s.phase === 'play' && s.stage === 0 && s.taps === 0 ? '밤하늘을 톡! 등불이 줄줄이 펑' : s.phase === 'play' && s.stage === 0 && s.chain && s.embers > 0 && s.joins === 0 && s.taps >= 1 && s.vol >= 1 ? '터지는 동안 또 톡 → 연쇄가 이어져요' : '';
+  const line = s.phase === 'play' && s.stage === 0 && s.taps === 0 ? '밤하늘을 톡! 등불이 줄줄이 펑' : teachJoin && hint ? '꺼지기 전에 빛 고리 안을 톡 → 이음!' : '';
   if (line) {
     const y = X(0.125) + (s.taps ? X(0.86) : 0);
     rr(ctx, w / 2 - X(0.36), y - 13, X(0.72), 26, 13);

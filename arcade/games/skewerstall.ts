@@ -1685,7 +1685,7 @@ function gtext(ctx: C2, str: string, x: number, y: number, px: number, wgt: numb
   const sc = DPR, size = Math.max(11, Math.round(px)), key = `${str}|${size}|${wgt}|${fill}|${stroke}|${lw}|${sc}`;
   let cv = GLY.get(key);
   if (!cv) {
-    if (GLY.size > 160) GLY.clear();
+    if (GLY.size > 400) GLY.clear();
     const font = `${wgt} ${size}px system-ui, sans-serif`;
     const probe = probeCtx();
     probe.font = font;
@@ -1798,7 +1798,9 @@ function drawPops(ctx: C2, V: View, dn: number) {
     ctx.globalAlpha = a;
     ctx.translate(x, y);
     ctx.scale(k, k);
-    ntext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, p.size >= 24 ? 4 : 3);
+    // 재료 점수·곱하기는 통째로 구운 글자, 합계·보너스는 글자 조각 (값이 늘 달라 통째로 구우면 매번 새로 굽는다)
+    if (p.kind === 1 && p.str[0] === '+') ntext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, 4);
+    else gtext(ctx, p.str, 0, 0, p.size, 900, p.col, POP_INK, p.size >= 24 ? 4 : 3);
     ctx.restore();
   }
   V.pops = V.pops.filter((p) => p.life > 0);
@@ -2184,16 +2186,20 @@ function wantDay(s: S, w: number, sc: number) {
   if (nx && nx in IKD) want(`n${nx}`, () => itemSpr(nx as IK, 0, IKD[nx as IK].r * w * sc * 0.9));
   want(`hand:${w}:${sc}`, () => handSpr(0.06 * w * sc));
   want(`chip:${w}:${sc}`, () => custSpr('cat', 3, 0.016 * w * sc));
-  // 떠오르는 숫자 글자 조각 (재료 · 합계 · 곱하기)
-  const pre = (chars: string, sizes: number[], cols: string[]) => {
-    for (const z of sizes) for (const col of cols) for (const c of chars) want(`g${c}${z}${col}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, z, 900, col, POP_INK, z >= 24 ? 4 : 3)));
-  };
-  pre('+0123456789', [15, 17], [CREAM]);
-  pre('+0123456789', [20], [GOLD]);
-  pre('+0123456789,', [28, 34, 40], [WHITE, GOLD]);
-  pre('+0123456789,', [48], [GOLD]);
-  pre('×2.15½', [28], [GOLD, RED]);
-  pre('+0123456789', [28], [PINK]);
+  // 떠오르는 숫자 (재료 점수는 그날 나올 값이 정해져 있다 · 곱하기)
+  const str = (t: string, z: number, col: string) => want(`p${t}${z}${col}${sc}`, () => ((DPR = sc), gtext(GLY_CTX(sc), t, 0, 0, z, 900, col, POP_INK, z >= 24 ? 4 : 3)));
+  for (const k of kinds)
+    for (let slot = 1; slot <= CAP; slot++) {
+      if (IKD[k].bad) continue;
+      const t = '+' + slotPts(k, slot);
+      str(t, 15, CREAM);
+      str(t, 17, CREAM);
+      str(t, 20, GOLD);
+    }
+  for (const t of ['×2', '×1.5']) str(t, 28, GOLD);
+  str('×½', 28, RED);
+  for (const z of [28, 34, 40, 48])
+    for (const col of z === 28 ? [WHITE, GOLD, PINK] : [WHITE, GOLD]) for (const c of '+0123456789,') want(`g${c}${z}${col}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, z, 900, col, POP_INK, 4)));
   idlePump();
 }
 function drawAll(ctx: C2, s: S, w: number, h: number) {
@@ -2435,15 +2441,28 @@ function drawDayBanner(ctx: C2, s: S, w: number, sc: number) {
   ctx.restore();
   void sc;
 }
+const HUDB = new Map<string, HTMLCanvasElement>();
 function drawHud(ctx: C2, s: S, w: number, sc: number, V: View) {
   const X = (x: number) => x * w, D = DAYDEF[s.day];
   V.disp += (s.dayScore - V.disp) * 0.2;
   if (Math.abs(s.dayScore - V.disp) < 1) V.disp = s.dayScore;
-  // 점수
-  rr(ctx, X(0.015), X(0.012), X(0.36), X(0.058), X(0.02));
-  ink(ctx, 'rgba(58,30,18,.9)', 2, '#ffcf6a');
-  ell(ctx, X(0.05), X(0.041), X(0.019), X(0.019));
-  ink(ctx, rad(ctx, X(0.044), X(0.035), 0, X(0.02), [0, '#fff3a0'], [1, '#f0a81a']), 1.5, '#8a5a0a');
+  // 판(점수·날 판자)은 구워 둔 한 장
+  const hk = `hud${s.day}:${w}:${sc}`;
+  let hb = HUDB.get(hk);
+  if (!hb) {
+    if (HUDB.size > 4) HUDB.clear();
+    hb = layer(w * sc, X(0.08) * sc, (g) => {
+      g.scale(sc, sc);
+      rr(g, X(0.015), X(0.012), X(0.36), X(0.058), X(0.02));
+      ink(g, 'rgba(58,30,18,.9)', 2, '#ffcf6a');
+      ell(g, X(0.05), X(0.041), X(0.019), X(0.019));
+      ink(g, rad(g, X(0.044), X(0.035), 0, X(0.02), [0, '#fff3a0'], [1, '#f0a81a']), 1.5, '#8a5a0a');
+      rr(g, X(0.625), X(0.012), X(0.36), X(0.058), X(0.02));
+      ink(g, 'rgba(58,30,18,.9)', 2, '#ffcf6a');
+    });
+    HUDB.set(hk, hb);
+  }
+  ctx.drawImage(hb, 0, 0, w, X(0.08));
   ntext(ctx, fmt(V.disp), X(0.08), X(0.042), 21, 900, '#fff3c8', '', 0, 'left');
   // 시계
   const left = Math.max(0, DAY_T - s.dt), f = left / DAY_T, warn = left <= 600 && s.phase === 'day';
@@ -2461,8 +2480,6 @@ function drawHud(ctx: C2, s: S, w: number, sc: number, V: View) {
   ctx.fill();
   ntext(ctx, String(Math.ceil(left / 60)), cx, cy + 0.5, 14, 900, '#ffffff');
   // 날 (등불 일곱)
-  rr(ctx, X(0.625), X(0.012), X(0.36), X(0.058), X(0.02));
-  ink(ctx, 'rgba(58,30,18,.9)', 2, '#ffcf6a');
   gtext(ctx, `${s.day + 1}일째`, X(0.7), X(0.042), 14, 900, '#fff3c8');
   for (let i = 0; i < DAYS; i++) {
     const x = X(0.775 + i * 0.03), y = X(0.042), on = i < s.day || (i === s.day && s.phase !== 'day');
