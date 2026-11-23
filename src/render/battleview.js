@@ -1,5 +1,5 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
-import { W, H, VIEW } from '../config.js';
+import { W, H, VIEW, MID_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
 import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
@@ -10,6 +10,7 @@ import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, makeFrame, makeBackdrop, scenePines, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
 import { Fx, glow, trailImg } from './fx.js';
 import { paintFar, paintBack, paintGround, paintFront, paintTrees } from './painted.js';
+import { forkArt, drawForkGlow, LM_K } from './forkmap.js';
 import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
@@ -146,13 +147,15 @@ function strip(g, img, period, off, top) {
   for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(img, a * k, top * k, (b - a) * k, (full - top) * k, x + a, top, b - a, full - top); }
 }
 export class BattleView {
-  constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
+  constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.fork = null; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
     this.seed = seed; this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
   // 길가에 서 있는 것 (주막·장터·푯말 …): 바닥과 함께 흐른다
+  // 들판의 갈림길 (render/forkmap.js): 길이 화면 속에서 갈라지고, 갈래 끝에 그곳이 선다. 바닥과 함께 흐른다
+  setFork(st, wx) { this.fork = { st, wx, art: forkArt(this.theme, st, ((wx | 0) % 997) + 3), hover: null, pick: null, pickT: 0, alpha: 1, fade: false }; }
   addProp(kind, wx, y = 152, top = false) { this.props.push({ spr: stopSprite(kind), wx, y, top }); if (this.props.length > 5) this.props.shift(); }
   draw(g, b, T, opt = {}) {
     const fx = this.fx, sc = Math.max(0, this.scroll);
@@ -173,6 +176,9 @@ export class BattleView {
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
     if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
+    // 갈림길: 흙길이 갈래로 나뉘는 바닥 그림 (닿은 뒤 걸음이 조금 더 갔으면 그 자리로 살며시 옮긴다). 고른 갈래가 싸움터면 옅어진다
+    if (this.fork) { const f = this.fork, dt = opt.dt || 0; if (f.target !== undefined) f.wx += (f.target - f.wx) * Math.min(1, dt * 8); if (f.fade) f.alpha = Math.max(0, f.alpha - dt * 1.4); if (f.pick) f.pickT += dt;
+      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { g.globalAlpha = f.alpha; g.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); g.globalAlpha = 1; if (f.alpha > 0.5) drawForkGlow(g, f, ox, T); } }
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
     if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
       // 모서리 꽃나무: 들판 가장자리를 꾸미되 인형·표시는 가리지 않게 그 아래에 깐다
@@ -193,6 +199,9 @@ export class BattleView {
     for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : u.def && u.def.prop ? 60 : 0), u }); }   // 두목과 쳐야 할 소품(종·업경대 …)은 둘레에 겹친 인형보다 위에
     // 싸움터의 깃대(top)는 요괴 무리에 가리지 않게 인형들보다 나중에 그린다
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.top ? 9999 : p.y, spr: p.spr, x, sy0: p.y }); }
+    // 갈림길의 푯말과 갈래 끝의 장소들 (인형들과 앞뒤를 맞춘다)
+    if (this.fork) { const f = this.fork, ox = f.wx - sc, al = f.alpha; if (ox > -700 && ox < W + 700) { list.push({ y: MID_Y - 24, x: ox + 22, spr: stopSprite('fork'), sy0: MID_Y - 24, k: 0.62, al });
+      for (const e of f.art.ends) { const dim = f.pick && f.pick !== e.k ? 0.45 : 1; if (e.hidden) { if (f.art.thicket) list.push({ y: e.ly, x: ox + e.lx, spr: f.art.thicket, sy0: e.ly, al: al * dim }); } else list.push({ y: e.ly + 8, x: ox + e.lx, spr: stopSprite(e.type), sy0: e.ly + 8, k: LM_K * (f.hover === e.k || f.pick === e.k ? 1.06 : 1), al: al * dim }); } } }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     // 들판의 큰 소나무: 밑동 높이로 인형들과 앞뒤를 맞추고, 뒤에 인형이나 표시(붉은 원 …)가 가려지면 옅어진다
@@ -206,7 +215,7 @@ export class BattleView {
     } });
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr) { if (it.al !== undefined) g.globalAlpha = it.al; if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0, it.k || 1, it.k || 1); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); g.globalAlpha = 1; } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }

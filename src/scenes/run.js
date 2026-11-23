@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull, hiddenFight } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull, hiddenFight, forkDesc } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { ALT_MARCH } from '../data/bossalt.js';
 import { Play, drawFrame } from '../ui/theater.js';
@@ -19,11 +19,12 @@ import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES, synLv, synDesc } fro
 import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
 import { portrait, getLook } from '../render/sprites.js';
-import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped, foil, goldText } from '../ui/ui.js';
+import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped, foil, goldText, hangSign } from '../ui/ui.js';
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
 import { Coach } from '../ui/coach.js';
 import { RewardOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
-import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene, ForgeScene } from '../ui/places.js';
+import { MarketOverlay, TavernOverlay, TreasureScene, ForgeScene } from '../ui/places.js';
+import { FORK_JX, LM_K } from '../render/forkmap.js';
 import { EventScene } from '../ui/roadevent.js';
 import { PLACE_SCENES, PlaceScene } from '../ui/places2.js';
 import { PromoOverlay } from '../ui/promote.js';
@@ -66,13 +67,14 @@ export class RunScene {
     // 말할 거리가 있으면 그만큼 더 걷는다 (고개 이름 띠가 걷힌 뒤에 말을 꺼낸다)
     if (lines) { this.say(lines); dist = Math.max(dist, (lines.reduce((a, l) => a + talkTime(l[1]), 0) + (this.note ? this.note.t : 0) + 0.3) * MARCH_V); }
     this.left = dist;
-    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010), FIGHT(st.type) ? 196 : 152, FIGHT(st.type));   // 싸움터의 깃대는 '요괴 N' 패널 아래로 내려 꽂는다
+    if (st && st.type === 'fork') this.view.setFork(st, this.view.scroll + dist + FORK_JX);   // 갈림길은 들판 위에 길이 갈라지는 그림으로 다가온다
+    else if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010), FIGHT(st.type) ? 196 : 152, FIGHT(st.type));   // 싸움터의 깃대는 '요괴 N' 패널 아래로 내려 꽂는다
     if (!quiet) sfx('order');
   }
   arrive() {
     const r = this.r, b = this.b, rd = r.road, st = curStop(); rd.state = 'at'; this.sync(); this.bossSaid = false; this.storyDone = false;
     const done = () => this.leave();
-    if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkScene({ a: st.a, b: st.b, c: st.c, h: st.h, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
+    if (st.type === 'fork') { this.phase = 'fork'; const v = this.view; if (!v.fork || v.fork.st !== st) v.setFork(st, v.scroll + FORK_JX); else v.fork.target = v.scroll + FORK_JX; v.fork.pick = null; v.fork.went = false; v.fork.fade = false; v.fork.alpha = 1; this.forkT = 0; }
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
@@ -212,6 +214,8 @@ export class RunScene {
     }
   }
   key(k) {
+    // 갈림길: 1·2·3·4 로 갈래를 고른다 (위에서부터)
+    if (this.phase === 'fork' && !this.over && !this.menu && /^[1-4]$/.test(k)) { const f = this.view.fork, e = f && f.art.ends[+k - 1]; if (e && !f.pick) this.pickFork(e.k); return; }
     // 인형극(두목의 사연·영물의 인연)은 엔터·스페이스로 넘긴다
     if (this.over instanceof Play && !this.coach.tip) { this.over.key(k); return; }
     const b = this.b; if (this.over || this.sub) return;
@@ -225,6 +229,41 @@ export class RunScene {
   deny(n) { const why = this.b.whyNot(n); sfx('deny'); this.toast(why === 'nobench' ? '되돌릴 전멸한 부대가 없습니다' : why === 'cap' ? `부대는 ${this.b.cap}개까지 세울 수 있습니다` : why === 'hero' ? (CARDS[this.b.hand[n].id].kind === 'lead' ? '영웅은 이미 전장에 있습니다' : '영웅이 전장에 있어야 씁니다') : '사기가 부족합니다', 1.4); }
   allOrder(hold) { const b = this.b, mine = b.squads.filter(q => q.team === 0 && q.alive > 0 && !q.def.banner); for (const q of mine) hold ? b.orderHold(q) : b.orderAuto(q); this.view.fx.txt(640, 330, hold ? '전군 대기!' : '전군 돌격!', hold ? INDIGO : RED, 38, 1); sfx(hold ? 'order' : 'horn'); }
 
+  // ───────── 갈림길: 들판 위에서 길 끝을 눌러 고른다 (render/forkmap.js) ─────────
+  pickFork(k) {
+    const f = this.view.fork; if (!f || f.pick) return; f.pick = k; f.pickT = 0; f.hover = k; sfx('star');
+    const e = f.art.ends.find(q => q.k === k); if (e) this.view.fx.burst(f.wx - this.view.scroll + e.lx, e.ly - 30, 14, '#f0d264', 160, 4);
+  }
+  drawFork(g, i, dt, busy) {
+    const f = this.view.fork, ox = f.wx - this.view.scroll, choosing = this.phase === 'fork' && !f.pick;
+    // 고르고 나면 발자국이 길 끝에 닿을 때 그곳으로 들어선다 (싸움터면 갈림길 그림은 옅어진다)
+    if (this.phase === 'fork' && f.pick && f.pickT > 0.75 && !f.went) { f.went = true; chooseFork(f.pick); if (FIGHT(curStop().type)) f.fade = true; this.arrive(); return; }
+    if (this.phase !== 'fork' || f.alpha < 0.05) return;
+    this.forkT = (this.forkT || 0) + dt; const k0 = clamp(this.forkT / 0.4, 0, 1);
+    // 위쪽 안내: 갈 길을 고르라는 작은 이름판
+    g.save(); g.globalAlpha = k0 * (f.pick ? clamp(1 - f.pickT / 0.4, 0, 1) : 1);
+    rr(g, 334, 146, 332, 44, 10, 'rgba(18,10,14,0.82)', '#000', 1.2); rr(g, 337, 149, 326, 38, 8, null, foil(g, 334, 666), 1.2);
+    text(g, '갈림길 · 길 끝을 눌러 고르세요', 500, 168, { size: 18, font: FONT_B, fill: '#f3e6c4', maxW: 300 }); g.restore();
+    let hov = null;
+    f.art.ends.forEach((e, n) => {
+      const sx = ox + e.lx, base = e.ly + 8, topY = base - (e.hidden ? 96 : 122 * LM_K) - 6, nm = e.hidden ? '숨은 길' : (STOP[e.type] ? STOP[e.type].name : e.type), on = f.hover === e.k, dim = f.pick && f.pick !== e.k;
+      const bx = sx - 74, by = topY - 50, bw = 148, bh = base - by + 14;
+      if (choosing && !busy && inRect(i, bx, by, bw, bh)) hov = e.k;
+      if (choosing && !busy && tapped('fork' + e.k, bx, by, bw, bh)) this.pickFork(e.k);
+      // 이름표: 장소 위에 매단 옻칠 나무판 (숫자 단추 표시)
+      g.save(); g.globalAlpha = k0 * (dim ? 0.4 : 1); const lift = on ? -4 : 0, sy = topY - 44 + lift;
+      if (on) { g.save(); g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(sx, base - 40, 10, sx, base - 40, 110); gl.addColorStop(0, 'rgba(255,214,120,0.32)'); gl.addColorStop(1, 'rgba(255,214,120,0)'); g.fillStyle = gl; g.fillRect(sx - 120, base - 160, 240, 200); g.restore(); }
+      // 푯말: 장소 곁에 박은 나무 기둥 위에 이름판
+      { const px = sx - (e.hidden ? 52 : 60); line(g, [px, sy + 30, px, base + 2], INK, 5.4); line(g, [px, sy + 30, px, base + 2], '#8a5a30', 3); line(g, [px - 1, sy + 30, px - 1, base], 'rgba(255,230,180,0.35)', 1); ell(g, px, base + 3, 7, 2.4, 'rgba(20,14,8,0.35)'); }
+      hangSign(g, sx, sy, nm, { w: e.hidden ? 120 : 136, h: 38, size: 18, rope: false });
+      ell(g, sx - (e.hidden ? 60 : 68), sy + 2, 11, 11, on ? '#b8322a' : '#2a1a20', '#000', 1.2); text(g, String(n + 1), sx - (e.hidden ? 60 : 68), sy + 3, { size: 13, font: FONT_B, fill: '#f3e6c4' });
+      // 무엇이 기다리는지: 마우스를 올리면 한 줄 (아래쪽 갈래는 이름표 위에)
+      if (on && !f.pick) { const d = e.hidden ? '수풀 사이로 난 좁은 길 — 무엇이 숨어 있을지 모른다' : forkDesc(e.type); if (d) { const tw = Math.min(330, 40 + d.length * 14), tx = Math.min(sx - tw / 2, 1240 - tw) - (e.hidden ? 160 : 0), ty = e.hidden ? base - 132 : base + 12 > 520 ? topY - 92 : base + 10;
+        rr(g, tx + 2, ty + 3, tw, 32, 8, 'rgba(0,0,0,0.35)'); rr(g, tx, ty, tw, 32, 8, 'rgba(251,243,223,0.96)', INK, 1.4); text(g, d, tx + tw / 2, ty + 16.5, { size: 14.5, fill: '#3a2a1a', maxW: tw - 16 }); } }
+      g.restore();
+    });
+    if (choosing) { if (hov !== f.hover && hov) sfx('card'); f.hover = hov; }
+  }
   // ───────── 프레임 ─────────
   frame(g, dt, i) {
     bgm(this.musicFor());
@@ -236,7 +275,7 @@ export class RunScene {
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { if (!busy) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; } }
     else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
     else if (r.beastQ && r.beastQ.length && !busy && this.phase === 'march' && !(this.curtain && this.curtain.t < 3)) { const id = r.beastQ.shift(); save(); this.beastScene(id, true, () => { this.phase = 'march'; }); }
-    const live = !this.menu && !this.over && !this.sub && !coaching && this.phase !== 'over' && this.phase !== 'stop';
+    const live = !this.menu && !this.over && !this.sub && !coaching && this.phase !== 'over' && this.phase !== 'stop' && this.phase !== 'fork';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;
     this.slow += (want - this.slow) * Math.min(1, dt * 16);
@@ -266,6 +305,7 @@ export class RunScene {
     view.style = PAPER_BG ? 'paper' : 'paint';   // 전장 배경은 그림 배경 (?paper 로 예전 종이 배경을 볼 수 있다)
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
+    if (view.fork) this.drawFork(g, i, dt, busy);
     if (!this.over && !this.menu && !this.sub && !juice.show && !(this.enc && this.enc.boss && this.phase === 'fight') && this.phase !== 'clear') this.drawTalk(g);
     view.fx.drawNums(g);   // 피해 숫자는 인형·효과·말풍선 위에
     if (this.phase === 'fight' && b.army().field === 0) { const k = 0.24 + 0.12 * Math.sin(this.T * 5), gr = g.createRadialGradient(W / 2, H / 2, H * 0.36, W / 2, H / 2, W * 0.6); gr.addColorStop(0, 'rgba(200,40,30,0)'); gr.addColorStop(1, `rgba(200,40,30,${k})`); g.fillStyle = gr; g.fillRect(0, HUD_H, W, BAR_Y - HUD_H); }
@@ -504,7 +544,7 @@ export class RunScene {
       if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
     if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, 'lose', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
-    if (this.toastT > 0 && !this.over && !this.sub && !this.menu) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 9, 'rgba(31,42,68,0.2)'); rr(g, 290, 499, 700, 46, 9, PAPER, INK, 2.2); rr(g, 293.4, 502.4, 693.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.toastS, 640, 523, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
+    if (this.toastT > 0 && !this.over && !this.sub && !this.menu && this.phase !== 'fork') { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 9, 'rgba(31,42,68,0.2)'); rr(g, 290, 499, 700, 46, 9, PAPER, INK, 2.2); rr(g, 293.4, 502.4, 693.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.toastS, 640, 523, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
   }
   drawMenu(g) {
     const r = this.r;
