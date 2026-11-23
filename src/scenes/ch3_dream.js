@@ -1,8 +1,9 @@
 /* Chapter 3 「꿈」 — three years on. Bram shows him how to saw and warns that the season of storms is
    coming; the frame goes up just in time, and the first storm brings it down in a night. In the morning
-   the whole town comes up the hill with a rope, and Pipi gives him a light she found on the beach. Rosa
-   asks him to look in the lake with her, at the son she left as a baby with his blanket unfinished, an
-   old man now. Then the lake shows Ana worn out, and he spends the one dream he has on her. */
+   the whole town comes up the hill with a rope. Rosa asks him to look in the lake with her, at the son she
+   left as a baby with his blanket unfinished, an old man now. That night Pipi takes him to the grove where
+   the wishes made on shooting stars hang as lights, and one of them is humming Ana's lullaby. Then the
+   lake shows Ana worn out, and he spends the one dream he has on her. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -366,10 +367,8 @@
       await X.wait(2.4);
       crew.forEach((a) => { a.pose = null; });
       await TALK.say('leo', '…고맙습니다.');
-      await TALK.say('kid', '아저씨, 이거.\n바닷가에서 주운 빛이야.');
-      await TALK.say('kid', '누가 별똥별 보고 빈 소원이래.\n어두운 데 갈 때 써.');
-      await X.gift('light', [0, 520]);
       await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n오늘은 혼자 보기가 좀 그래서.');
+      await TALK.say('kid', '그럼 밤엔 나랑 가.\n소원들이 어디 사는지 나 알아.');
 
       /* ---- Rosa's son ---- */
       X.walk(crew[2], C.PLOT + 420, 84);
@@ -420,6 +419,34 @@
       await TALK.say('rosa', '처음부터 다시 뜨는데,\n저 줄무늬가 자꾸 헷갈려.');
       await TALK.say('leo', '같이 떠요. 제가 같이 봐 둘게요.');
       await X.wait(0.8);
+
+      /* ---- that night: Pipi takes him where the wishes go. One of them hums the lullaby ---- */
+      const grove = T.place('grove', { leoAge: 0 });
+      const gl = grove.actor('leo'), gk = grove.actor('kid'), sl = grove.spot('leo'), sk = grove.spot('kid');
+      gl.x = sl[0] - 330; gk.x = sk[0] - 300;
+      await X.view(grove, { color: '#151a36', out: 1.3, in: 1.8 });
+      T.announce('그날 밤, 소원 숲. 구름 위에 뜬 섬, 오래된 나무 가지마다 작은 빛이 열매처럼 열려 저마다 나직이 흥얼거린다. 빛의 개울이 풀밭을 지나 섬 끝으로 흘러내린다.');
+      grove.walkTo(gk, sk[0], 64).then(() => { gk.flip = true; });
+      await X.wait(0.7);
+      await grove.walkTo(gl, sl[0], 58);
+      gl.flip = false;
+      await X.wait(1.4);
+      gk.pose = (q, t) => { q.armF = { a: 2.5 + Math.sin(t * 2) * 0.1, b: 0.3 }; q.headTilt = -0.2; };
+      await TALK.say('kid', '여기야. 저 아래서 빈 소원은\n다 여기 와서 열려.');
+      gk.pose = null;
+      await TALK.say('leo', '…그날 우리가 본 별.\n아나도 봤으면, 여기 있겠네.', { slow: true });
+      await TALK.say('kid', '가만히 들어 봐.\n하나씩 다 다른 노래 해.');
+      T.announce('소원 찾기. 낮게 열린 빛 넷을 눌러 들어 본다. 아나가 릴리에게 불러 주던 자장가를 흥얼거리는 빛이 있다. 숫자 키로도 고를 수 있다.');
+      await grove.find();
+      T.announce('자장가를 흥얼거리던 빛이 가지에서 떨어져 레오의 손에 내려앉는다. 스튜 김 같은 하얀 김이 피어오른다.');
+      await X.wait(1.2);
+      await TALK.say('leo', '…아나가 릴리 재울 때 부르던 거야.', { slow: true });
+      await TALK.say('leo', '봤구나, 아나도.', { slow: true });
+      gk.pose = (q) => { q.face = Object.assign({}, q.face, { eye: 'happy' }); };
+      await TALK.say('kid', '그건 아저씨 거야.\n아저씨 생각하면서 빌었을 테니까.');
+      grove.letGo();
+      await X.gift('light', grove.heldAt());
+      await X.wait(1);
 
       /* ---- Ana ---- */
       const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: true, i: 0 });

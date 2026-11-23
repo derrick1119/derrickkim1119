@@ -197,6 +197,16 @@
         oo.connect(gg); gg.connect(out); oo.start(t); oo.stop(t + dur * q[2] + 0.1);
       });
       dry.gain.value = 0.55; sendG.gain.value = 0.9;
+    } else if (voice === 'hum') {
+      /* someone humming with their mouth closed: soft to begin, a little vibrato, nothing bright */
+      const dur = o.dur || 1.2;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 620 + vel * 900; lp.Q.value = 0.8;
+      lp.connect(out);
+      env(out, t, vel * 0.75, 0.09, 0.72, dur);
+      const vib = ctx.createOscillator(); vib.frequency.value = 5.1; const vg = ctx.createGain(); vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(f * 0.007, t + 0.35);
+      vib.connect(vg); vib.start(t); vib.stop(t + dur + 0.2);
+      [['sine', 1, 1, 0], ['triangle', 1, 0.34, 4], ['sine', 2, 0.1, -3]].forEach((q) => { const oo = osc(q[0], f * q[1], t, t + dur + 0.2, lp, q[2], q[3]); vg.connect(oo.frequency); });
+      dry.gain.value = 0.8; sendG.gain.value = 0.7;
     } else { /* 'glass': a far, thin shimmer for stars */
       const dur = o.dur || 2.6;
       env(out, t, vel * 0.5, 0.02, 0.5, dur);
@@ -400,6 +410,30 @@
     if (ok()) duck(3, 0.35);
     [53, 60, 65, 69, 72, 77].forEach((m, i) => A.note({ m, at: i * 0.13, vel: 0.3 + i * 0.03, voice: i > 2 ? 'box' : 'felt', dur: 4 }));
   };
+  /* one long sliding call, low and far off: the cloud whale's song.
+     o: { m0, m1, m2 (where it bends back to, if anywhere), dur, at, vel } */
+  A.glide = function (o = {}) {
+    if (!ok()) return 0;
+    const ctx = A.ctx, t = now() + 0.03 + (o.at || 0), dur = o.dur || 3.2, vel = o.vel == null ? 0.3 : o.vel;
+    const f0 = mtof(o.m0), f1 = mtof(o.m1 == null ? o.m0 : o.m1), f2 = o.m2 == null ? null : mtof(o.m2);
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.linearRampToValueAtTime(vel, t + dur * 0.28);
+    out.gain.exponentialRampToValueAtTime(vel * 0.55, t + dur * 0.75);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.2;
+    lp.frequency.setValueAtTime(240, t); lp.frequency.linearRampToValueAtTime(820, t + dur * 0.45); lp.frequency.linearRampToValueAtTime(300, t + dur);
+    lp.connect(out);
+    const dry = ctx.createGain(); dry.gain.value = 0.6; out.connect(dry); dry.connect(A.music);
+    const wet = ctx.createGain(); wet.gain.value = 1.1; out.connect(wet); wet.connect(A.send);
+    [['sine', 1, 1, 0], ['triangle', 1, 0.5, 7], ['sawtooth', 1, 0.08, -5], ['sine', 0.5, 0.4, 0]].forEach((q) => {
+      const oo = osc(q[0], f0 * q[1], t, t + dur + 0.1, lp, q[2], q[3]);
+      oo.frequency.setValueAtTime(f0 * q[1], t);
+      oo.frequency.exponentialRampToValueAtTime(f1 * q[1], t + dur * (f2 ? 0.55 : 0.92));
+      if (f2) oo.frequency.exponentialRampToValueAtTime(f2 * q[1], t + dur * 0.95);
+    });
+    return dur;
+  };
 
   /* ---------- ambience and small sounds ---------- */
   A.ambience = function (level, wind, sea) {
@@ -457,7 +491,7 @@
     A.setMuted(A.muted);
   }
   /* Sound is never worth stopping the story for: whatever goes wrong in here stays in here. */
-  ['note', 'pad', 'bed', 'motif', 'step', 'theme', 'fragment', 'toll', 'scaleStep', 'promise', 'ambience', 'sfx'].forEach((name) => {
+  ['note', 'pad', 'bed', 'motif', 'step', 'theme', 'fragment', 'toll', 'scaleStep', 'promise', 'glide', 'ambience', 'sfx'].forEach((name) => {
     const fn = A[name];
     A[name] = function () { try { return fn.apply(A, arguments); } catch (e) { if (T.report) T.report(e, 'sound ' + name); return 0; } };
   });

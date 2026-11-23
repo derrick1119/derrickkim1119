@@ -1,4 +1,5 @@
-/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The house is finished and still
+/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The cloud whale goes by for the third
+   time since he came, as many times as his mother saw it waiting for him. The house is finished and still
    empty. Every year, on the anniversary of his death, Ana makes his stew and he makes it with her,
    the way he watches her make it in the lake; one year she puts in something he does not know: now she
    is the one teaching. Rosa's son keeps the dance he owed his wife, and the three of them cross; Pipi
@@ -84,7 +85,23 @@
         ps.food.show = true; ps.food.drop = 1; ps.food.fall = 0; ps.food.fill = 1; ps.food.glow = 0.6; X.tween(ps.food, 'glow', 0, 2);
         leo.x = PL.TABLE_X - 66; leo.chair = 1;
       };
+      /* ---- the whale again, the third he has seen: he has waited here about as long as his mother did ---- */
+      const wh = T.place('whales', { dusk: 0.2, actors: [
+        { id: 'leo', style: F.leoAt(3), at: 'leo', lean: 0.07, face: { old: true, mouth: 'smile' } },
+        { id: 'bean', dog: true, at: 'beside', s: 150, sit: 1, headTilt: -0.1 },
+      ] });
+      wh.pass({ from: 0.04, dur: 46 });
+      await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
+      T.announce('해 질 녘, 언덕 끝. 구름 고래가 새끼와 함께 또 지나간다. 늙은 레오와 빈이 나란히 본다.');
+      await X.wait(6.5);
+      await X.TALK.say('leo', '벌써 세 번째 고래야, 빈.', { slow: true });
+      await X.wait(0.8);
+      await X.TALK.say('leo', '…엄마도 세 번 봤댔는데.', { slow: true });
+      await X.wait(1.6);
+      X.tween(wh.sun, 'k', 0.6, 8);
       await X.years(25, 30, { age: 66 });
+      await X.wait(0.6);
+      await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
       T.announce('해마다 레오의 기일이면, 아나는 레오의 스튜를 끓인다. 레오는 호수에서 보며 똑같이 따라 끓인다. 처음엔 차례만 지키면 된다.');
       await X.TALK.say('leo', '해마다 내 기일이면,\n아나는 이 스튜를 끓여.');
       await X.TALK.say('leo', '그래서 나도 같이 끓여.\n아나가 넣는 차례 그대로.');

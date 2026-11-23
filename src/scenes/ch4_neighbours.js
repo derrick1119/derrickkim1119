@@ -1,4 +1,5 @@
-/* Chapter 4 「이웃들」 — years five to fifteen. Bean comes, not by boat but down the rainbow bridge,
+/* Chapter 4 「이웃들」 — years five to fifteen. It opens on the headland at dusk, where his mother shows
+   him the cloud whale that goes by once in ten years. Bean comes, not by boat but down the rainbow bridge,
    and the lake shows the girl he left: walking home from school in the rain with his collar, then on the
    back step. Pipi meets Bean, and Bean meets the tomatoes. Bram asks Leo to look with him at the wife he
    left at thirty-two; a year later she comes, he takes her out on his own boat as he promised, and the two
@@ -62,10 +63,25 @@
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
       X.title();
       await X.wait(4.2);
+      /* ---- an evening on the headland with his mother: the whale that comes by once in ten years ---- */
+      const wh = T.place('whales', { dusk: 0.08, actors: [
+        { id: 'mom', style: F.styles.mom, s: C.MOM_S, at: 'leo', dx: -70, lean: 0.1, face: { mouth: 'smile' } },
+        { id: 'leo', style: F.leoAt(0), at: 'leo', face: { mouth: 'smile' } },
+      ] });
+      wh.pass({ from: 0.1, dur: 46 });
+      await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
+      T.announce('해 질 녘, 언덕 끝. 구름바다 저편에서 커다란 구름 고래가 새끼를 데리고 천천히 헤엄쳐 온다. 낮고 길게 노래한다.');
+      let mom = X.actor('mom', { x: PL.HX - 120, style: F.styles.mom, s: C.MOM_S, lean: 0.1 });   /* back on the hill, she is with him */
+      leo.pose = null;
+      await X.wait(1.2);
       await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
+      await X.wait(2.4);
+      await TALK.say('mom', '십 년에 한 번 지나가는 고래란다.\n네가 올 때까지 세 번 봤지.');
+      X.tween(wh.sun, 'k', 0.45, 7);
+      await X.wait(4.5);
+      await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
 
       /* ---- a rainbow over the cloud sea ---- */
-      let mom = X.actor('mom', { x: PL.HX - 120, style: F.styles.mom, s: C.MOM_S, lean: 0.1 });
       await X.wait(1.4);
       A.sfx('star', 0.2); A.sfx('star', 0.6);
       leo.pose = null; leo.flip = true; mom.flip = true;

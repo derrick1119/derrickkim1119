@@ -1,5 +1,6 @@
 /* Take Your Time — demo pages for the new pieces, reached by the address alone (main.js does not need to know):
      index.html#place:overlook   index.html#place:falls   index.html#lakehelp:1 (2, 3)   index.html#stars
+     index.html#place:grove   index.html#place:post   index.html#place:whales   (skyplaces2.js)
    Each one is a tiny chapter on the stage (T.stage), so it shows the pieces exactly the way a chapter script would
    use them: X.view(view), V.done(), V.sail(), T.fx.star.add(), T.fx.wishLight(). T.fx.demo.done turns true at the end.
    Not part of the story: the line for this file can be left out of index.html for release. */
@@ -29,6 +30,10 @@
         const boat = { riders: [{ style: F.styles.bram, s: 128 }, { style: F.styles.bramWife, s: 124, flip: false }], hull: '#8a5a3b' };
         const V = T.place(args.name, args.name === 'falls' ? { boat } : {});
         await X.view(V, { color: args.name === 'falls' ? '#1b2440' : '#fff6e6', out: 0.05, in: 1.4 });
+        /* the whales go by again and again; the grove and the post office hold out their little tasks */
+        if (V.pass) (async () => { for (;;) { await V.pass({ dur: 40, from: 0.12 }); await X.wait(2); } })();
+        if (V.find) (async () => { for (;;) { await V.find(); await X.wait(3); V.picked = null; V.held = null; } })();
+        if (V.catchLetter) (async () => { for (;;) { await V.catchLetter(); await X.wait(3); const L = V.caught; if (L) { L.phase = 'fly'; } V.caught = null; } })();
         if (args.name === 'falls') {
           /* a crossing, again and again: the boat goes up, a star falls, and the next boat comes in */
           for (let n = 0; ; n++) {

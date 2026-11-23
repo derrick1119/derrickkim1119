@@ -567,11 +567,14 @@
   }
 
   const PLACES = { overlook, falls };
-  /* name: 'overlook' | 'falls'; o: { actors, note (a caption), leoAge, boat, star, ambient } */
+  /* name: 'overlook' | 'falls' (and those skyplaces2.js adds); o: { actors, note (a caption), leoAge, boat, star, ambient } */
   T.place = function (name, o) {
     const mk = PLACES[name];
     if (!mk) throw new Error('T.place: no place called ' + name);
     return mk(o || {});
   };
   T.place.names = () => Object.keys(PLACES);
+  /* more places (skyplaces2.js) are made with the same brushes and frame */
+  T.place.add = function (name, mk) { PLACES[name] = mk; };
+  T.place.kit = { rock, arcadePath, stonework, wallFill, isle, cloudRow, blossomTree, flowerSil, ledge, bracket, drawActor, base };
 })();
