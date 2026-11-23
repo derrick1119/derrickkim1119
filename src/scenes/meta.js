@@ -9,6 +9,7 @@ import { CHAPTERS } from '../data/stages.js';
 import { nav } from '../nav.js';
 import { meta, save, UNLOCKS, has, buyUnlock, HARD, HARD_MAX, BEASTS, deedCount, noteDeed } from '../state.js';
 import { miniStage } from '../ui/theater.js';
+import { codexCount } from './codex.js';
 import { dimBackdrop } from './title.js';
 import { portrait, LOOKS } from '../render/sprites.js';
 import { sfx, bgm } from '../audio.js';
@@ -83,6 +84,8 @@ export class MetaScene {
       g.globalAlpha = clamp((this.t % 3.4) / 0.3, 0, 1); textBlock(g, t.lines[li], 860, 474, 700, 34, { size: 24, font: FONT_B }); g.globalAlpha = 1;
       text(g, `— ${CHAPTERS[t.ch].name}의 주막에서`, 1210, 530, { size: 15, align: 'right', fill: SUB, weight: 400 });
     } else { stamp(g, 860, 300, 46, '?', '#a9a394', -0.1); text(g, '아직 듣지 못한 이야기입니다', 860, 384, { size: 24, font: FONT_B, fill: SUB }); text(g, `${CHAPTERS[t.ch].name}의 주막에 들러 보세요`, 860, 420, { size: 17, fill: SUB, weight: 400 }); }
+    // 열두 이야기를 다 모으면: 숨은 고개에 대한 귀띔
+    text(g, meta.trueEnd ? '열세 번째 고개를 넘었습니다 — 이야기는 이제 당신이 들려줄 차례' : got.length >= TALES.length ? '열두 이야기를 모두 들었다. 이제 열두 고개를 평정하면…' : '열두 이야기를 모두 들은 이에게만 보이는 고개가 있다고 합니다', 708, 628, { size: 17, font: FONT_B, fill: meta.trueEnd ? '#f0d264' : '#e6d2a6', maxW: 470 });
     if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
   }
   frame(g, dt) {
@@ -90,11 +93,12 @@ export class MetaScene {
     this.t += dt; dimBackdrop(g, 0.82);
     if (this.book) { this.drawBook(g); return; }
     if (this.beasts) { this.drawBeasts(g); return; }
-    if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'wood', size: 21 })) { this.book = true; return; }
-    if (button(g, 'beasts', 830, 22, 204, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'wood', size: 21 })) { this.beasts = true; return; }
+    if (button(g, 'book', 1100, 22, 150, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'wood', size: 18 })) { this.book = true; return; }
+    if (button(g, 'beasts', 942, 22, 150, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'wood', size: 19 })) { this.beasts = true; return; }
+    if (button(g, 'codex', 784, 22, 150, 62, `도감 ${codexCount().got}/${codexCount().all}`, { style: 'wood', size: 18 })) { nav.go('codex'); return; }
     brushTitle(g, 250, 48, 360, 66, '공적 장부', INDIGO, 38);
-    goldText(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 32, align: 'left', glow: false });
-    text(g, '원정이 끝날 때마다 공적이 쌓입니다', 520, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 290 });
+    goldText(g, `쌓인 공적 ${meta.merit}`, 470, 44, { size: 30, align: 'left', glow: false, maxW: 300 });
+    text(g, '원정이 끝날 때마다 공적이 쌓입니다', 470, 78, { size: 16, fill: '#d9ccae', weight: 400, align: 'left', maxW: 290 });
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
       slip(g, x, y, w, h, open);
@@ -110,18 +114,19 @@ export class MetaScene {
       // 험로: 단계마다 규칙이 하나씩 붙는다 (아래 단계의 규칙도 모두 따라온다)
       const hv = Math.min(meta.hard || 0, meta.hardMax), hd = HARD[hv];
       text(g, hv ? `험로 ${hv}단계 · ${hd.name}` : '평탄한 길', 56, y + 28, { size: 22, font: FONT_B, align: 'left', fill: hv ? RED : INK, maxW: 276 });
-      textBlock(g, hv ? `${hd.desc}${hv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${hv * 20}%` : '험로 규칙 없이 떠납니다. 평정할 때마다 한 단계씩 열립니다', 56, y + 54, 276, 19, { size: 14, align: 'left', fill: '#4a4034', weight: 400 });
-      // 열 단계 사다리: 붉은 점이 찍힌 칸은 평정한 길, 짙은 칸은 지금 고른 길, 흐린 칸은 아직 닫힌 길. 칸을 눌러 고른다
+      if (hv) { text(g, hd.desc, 56, y + 56, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 276 }); text(g, `${hv > 1 ? '이전 단계 규칙 포함 · ' : ''}공적 +${hv * 20}%`, 56, y + 78, { size: 14, align: 'left', fill: '#8a2a26', maxW: 276 }); }
+      else textBlock(g, '험로 규칙 없이 떠납니다. 평정할 때마다 한 단계씩 열립니다', 56, y + 54, 276, 19, { size: 14, align: 'left', fill: '#4a4034', weight: 400 });
+      // 스무 단계 사다리: 붉은 점이 찍힌 칸은 평정한 길, 짙은 칸은 지금 고른 길, 흐린 칸은 아직 닫힌 길. 열한 번째부터는 붉은 칸. 칸을 눌러 고른다
       for (let lv = 0; lv <= HARD_MAX; lv++) {
-        const cx = 350 + lv * 52, cy = y + 10, open = lv <= meta.hardMax, cleared = lv < meta.hardMax, cur = lv === hv;
-        if (open && tapped('hl' + lv, cx - 2, cy - 4, 52, 66)) { meta.hard = lv; save(); sfx('card'); }
+        const cx = 346 + lv * 27, cy = y + 10, bw = 25, open = lv <= meta.hardMax, cleared = lv < meta.hardMax, cur = lv === hv, deep = lv > 10;
+        if (open && tapped('hl' + lv, cx - 1, cy - 4, 27, 66)) { meta.hard = lv; save(); sfx('card'); }
         g.save(); if (!open) g.globalAlpha = 0.42;
-        rr(g, cx, cy + 3, 48, 58, 7, '#d9cdb0', INK, 1.6); rr(g, cx, cy, 48, 58, 7, cur ? '#2b3b60' : '#fbf3df', INK, cur ? 2.8 : 1.6);
-        text(g, lv ? String(lv) : '평', cx + 24, cy + 24, { size: lv ? 25 : 21, font: FONT_B, fill: cur ? '#f6efdc' : INK });
-        if (cleared) { ell(g, cx + 24, cy + 46, 5.8, 5.8, RED, INK, 1); } else if (!open) { rr(g, cx + 18, cy + 43, 12, 9, 2, '#8a8474', INK, 1); g.beginPath(); g.arc(cx + 24, cy + 43, 4, Math.PI, 0); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke(); }
+        rr(g, cx, cy + 3, bw, 58, 5, '#d9cdb0', INK, 1.4); rr(g, cx, cy, bw, 58, 5, cur ? (deep ? '#7a1f1c' : '#2b3b60') : '#fbf3df', INK, cur ? 2.4 : 1.4);
+        text(g, String(lv), cx + bw / 2, cy + 22, { size: lv >= 10 ? 14 : 17, font: FONT_B, fill: cur ? '#f6efdc' : INK });
+        if (cleared) { ell(g, cx + bw / 2, cy + 44, 4.4, 4.4, RED, INK, 1); } else if (!open) { rr(g, cx + bw / 2 - 5, cy + 42, 10, 8, 2, '#8a8474', INK, 1); g.beginPath(); g.arc(cx + bw / 2, cy + 42, 3.4, Math.PI, 0); g.strokeStyle = INK; g.lineWidth = 1.3; g.stroke(); }
         g.restore();
       }
-      text(g, `붉은 점 = 평정한 길 · 눌러서 고르기 (열린 길 ${meta.hardMax}/${HARD_MAX})`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
+      text(g, `붉은 점: 넘은 단계 · 눌러서 고르기 · 열린 단계 ${meta.hardMax}/${HARD_MAX}`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
     } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '열두 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }
     if (button(g, 'back', 960, y + 12, 290, 86, '돌아가기', { style: 'paper', size: 32 })) nav.go('title');
   }

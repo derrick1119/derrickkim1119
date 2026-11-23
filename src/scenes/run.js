@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
@@ -15,6 +15,7 @@ import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES } from '../data/units.js';
+import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
 import { portrait, getLook } from '../render/sprites.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped, foil, goldText } from '../ui/ui.js';
@@ -153,7 +154,7 @@ export class RunScene {
   }
   // 요괴가 쓰러질 때: 두목의 마지막 한마디, 처음 보는 것에 놀란 병사의 한마디
   onDeath(e) {
-    const r = this.r;
+    const r = this.r; if (e.team === 1 && seeFoe(e.utype)) r.newFoes = (r.newFoes || 0) + 1;
     if (e.boss && this.enc && BOSS[this.enc.key]) { this.say([[null, BOSS[this.enc.key].fall, { x: e.x, y: e.y, h: 96 }]]); return; }
     const kind = DOK.includes(e.utype) ? 'dok' : GHOST.includes(e.utype) && e.last ? 'ghost' : null;
     if (kind && !r.seen[kind] && !this.talk) { r.seen[kind] = 1; this.say(FIRST_SIGHT[kind]); }
@@ -503,7 +504,8 @@ export class RunScene {
     const r = this.r;
     g.fillStyle = 'rgba(24,32,54,0.8)'; g.fillRect(0, 0, W, H);
     panel(g, 300, 96, 680, 536); brushTitle(g, 640, 102, 280, 62, '잠시 멈춤', INDIGO, 34);
-    text(g, `${chapterOf(r.ch).name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${HERO_TRAIT[r.hero].name}'`, 640, 172, { size: 18, fill: SUB, maxW: 470 });
+    text(g, `${r.daily ? '오늘의 원정  ·  ' : r.hard ? `험로 ${r.hard}  ·  ` : ''}${chapterOf(r.ch).name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${(r.alt ? HERO_TRAIT2 : HERO_TRAIT)[r.hero].name}'`, 640, r.daily ? 160 : 172, { size: 18, fill: SUB, maxW: 560 });
+    if (r.daily) r.daily.rules.forEach((k, n) => { const x = 330 + n * 314; rr(g, x, 174, 306, 22, 11, 'rgba(138,42,38,0.1)', 'rgba(138,42,38,0.5)', 1); text(g, `${DAILY_RULES[k].name} · ${DAILY_RULES[k].desc}`, x + 153, 185.5, { size: 13, fill: '#8a2a26', maxW: 292 }); });
     if (button(g, 'm1', 450, 200, 380, 66, '계속하기', { size: 32 })) this.menu = false;
     if (button(g, 'm2', 450, 278, 380, 56, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 25 })) this.sub = new DeckView({ P: this.b.power * this.b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });

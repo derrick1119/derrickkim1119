@@ -13,6 +13,9 @@ import { pendingPromos, promote, canTemper, temper } from '../src/state.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
+// 해금 속도: 봇은 모든 패·보물이 열린 뒤의 원정을 돈다. ALT=1 이면 두 번째 병법, HARD=n 이면 험로 n단계
+meta.ended = 99; if (process.env.ALT) { meta.heroXp = {}; meta.alt = {}; for (const h of HEROES) { meta.heroXp[h] = 10; meta.alt[h] = true; } }
+if (process.env.HARD) { meta.hardMax = meta.hard = Number(process.env.HARD); }
 const pick = a => a[(Math.random() * a.length) | 0];
 const used_ = {};
 // 패 한 장을 쓸 만한 자리. 능숙한 봇은 가장 좋은 자리를, 서툰 봇은 대충 고른다

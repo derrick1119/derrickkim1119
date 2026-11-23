@@ -4,7 +4,10 @@ import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, 
 import { button, iconBtn, icon, panel, seal, C, ui } from '../ui/ui.js';
 import { drawKeyArt, drawVista, KEY_INTRO } from '../render/keyart.js';
 import { nav } from '../nav.js';
-import { G, meta, save } from '../state.js';
+import { G, meta, save, dailyOf } from '../state.js';
+import { DAILY_RULES } from '../data/progress.js';
+import { UNITS, HERO_COL } from '../data/units.js';
+import { goldText, foil } from '../ui/ui.js';
 import { chapterOf } from '../data/stages.js';
 import { audio, setMuted, sfx, bgm } from '../audio.js';
 import { portrait } from '../render/sprites.js';
@@ -83,6 +86,21 @@ export class TitleScene {
       if (button(g, 'yes', 650, 400, 240, 78, '새로 시작', { style: 'red', size: 30 })) { G.run = null; save(); nav.go('hero'); }
       g.restore(); return;
     }
+    // 오늘의 원정: 날짜로 정한 영웅과 규칙 둘. 험로·숙련·공적 혜택 없이 모두 같은 조건에서 점수를 겨룬다
+    if (this.day) {
+      const d = this.day, best = (meta.daily || {})[d.date] || 0, col = HERO_COL[d.hero];
+      g.fillStyle = 'rgba(8,6,14,0.86)'; g.fillRect(0, 0, W, H);
+      panel(g, 300, 120, 680, 470);
+      goldText(g, '오늘의 원정', 640, 172, { size: 40 }); text(g, `${d.date.slice(5, 7) | 0}월 ${d.date.slice(8, 10) | 0}일 · 하루 한 번 바뀌는 원정`, 640, 212, { size: 16, fill: SUB, weight: 400 });
+      ell(g, 420, 318, 74, 74, '#efd9a8', INK, 2.4); ell(g, 420, 318, 68, 68, null, col, 2); g.save(); g.beginPath(); g.arc(420, 318, 72, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(340, 356, 160, 40); portrait(g, d.hero, 416, 386, 1.4, t, true); g.restore();
+      text(g, UNITS[d.hero].name, 420, 414, { size: 26, font: FONT_B });
+      d.rules.forEach((k, n) => { const R = DAILY_RULES[k], y = 254 + n * 86; rr(g, 520, y, 420, 74, 8, '#fbf1cf', '#8a2a26', 1.8); rr(g, 520, y, 7, 74, 3, '#8a2a26'); text(g, R.name, 542, y + 24, { size: 21, font: FONT_B, align: 'left', fill: '#8a2a26' }); text(g, R.desc, 542, y + 52, { size: 16, align: 'left', fill: '#3a2a1a', weight: 400, maxW: 386 }); });
+      text(g, best ? `오늘의 최고 ${best}점` : '아직 오늘의 기록이 없습니다', 640, 462, { size: 19, font: FONT_B, fill: best ? '#8a5a10' : SUB });
+      text(g, '험로·숙련·공적 혜택 없이, 모든 패와 보물이 열린 채 떠납니다', 640, 490, { size: 15, fill: '#4a4034', weight: 400 });
+      if (button(g, 'dno', 340, 510, 240, 66, '닫기', { style: 'paper', size: 26 })) this.day = null;
+      if (button(g, 'dgo', 700, 510, 240, 66, '떠나기', { style: 'red', size: 30 })) { const dd = d; this.day = null; nav.go('prologue', { hero: dd.hero, daily: dd.date }); }
+      g.restore(); return;
+    }
     if (r) {
       if (button(g, 'cont', 460, 624, 360, 70, `이어하기 · ${chapterOf(r.ch).short}`, { style: 'red', size: 30 })) nav.go('run');
       if (button(g, 'new', 250, 630, 180, 58, '새 원정', { style: 'wood', size: 24 })) this.confirm = true;
@@ -93,7 +111,11 @@ export class TitleScene {
       if (button(g, 'start', 480, 624, 320, 70, '출  정', { style: 'red', size: 44 })) nav.go('hero');
       g.restore();
       if (button(g, 'meta', 260, 630, 180, 58, '공적 장부', { style: 'wood', size: 24 })) nav.go('meta');
-      if (button(g, 'book', 840, 630, 180, 58, '이야기책', { style: 'wood', size: 24 })) nav.go('meta', { book: true });
+      // 한 번이라도 원정을 마치면 이야기책 자리에 오늘의 원정이 선다 (이야기책은 공적 장부에서)
+      if ((meta.ended || 0) >= 1) { if (button(g, 'daily', 840, 630, 180, 58, '오늘의 원정', { style: 'indigo', size: 22 })) { this.day = dailyOf(); sfx('card'); }
+        // 오늘 아직 떠나지 않았으면 '새' 표식
+        const dd = dailyOf(); if (!(meta.daily || {})[dd.date]) { ell(g, 1014, 634, 15, 15, '#c8402f', INK, 1.6); text(g, '새', 1014, 635, { size: 14, font: FONT_B, fill: C.cream }); } text(g, `${dd.date.slice(5, 7) | 0}월 ${dd.date.slice(8, 10) | 0}일 · ${UNITS[dd.hero].name}`, 930, 702, { size: 13.5, fill: '#cbb894' }); }
+      else if (button(g, 'book', 840, 630, 180, 58, '이야기책', { style: 'wood', size: 24 })) nav.go('meta', { book: true });
     }
     if (iconBtn(g, 'snd', 1204, 20, 56, 52, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
     if (meta.best > 0) text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 1262, 704, { size: 15, fill: '#cbb894', align: 'right', maxW: 240 });

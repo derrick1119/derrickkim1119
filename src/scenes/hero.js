@@ -4,6 +4,7 @@ import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } f
 import { button, panel, brushTitle, seal, C, tapped, foil, goldText, shine } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta, HARD, save } from '../state.js';
+import { HERO_TRAIT2, MASTERY_XP, MASTERY_GIFT, masteryLv } from '../data/progress.js';
 import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
 import { MEOK } from '../render/ink.js';
 import { inkGlyph } from '../render/symbols.js';
@@ -41,6 +42,8 @@ export class HeroScene {
       text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, yy + 145, { size: 15, fill: locked ? '#e07a66' : '#cbb894' });
       if (locked) seal(g, x + w - 24, yy + 24, 26, '?', '#5a5346');
       const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, yy + 10, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, yy + 21.5, { size: 13.5, fill: C.cream }); }
+      // 숙련: 다섯 개의 매듭 (명장은 이름 둘레가 금빛)
+      if (!locked) { const ml = masteryLv(meta.heroXp && meta.heroXp[id]); rr(g, x + 8, yy + 9, 70, 18, 9, 'rgba(16,10,12,0.72)', 'rgba(240,210,124,0.55)', 1); for (let k = 0; k < 5; k++) { const px = x + 19 + k * 12.5, py = yy + 18; g.save(); g.translate(px, py); g.rotate(Math.PI / 4); rr(g, -4.4, -4.4, 8.8, 8.8, 1.4, k < ml ? '#f6cf5a' : 'rgba(70,60,50,0.9)', k < ml ? '#2a1606' : 'rgba(240,217,154,0.45)', 1.3); g.restore(); } if (ml >= 5) rr(g, x + 1, yy + 1, w - 2, h - 2, 8, null, 'rgba(255,214,120,0.85)', 1.6); }
       if (on) { rr(g, x - 3, yy - 3, w + 6, h + 6, 11, null, '#f3d27c', 3); shine(g, x, yy, w, h, 9, 3.6, 0.25); }
     });
     // 고른 영웅
@@ -55,9 +58,19 @@ export class HeroScene {
     const sd = starterDeck(id), nu = sd.filter(c => CARDS[c.id].kind === 'unit').length, nt = sd.filter(c => !isUnit(c)).length;
     text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  시작: 병력 ${nu} · 전술 패 ${nt}`, 274, 361, { size: 15.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 444 });
     // 병법: 이 영웅이 이끌면 패를 얻고 쓰는 방식이 달라진다
-    const tr = HERO_TRAIT[id]; rr(g, 270, 376, 448, 62, 6, '#fbf1cf', col, 1.8); rr(g, 270, 376, 7, 62, 3, col);
-    text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col }); text(g, tr.play, 706, 392, { size: 14.5, align: 'right', fill: '#5a4a3a', weight: 400, maxW: 250 });
+    // 숙련 2부터 두 번째 병법을 고를 수 있다: 병법 상자 머리의 두 이름표를 눌러 바꾼다
+    const xp = (meta.heroXp && meta.heroXp[id]) || 0, ml = masteryLv(xp), canAlt = !locked && ml >= 2, alt = canAlt && !!(meta.alt && meta.alt[id]), tr = alt ? HERO_TRAIT2[id] : HERO_TRAIT[id];
+    rr(g, 270, 376, 448, 62, 6, '#fbf1cf', col, 1.8); rr(g, 270, 376, 7, 62, 3, col);
+    text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col });
+    if (canAlt) [HERO_TRAIT[id], HERO_TRAIT2[id]].forEach((q, n) => { const bx = 508 + n * 102, on2 = (n === 1) === alt; rr(g, bx, 380, 98, 24, 12, on2 ? col : 'rgba(60,40,20,0.08)', on2 ? INK : 'rgba(60,40,20,0.35)', 1.2); text(g, (on2 ? '✓ ' : '') + q.name, bx + 49, 392.5, { size: 13, font: FONT_B, fill: on2 ? C.cream : '#5a4a3a', maxW: 92 }); if (!on2 && tapped('alt' + n, bx, 380, 98, 24)) { if (!meta.alt) meta.alt = {}; meta.alt[id] = n === 1; save(); sfx('card'); } });
+    else text(g, ml >= 2 || locked ? tr.play : '숙련 2에 두 번째 병법', 706, 392, { size: 14.5, align: 'right', fill: '#5a4a3a', weight: 400, maxW: 250 });
     textBlock(g, tr.desc, 288, 412, 424, 17.5, { size: 14.5, align: 'left', weight: 400 });
+    // 숙련 띠: 초상 아래, 다음 숙련까지의 매듭과 그때 받는 것
+    if (!locked) { const nx = MASTERY_XP[ml], px0 = MASTERY_XP[ml - 1], k = ml >= 5 ? 1 : (xp - px0) / (nx - px0);
+      rr(g, 64, 516, 178, 40, 8, '#2a1418', INK, 1.6); rr(g, 67, 519, 172, 34, 6, null, foil(g, 64, 242), 1.1);
+      text(g, `숙련 ${ml}${ml >= 5 ? ' · 명장' : ''}`, 78, 530, { size: 15, font: FONT_B, align: 'left', fill: ml >= 5 ? '#f6d27a' : C.cream });
+      rr(g, 150, 525, 82, 9, 4, 'rgba(0,0,0,0.5)'); if (k > 0) rr(g, 150, 525, 82 * Math.min(1, k), 9, 4, '#e0b050');
+      text(g, ml >= 5 ? '모든 숙련을 마쳤다' : `다음 · ${MASTERY_GIFT[ml + 1]}`, 153, 545, { size: 11.5, fill: '#d9c9a0', maxW: 168 }); }
     text(g, '자동 고유기', 274, 453, { size: 14.5, align: 'left', fill: col });
     HERO_SKILLS[id].forEach((sk, n) => {
       const yy = 464 + n * 33; rr(g, 270, yy, 448, 29, 5, '#fbf3df', 'rgba(38,42,54,0.5)', 1.1);
@@ -75,7 +88,7 @@ export class HeroScene {
       if (button(g, 'h-', 282, 608, 54, 52, '◀', { style: 'paper', size: 22, disabled: lv <= 0 })) { meta.hard = Math.max(0, lv - 1); save(); sfx('card'); }
       if (button(g, 'h+', 752, 608, 54, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
       text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', 544, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: 390 });
-      text(g, lv ? `${hd.desc}${lv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
+      text(g, lv ? `${hd.desc}${lv > 1 ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
     } else {
       text(g, '전술 패는 쓰면 사라집니다. 길에서 다시 채우세요.', 540, 626, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });
       text(g, '영웅마다 병법이 다릅니다.', 540, 650, { size: 16, fill: '#d9ccae', weight: 400, maxW: 560 });

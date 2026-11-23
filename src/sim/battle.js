@@ -26,7 +26,7 @@ export const DEFAULT_MODS = {
   heroCost: 0, drawRate: 1, freeFirst: 0, cardPow: 1, summonLife: 0, heroGauge: 1, killMorale: 0,
   // 패의 살림: 주머니 한도, 무리 몇을 물리칠 때마다 노획하는가, 그리고 이끄는 영웅의 병법
   // 진형: 아는 진법 (진법서 보물로 늘어난다)
-  forms: FORM_START,
+  forms: FORM_START, formPow: 1,
   pouch: 9, lootEvery: 5, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
 };
 export const HAND = 5, REFILL = 3.2, MAX_CAP = 9;
@@ -329,7 +329,8 @@ export class Battle {
     if (this.formTry !== now) { this.formTry = now; this.formT = 0; }
     this.formT += dt; if (this.formT < 1) return;
     if (this.form) this.ev('formLost', { id: this.form.id, name: FORMS[this.form.id].name });
-    this.form = now ? { id: now, fx: FORMS[now].fx, t: this.time } : null; this.formTry = null; this.formT = 0;
+    const k = this.mods.formPow || 1, fx = k === 1 || !now ? (now ? FORMS[now].fx : null) : Object.fromEntries(Object.entries(FORMS[now].fx).map(([q, v]) => [q, v * k]));
+    this.form = now ? { id: now, fx, t: this.time } : null; this.formTry = null; this.formT = 0;
     if (now) this.ev('formation', { id: now, name: FORMS[now].name, bonus: FORMS[now].bonus });
   }
   // 남은 병력: 전장에 선 우리 인형(영웅 포함, 잠깐 불려 온 것·말뚝·허수아비·수레는 빼고)과 손패·뽑을 패의 병력 패
