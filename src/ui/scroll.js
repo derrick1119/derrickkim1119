@@ -40,7 +40,7 @@ export function drawScroll(r, win) {
   text(g, r.relics.length ? `보물 ${r.relics.length}` : '보물 없음', 330, ry, { size: 18, font: FONT_B, align: 'left' });
   const rp = Math.min(60, 790 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 360 + n * rp, ry + 40, Math.min(0.95, rp / 60)));
   // 아래: 씨앗 글자 (영웅 고르기의 '씨앗'에 넣으면 같은 길을 걷는다)
-  if (r.seed != null) { rr(g, 870, 540, 260, 36, 8, '#2a1418', INK, 1.6); text(g, `씨앗 ${seedCode(r.seed)}`, 1000, 558.5, { size: 18, font: FONT_B, fill: '#f0d99a' }); text(g, '이 씨앗으로 같은 길을 걸을 수 있습니다', 860, 558, { size: 13, align: 'right', fill: SUB }); }
+  if (r.seed != null) { rr(g, 870, 550, 260, 32, 8, '#2a1418', INK, 1.6); text(g, `씨앗 ${seedCode(r.seed)}`, 1000, 566.5, { size: 18, font: FONT_B, fill: '#f0d99a' }); text(g, '이 씨앗으로 같은 길을 걸을 수 있습니다', 860, 566, { size: 13, align: 'right', fill: SUB }); }
   return c;
 }
 // 내려받기: 파일 이름에 영웅과 씨앗을 넣는다

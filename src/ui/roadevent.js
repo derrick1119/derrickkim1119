@@ -160,7 +160,7 @@ export class EventScene extends Overlay {
     if (rt < 0.6) this.slips(g, t, { i: this.pickI, t: rt });
     if (!this.said) { this.said = true; sfx(bad ? 'deny' : 'star');
       if (rows.some(q => /엽전 \+\d/.test(q))) for (let q = 0; q < 6; q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s), x0: SX + 0.7 * SW + (q - 2.5) * 16, y0: 300, x1: GOLD_AT[0] - 8, y1: GOLD_AT[1], s0: 1.2, s1: 0.85, delay: 0.5 + q * 0.07, arc: 60, dur: 0.55, onArrive: q === 5 ? () => sfx('coin') : null }); }
-    const gap = 26, w = Math.min(360, (1150 - (n - 1) * gap) / n), h = 98;
+    const gap = 26, long = rows.some(q => q && q.length > 26), w = Math.min(long ? 540 : 360, (1150 - (n - 1) * gap) / n), h = 98;   // 긴 보상(보물 설명)이 있으면 쪽지를 넓게
     for (let i = 0; i < n; i++) {
       const k = clamp((rt - 0.5 - i * 0.18) / 0.3, 0, 1); if (k <= 0) continue;
       const s = rows[i], cx = 640 + (i - (n - 1) / 2) * (w + gap), ty = ropeY(cx), x = cx - w / 2, y = ty + 18, no = s && BAD.test(s) && !GOOD.test(s), ic = s && iconFor(s), e = easeOutBack(k);
