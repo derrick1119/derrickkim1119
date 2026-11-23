@@ -1,6 +1,7 @@
 /* Chapter 5 「꽃길」 — years fifteen to twenty-five. The roof goes up; his mother, whose white boat has
    waited at the quay every evening since he first ate at her table, goes on to his father at last.
-   Years later a magpie brings Lily's letter: she is getting married. He goes into her dream, promises to
+   Years later a magpie fetches him to the post office of the wind, where Lily's letter (she is getting
+   married) has come in and will not settle until he catches it. He goes into her dream, promises to
    walk beside her empty arm, and sits her on the swing he once promised her and pushes it. At the
    wedding he walks the flower road beside her; afterwards he makes the swing wide enough for two. */
 (function () {
@@ -279,40 +280,73 @@
       await X.crossing([{ style: F.styles.mom, s: C.MOM_S }], { leoAge: 2, color: '#2a2440' });
       leo.pose = null;
 
-      /* ---- years on: a magpie with a letter in its beak ---- */
+      /* ---- years on: a magpie from the post office of the wind, come to fetch him ---- */
       let pie;
       await X.dip(async () => {
         S.actors = []; S.boats = [];
         X.cam(px, py, 1); X.camSnap();
         leo = X.actor('leo', { x: PL.HX + 160, style: F.leoAt(2), flip: true, lean: 0.06 });
         bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 200, sit: 1, wag: 0.5 });
-        pie = { x: PL.HX - 700, y: W.y3(PL.HX) - 420, k: 0, land: 0 };
+        pie = { x: PL.HX - 700, y: W.y3(PL.HX) - 420, k: 0, land: 0, letter: false };
         S.pie = pie;
       });
       X.bed(4, 0.13, 'walk');
       await X.years(20, 25, { age: 61 });
       A.sfx('star', 0.8);
-      T.announce('까치 한 마리가 편지를 물고 언덕으로 날아온다.');
+      T.announce('까치 한 마리가 언덕으로 날아와 팻말에 앉는다. 바람 우체국의 까치다.');
       const perch = [PL.BOARD_X + 6, W.y3(PL.BOARD_X) - 98];
       X.tween(pie, 'x', perch[0], 3.2, T.ease.out); await X.tween(pie, 'y', perch[1], 3.2, T.ease.io);
       pie.land = 1; A.sfx('step');
+      const chatter = () => { for (let i = 0; i < 3; i++) A.note({ m: 86 - (i % 2) * 2, at: i * 0.14, vel: 0.12, voice: 'pluck', dur: 0.12 }); };
+      chatter();
       bean.sit = 0; A.sfx('bark'); bean.flip = true;
       leo.flip = true;
       await X.walk(leo, PL.BOARD_X + 60, 90);
+      await X.wait(0.4); chatter();
       await X.tap(() => [perch[0], perch[1] - 8, 50]);
-      pie.letter = false;
+      await X.TALK.say('leo', '…우체국에서 왔구나.');
+      /* it goes on ahead, and he follows it to the cliff of cloud */
+      pie.land = 0; A.sfx('whoosh');
+      X.tween(pie, 'x', PL.HX + 900, 3, T.ease.in); X.tween(pie, 'y', perch[1] - 380, 3, T.ease.in).then(() => { S.pie = null; });
+      X.walk(leo, PL.BOARD_X + 260, 90);
+      await X.wait(1.6);
+
+      /* ---- the post office: a letter has come for him, and it will not settle ---- */
+      const po = T.place('post', { leoAge: 2 });
+      const pl = po.actor('leo'), pb = po.actor('bean'), spl = po.spot('leo'), spb = po.spot('bean');
+      pl.x = spl[0] - 420; pb.x = spb[0] - 400; pb.sit = 0;
+      await X.view(po, { color: '#fff6e6', out: 1.3, in: 1.6 });
+      T.announce('바람 우체국. 구름 절벽에 지은 높다란 우체국. 바람에 실려 온 편지들이 새처럼 날아다니다 제 칸에 내려앉는다. 지붕에는 까치들이 앉아 있다.');
+      po.walkTo(pb, spb[0], 80).then(() => { pb.sit = 1; pb.flip = false; });
+      await po.walkTo(pl, spl[0], 70);
+      pl.flip = false;
+      await X.wait(1.2);
+      const pm = po.actor('post');
+      pm.pose = (q, t) => { q.armF = { a: 1.9 + Math.sin(t * 1.5) * 0.08, b: 0.6 }; };
+      await TALK.say('post', '왔구먼. 자네 앞으로 한 통 왔어.');
+      pm.pose = (q) => { q.armF = { a: 2.6, b: 0.2 }; q.headTilt = -0.2; };
+      await TALK.say('post', '크레파스로 별을 그린 거.\n…근데 도무지 내려앉질 않아.');
+      pm.pose = null;
+      T.announce('편지 잡기. 새처럼 날아다니는 편지 가운데 크레파스 별이 그려진 편지를 눌러 잡는다. 레오의 손 가까이 지나갈 때 스페이스나 엔터로도 잡을 수 있다.');
+      await po.catchLetter();
+      await X.wait(1);
+      await TALK.say('leo', '…릴리 글씨야.', { slow: true });
+      pm.pose = (q) => { q.face = Object.assign({}, q.face, { eye: 'happy' }); };
+      await TALK.say('post', '그런 편지는\n받을 사람 손에만 앉더라고.');
+      pm.pose = null;
       await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
       await X.TALK.say('leo', '…우리 릴리가.', { slow: true });
       await X.TALK.say('leo', '보러 와 줄 거지, 래.');
-      pie.land = 0; A.sfx('whoosh');
-      X.tween(pie, 'x', PL.HX + 900, 3, T.ease.in); X.tween(pie, 'y', perch[1] - 380, 3, T.ease.in).then(() => { S.pie = null; });
-      await X.wait(1.2);
+      await X.wait(0.8);
+      /* home again, the letter in his pocket */
+      leo.go = null; leo.moving = false; leo.x = PL.BOARD_X + 60; leo.flip = true; bean.x = PL.BOARD_X + 120; bean.sit = 1; bean.flip = true; S.pie = null;
+      await X.view(null, { color: '#fff6e6', out: 1.3, in: 1.4 });
 
       /* ---- an answer has to go by dream: three things she knows ---- */
       const pipi = X.actor('kid', { x: PL.HX - 560, style: F.styles.kidA, s: 100 });
       await X.walk(pipi, PL.BOARD_X - 30, 120);
       leo.flip = true;
-      await TALK.say('kid', '까치가 뭐 물고 왔어?');
+      await TALK.say('kid', '우체국 다녀왔어?\n누구 편지야?');
       await TALK.say('leo', '릴리 편지. 결혼한대.\n…대답을 해 주고 싶은데.');
       await TALK.say('kid', '꿈으로 가면 되잖아!\n냄새, 소리, 빛. 그 언니가 아는 걸로.');
       await TALK.say('leo', '빛은… 이 편지면 되겠다.\n그 애 손으로 쓴 거니까, 길을 알 거야.');
@@ -372,7 +406,7 @@
       T.announce('방이 바로 선다. 침대에 앉은 릴리. 문으로 레오가 들어온다.');
       await X.tween(D.near, 'k', 1, 2.6, T.ease.io);
       await TALK.say('lily', '…아빠?');
-      await TALK.say('leo', '편지 받았어.\n까치가 물고 왔더라.');
+      await TALK.say('leo', '편지 받았어.\n바람에 실려 왔더라.');
       await TALK.say('lily', '…정말? 아빠 사진 앞에 두기만 했는데.');
       await TALK.say('lily', '내일, 아빠 자리는 그냥 비워 두려고.\n…이상하지?');
       await TALK.say('leo', '아니. 그 자리, 내가 걸을게.');
