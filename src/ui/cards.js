@@ -121,8 +121,9 @@ export class DeckView {
     const c = deck.find(q => q.uid === this.sel), ok = this.can(c), px = 866;
     rr(g, px, 96, 364, 520, 6, '#f3ead2', INK, 1.8);
     const after = mode === 'temper' && ok ? Object.assign({}, c, { tp: 1 }) : mode === 'up' && ok ? (isUnit(c) ? Object.assign({}, c, { lv: (c.lv || 1) + 1 }) : { id: c.id, up: true }) : null;
-    cardFace(g, after || c, px + 80, 108, 204, 300, { P: this.P, padB: after ? 22 : 0 });
-    if (after) { rr(g, px + 100, 392, 164, 26, 6, INDIGO, INK, 1.4); text(g, mode === 'temper' ? '벼린 뒤' : isUnit(c) ? '조련 후' : '익힌 뒤', px + 182, 406, { size: 15, fill: C.cream }); }
+    // 다듬기·벼리기에서는 아래 '조련 후' 띠 몫만큼 패를 길게 뽑아 설명이 줄지 않게 한다
+    const pch = after ? 322 : 300; cardFace(g, after || c, px + 80, 108, 204, pch, { P: this.P, padB: after ? 18 : 0 });
+    if (after) { rr(g, px + 100, 108 + pch - 14, 164, 26, 6, INDIGO, INK, 1.4); text(g, mode === 'temper' ? '벼린 뒤' : isUnit(c) ? '조련 후' : '익힌 뒤', px + 182, 108 + pch - 1, { size: 15, fill: C.cream }); }
     if (mode === 'view') {
       if (isUnit(c)) this.weapons(g, r, c, px);
       else { text(g, '무기 보관함', px + 16, 438, { size: 19, font: FONT_B, align: 'left' }); if (!r.items.length) text(g, '무기는 전리품·장터·대장간에서 얻습니다', px + 16, 470, { size: 15, align: 'left', fill: SUB, weight: 400 }); r.items.slice(0, 8).forEach((wid, k) => weaponTile(g, 'wi' + k, wid, px + 14 + (k % 4) * 85, 456 + Math.floor(k / 4) * 78, 80, 72, { dim: true })); }
@@ -130,8 +131,8 @@ export class DeckView {
       return;
     }
     const act = mode === 'temper' ? '벼린다' : mode === 'up' ? (isUnit(c) ? '조련한다' : '익힌다') : '태운다';
-    if (!ok) text(g, mode === 'temper' ? (c.tp ? '이미 벼린 무기입니다' : '병력 패만 벼릴 수 있습니다') : mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 470, { size: 18, fill: RED, maxW: 330 });
-    else { textBlock(g, mode === 'temper' ? '이 패의 부대 공격력 +20%, 체력 +10%.' : mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '이 패가 모두 강화판(+)이 됩니다') : '덱에서 사라집니다. 무기는 보관함으로', px + 182, 452, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
+    if (!ok) text(g, mode === 'temper' ? (c.tp ? '이미 벼린 무기입니다' : '병력 패만 벼릴 수 있습니다') : mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 474, { size: 18, fill: RED, maxW: 330 });
+    else { textBlock(g, mode === 'temper' ? '이 패의 부대 공격력 +20%, 체력 +10%.' : mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '이 패가 모두 강화판(+)이 됩니다') : '덱에서 사라집니다. 무기는 보관함으로', px + 182, 466, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
     if (button(g, 'dkno', px + 62, 628, 240, 54, '그만두기', { style: 'paper', size: 24 })) { if (this.onClose) this.onClose(); }
   }
   weapons(g, r, c, px) {
