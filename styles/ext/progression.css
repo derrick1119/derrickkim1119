@@ -1484,3 +1484,8 @@
     height: 246px;
   }
 }
+
+/* 패널(아래에서 올라오는 시트)이 열려 있으면 새 대원 소개 카드는 잠시 숨긴다 */
+.stage.sheet-open .prog-arrive {
+  visibility: hidden;
+}
