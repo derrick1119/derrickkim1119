@@ -6,6 +6,20 @@ import { WHITE, STEEL, HX, HATS, dk, lt, E, R, P, part, curve, rope } from './fi
 
 const PI = Math.PI;
 const GOLD = '#d6a640';
+// 입체 음영: 조각 안쪽에서 왼쪽 위(x0,y0)는 따뜻한 빛, 오른쪽 아래(x1,y1)는 보랏빛 그늘이 번지고, 볕 받는 테두리에 가는 빛줄 (두목·영물 그림이 함께 쓴다)
+export function gloss(g, fn, x0, y0, x1, y1, a = 0.3, b = 0.34, rim = 0.45) {
+  g.save(); g.beginPath(); fn(g); g.clip();
+  const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, `rgba(255,246,222,${a})`); gr.addColorStop(0.42, 'rgba(255,246,222,0)'); gr.addColorStop(0.58, 'rgba(30,24,48,0)'); gr.addColorStop(1, `rgba(30,24,48,${b})`);
+  g.fillStyle = gr; g.fillRect(-90, -130, 180, 150);
+  if (rim) { g.translate(1.1, 0.9); g.beginPath(); fn(g); st(g, `rgba(255,248,228,${rim})`, 1.3); }
+  g.restore();
+}
+// 비늘 줄: 조각 안쪽에 반원 비늘을 엇갈려 줄줄이 (뱀·용마·불가사리)
+export function scaleRows(g, fn, x0, y0, x1, y1, r, col, a = 0.5, lw = 0.7) {
+  g.save(); g.beginPath(); fn(g); g.clip(); g.globalAlpha *= a; g.strokeStyle = col; g.lineWidth = lw;
+  let row = 0; for (let y = y0; y <= y1; y += r * 0.95, row++) for (let x = x0 + (row % 2) * r; x <= x1 + r; x += r * 2) { g.beginPath(); g.arc(x, y, r, 0.12 * PI, 0.88 * PI); g.stroke(); }
+  g.restore();
+}
 // 네발짐승의 다리 한 짝: 발가락 금이 난 두툼한 발
 const paw = (g, x, top, col, sh, w = 3.2) => {
   part(g, p => { p.moveTo(x - w, top); p.lineTo(x - w + 0.6, -3.4); p.quadraticCurveTo(x - w - 0.4, 0.7, x + 0.8, 0.7); p.lineTo(x + w + 1, 0.7); p.quadraticCurveTo(x + w + 1.4, -2.8, x + w - 0.4, -3.6); p.lineTo(x + w + 0.2, top); p.closePath(); }, col, sh ? R(x + 0.6, top - 1, w + 2, -top + 2) : null, { lw: 1.1 });
@@ -155,40 +169,81 @@ export function haetae(g, o = {}) {
 // ───────── 삽살개 ─────────
 // 온몸을 덮어 늘어진 긴 털(가닥마다 물결지며 끝이 가늘다), 눈을 덮은 앞머리, 턱수염, 등 위로 말아 올린 꼬리
 // 털 한 가닥: 뿌리(x, y)에서 각도 ang 로 len 만큼 물결지며 늘어지고 끝이 뾰족하다
-const lock = (g, x, y, len, ang, w, col, wave = 1, lw = 0.7) => {
+const _lockUnused = (g, x, y, len, ang, w, col, wave = 1, lw = 0.7) => {
   const c = Math.cos(ang), sn = Math.sin(ang), nx = -sn, ny = c, pt = (t, side) => { const along = t * len, bend = Math.sin(t * PI * 1.6) * wave * 2, ww = w * (1 - t * 0.85) * side; return [x + c * along + nx * (bend + ww), y + sn * along + ny * (bend + ww)]; };
   g.beginPath(); const a = pt(0, 1); g.moveTo(a[0], a[1]); for (let k = 1; k <= 8; k++) { const q = pt(k / 8, 1); g.lineTo(q[0], q[1]); } for (let k = 8; k >= 0; k--) { const q = pt(k / 8, -1); g.lineTo(q[0], q[1]); } g.closePath();
   g.fillStyle = col; g.fill(); st(g, dk(col, 0.5), lw);   // 털 가닥의 테는 먹이 아니라 털빛을 짙게 (먹선이면 가닥마다 검은 줄이 서서 지저분하다)
   g.beginPath(); for (let k = 1; k <= 6; k++) { const q = pt(k / 8, 0.2); k > 1 ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } st(g, lt(col, 0.4), 0.5);
 };
+// 털 한 뭉치: 뿌리는 짙고 끝으로 갈수록 은빛으로 밝아지며 가늘어지는 붓 획 (가운데가 도톰하고 끝이 살짝 휜다)
+// (x,y) 뿌리, len 길이, ang 방향, w 뿌리 너비, base→tip 빛깔, bend 휨
+function clump(g, x, y, len, ang, w, base, tip, bend = 0.25, wave = 0) {
+  const c = Math.cos(ang), s = Math.sin(ang), nx = -s, ny = c;
+  const at = (t, side) => { const ww = w * (t < 0.3 ? 0.8 + t * 0.7 : (1 - t) * 1.45) * side, b = Math.sin(t * PI) * bend * len * 0.35 + t * t * bend * len * 0.25 + Math.sin(t * PI * 2) * wave * w; return [x + c * len * t + nx * (ww + b), y + s * len * t + ny * (ww + b)]; };
+  g.beginPath(); let q = at(0, 1); g.moveTo(q[0], q[1]);
+  for (let k = 1; k <= 10; k++) { q = at(k / 10, 1); g.lineTo(q[0], q[1]); }
+  for (let k = 10; k >= 0; k--) { q = at(k / 10, -1); g.lineTo(q[0], q[1]); }
+  g.closePath();
+  const e = at(1, 0), gr = g.createLinearGradient(x, y, e[0], e[1]); gr.addColorStop(0, base); gr.addColorStop(0.55, lt(base, 0.18)); gr.addColorStop(1, tip);
+  g.fillStyle = gr; g.fill(); st(g, dk(base, 0.42), 0.55);
+  // 털결: 뭉치 안쪽의 밝은 가닥 하나
+  g.save(); g.globalAlpha *= 0.45; g.beginPath(); for (let k = 2; k <= 8; k++) { q = at(k / 10, -0.25); k > 2 ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } st(g, lt(tip, 0.3), 0.45); g.restore();
+}
+// 결정적인 작은 난수 (같은 그림이 늘 같은 털결로)
+const seeded = s => () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+// ───────── 삽살개: 청삽사리 — 귀신 쫓는 삽살개. 눈을 덮은 앞머리 사이로 눈빛이 번득이고, 붉은 목줄에 놋방울과 오방색 술 ─────────
 export function sapsal(g, o = {}) {
-  const C = '#e3d6b8', D = '#b89f76', far = dk(C, 0.26), LC = lt(C, 0.22);
-  // 뒤쪽 다리 (털에 거의 가려진다)
-  for (const x of [-9.4, 9]) { part(g, P(x - 2.6, -10, x - 3, 0.6, x + 3.4, 0.6, x + 2.8, -10), far, null, { lw: 0.8, line: dk(far, 0.5) }); for (const dx of [-1, 1.6]) lock(g, x + dx, -6, 6.2, PI * 0.5, 1.5, far, 0.5, 0.5); }
-  // 꼬리: 등 위로 말려 올라간 털 다발
-  part(g, p => { p.moveTo(-13, -20); p.bezierCurveTo(-22, -22, -22.6, -33, -14.6, -34); p.quadraticCurveTo(-9.4, -33.6, -9.6, -29.6); p.quadraticCurveTo(-13.6, -30.6, -14.6, -27.4); p.quadraticCurveTo(-13.6, -24, -9.6, -24); p.closePath(); }, C, P(-14, -35, -8, -35, -8, -22, -12, -22), { k: 0.18, hi: E(-18, -30, 1.4, 3), hk: 0.3, lw: 1.1 });
-  for (const [x, y, len, a] of [[-18.6, -30, 7, PI * 0.62], [-15.6, -33.6, 7.6, PI * 0.9], [-11.4, -33.2, 6, PI * 0.2]]) lock(g, x, y, len, a, 1.8, LC, 1.2, 0.6);
-  // 몸통 바탕
-  const torso = p => { p.moveTo(-15.6, -11); p.bezierCurveTo(-18.6, -19, -14.6, -24.6, -5, -25); p.bezierCurveTo(2, -25.4, 8, -25.4, 12.6, -22.6); p.lineTo(13.6, -9.6); p.quadraticCurveTo(0, -7, -15.6, -11); p.closePath(); };
-  part(g, torso, C, p => { p.moveTo(-18, -13.6); p.quadraticCurveTo(0, -9.6, 15, -13.6); p.lineTo(15, -4); p.lineTo(-18, -4); p.closePath(); }, { hi: E(-3, -23.4, 7, 1.5), hk: 0.3, lw: 1.2 });
-  // 등에서 배 아래까지 늘어진 긴 털: 위 줄은 짧고 밝게, 아래 줄은 길게 바닥 가까이까지
-  for (let x = -14.4; x <= 12; x += 3.3) lock(g, x, -13.6 + Math.abs(x) * 0.05, 8.4 + ((x * 7 + 21) % 2.4), PI * 0.5 + 0.12, 2.1, C, 1, 0.55);
-  for (let x = -12.6; x <= 10; x += 4.2) lock(g, x, -22.4 + Math.abs(x + 2) * 0.08, 9.4, PI * 0.5 - 0.2, 2, LC, 1.1, 0.5);
-  // 앞다리: 털이 덮은 굵은 다리, 발끝에 털 뭉치
-  for (const x of [-13.4, 5]) { part(g, p => { p.moveTo(x - 2.8, -10); p.lineTo(x - 3.4, -1.6); p.quadraticCurveTo(x - 3.6, 0.7, x, 0.7); p.lineTo(x + 3.8, 0.7); p.quadraticCurveTo(x + 4, -1.6, x + 2.8, -2.4); p.lineTo(x + 3, -10); p.closePath(); }, C, R(x + 0.6, -11, 4, 12), { lw: 0.8, line: dk(C, 0.55) }); for (const dx of [-1.6, 1.4]) lock(g, x + dx, -9, 8.4, PI * 0.5 + dx * 0.05, 1.7, dx < 0 ? LC : C, 0.7, 0.5); line(g, [x + 1.4, -0.2, x + 1.4, 0.6], INK, 0.5); }
-  // 축 늘어진 귀: 귀털이 길게 흘러내린다
-  for (const [dx, len] of [[0, 11], [1.6, 12.4], [3, 10]]) lock(g, 8 + dx, -27.6, len, PI * 0.56, 1.8, D, 1, 0.7);
-  // 털에 덮인 큰 머리
-  part(g, p => { p.moveTo(8.4, -22); p.bezierCurveTo(7.4, -31.6, 24.6, -32.6, 25, -23.6); p.quadraticCurveTo(25.6, -17, 17, -15.6); p.quadraticCurveTo(9, -16, 8.4, -22); p.closePath(); }, C, P(19, -33, 27, -33, 27, -12, 16, -12, 21, -22), { k: 0.16, hi: E(13, -29.4, 4, 1.4), hk: 0.3, lw: 1.2 });
-  for (const [dx, len] of [[0, 8], [2, 9.6], [3.6, 8]]) lock(g, 22.6 + dx * 0.5, -28.6, len, PI * 0.42, 1.6, D, 0.8, 0.7);   // 저쪽 귀
-  // 턱수염과 콧수염: 주둥이 아래로 길게
-  for (const [x, len, a] of [[14.6, 7.4, PI * 0.55], [16.6, 8.6, PI * 0.5], [18.6, 8, PI * 0.44], [20.6, 6.6, PI * 0.38], [12.6, 6, PI * 0.62]]) lock(g, x, -18.4, len, a, 1.4, x === 16.6 ? LC : C, 0.7, 0.6);
-  // 눈을 덮은 앞머리: 이마에서 눈 앞으로 쏟아진 털, 사이로 눈빛만 살짝
-  if (!o.blink) for (const x of [13.4, 19.4]) { ell(g, x, -23.4, 1, 1.15, '#1c1a22'); ell(g, x - 0.3, -23.8, 0.35, 0.35, '#fff'); }
-  for (const [x, len, a, c] of [[10.4, 8.4, PI * 0.58, C], [12.6, 9.4, PI * 0.52, LC], [15, 8.6, PI * 0.47, C], [17.4, 9.6, PI * 0.44, LC], [19.8, 8.8, PI * 0.4, C], [22.2, 7.6, PI * 0.36, LC]]) lock(g, x, -29.6, len, a, 1.7, c, 0.9, 0.7);
-  // 큰 검은 코와 혀
-  part(g, E(16.8, -19.6, 2.2, 1.6), '#2a2228', null, { hi: E(16.2, -20.1, 0.7, 0.4), hic: '#8a8794', lw: 0.6 });
-  part(g, p => { p.moveTo(15.4, -17.2); p.quadraticCurveTo(16.8, -13.8, 18.2, -17.2); p.closePath(); }, '#d9695a', null, { lw: 0.7 });
+  const UND = '#353b48', MID = '#5d6676', TIP = '#b3bcc9', SIL = '#d9dfe6', PAWC = '#2a2e37', Rr = seeded(23);
+  const j = (v, k) => v + (Rr() - 0.5) * 2 * k;   // 털 뭉치마다 조금씩 다르게
+  // 저쪽 다리: 그늘 속의 짧고 굵은 다리와 발
+  for (const x of [-10.6, 8.4]) { part(g, p => { p.moveTo(x - 2.8, -10); p.lineTo(x - 3.2, -1.2); p.quadraticCurveTo(x - 3.2, 0.7, x - 0.4, 0.7); p.lineTo(x + 3.4, 0.7); p.quadraticCurveTo(x + 3.8, -1.4, x + 2.8, -2.2); p.lineTo(x + 2.8, -10); p.closePath(); }, dk(PAWC, 0.15), null, { lw: 0.9 });
+    for (const dx of [-1.6, 0.6, 2.6]) clump(g, x + dx, -9.5, 7, PI * 0.5 + dx * 0.04, 1.5, dk(UND, 0.2), dk(MID, 0.1), 0.15); }
+  // 꼬리: 등 위로 둥글게 말아 올린 털 다발 (뿌리에서 부채처럼 펼쳐져 앞으로 휜다)
+  // 꼬리: 엉덩이에서 솟아 등 위로 둥글게 말린 털 다발 — 말린 줄기를 따라 털이 뒤(왼쪽)로 흩날린다
+  rope(g, p => { p.moveTo(-14.6, -20); p.bezierCurveTo(-21, -25, -19.6, -34, -12.4, -33.6); }, UND, 3.2);
+  for (let i = 0; i < 7; i++) { const t = i / 6, x = -14.6 + (-19.8 + 14.6) * Math.sin(t * PI * 0.62) + t * t * 7.2, y = -20 - 13.6 * t; clump(g, x, y, j(8.6 - t * 1.6, 1), PI * (1.02 - t * 0.42) + (Rr() - 0.5) * 0.2, j(2.4, 0.3), MID, SIL, 0.5); }
+  // 몸통 바탕: 짙은 속털 덩어리 (먹선으로 몸의 꼴을 잡는다)
+  const torso = p => { p.moveTo(-16.6, -12); p.bezierCurveTo(-19.4, -20, -14.6, -26, -5, -26.2); p.bezierCurveTo(3, -26.6, 9.4, -25.6, 13.2, -21.6); p.lineTo(14, -10.4); p.quadraticCurveTo(0, -7.6, -16.6, -12); p.closePath(); };
+  part(g, torso, UND, p => { p.moveTo(-19, -14); p.quadraticCurveTo(0, -11, 16, -14); p.lineTo(16, -4); p.lineTo(-19, -4); p.closePath(); }, { k: 0.25, hi: E(-4, -24.6, 9, 2), hk: 0.18, lw: 1.3 });
+  // 몸의 긴 털: 세 겹 — 아래 겹은 길게 늘어져 배를 덮고, 가운데·위 겹으로 갈수록 짧고 밝다 (뒤에서 앞으로)
+  // 긴 털은 가늘고 길게, 살짝 물결치며 흘러내린다 (깃털이나 비늘처럼 보이지 않게 끝을 덜 밝힌다)
+  for (let x = -16.6; x <= 12.6; x += 1.9) clump(g, j(x, 0.5), j(-13.4, 0.9), j(11.6, 1.8), j(PI * 0.5 + 0.06, 0.14), j(1.9, 0.3), UND, MID, j(0.12, 0.2), j(0.5, 0.35));
+  for (let x = -15.8; x <= 11.6; x += 2.2) clump(g, j(x, 0.7), j(-19.6, 0.9), j(11, 1.6), j(PI * 0.5 + 0.16, 0.18), j(2, 0.3), MID, lt(MID, 0.35), j(0.16, 0.22), j(0.55, 0.35));
+  for (let x = -13.6; x <= 10; x += 2.6) clump(g, j(x, 0.8), j(-24.8, 0.7), j(9.8, 1.4), j(PI * 0.5 + 0.26, 0.2), j(2.1, 0.3), lt(MID, 0.06), TIP, j(0.2, 0.25), j(0.5, 0.3));
+  // 이쪽 다리: 털에 덮인 굵은 다리 끝에 두툼한 발이 드러난다
+  for (const x of [-12.4, 5.6]) {
+    part(g, p => { p.moveTo(x - 3.2, -6); p.lineTo(x - 3.4, -1.4); p.quadraticCurveTo(x - 3.4, 0.8, x - 0.2, 0.8); p.lineTo(x + 3.8, 0.8); p.quadraticCurveTo(x + 4.4, -1.4, x + 3, -2.6); p.lineTo(x + 2.8, -6); p.closePath(); }, PAWC, R(x + 1, -7, 4, 9), { hi: E(x - 1.2, -0.6, 1.6, 0.6), hk: 0.3, lw: 1 });
+    for (const dx of [0.4, 2.2]) line(g, [x + dx, -1.2, x + dx, 0.7], dk(PAWC, 0.5), 0.6);
+    for (const [dx, len] of [[-2.4, 8.4], [-0.4, 9], [1.6, 8.6], [3.4, 7.6]]) clump(g, j(x + dx, 0.3), -9.6, j(len, 0.8), j(PI * 0.5 + dx * 0.03, 0.12), 1.9, MID, TIP, j(0.2, 0.25));
+  }
+  // 저쪽 귀: 머리 뒤로 늘어진 긴 귀털
+  for (const [dx, len] of [[0, 9], [1.8, 10.2]]) clump(g, 21.6 + dx, -29.4, len, PI * 0.38, 2.2, UND, MID, 0.3);
+  // 커다란 둥근 머리 (위·왼쪽이 밝다)
+  part(g, p => { p.moveTo(9.4, -22.4); p.bezierCurveTo(8.6, -33.6, 26.6, -34.4, 26.8, -23.6); p.quadraticCurveTo(27.2, -16.6, 18.4, -15.6); p.quadraticCurveTo(9.8, -15.8, 9.4, -22.4); p.closePath(); }, MID, P(20, -35, 29, -35, 29, -12, 17, -12, 22, -22), { k: 0.22, hi: E(14, -30.4, 5, 1.8), hk: 0.3, lw: 1.3 });
+  // 이쪽 귀: 둥근 귀가 긴 털에 묻혀 볼 옆으로 흘러내린다
+  for (const [dx, len, w] of [[0, 11.6, 2.4], [1.8, 12.6, 2.6], [3.4, 10.4, 2.2]]) clump(g, 10.2 + dx, -29.2, len, PI * 0.6, w, UND, MID, -0.3);
+  // 주둥이: 앞으로 살짝 나온 밝은 털 덩이
+  part(g, E(22.2, -19.4, 5.6, 4.2), lt(MID, 0.25), P(18, -16, 29, -16, 29, -14, 18, -14), { k: 0.2, hi: E(20.6, -21.6, 3, 1.2), hk: 0.35, lw: 1 });
+  // 눈: 앞머리 틈으로 번득이는 눈빛 (깜박이면 감긴 눈썹 금만)
+  if (!o.blink) for (const [x, y] of [[14.4, -24.4], [20.4, -24.8]]) { ell(g, x, y, 1.45, 1.35, '#15131a'); ell(g, x + 0.2, y + 0.1, 0.9, 0.85, '#e8b84a'); ell(g, x + 0.25, y + 0.15, 0.45, 0.45, '#15131a'); ell(g, x - 0.45, y - 0.45, 0.42, 0.42, '#fff'); }
+  else for (const [x, y] of [[14.4, -24.2], [20.4, -24.6]]) { g.beginPath(); g.arc(x, y - 0.6, 1.3, PI * 0.15, PI * 0.85); st(g, '#15131a', 0.8); }
+  // 정수리의 털: 머리 위에서 뒤로 넘어가는 부숭부숭한 털 (머리가 털 뭉치로 보이게)
+  for (const [x, len, a] of [[12, 7.4, PI * 0.86], [15.4, 8, PI * 0.8], [18.8, 7.6, PI * 0.74], [22, 6.6, PI * 0.66]]) clump(g, x, -33.2, len, a, 2.2, MID, TIP, -0.2, 0.3);
+  // 눈을 덮은 앞머리: 이마에서 쏟아진 털 다발이 눈 위쪽 절반을 덮는다 (아래쪽 눈빛만 번득인다)
+  for (const [x, len, a, c, w] of [[10.8, 10.4, PI * 0.64, MID, 2.4], [12.4, 9.8, PI * 0.56, TIP, 2.1], [14.6, 7.6, PI * 0.5, MID, 2.2], [16.8, 9.6, PI * 0.48, TIP, 2], [19.2, 7.8, PI * 0.5, MID, 2.2], [21, 7.8, PI * 0.47, TIP, 1.9], [23.2, 9.2, PI * 0.4, MID, 2], [25, 7.2, PI * 0.3, TIP, 1.8]]) clump(g, x, -32.4, len, a, w, c, SIL, 0.18, 0.3);
+  // 붉은 목줄과 놋방울, 그 아래 오방색 술 (영물의 표식)
+  rope(g, p => { p.moveTo(10.6, -17.4); p.quadraticCurveTo(13.4, -13.8, 17, -14.8); }, '#b8322a', 1.8);
+  const bx = 13.8, by = -12.6;
+  ['#c8402f', '#2f4d7e', '#e0b23c', '#f6efdc', '#2b2a30'].forEach((col, i) => line(g, [bx - 1.2 + i * 0.6, by + 1.6, bx - 1.8 + i * 0.9, by + 5.6], col, 0.9));
+  part(g, E(bx, by, 2.1, 2.1), GOLD, R(bx, by - 2.2, 2.2, 4.4), { k: 0.28, hi: E(bx - 0.8, by - 0.9, 0.8, 0.6), hk: 0.55, lw: 0.9 });
+  line(g, [bx - 1.4, by + 0.5, bx + 1.4, by + 0.5], INK, 0.6); ell(g, bx, by + 1.2, 0.45, 0.45, INK);
+  // 수염: 주둥이 아래로 늘어진 은빛 턱수염과 콧수염
+  for (const [x, len, a, c] of [[18.4, 7.6, PI * 0.56, MID], [20.6, 8.4, PI * 0.5, TIP], [23, 7.8, PI * 0.42, MID], [25, 6.2, PI * 0.33, TIP]]) clump(g, x, -17.6, len, a, 2, c, SIL, -0.2);
+  // 웃는 입과 늘어뜨린 혀
+  part(g, p => { p.moveTo(21.2, -17); p.quadraticCurveTo(22.6, -12.6, 24.2, -16.6); p.closePath(); }, '#e07a7a', R(22.6, -17, 2, 5), { k: 0.25, lw: 0.8 });
+  g.beginPath(); g.moveTo(19.6, -18.2); g.quadraticCurveTo(22.4, -15.6, 25.6, -18.4); st(g, '#15131a', 0.9);
+  // 큰 검은 코 (윤기가 도는)
+  part(g, p => { p.moveTo(23.2, -21.6); p.quadraticCurveTo(26.6, -22.6, 27.4, -20.4); p.quadraticCurveTo(27.6, -18.8, 25.4, -18.4); p.quadraticCurveTo(22.8, -18.6, 23.2, -21.6); p.closePath(); }, '#1c1a21', null, { hi: E(24.8, -21.2, 1, 0.5), hic: '#9a98a8', lw: 0.7 });
 }
 
 // ───────── 까치 (날아가는 옆모습) ─────────
@@ -242,18 +297,22 @@ export function bulgasari(g, o = {}) {
   rope(g, p => { p.moveTo(-22, -27); p.quadraticCurveTo(-30, -24, -28.6, -13.6); }, C, 1.6); part(g, P(-30.6, -14.6, -26.6, -14.6, -27.6, -7.6, -29.8, -7.6), D, null, { lw: 0.9 });
   paw(g, -12, -18, far, false, 4.2); paw(g, 12, -18, far, false, 4.2);
   // 등에 빽빽이 돋은 긴 쇠 바늘
-  for (const [x, h, a] of [[-20, 9, -0.7], [-17, 12.6, -0.5], [-11, 16, -0.3], [-4.6, 17.6, -0.1], [2, 16.6, 0.1], [8.4, 14, 0.3], [14, 10.6, 0.5]]) { g.save(); g.translate(x, -36 + Math.abs(x) * 0.12); g.rotate(a); part(g, P(-2.4, 2, 0, -h, 2.4, 2), STEEL, P(0.4, -h, 3, 2, 0.6, 2), { k: 0.24, lw: 1 }); g.restore(); }
+  for (const [x, h, a] of [[-20, 9, -0.7], [-17, 12.6, -0.5], [-11, 16, -0.3], [-4.6, 17.6, -0.1], [2, 16.6, 0.1], [8.4, 14, 0.3], [14, 10.6, 0.5]]) { g.save(); g.translate(x, -36 + Math.abs(x) * 0.12); g.rotate(a); const sp = P(-2.4, 2, 0, -h, 2.4, 2); g.beginPath(); sp(g); const sg = g.createLinearGradient(-2.4, 0, 2.4, 0); sg.addColorStop(0, '#f4f6f8'); sg.addColorStop(0.45, '#c4cad2'); sg.addColorStop(0.55, '#7d8592'); sg.addColorStop(1, '#5a606c'); g.fillStyle = sg; g.fill(); line(g, [-0.6, -h * 0.15, -0.15, -h * 0.85], '#ffffff', 0.6); curve(g, sp, INK, 1); g.restore(); }
   // 몸통
-  part(g, p => { p.moveTo(-23, -14); p.bezierCurveTo(-27.6, -26, -22, -37.6, -8, -38.4); p.bezierCurveTo(2, -39.4, 12, -39, 18, -34); p.bezierCurveTo(23.6, -28.6, 22.6, -17, 17, -11.6); p.bezierCurveTo(6, -7.4, -11, -7.6, -23, -14); p.closePath(); }, C, p => { p.moveTo(-27, -18); p.quadraticCurveTo(0, -12, 24, -19); p.lineTo(24, -5); p.lineTo(-27, -5); p.closePath(); }, { hi: E(-6, -35.4, 10.6, 2), hk: 0.24, lw: 1.3 });
+  const bb = p => { p.moveTo(-23, -14); p.bezierCurveTo(-27.6, -26, -22, -37.6, -8, -38.4); p.bezierCurveTo(2, -39.4, 12, -39, 18, -34); p.bezierCurveTo(23.6, -28.6, 22.6, -17, 17, -11.6); p.bezierCurveTo(6, -7.4, -11, -7.6, -23, -14); p.closePath(); };
+  part(g, bb, C, p => { p.moveTo(-27, -18); p.quadraticCurveTo(0, -12, 24, -19); p.lineTo(24, -5); p.lineTo(-27, -5); p.closePath(); }, { hi: E(-6, -35.4, 10.6, 2), hk: 0.24, lw: 0 });
+  gloss(g, bb, -24, -39, 20, -9, 0.3, 0.38, 0.5); curve(g, bb, INK, 1.4);
   path(g, p => { p.moveTo(-15, -11.4); p.quadraticCurveTo(0, -8, 14, -12); p.quadraticCurveTo(0, -15, -15, -11.4); p.closePath(); }, rust);
   // 살갗의 쇠 비늘과 틈으로 새는 불빛
-  for (let r = 0; r < 3; r++) for (let x = -17 + (r % 2) * 3; x <= 11; x += 6) part(g, P(x - 2.6, -32 + r * 6, x + 2.6, -32 + r * 6, x + 3.2, -28.6 + r * 6, x, -26.4 + r * 6, x - 3.2, -28.6 + r * 6), lt(C, 0.14), P(x, -32 + r * 6, x + 3.4, -32 + r * 6, x + 3.4, -26 + r * 6, x, -26 + r * 6), { k: 0.24, lw: 0.8 });
-  for (const [x0, y0, x1, y1, x2, y2] of [[-19, -22, -15.6, -19, -17.6, -15], [-2, -14.6, 1.6, -17.6, 4.6, -14], [12.6, -27, 15.6, -23, 13.6, -19]]) { curve(g, p => { p.moveTo(x0, y0); p.lineTo(x1, y1); p.lineTo(x2, y2); }, '#ff9a2e', 1.5); curve(g, p => { p.moveTo(x0, y0); p.lineTo(x1, y1); p.lineTo(x2, y2); }, '#ffe08a', 0.6); }
+  for (let r = 0; r < 3; r++) for (let x = -17 + (r % 2) * 3; x <= 11; x += 6) { const yy = r * 6; part(g, P(x - 2.6, -32 + yy, x + 2.6, -32 + yy, x + 3.2, -28.6 + yy, x, -26.4 + yy, x - 3.2, -28.6 + yy), lt(C, 0.14), P(x, -32 + yy, x + 3.4, -32 + yy, x + 3.4, -26 + yy, x, -26 + yy), { k: 0.26, hi: P(x - 2.4, -31.8 + yy, x + 2.4, -31.8 + yy, x + 2.6, -31 + yy, x - 2.6, -31 + yy), hk: 0.4, lw: 0.8 }); for (const dx of [-1.4, 1.4]) { ell(g, x + dx, -30 + yy, 0.55, 0.55, '#3a3946'); ell(g, x + dx - 0.15, -30.2 + yy, 0.2, 0.2, '#dde0e8'); } }
+  for (const [x0, y0, x1, y1, x2, y2] of [[-19, -22, -15.6, -19, -17.6, -15], [-2, -14.6, 1.6, -17.6, 4.6, -14], [12.6, -27, 15.6, -23, 13.6, -19]]) { g.save(); g.globalAlpha *= 0.45; const gl = g.createRadialGradient(x1, y1, 0.5, x1, y1, 6); gl.addColorStop(0, 'rgba(255,170,70,0.9)'); gl.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gl; g.beginPath(); g.arc(x1, y1, 6, 0, TAU); g.fill(); g.restore(); curve(g, p => { p.moveTo(x0, y0); p.lineTo(x1, y1); p.lineTo(x2, y2); }, '#c8402f', 2.2); curve(g, p => { p.moveTo(x0, y0); p.lineTo(x1, y1); p.lineTo(x2, y2); }, '#ff9a2e', 1.4); curve(g, p => { p.moveTo(x0, y0); p.lineTo(x1, y1); p.lineTo(x2, y2); }, '#fff0b0', 0.55); }
   paw(g, -18, -18, C, true, 4.2); paw(g, 6, -18, C, true, 4.2);
   for (const x of [-18, 6]) for (const dx of [-2.6, 0.2, 3]) poly(g, [x + dx, 0.6, x + dx + 0.9, 3, x + dx + 1.8, 0.6], STEEL, INK, 0.5);
   // 소 귀와 머리
   part(g, p => { p.moveTo(17, -40); p.quadraticCurveTo(10.6, -46, 9.6, -38.6); p.quadraticCurveTo(13, -37, 16.6, -36.6); p.closePath(); }, C, null, { lw: 1.1 });
-  part(g, p => { p.moveTo(14, -34); p.bezierCurveTo(14, -44, 33.6, -44.6, 34, -33.6); p.bezierCurveTo(34.4, -27.6, 30, -24, 24, -24); p.bezierCurveTo(18, -24, 14, -27.6, 14, -34); p.closePath(); }, C, P(27, -46, 36, -46, 36, -22, 23, -22, 29, -31), { k: 0.2, lw: 1.3 });
+  const bh = p => { p.moveTo(14, -34); p.bezierCurveTo(14, -44, 33.6, -44.6, 34, -33.6); p.bezierCurveTo(34.4, -27.6, 30, -24, 24, -24); p.bezierCurveTo(18, -24, 14, -27.6, 14, -34); p.closePath(); };
+  part(g, bh, C, P(27, -46, 36, -46, 36, -22, 23, -22, 29, -31), { k: 0.2, lw: 0 }); gloss(g, bh, 14, -44, 34, -24, 0.32, 0.32, 0.5); curve(g, bh, INK, 1.4);
+  for (const [x, y] of [[18, -38.6], [30, -38.6], [24, -41.4]]) { ell(g, x, y, 0.6, 0.6, '#3a3946'); ell(g, x - 0.15, y - 0.2, 0.22, 0.22, '#dde0e8'); }
   // 짧은 코: 맥처럼 뭉툭하게 내민 쇠 주둥이 (길게 늘어뜨리면 코끼리로 읽힌다)
   part(g, p => { p.moveTo(20.6, -30); p.bezierCurveTo(20.2, -25, 21.6, -21, 25.6, -20.4); p.bezierCurveTo(29, -20, 30, -22.6, 29, -24.6); p.bezierCurveTo(28, -26.6, 27.4, -28, 27.4, -30); p.closePath(); }, C, null, { lw: 1.1 });
   for (const y of [-27, -23.6]) curve(g, p => { p.moveTo(21, y); p.quadraticCurveTo(24, y + 1.4, 27.4, y + 0.4); }, D, 0.8);   // 쇠 고리 마디
@@ -305,10 +364,16 @@ export function mulgwisin(g) {
   for (let k = 0; k < 6; k++) { const by = -36 + k * 2.6, bx = -7.6 - Math.sin(k * 0.6) * 0.8; part(g, p => p.ellipse(bx, by, 2.1, 1.7, 0.5 * (k % 2 ? 1 : -1), 0, TAU), H, null, { lw: 0.8 }); }
   path(g, P(-9.4, -21.6, -5.8, -21.6, -6.4, -16.4, -8.2, -18.6, -9.8, -16.2), '#b8322a', INK, 0.7);
   // 물에 잠긴 치마: 아랫자락이 물결에 풀려 너덜너덜하다
-  part(g, p => { p.moveTo(-10, -25); p.quadraticCurveTo(-13.6, -14, -14.4, -3); for (let x = -14.4; x < 14.4; x += 4.8) p.quadraticCurveTo(x + 2.4, -1.6, x + 4.8, -3); p.lineTo(14.4, -3); p.quadraticCurveTo(13.6, -14, 10, -25); p.closePath(); }, robe, P(3, -26, 16, -26, 16, 0, 5, 0), { hi: P(-9, -24, -6, -24, -9, -6, -12.6, -6), hk: 0.2 });
+  const skirt = p => { p.moveTo(-10, -25); p.quadraticCurveTo(-13.6, -14, -14.4, -3); for (let x = -14.4; x < 14.4; x += 4.8) p.quadraticCurveTo(x + 2.4, -1.6, x + 4.8, -3); p.lineTo(14.4, -3); p.quadraticCurveTo(13.6, -14, 10, -25); p.closePath(); };
+  part(g, skirt, robe, P(3, -26, 16, -26, 16, 0, 5, 0), { hi: P(-9, -24, -6, -24, -9, -6, -12.6, -6), hk: 0.2, lw: 0 });
+  gloss(g, skirt, -12, -25, 14, -3, 0.26, 0.3, 0.4);
+  // 물에 잠긴 아랫자락: 물빛으로 물들며 옅어진다
+  g.save(); g.beginPath(); skirt(g); g.clip(); const wg = g.createLinearGradient(0, -12, 0, -2); wg.addColorStop(0, 'rgba(95,130,150,0)'); wg.addColorStop(1, 'rgba(95,130,150,0.55)'); g.fillStyle = wg; g.fillRect(-16, -12, 32, 11); g.restore();
+  curve(g, skirt, INK, 1.2);
   for (const x of [-7, -2.4, 3, 7.4]) curve(g, p => { p.moveTo(x * 0.9, -23); p.quadraticCurveTo(x - 0.6, -14, x * 1.1, -5); }, dk(robe, 0.3), 0.8);
   // 빛바랜 쪽빛 저고리와 흰 동정, 늘어진 고름
-  part(g, p => { p.moveTo(-8.6, -33.6); p.quadraticCurveTo(-11, -28, -10.6, -24); p.quadraticCurveTo(0, -22.4, 10.6, -24); p.quadraticCurveTo(11, -28, 8.6, -33.6); p.quadraticCurveTo(0, -35.4, -8.6, -33.6); p.closePath(); }, J, P(3, -36, 12, -36, 12, -22, 4, -22), { hi: P(-8, -33, -5.6, -33.6, -8.6, -25, -10, -25), hk: 0.2 });
+  const jeogori = p => { p.moveTo(-8.6, -33.6); p.quadraticCurveTo(-11, -28, -10.6, -24); p.quadraticCurveTo(0, -22.4, 10.6, -24); p.quadraticCurveTo(11, -28, 8.6, -33.6); p.quadraticCurveTo(0, -35.4, -8.6, -33.6); p.closePath(); };
+  part(g, jeogori, J, P(3, -36, 12, -36, 12, -22, 4, -22), { hi: P(-8, -33, -5.6, -33.6, -8.6, -25, -10, -25), hk: 0.2, lw: 0 }); gloss(g, jeogori, -10, -35, 10, -23, 0.26, 0.3, 0.4); curve(g, jeogori, INK, 1.2);
   path(g, P(4.6, -34, 2, -33.6, -3.4, -25.4, -1, -24.6), dk(J, 0.25), INK, 0.6); path(g, P(-4.6, -34, -2, -33.6, 3.6, -25.6, 1.2, -24.8), dk(J, 0.25), INK, 0.6); line(g, [-3.4, -33.6, 2.6, -25.6], '#eef4f4', 1.2);
   path(g, P(1.6, -26.6, 4.4, -27, 3.4, -18.6, 1.8, -19.2), '#8a4a4a', INK, 0.6); path(g, P(1.4, -26.6, -0.8, -25.6, -0.6, -20.6, 1.2, -21), '#8a4a4a', INK, 0.6);
   // 앞으로 뻗은 두 팔과 앙상한 손가락
@@ -321,15 +386,17 @@ export function mulgwisin(g) {
   }
   // 목과 얼굴: 물에 불은 푸르스름한 얼굴, 퀭한 눈, 파리한 입술
   path(g, P(-2.4, -35.4, 2.4, -35.4, 2.8, -32.6, -2.8, -32.6), dk(SK, 0.16), INK, 0.8);
-  part(g, p => { p.moveTo(-7.6, -44.6); p.bezierCurveTo(-7.6, -53, 7.6, -53, 7.6, -44.6); p.bezierCurveTo(7.6, -39, 4.4, -35.4, 0, -35.2); p.bezierCurveTo(-4.4, -35.4, -7.6, -39, -7.6, -44.6); p.closePath(); }, SK, P(2.6, -54, 9, -54, 9, -34, 0, -34), { shc: '#a8bac0', lw: 1.2 });
+  const mface = p => { p.moveTo(-7.6, -44.6); p.bezierCurveTo(-7.6, -53, 7.6, -53, 7.6, -44.6); p.bezierCurveTo(7.6, -39, 4.4, -35.4, 0, -35.2); p.bezierCurveTo(-4.4, -35.4, -7.6, -39, -7.6, -44.6); p.closePath(); };
+  part(g, mface, SK, P(2.6, -54, 9, -54, 9, -34, 0, -34), { shc: '#a8bac0', lw: 0 }); gloss(g, mface, -7, -52, 8, -36, 0.3, 0.26, 0.45); curve(g, mface, INK, 1.2);
   for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 1.2, -43.6); p.quadraticCurveTo(s * 3.6, -45.6, s * 5.8, -43.4); p.quadraticCurveTo(s * 3.6, -41.8, s * 1.2, -43.6); p.closePath(); }, '#262d48', null); ell(g, s * 3.5, -43.6, 0.5, 0.5, '#d6e8ee'); g.globalAlpha = 0.35; ell(g, s * 3.6, -41.2, 2.6, 1.1, '#5a6a8a'); g.globalAlpha = 1; }
   ell(g, 0, -38.2, 1.5, 0.9, '#4a5868', INK, 0.5);
   // 가르마를 타고 귀 뒤로 넘긴 젖은 머리 (얼굴을 가리지 않는다)
-  for (const s of [-1, 1]) part(g, p => { p.moveTo(0, -52.6); p.quadraticCurveTo(s * 9.4, -52.6, s * 8.8, -44); p.lineTo(s * 7.4, -41.2); p.quadraticCurveTo(s * 6.6, -47.4, 0, -49.8); p.closePath(); }, H, null, { hi: P(s * 2, -51.6, s * 5, -51.4, s * 3, -49.6), hic: '#3a3f52', lw: 1 });
+  for (const s of [-1, 1]) { part(g, p => { p.moveTo(0, -52.6); p.quadraticCurveTo(s * 9.4, -52.6, s * 8.8, -44); p.lineTo(s * 7.4, -41.2); p.quadraticCurveTo(s * 6.6, -47.4, 0, -49.8); p.closePath(); }, H, null, { hi: P(s * 2, -51.6, s * 5, -51.4, s * 3, -49.6), hic: '#3a3f52', lw: 1 }); curve(g, p => { p.moveTo(s * 1.6, -51.8); p.quadraticCurveTo(s * 6.8, -51.4, s * 7.6, -46.6); }, '#8fa6c0', 0.7); }
   // 머리에 감긴 물풀
   rope(g, p => { p.moveTo(-7.6, -50); p.quadraticCurveTo(-10.6, -46, -9.2, -41); }, '#5a6a3a', 1.1);
   rope(g, p => { p.moveTo(5.6, -51.6); p.quadraticCurveTo(9.6, -50, 9.8, -46); }, '#6a7a44', 0.9);
-  for (const [x, y] of [[-9.6, -29], [9.4, -29.6], [-1, -15.6], [6, -17]]) drop(g, x, y, 0.8);
+  for (const [x, y] of [[-9.6, -29], [9.4, -29.6], [-1, -15.6], [6, -17], [-4.6, -8.4], [11.6, -8]]) drop(g, x, y, 0.8);
+  for (const [x, y, r] of [[-15.6, -6.6, 1.1], [15.8, -9, 0.9], [-12.4, -12, 0.7], [13.6, -14.6, 0.6]]) { ell(g, x, y, r, r, 'rgba(214,232,238,0.35)', '#8fb6c8', 0.5); ell(g, x - r * 0.35, y - r * 0.35, r * 0.3, r * 0.3, '#ffffff'); }
 }
 
 // ───────── 달걀귀신: 눈도 코도 입도 없는 하얀 달걀 얼굴 ─────────
