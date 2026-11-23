@@ -3,6 +3,7 @@ import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
 import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
+import { CALL_R } from '../data/bossalt.js';
 import { HERO_COL, HERO_SEAL, HERO_SKILLS } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
@@ -22,7 +23,7 @@ const HIT_T = 0.22, HIT_PX = 6;
 // T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
 export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   // 그슨대는 살아 있는 동안 점점 커진다
-  const L = getLook(u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : u.type), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
+  const L = getLook(u.look || (u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : u.type)), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
   if (u._dir === undefined) { u._dir = u.team === 0 ? 1 : -1; u._flipT = -9; }
@@ -100,11 +101,12 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   // (소품의 표식과 남은 숨은 BattleView.draw 에서 모든 인형 위에 그린다)
   if (u.ai) {
     const a = u.ai, gg = a.g;
-    // 끊기 게이지: 시간이 다 가기 전에 피해를 채우면 두목의 수가 끊긴다
-    if (gg) { const w = 190, bx = x - w / 2, yy = top - 44; rr(g, bx - 8, yy - 34, w + 16, 86, 9, '#fbf3df', RED, 2.4); text(g, gg.label, x, yy - 16, { size: 20, font: FONT_B, fill: RED }); rr(g, bx - 2, yy - 2, w + 4, 20, 4, '#e3d8bd', INK, 1.6); g.fillStyle = '#d9a41e'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 16); g.fillStyle = RED; g.fillRect(bx + 30, yy + 20, (w - 30) * clamp(gg.t / gg.t0, 0, 1), 4); text(g, '시간', bx + 13, yy + 22, { size: 11, font: FONT_B, fill: RED }); text(g, '두목을 몰아쳐 금빛을 채운다', x, yy + 38, { size: 15, font: FONT_B, fill: '#4a4034' }); }
+    // 끊기 게이지: 시간이 다 가기 전에 피해를 채우면 두목의 수가 끊긴다 (키 큰 두목이 위쪽에 서도 윗띠에 가리지 않게 내려 단다)
+    if (gg) { const w = 190, bx = x - w / 2, yy = Math.max(top - 44, VIEW.y0 + 58); rr(g, bx - 8, yy - 34, w + 16, 86, 9, '#fbf3df', RED, 2.4); text(g, gg.label, x, yy - 16, { size: 20, font: FONT_B, fill: RED }); rr(g, bx - 2, yy - 2, w + 4, 20, 4, '#e3d8bd', INK, 1.6); g.fillStyle = '#d9a41e'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 16); g.fillStyle = RED; g.fillRect(bx + 30, yy + 20, (w - 30) * clamp(gg.t / gg.t0, 0, 1), 4); text(g, '시간', bx + 13, yy + 22, { size: 11, font: FONT_B, fill: RED }); text(g, gg.hint || '두목을 몰아쳐 금빛을 채운다', x, yy + 38, { size: 15, font: FONT_B, fill: '#4a4034' }); }
     // 붙잡힌 영웅 / 조인 부대 / 업경대의 되비침
     if (a.grab && !a.grab.dead) { const t2 = a.grab; line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], INK, 7); line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], '#e9dfc4', 3.6); }
     if (a.coil) for (const e of a.coil.units) if (!e.dead) { for (const dy of [-6, -16]) { g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, INK, 4.6); g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, '#7d6a3a', 2.6); } }
+    if (a.callSq && a.callSq.alive > 0) { g.save(); g.globalAlpha = alpha * (0.55 + 0.25 * Math.sin(T * 6)); g.setLineDash([14, 10]); g.lineDashOffset = -T * 24; g.beginPath(); g.arc(u.x, u.y, CALL_R, 0, TAU); st(g, INK, 5.6); g.beginPath(); g.arc(u.x, u.y, CALL_R, 0, TAU); st(g, '#d9ccff', 2.8); g.setLineDash([]); g.restore(); }   // 강림 도령의 부름이 닿는 곳
     if (a.mirror && !a.mirror.dead) { g.globalAlpha = alpha * (0.35 + 0.25 * Math.sin(T * 9)); line(g, [a.mirror.x, a.mirror.y - 54, u.x, u.y - 40], '#fff3c0', 6); g.globalAlpha = alpha; }
   }
   if (u.barrier > 0) { g.globalAlpha = alpha * 0.5; ell(g, x, by - L.h * k * 0.45, u.r * 1.55, L.h * k * 0.62, 'rgba(160,205,235,0.3)', '#5f8fb8', 2); g.globalAlpha = alpha; }
@@ -131,10 +133,10 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   g.restore();
 }
 
-const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: '#5a4a8a', meteor: '#d9702a', volley: INDIGO, fox: '#3f9fd0', pounce: '#c8642a', poison: '#6a9a3a', devour: '#6a6f78', bolt: '#d9a41e', flood: '#3f7fb8' };
+const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: '#5a4a8a', meteor: '#d9702a', volley: INDIGO, fox: '#3f9fd0', pounce: '#c8642a', poison: '#6a9a3a', devour: '#6a6f78', bolt: '#d9a41e', flood: '#3f7fb8', swap: '#8a5aa8', rock: '#7a6a5a', fire: '#d9702a', shoe: '#8a6a3a', gallop: '#3f7fb8', rope: '#8a2a26', breath: '#6a4a3a', wail: '#5a4a6a' };
 const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#c08ad8', '#b8a0e0', '#8fd3c8'] };
 // 붉지 않은 원에는 무엇인지 이름을 붙인다
-const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인' };
+const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인', swap: '자리 바꾸기', rock: '바위', fire: '불길', shoe: '신발 도둑', gallop: '내달리기', rope: '포승줄', breath: '세 머리 입김', wail: '소리 없는 울음' };
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
 // 이어 붙인 긴 그림 한 장(너비 period)을 화면에 보이는 만큼만 그린다. top 위쪽은 투명해서 건너뛴다
@@ -215,9 +217,9 @@ export class BattleView {
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형·효과·피해 숫자에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
-      if (u.dead || !(u.def.prop || u.def.porter) || u.hidden > 0) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
+      if (u.dead || !(u.def.prop || u.def.porter || u.def.toad) || u.hidden > 0) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
       if (!rest) poly(g, [u.x - 11, yy - 13, u.x + 11, yy - 13, u.x, yy], '#f0d264', INK, 2);
-      const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라', cage: '우리를 부숴라', porter: '짐꾼을 잡아라' }[u.type] || u.def.name, s = u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
+      const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라', cage: '우리를 부숴라', porter: '짐꾼을 잡아라', dokbang: '방망이를 부러뜨려라', toad: '두꺼비를 지켜라', sieve: '곁에 부대를 세워라' }[u.type] || u.def.name, s = u.type === 'sieve' ? `${verb} · 체 걸기 ${Math.round(Math.min(1, (a.hold || 0) / 2.5) * 100)}%` : u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
       tag(u.x, yy - 32, s, rest ? '#8a8474' : a.count > 0 && a.count < 5 ? RED : '#7a4a2c');
     }
     // (홀린 부대에 할 일은 두목 체력 아래 알림 칸에 쓴다. 부대 위에는 소용돌이 표시만)
@@ -227,6 +229,8 @@ export class BattleView {
     { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (z.style === 'fox' || put.some(q => q[2] === s2)) continue; const busy = fx.p.some(q => q.k === 'text' && Math.abs(q.x - z.x) < 150 && Math.abs(q.y - ty) < 36), ty2 = busy ? Math.min(VIEW.y1 - 4, z.y + z.r * 0.62 + 6) : ty; put.push([z.x, ty2, s2]); tag(z.x, ty2, s2, TELE[z.style] || RED); } }   // 같은 이름표는 하나만 (여우불은 두목이 외치므로 원에는 달지 않는다)
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
     for (const q of b.squads) if (q.doom > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `명부에 적혔다 ${Math.ceil(q.doom)}`, q.doom < 3 ? RED : '#5a4a8a');
+    // 강림 도령이 이름을 부른 부대: 세 번째 부름까지 남은 숨 (점선 원 밖으로 떼어 놓아야 한다)
+    for (const q of b.squads) if (q.call > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `이름이 불렸다 · 점선 밖으로 ${Math.ceil(q.call)}`, q.call < 2.5 ? RED : '#5a4a8a');
     g.restore();
     g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
@@ -287,6 +291,18 @@ export class BattleView {
       if (z.fx !== undefined) { g.globalAlpha = 0.6 * (1 - k); line(g, [z.fx, z.fy - 30, z.x, z.y], '#5a4a8a', 3); g.globalAlpha = 1; }
     } else if (z.kind === 'rain') {
       const col = z.fire ? '#d9702a' : INDIGO; g.globalAlpha = 0.16; ell(g, z.x, z.y, z.r, z.r, col); g.globalAlpha = 0.85; g.setLineDash([10, 8]); g.lineDashOffset = T * 30; g.beginPath(); g.arc(z.x, z.y, z.r, 0, TAU); st(g, col, 2.6); g.setLineDash([]); g.globalAlpha = 1;
+    } else if (z.kind === 'hazard') {
+      // 두목이 남긴 땅의 해: 돌무더기(잿빛 돌멩이) · 불 자국(일렁이는 불꽃)
+      const a = Math.min(1, z.t * 3, (z.dur - z.t) * 1.5), fire = z.style === 'fire', col = fire ? '#d9702a' : '#6a5e52';
+      g.globalAlpha = (fire ? 0.2 + 0.06 * Math.sin(T * 9 + z.x) : 0.22) * a; ell(g, z.x, z.y, z.r, z.r * 0.8, col);
+      g.globalAlpha = 0.75 * a; g.setLineDash([6, 8]); g.beginPath(); g.ellipse(z.x, z.y, z.r, z.r * 0.8, 0, 0, TAU); st(g, col, 2.2); g.setLineDash([]);
+      const n = Math.max(4, Math.round(z.r / 7));
+      for (let i = 0; i < n; i++) { const an = i * 2.39 + z.x * 0.1, rr2 = z.r * (0.2 + ((i * 37) % 60) / 100), px = z.x + Math.cos(an) * rr2, py = z.y + Math.sin(an) * rr2 * 0.78;
+        g.globalAlpha = 0.95 * a;
+        if (fire) { const h = 9 + 4 * Math.sin(T * 12 + i * 1.7); path(g, p => { p.moveTo(px, py - h); p.quadraticCurveTo(px + 4.4, py - h * 0.4, px + 2.6, py); p.quadraticCurveTo(px, py + 1.4, px - 2.6, py); p.quadraticCurveTo(px - 4.4, py - h * 0.4, px, py - h); }, i % 2 ? '#ff9a2e' : '#f0c23a', INK, 1); }
+        else { const w2 = 5 + (i * 13) % 5; path(g, p => { p.moveTo(px - w2, py + 2); p.lineTo(px - w2 * 0.6, py - w2 * 0.7); p.lineTo(px + w2 * 0.4, py - w2 * 0.8); p.lineTo(px + w2, py + 1); p.closePath(); }, i % 3 ? '#9a8e80' : '#7f7466', INK, 1.1); }
+      }
+      g.globalAlpha = 1;
     } else if (z.kind === 'caltrop' && z.ice) {
       const a = Math.min(1, z.t * 4, (z.dur - z.t) * 2); g.globalAlpha = 0.26 * a; ell(g, z.x, z.y, z.r, z.r * 0.92, '#bfe3ee'); g.globalAlpha = 0.8 * a; g.setLineDash([6, 8]); g.lineDashOffset = T * 20; g.beginPath(); g.arc(z.x, z.y, z.r, 0, TAU); st(g, '#4f8fb8', 2.4); g.setLineDash([]);
       for (let i = 0; i < 9; i++) { const an = i * 2.1 + z.x, r2 = z.r * (0.2 + ((i * 41) % 70) / 100), px = z.x + Math.cos(an + T * 0.3) * r2, py = z.y + Math.sin(an + T * 0.3) * r2 * 0.9; for (let j = 0; j < 3; j++) { const b2 = j / 3 * Math.PI; line(g, [px - Math.cos(b2) * 5, py - Math.sin(b2) * 5, px + Math.cos(b2) * 5, py + Math.sin(b2) * 5], '#eef8fc', 1.6); } }

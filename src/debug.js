@@ -1,10 +1,11 @@
 // 개발용 진입: ?debug=1&ch=1&i=3&type=shop  (i = 노정의 몇 번째 칸, type = 그 칸을 바꿔치기)
 //   &state=at 그 칸에 바로 도착 · &scene=end&win=1 · &scene=meta&merit=60
-//   &cards=thunder,volley!,u_knight (! = 강화) · &items=gun,axe (무기 보관함) · &relics=drum,yut · &gold=300 · &speed=2
+//   &alt=1 두목 칸에 또 다른 두목(0 이면 원래 두목) · &cards=thunder,volley!,u_knight (! = 강화) · &items=gun,axe (무기 보관함) · &relics=drum,yut · &gold=300 · &speed=2
 import { nav } from './nav.js';
 import { G, meta, newRun, genRoad, addCard, unitCards, save } from './state.js';
 import { UNITS } from './data/units.js';
 import { isUnit } from './data/cards.js';
+import { forceBossAlt } from './data/encounters.js';
 
 const PLAN = ['u_spear', 'u_priest', 'thunder', 'u_knight', 'wall', 'u_wizard', 'cry', 'u_xbow', 'caltrop', 'u_shield'];
 export function debugBoot(q) {
@@ -19,6 +20,7 @@ export function debugBoot(q) {
   if (q.get('cards')) for (const id of q.get('cards').split(',')) addCard(id.replace(/[!+ ]/g, ''), { up: /[!+ ]$/.test(id) });
   if (q.get('wpn')) q.get('wpn').split(',').forEach(kv => { const [t, w] = kv.split(':'); const c = r.deck.find(x => x.id === 'u_' + t && !x.wpn); if (c) c.wpn = w; });
   if (q.get('type')) r.road.stops[i] = { type: q.get('type') };
+  if (q.get('alt') !== null) forceBossAlt(q.get('alt') === '1');   // &alt=1 또 다른 두목 · &alt=0 원래 두목
   if (q.get('ev')) r.pending = { kind: 'event', id: q.get('ev') };
   if (q.get('state')) r.road.state = q.get('state');
   if (q.get('merit')) meta.merit = Number(q.get('merit'));

@@ -9,12 +9,14 @@
 //   홀림(u.charm)   : 홀린 부대는 싸우지 않고 두목에게 걸어간다. 그 부대에 아무 명령이나 내리면 풀린다
 import { VIEW, MID_Y } from '../config.js';
 import { lvlMult } from '../data/units.js';
+import { altAI } from './bossalt.js';
 
 const hyp = Math.hypot, TAU = Math.PI * 2;
 const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Math.max(VIEW.y0 + 36, Math.min(VIEW.y1 - 36, y));
 // 두목의 외침: 꼬리표의 꼬리가 두목 머리(또는 발)에 닿게 바로 붙여 단다. 겹치면 그리는 쪽(fx)에서 비켜 쌓고, 같은 외침은 새로 쌓지 않는다
 // 끊기 게이지가 머리 위에 떠 있는 동안에는 외침을 발밑으로 내린다. 양옆 위는 패널이 있어 한 칸 더 내린다
-const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168 };
+const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168,
+  foxhalmi: 128, oenun: 150, duduri: 146, bulgae: 104, jine: 120, daejeok: 160, gangcheol: 124, anggwaeng: 118, yongma: 130, dalgyal: 146, gangrim: 136, mujang: 172 };
 export const bossSay = (b, u, s, c) => say(b, u, s, c);
 const say = (b, u, s, c = '#c8402f') => {
   const x = Math.max(200, Math.min(1080, u.x)), top = x > 900 || x < 380 ? 124 : VIEW.y0 + 18; let y = u.y - (TALL[u.type] || 140) - 24, under = false;
@@ -292,7 +294,7 @@ export function bossHit(b, t, d, src, kind) {
   if (a.inv > 0) return 0;
   if (A.hit) { d = A.hit(b, t, a, d, src, kind); if (d <= 0) return 0; }
   if (t.open > 0) d *= 1.5; else if (a.armor) d *= 1 - a.armor;
-  if (a.g) a.g.acc += d;
+  if (a.g && (!a.g.only || a.g.only(kind, src))) a.g.acc += d;   // 무장승의 일: 그 일에 맞는 공격만 셈한다
   return d;
 }
 export function bossDeath(b, t, silent) {
@@ -301,3 +303,6 @@ export function bossDeath(b, t, silent) {
   for (const e of b.units) { if (!e.dead && (e.def.prop || e.def.fake)) b.kill(e, null, true); e.charm = 0; e.plague = 0; }
   for (const s of b.squads) s.doom = 0;
 }
+// 또 다른 두목들(sim/bossalt.js)이 함께 쓰는 장치
+export const KIT = { say, tele, open, gauge, prop, cluster, mine, circles, chain, pickN, mv, cx, cy, charm };
+Object.assign(BOSS_AI, altAI(KIT));

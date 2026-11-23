@@ -4,6 +4,7 @@ import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 import { doll, dokkaebi, ITEM, DITEM, fox, foxRun, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
+import { ALT_LOOKS, ALT_WEAPONS } from './bossart2.js';
 
 // 요괴가 끌고 가던 나무 우리: 안에 흰 옷 입은 마을 사람이 웅크려 있다 (부수면 의병으로 합류한다)
 function cage(g) {
@@ -245,6 +246,9 @@ export const LOOKS = {
   pearl: { body: pearl, weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 1.5, still: true, float: true },
   mirror: { body: mirror, weapon: 'none', hold: hold(0, 'bite'), h: 58, scale: 1.4, still: true },
 };
+
+// 또 다른 두목들과 그 소품 (그림은 bossart2.js)
+Object.assign(LOOKS, ALT_LOOKS); Object.assign(WEAPONS, ALT_WEAPONS);
 
 export const UNIT_SCALE = 1.1;
 const cache = new Map();
