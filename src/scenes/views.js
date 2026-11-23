@@ -237,7 +237,7 @@
         F.person(g, lo);
         g.restore();
         if (L.kid) sitter(g, t, bx - 96, 176, false);
-        if (L.mom) { const no = { x: bx - 4, y: 206 - F.hipHeight(F.styles.mom, 158), s: 158, style: F.styles.mom, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); }
+        if (L.mom) { const gs = guideStyle(L), gz = (gs.kid ? 0.66 : gs === F.styles.bram ? 1.06 : 1) * 158; const no = { x: bx - 4, y: 206 - F.hipHeight(gs, gz), s: gz, style: gs, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); if (!gs.kid) { P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); } }
         F.person(g, lo);
         /* reeds */
         g.strokeStyle = '#2f4a48'; g.lineCap = 'round';
@@ -246,6 +246,9 @@
       const m = L.mote;
       if (m && !m.gone) { P.glow(g, m.x, m.y, 70, '#fff0b8', 0.7 + 0.2 * Math.sin(t * 3)); P.glow(g, m.x, m.y, 20, '#ffffff', 0.9); if (!m.held && T.clamp((T.time - m.t0 - 2.5) / 1.2) > 0) P.fingerHint(g, [[m.hx, m.hy], [m.hx + 120, m.hy + 150], [m.hx + 240, m.hy + 330]], (t * 0.4) % 1, T.clamp((T.time - m.t0 - 2.5) / 1.2), '#fff6e0'); }
     };
+    /* who has brought him to the water: o.mom is true for his mother (chapter 1's style), or the style of
+       whoever came with him instead (Bram, Pipi) */
+    function guideStyle(L) { return L.mom === true ? F.styles.mom : L.mom; }
     /* someone small on the edge of the bank, knees up, looking down into the picture */
     function sitter(g, t, x, y, flip) {
       const st = L.kid, s = 112;
@@ -318,7 +321,7 @@
       const mx = -W * SC / 2 + 22;
       if (L.kid) sitter(g, t, W / 2 - 92, BANK - 4, true);
       if (L.mom) {
-        const ms = F.styles.mom, sm = 150;
+        const ms = guideStyle(L), sm = (ms.kid ? 0.66 : ms === F.styles.bram ? 1.06 : 1) * 150;
         const j = F.person(g, { x: mx, y: BANK - F.hipHeight(ms, sm), s: sm, style: ms, lean: 0.08, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } });
         P.glow(g, j.handF[0], j.handF[1] + 20, 58, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 5, j.handF[1] + 8, 11, 15, 3), '#fff0b8');
       }

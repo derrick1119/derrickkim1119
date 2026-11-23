@@ -35,12 +35,13 @@
     leo: {}, mom: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
     home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
-    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 },
+    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, touch: 0, rise: 0, orb: 0 }, momTo: null, momGone: false,
     title: { a: 0 }, place: { a: 0 }, end: { a: 0 }, canLeave: false, hintA: { a: 0 },
     bram: { wave: 0, near: false }, post: { x: 2000, on: false, rang: false }, rosa: { k: 0, done: false }, kidWave: { k: 0 },
     things: { 1: [], 2: [], 3: [] }, banks: null,
   });
   const TALK = T.talk(S);
+  S.TALK = TALK;
 
   const y1 = (x) => interp(K1, x);
   const y2 = (x) => interp(K2, x) + S.d2 * bump(x, J1, 230);
@@ -205,7 +206,7 @@
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
     s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0;
-    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0;
+    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.touch = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false;
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
@@ -546,6 +547,51 @@
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }
+  /* She came on ahead to build a house, to have something hot on the table, and to keep him a place.
+     All three are done now, and a promise kept is a way across: she goes on to where his father is
+     waiting, and from below it is a star falling. Before she goes she says what she said the first time. */
+  async function farewell() {
+    const k = S.clock, A = T.audio;
+    S.momTo = PLOT - 74;
+    while (S.momTo != null) await k.wait(0.05);
+    S.mom.flip = false;
+    await k.wait(0.6);
+    await TALK.say('mom', '넓은 집 지어 놓고,\n따뜻한 밥 해 먹이고.');
+    await TALK.say('mom', '네 자리까지 보여 줬으니….\n이제 다 지켰구나.', { slow: true });
+    await k.wait(0.6);
+    T.announce('엄마의 몸에서 빛이 번지기 시작한다. 지킨 약속이 건너갈 길이 된다.');
+    A.promise();
+    k.tween(S.fare, 'k', 1, 2.6, T.ease.io);
+    await k.wait(1.4);
+    k.tween(S.rest, 'k', 0, 1.1, T.ease.io);
+    await TALK.say('leo', '…엄마?');
+    await TALK.say('mom', '약속 다 지킨 사람은\n저 너머로 건너가는 거란다.');
+    await TALK.say('mom', '네 아빠, 거기서\n여태 혼자 기다렸잖니.');
+    await TALK.say('leo', '이제 겨우 다시 만났는데….', { slow: true });
+    await k.tween(S.fare, 'touch', 1, 1.2, T.ease.io);
+    await TALK.say('mom', '엄마는 또 먼저 가 있을게.\n아빠랑, 맛있는 거 해 놓고.');
+    await TALK.say('mom', '그러니까 천천히 와.\n…아주 천천히.', { slow: true });
+    await TALK.say('leo', '…응. 천천히 갈게.', { slow: true });
+    await TALK.say('mom', '잘 컸다, 우리 아들.', { slow: true });
+    k.tween(S.fare, 'touch', 0, 1.0, T.ease.io);
+    /* she turns to light and goes up, and then across the sky as a falling star */
+    T.announce('엄마가 빛이 되어 하늘로 오른다.');
+    A.sfx('join');
+    k.tween(S.fare, 'rise', 1, 2.2, T.ease.io);
+    await k.wait(1.2);
+    await k.tween(S.fare, 'orb', 1, 2.6, T.ease.in);
+    S.momGone = true;
+    const top = toScreen(S.nx, groundAt(S.nx) - 110 - 560);
+    T.announce('별 하나가 하늘을 가로질러, 구름 아래 산 사람들의 하늘로 떨어진다.');
+    const star = T.fx && T.fx.star ? T.fx.star.add({ from: top, to: [T.view.W / 2 - 40, 560], dur: 2.6 }) : Promise.resolve();
+    notes(3, { voice: 'felt', vel: 0.32 });
+    await star;
+    await k.wait(1.4);
+    await TALK.say('leo', '…잘 가, 엄마.', { slow: true });
+    await k.wait(0.8);
+    await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
+    await k.wait(1.2);
+  }
   S.claim = async function () {
     if (S.ph !== 'plot' || S.plotGo) return;
     const k = S.clock, A = T.audio;
@@ -562,9 +608,9 @@
     await k.wait(1.4);
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.6);
+    await farewell();
     S.camK = 0.34; S.ph = 'end';
-    S.momHome = true;
-    await k.wait(10.5);
+    await k.wait(9);
     T.announce('1장 끝. 다음은 2장, 약속 목록.');
     await k.tween(S.end, 'a', 1, 2.2, T.ease.io);
     S.canLeave = true;
@@ -621,6 +667,11 @@
     if (S.running) { const v = 120; S.wx = Math.min(S.mom.x - 36, S.wx + v * dt); S.wph += (v * dt) / 9; S.moving = true; } else if (S.ph === 'hug' || S.ph === 'meet' || S.ph === 'dock') S.moving = false;
     if (S.ph === 'walk' || S.ph === 'climb' || S.ph === 'plot') walk(dt);
     if (S.ph === 'home') homeMove(dt);
+    if (S.momTo != null) {
+      const d = S.momTo - S.nx;
+      if (Math.abs(d) < 1) { S.nx = S.momTo; S.momTo = null; S.nmoving = false; }
+      else { const v = 62; S.nx += Math.sign(d) * Math.min(Math.abs(d), v * dt); S.nph += (v * dt) / 9.4; S.nmoving = true; S.mom.flip = d < 0; }
+    }
     if (S.momHome && S.nx > STOP - 190) { S.nx -= 30 * dt; S.nph += dt * 3.6; S.nmoving = true; S.mom.flip = true; } else if (S.momHome) { S.nmoving = false; S.mom.flip = false; }
     camUpdate(dt);
   };
@@ -1045,15 +1096,39 @@
       if (hillOf(w.x) !== h) continue;
       const gy = groundAt(w.x);
       if (w.id === 'n') {
+        if (S.momGone) continue;
+        const fk = S.fare.k, rise = T.ease.io(S.fare.rise), touch = T.ease.io(S.fare.touch);
         const nh = F.hipHeight(ns, MOM_S);
         const o = { x: w.x, y: gy - nh, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' }, skip: { armF: true } };
         if (S.nmoving) { o.walk = S.nph; o.lean = 0.14; }
         o.armF = { a: 0.95, b: 0.55 };
         if (pt > 0.02) { o.armB = { a: -(1.5 + Math.sin(t * 2) * 0.03) * pt, b: 0.1 }; o.headTilt = -0.1; }
         else if (!S.nmoving && !S.moving && target()) { o.armF = { a: 1.5 + Math.sin(t * 2) * 0.1, b: 0.4 }; o.headTilt = -0.15; }
+        if (fk > 0.01) { o.headTilt = -0.16 * fk; o.face = { blush: 0.24, mouth: 'smile', eye: touch > 0.5 ? 'happy' : 'open', tear: 0.4 * fk }; }
+        /* her hand on his cheek, the lantern in the other */
+        if (touch > 0.01 && S.leoHead) { const hx = S.leoHead[0] - 8, hy = S.leoHead[1] + 10; o.armB = { hand: F.local(o, T.lerp(w.x + 20, hx, touch), T.lerp(gy - 70, hy, touch)), bend: 1 }; }
+        if (fk > 0.01) {
+          /* the light comes from inside her and spills out; motes go up off her like sparks off a fire */
+          P.glow(g, w.x, gy - 86, 130 + fk * 80, '#fff6d8', 0.8 * fk * (1 - rise * 0.4));
+          P.glow(g, w.x, gy - 70, 46 + fk * 20, '#ffffff', 0.5 * fk * (1 - rise));
+          for (let i = 0; i < 16; i++) {
+            const life = (t * 0.32 + i / 16) % 1, mx = w.x + Math.sin(i * 7.13) * 34 + Math.sin(t * 1.3 + i) * 8, my = gy - 16 - life * (190 + rise * 160) - i % 3 * 12;
+            g.globalAlpha = fk * Math.sin(life * Math.PI) * 0.85;
+            P.fill(g, P.circle(mx, my, 2.2 + (i % 4) * 0.6), '#fff6d8');
+          }
+          g.globalAlpha = 1;
+        }
+        g.save(); g.globalAlpha = 1 - rise;
         F.person(g, o);
         const j = F.person(g, Object.assign({}, o, { only: 'armF', skip: null }));
         handLamp(g, j.handF, 1);
+        g.restore();
+        if (rise > 0.01) {
+          /* what is left of her is one light, rising */
+          const orb = T.ease.in(S.fare.orb), oy = gy - 110 - orb * 560, oa = 1 - T.smooth(T.clamp((orb - 0.85) / 0.15));
+          P.glow(g, w.x, oy, 70 + rise * 40, '#fff0c0', 0.9 * rise * oa);
+          g.globalAlpha = rise * oa; P.fill(g, P.circle(w.x, oy, 5 + rise * 2), '#fffbee'); g.globalAlpha = 1;
+        }
       } else {
         const lh = F.hipHeight(ls, LEO_S);
         const o = { x: w.x, y: gy - lh * (1 - rest * 0.8), s: LEO_S, style: ls, lean: 0.04, face: { blush: 0.14, mouth: 'smile' } };
@@ -1062,7 +1137,10 @@
           o.lean = -0.12 * rest; o.headTilt = -0.16 * rest; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 }; o.face.eye = rest > 0.8 ? 'happy' : 'open';
         } else if (S.moving) { o.walk = S.wph; o.lean = 0.1; o.armB = { a: 0.6, b: 0.5 }; }
         else { o.headTilt = -0.14 + Math.sin(t * 0.8) * 0.04; o.armB = { a: 0.6, b: 0.5 }; if (S.ph === 'plot' && S.plotGo) o.flip = S.lamp.planted > 0.5; }
+        const tc = T.ease.io(S.fare.touch);
+        if (tc > 0.01 && rest < 0.02) { o.lean = 0.04 + tc * 0.2; o.headTilt = 0.22 * tc; o.face.eye = tc > 0.6 ? 'closed' : 'open'; }   /* he stoops to her hand */
         const j = F.person(g, o);
+        S.leoHead = j.head;
         if (S.lamp.planted < 0.01 && !(S.ph === 'plot' && S.plotGo && !S.moving)) handLamp(g, j.handB, 1);
       }
     }

@@ -63,20 +63,22 @@
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
       X.title();
       await X.wait(4.2);
-      /* ---- an evening on the headland with his mother: the whale that comes by once in ten years ---- */
+      /* ---- an evening on the headland with Rosa, who has kept an eye on him since his mother went on:
+         the whale that comes by once in ten years ---- */
       const wh = T.place('whales', { dusk: 0.08, actors: [
-        { id: 'mom', style: F.styles.mom, s: C.MOM_S, at: 'leo', dx: -70, lean: 0.1, face: { mouth: 'smile' } },
+        { id: 'rosa', style: F.styles.rosa, s: 138, at: 'leo', dx: -74, lean: 0.06, face: { mouth: 'smile' } },
         { id: 'leo', style: F.leoAt(0), at: 'leo', face: { mouth: 'smile' } },
       ] });
       wh.pass({ from: 0.1, dur: 46 });
       await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
       T.announce('해 질 녘, 언덕 끝. 구름바다 저편에서 커다란 구름 고래가 새끼를 데리고 천천히 헤엄쳐 온다. 낮고 길게 노래한다.');
-      let mom = X.actor('mom', { x: PL.HX - 120, style: F.styles.mom, s: C.MOM_S, lean: 0.1 });   /* back on the hill, she is with him */
+      let guide = X.actor('rosa', { x: PL.HX - 120, style: F.styles.rosa, s: 138, lean: 0.06 });   /* back on the hill, she is with him */
       leo.pose = null;
       await X.wait(1.2);
       await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
       await X.wait(2.4);
-      await TALK.say('mom', '십 년에 한 번 지나가는 고래란다.\n네가 올 때까지 세 번 봤지.');
+      await TALK.say('rosa', '십 년에 한 번 지나가는 고래야.\n난 여기서 일곱 번째 보네.');
+      await TALK.say('rosa', '네 엄마는 저거 세 번 보고서야\n네가 왔다더라.');
       X.tween(wh.sun, 'k', 0.45, 7);
       await X.wait(4.5);
       await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
@@ -84,10 +86,10 @@
       /* ---- a rainbow over the cloud sea ---- */
       await X.wait(1.4);
       A.sfx('star', 0.2); A.sfx('star', 0.6);
-      leo.pose = null; leo.flip = true; mom.flip = true;
+      leo.pose = null; leo.flip = true; guide.flip = true;
       T.announce('구름바다 위로 무지개가 선다. 하늘에서 부두 끝까지.');
-      await TALK.say('mom', '저건… 무지개 다리구나.');
-      await TALK.say('mom', '짐승들은 배를 안 타고,\n저리로 달려온단다.');
+      await TALK.say('rosa', '저건… 무지개 다리네.');
+      await TALK.say('rosa', '짐승들은 배를 안 타고,\n저리로 달려온단다.');
       X.walk(leo, PL.HX - 420, 110);
       await X.wait(1.4);
       const crowd = [];
@@ -104,7 +106,7 @@
       let bean;
       await quay(5, 5, () => {
         leo = X.actor('leo', { x: 420, style: F.leoAt(0), flip: true });
-        mom = X.actor('mom', { x: 360, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        guide = X.actor('rosa', { x: 352, style: F.styles.rosa, s: 138, lean: 0.06, flip: true });
         X.cloudKid();   /* already looking up at it */
         S.rb.a = 1;
       });
@@ -125,7 +127,7 @@
       await X.wait(1.2);
       leo.flip = true;
       await TALK.say('leo', '아직 집도 다 못 지었는데….');
-      await TALK.say('mom', '저 애는 집 보러 온 게 아니라\n너 보러 온 거야.');
+      await TALK.say('rosa', '저 애는 집 보러 온 게 아니라\n너 보러 온 거야.');
       leo.pose = null;
       await X.tap(() => [bean.x, PIER - 30, 56]);
       leo.sit = 0.5;
@@ -137,11 +139,11 @@
       T.announce('빈이 달려와 레오 품에 안긴다.');
       await X.wait(1.6);
       await TALK.say('leo', '빈… 너 왜 이렇게 늙었어.');
-      await TALK.say('mom', '빈도 두고 온 사람이 있지.\n가 보자.');
+      await TALK.say('rosa', '빈도 두고 온 사람이 있지.\n가 보자.');
 
       /* ---- Bean's lake: Lily walking home from school in the rain, then on the back step with his collar ---- */
       const lakeB = T.lake({
-        paint: T.vig.lilyBean, leo: F.leoAt(0), mom: true, shore: true, kid: F.styles.cloud,
+        paint: T.vig.lilyBean, leo: F.leoAt(0), mom: F.styles.rosa, shore: true, kid: F.styles.cloud,
         rhText: '빈은 릴리 옆 늘 앉던 계단에, 공은 풀밭에, 등불은 꺼진 현관 등에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'dog', id: 'bean', x: -330, at: [140, 634], flip: false, lockFlip: false, ps: 300 },
@@ -302,13 +304,12 @@
         bram.pose = (o, a, t) => { if (!a.moving && !a.boat) { o.armF = { a: -0.5, b: -0.3 }; o.armB = { a: -0.5, b: -0.3 }; o.y += Math.sin(t * 2.4) * 1.5; } };
         leo = X.actor('leo', { x: 392, style: F.leoAt(0), flip: true });
         bean = X.actor('bean', { dog: true, s: 220, x: 440, sit: 1, flip: true, wag: 0.6 });
-        mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
-        crowd.push(X.actor('v1', { x: 486, style: F.styles.villagerA, s: 142, flip: true }), X.actor('v2', { x: 268, style: F.styles.villagerB, s: 134, flip: true }), X.actor('v3', { x: 222, style: F.styles.rosa, s: 138, flip: true }), cloud);
+        crowd.push(X.actor('v1', { x: 486, style: F.styles.villagerA, s: 142, flip: true }), X.actor('v2', { x: 268, style: F.styles.villagerB, s: 134, flip: true }), X.actor('rosa', { x: 322, style: F.styles.rosa, s: 138, flip: true, lamp: true, lampHand: 'F' }), cloud);
         wife = X.actor('wife', { style: F.styles.bramWife, s: 106, lean: 0.24, face: { old: true } });
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
-      await TALK.say('mom', '누가 오는구나.\n네가 대답해 주렴. 길 잃지 않게.');
+      await TALK.say('rosa', '누가 오는구나.\n레오, 네가 대답해 줘. 길 잃지 않게.');
       const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 3, 0, 1]] });
       X.sail(S.b1, -74, 30);
       await pressed;
@@ -347,7 +348,7 @@
       T.announce('브램과 마르타가 구름바다 너머로 건너간다.');
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
-      [leo, mom].concat(crowd).forEach((a) => { a.pose = wave; });
+      [leo].concat(crowd).forEach((a) => { a.pose = wave; });
       bram.pose = wave; wife.pose = (o, a, t) => { o.armF = { a: 2.0 + Math.sin(t * 5) * 0.2, b: 0.3 }; };
       for (let i = 0; i < 4; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); await X.wait(0.5); }
       X.cam(-240, 452, 1, 0.5);
@@ -355,7 +356,7 @@
       T.announce('구름바다 끝, 빛의 폭포. 브램과 마르타의 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 구름 아래 산 사람들의 하늘로 떨어진다.');
       await X.crossing([{ style: F.styles.bram, s: 144 }, { style: F.styles.bramWife, s: 106 }], { leoAge: 1, also: X.seeOff() });
       /* the neighbours go back up into the town; the little one is still looking out to where they went */
-      [leo, mom].concat(crowd).forEach((a) => { a.pose = null; });
+      [leo].concat(crowd).forEach((a) => { a.pose = null; });
       crowd.filter((a) => a !== cloud).forEach((a, i) => X.walk(a, 720 + i * 50, 70).then(() => { a.hidden = true; }));
       cloud.pose = (q) => { q.headTilt = -0.06; };
       X.cam(150, 470, 1.3, 0.8);
@@ -375,7 +376,6 @@
         rosa.prop = (g, j, o, a) => { if (!a.hug) P.fill(g, P.rr(j.handF[0] - 12, j.handF[1] - 6, 26, 16, 5), '#e9c45a'); };
         leo = X.actor('leo', { x: 392, style: F.leoAt(0), flip: true });
         bean = X.actor('bean', { dog: true, s: 220, x: 440, sit: 1, flip: true, wag: 0.6 });
-        mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         son = X.actor('son', { style: F.styles.rosaSon, s: 144, lean: 0.16, face: { old: true } });
         S.b1 = X.boat({ x: -820, riders: [son] });
         X.cloudKid({ x: 548, chair: 0, lamp: true, lampHand: 'F', look: true });

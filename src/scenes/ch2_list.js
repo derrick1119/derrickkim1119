@@ -1,8 +1,9 @@
 /* Chapter 2 「약속 목록」 — one year on. He writes the list down; Bram brings stones up the hill and
    tells him what he promised his wife; Pipi shows him the stars she joins up for her father, and a star
-   falls. On the anniversary his mother takes him to the lake, where he sees Ana for the first time: making
-   his stew, too salty. What he does on the bank falls on her kitchen as a shadow; he cannot touch her.
-   Then the first stones. */
+   falls. On the anniversary Bram takes him to the lake, as his mother asked before she went: there he sees
+   Ana for the first time, making his stew, too salty. What he does on the bank falls on her kitchen as a
+   shadow; he cannot touch her. Bram tells him how a scent, a sound and a light make a way into a dream.
+   Back on the hill, he wants the house up for her, and the two of them set the first stones. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -84,21 +85,29 @@
       await X.TALK.say('leo', '…육십 년이나요?');
       await X.TALK.say('bram', '기다리는 동안 손이 놀면,\n마음이 먼저 지치거든.');
       await X.TALK.say('bram', '자네도 뭐든 지어. 천천히.', { slow: true });
-      /* someone has been watching from behind the stakes the whole time */
-      const pipi = X.actor('kid', { x: PL.HX + 260, style: F.styles.kidA, s: 100, flip: true });
-      pipi.pose = (o, a, t) => { o.headTilt = -0.2 + Math.sin(t * 2) * 0.05; o.armF = { a: 0.3, b: 1.6 }; };
-      /* and a smaller one who came up with her, sitting in the grass with her face to the sky */
-      const cloud = X.actor('cloud', { x: PL.HX + 372, style: F.styles.cloud, s: 94, flip: true, sit: 1 });
-      cloud.pose = (o, a, t) => { o.headTilt = -0.4 + Math.sin(t * 0.5) * 0.04; o.lean = -0.16; o.armF = { a: -0.3, b: 0.2 }; o.armB = { a: -0.4, b: 0.2 }; };
-      A.sfx('step');
-      await X.wait(0.8);
+      /* a child comes up the far side of the hill, slows down when she sees them, and stops a little way off;
+         a smaller one trails after her and sits down in the grass with her face to the sky */
+      const pipi = X.actor('kid', { x: PL.HX + 820, style: F.styles.kidA, s: 100, flip: true });
+      const cloud = X.actor('cloud', { x: PL.HX + 900, style: F.styles.cloud, s: 94, flip: true });
+      T.announce('언덕 건너편에서 아이 둘이 올라온다.');
+      const pipiIn = X.walk(pipi, PL.HX + 420, 96);
+      X.walk(cloud, PL.HX + 372, 70).then(() => { cloud.flip = true; X.tween(cloud, 'sit', 1, 0.6); cloud.pose = (o, a, t) => { if (a.sit < 0.5) return; o.headTilt = -0.4 + Math.sin(t * 0.5) * 0.04; o.lean = -0.16; o.armF = { a: -0.3, b: 0.2 }; o.armB = { a: -0.4, b: 0.2 }; }; });
+      await X.wait(1.2);
       leo.flip = false;
+      await pipiIn;
+      await X.wait(0.4);
+      await X.walk(pipi, PL.HX + 260, 54);   /* the last few steps, slowly */
+      pipi.flip = true;
+      pipi.pose = (o, a, t) => { if (a.moving) return; o.headTilt = -0.2 + Math.sin(t * 2) * 0.05; o.armF = { a: 0.3, b: 1.6 }; };
+      await X.wait(0.5);
       await X.TALK.say('kid', '아저씨 집 지어?\n나 그거 봐도 돼?');
       await X.TALK.say('leo', '…넌 누구니?');
       await X.TALK.say('kid', '피피. 일곱 살 때 왔어.\n엄마 아빠 기다려.');
       await X.TALK.say('bram', '피피도 여기 온 지 꽤 됐지.\n한 오 년 됐나.');
       await X.TALK.say('kid', '아저씨는 누구 기다려?');
       await X.TALK.say('leo', '아나. 내 아내.');
+      await X.TALK.say('kid', '아나 아줌마는 뭐 좋아해?');
+      await X.TALK.say('leo', '내가 끓인 스튜.\n맨날 짜다면서 다 먹었어.');
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
       await X.TALK.say('leo', '그래. 약속.');
       await X.wait(0.4);
@@ -122,43 +131,45 @@
         { name: '배', pts: [[-70, 0], [70, 0], [-45, 30], [45, 30], [0, 0], [0, -80]], edges: [[0, 2], [2, 3], [3, 1], [1, 4], [4, 0], [4, 5], [5, 1]], at: [-150, 300], scale: 1.25, filler: 18 },
         { name: '아나의 냄비', pts: [[-60, -10], [60, -10], [45, 40], [-45, 40], [-88, -18], [88, -18], [0, -70]], edges: [[4, 0], [0, 1], [1, 5], [1, 2], [2, 3], [3, 0], [0, 6], [6, 1]], at: [250, 350], scale: 1.15, rot: 0.5, filler: 24 },
       ] }));
-      await X.TALK.say('kid', '마지막 건 아저씨 주려고 만든 거야.\n아나 아줌마 스튜 냄비.');
+      await X.TALK.say('kid', '마지막 건 아까 만든 거야.\n아저씨 주려고. 스튜 냄비.');
       await X.TALK.say('leo', '…그 냄비 앞에서\n아나가 제일 잘 웃었어.');
       await X.wait(1.2);
       T.announce('구름바다 위로 별 하나가 길게 떨어진다. 구름 아래, 사람 사는 세상 쪽으로.');
       await X.star({ dur: 2.2 });
       await X.wait(1.4);
       await X.TALK.say('kid', '별똥별이다.\n누가 건너갔나 봐.');
+      await X.TALK.say('leo', '…엄마 갈 때도, 저랬어.', { slow: true });
       await X.TALK.say('kid', '저 아래서 저거 보고 소원 빌면,\n여기 바다에 작은 빛으로 떨어진대.');
       await X.TALK.say('leo', '…아나도 봤을까.', { slow: true });
-      await X.dip(async () => { ps.night = 0; leo.sit = 0; ps.seats = null; }, { color: '#141b36', out: 0.8, in: 1.2 });
-      pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
+      /* the children go home to bed; the year goes round */
+      await X.dip(async () => { ps.night = 0; leo.sit = 0; ps.seats = null; S.actors = S.actors.filter((a) => a !== pipi && a !== cloud); }, { color: '#141b36', out: 0.8, in: 1.2 });
       await X.wait(1.4);
 
-      /* a year to the day. His mother comes for him: there is a place where he can see her */
-      const mom = X.actor('mom', { x: C.PLOT - 470, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1 });
+      /* a year to the day. Bram comes up with a lamp: his mother asked him to, before she went */
+      bram.hidden = false; bram.x = C.PLOT - 470; bram.lamp = true; bram.lampHand = 'F'; bram.pose = null; bram.prop = null; bram.cart = null; bram.sit = 0;
       X.bed(2, 0.13, 'home');
-      await X.walk(mom, leo.x - 120, 100);
-      leo.flip = true;
-      mom.pose = (o, a, t) => { o.armB = { a: 1.6 + Math.sin(t * 5) * 0.3, b: 0.4 }; };
-      await X.wait(0.9);
-      await X.TALK.say('mom', '오늘로 꼭 일 년이구나.\n이제는 봐도 괜찮겠지. 따라오렴.');
-      mom.pose = null;
-      X.walk(mom, C.PLOT + 420, 96);
+      await X.walk(bram, leo.x - 130, 78);
+      leo.flip = true; bram.flip = false;
+      await X.wait(0.6);
+      await X.TALK.say('bram', '오늘로 꼭 일 년이지?');
+      await X.TALK.say('leo', '…어떻게 아셨어요?');
+      await X.TALK.say('bram', '자네 어머니가 부탁하고 갔네.\n일 년 되는 날, 호수에 데려가 달라고.');
+      await X.TALK.say('bram', '첫해엔 보는 게 더 아플 거라고.\n…따라오게.');
+      X.walk(bram, C.PLOT + 420, 80);
       await X.wait(0.5);
       X.walk(leo, C.PLOT + 380, 96);
       await X.wait(1.4);
       /* the lake: her kitchen in the water, and on the bank the things he has to lend it */
       const lake = T.lake({
-        paint: T.vig.first, leo: F.leoAt(0), mom: true, shore: true, leoFace: {},
+        paint: T.vig.first, leo: F.leoAt(0), mom: F.styles.bram, shore: true, leoFace: {},
         things: [{ kind: 'lamp', x: 96, to: -300 }, { kind: 'pot', x: -250, to: 17 }, { kind: 'leo', x: 340, to: 183 }],
       });
       await X.view(lake, { color: '#1b2a40' });
       T.announce('거울 호수. 물속에 아나의 부엌이 비친다. 아나가 레오의 공책을 펴 놓고, 레오가 서던 자리에서 스튜를 끓인다.');
-      await X.TALK.say('mom', '이 호수엔 두고 온 사람이 비친단다.\n그 사람이 우릴 생각할 때면.');
-      await X.TALK.say('mom', '나도 여기서, 네가 크는 걸 다 봤지.');
-      await X.TALK.say('mom', '손은 못 대도,\n여기서 한 일은 저기 그림자로 떨어진단다.');
-      await X.TALK.say('mom', '어두운 창에 불빛 하나,\n비 오는 날 그늘 하나쯤은.');
+      await X.TALK.say('bram', '이 호수엔 두고 온 사람이 비치네.\n그 사람이 우릴 생각할 때면.');
+      await X.TALK.say('bram', '나도 여기서 마르타를 육십 년 봤지.\n…곱게도 늙더군.');
+      await X.TALK.say('bram', '손은 못 대도, 여기서 한 일은\n저기 그림자로 떨어지네.');
+      await X.TALK.say('bram', '등불을 비추면 저 창이 밝아지고,\n자네가 서면 저 부엌에도 자네 그림자가 서지.');
       /* (the lake-help puzzle appears from chapter 4; here the 물그림자 does the same work) ch2, Ana's rainy kitchen: his lamp's shadow lights her dark window (the 물그림자 below already does this; a fuller help puzzle can replace or follow it) */
       T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');
       await lake.rhyme();
@@ -205,19 +216,30 @@
       /* but something does come up out of the water: the steam of her pot */
       lake.wisp = 1;
       T.announce('물속 부엌에서 스튜 김 한 줄기가 물 위로 피어오른다.');
-      await X.TALK.say('mom', '저 김, 담아 두렴.\n아나가 아는 냄새니까.');
+      await X.TALK.say('bram', '저 김, 담아 두게.\n아나 씨가 아는 냄새니까.');
       await X.tap(() => [17, 120, 70], { screen: true });
       lake.wisp = 0;
       await X.gift('scent', [17, 120]);
-      await X.TALK.say('mom', '냄새 하나, 소리 하나, 빛 하나.\n다 모이면, 꿈에 한 번 다녀올 수 있단다.');
       await X.tween(lake.reach, 'k', 0, 1);
+      await X.TALK.say('leo', '…이걸로 뭘 하는데요?');
+      await X.TALK.say('bram', '그 사람이 아는 냄새 하나, 아는 소리 하나,\n길을 비춰 줄 빛 하나.');
+      await X.TALK.say('bram', '셋이 다 모이면, 그 사람 꿈에\n딱 한 번 다녀올 수 있네.');
+      await X.TALK.say('leo', '꿈에서는… 닿아요?');
+      await X.TALK.say('bram', '손도 잡고, 말도 하지.\n깨고 나면 꿈인 줄 알겠지만.');
+      await X.TALK.say('bram', '나 다녀온 날, 마르타가\n웃으면서 깨더군. 여기서 다 봤지.', { slow: true });
       await X.wait(0.8);
 
-      /* back on the hill: the first stones */
-      leo.x = PL.HX - 200; leo.flip = false; leo.chair = 0;
-      S.actors = S.actors.filter((a) => a !== mom);
+      /* back on the hill, the next morning: he has seen her alone in that kitchen, and he wants the house up */
+      leo.x = PL.HX - 20; leo.flip = false; leo.chair = 0;
+      bram.x = PL.HX + 170; bram.flip = true; bram.lamp = false; bram.go = null; bram.moving = false;
       await X.view(null, { color: '#1b2a40' });
       X.bed(4, 0.13, 'walk');
+      T.announce('이튿날 아침, 언덕. 브램이 올려다 둔 둥근 돌 네 개가 집터 옆에 놓여 있다.');
+      await X.wait(0.8);
+      await X.TALK.say('leo', '아나가 그 부엌에 혼자 있는 걸 보니까….');
+      await X.TALK.say('leo', '빨리 짓고 싶어요.\n아나 오면 바로 들어올 집.');
+      await X.TALK.say('bram', '그럼 돌부터 놓세.\n주춧돌이 기울면 집이 다 기울어.');
+      await X.TALK.say('bram', '구덩이마다 깊이가 달라.\n돌 머리가 한 줄로 맞게 놓게.');
       await X.tap(() => [PL.SX[0], W.y3(PL.SX[0]) - 8, 40]);
       await X.walk(leo, PL.SX[0] - 34, 84);
       leo.flip = false;
@@ -232,6 +254,11 @@
       ps.stage = 1;
       T.announce('레오가 집터에 주춧돌 네 개를 놓는다.');
       A.motif({ voice: 'felt', vel: 0.36, beat: 0.8 });
+      bram.flip = true;
+      await X.TALK.say('bram', '됐네. 이제 뭘 올려도\n안 기울어.');
+      await X.TALK.say('leo', '다음은 기둥이네요.');
+      X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
+      await X.wait(1.2);
       await X.walk(leo, PL.HX + 150);
       leo.flip = true;
       await X.tween(leo, 'sit', 1, 1);

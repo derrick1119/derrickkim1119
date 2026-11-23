@@ -1,5 +1,4 @@
-/* Chapter 5 「꽃길」 — years fifteen to twenty-five. The roof goes up; his mother, whose white boat has
-   waited at the quay every evening since he first ate at her table, goes on to his father at last.
+/* Chapter 5 「꽃길」 — years fifteen to twenty-five. The roof goes up, on the whole town's count.
    Years later a magpie fetches him to the post office of the wind, where Lily's letter (she is getting
    married) has come in and will not settle until he catches it. He goes into her dream, promises to
    walk beside her empty arm, and sits her on the swing he once promised her and pushes it. At the
@@ -205,7 +204,7 @@
         X.actor('v1', { x: C.PLOT - 620, style: F.styles.villagerA, s: 142, lean: 0.12 }),
         X.actor('rosa', { x: C.PLOT - 680, style: F.styles.rosa, s: 138 }),
         X.actor('son', { x: C.PLOT - 740, style: F.styles.rosaSon, s: 144, lean: 0.14, face: { old: true } }),
-        X.actor('mom', { x: C.PLOT - 800, style: F.styles.mom, s: C.MOM_S, lean: 0.1 }),
+        X.actor('v2', { x: C.PLOT - 800, style: F.styles.villagerB, s: 134, lean: 0.06 }),
         X.actor('kid', { x: C.PLOT - 860, style: F.styles.kidA, s: 104 }),
         X.actor('cloud', { x: C.PLOT - 910, style: F.styles.cloud, s: 94 }),
       ];
@@ -230,7 +229,7 @@
       await X.wait(1.2);
       folk.forEach((a) => { a.pose = null; });
       await X.TALK.say('leo', '이제 지붕이 생겼어.');
-      await X.TALK.say('mom', '아나 오면\n비 맞을 일은 없겠구나.');
+      await X.TALK.say('v1', '아나 씨 오면\n비 맞을 일은 없겠구먼.');
       await X.TALK.say('rosa', '빈 방엔 뭘 들일 거야?');
       await X.TALK.say('leo', '…그건 아나가 정하게 둘래요.');
       await X.TALK.say('rosa', '레오, 하나만 부탁하자.');
@@ -239,48 +238,7 @@
       await X.wait(1);
       folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
       await X.wait(2.4);
-      X.toll(0); await X.wait(1.5); X.toll(1);
-      await X.wait(1);
-      X.walk(leo, PL.HX - 440, 96);
-      await X.wait(1.6);
-
-      /* ---- his mother crosses ---- */
-      let mom2, far;
-      await X.dip(async () => {
-        S.actors = []; S.boats = [];
-        const [qx, qy] = X.place.quay(); X.cam(qx, qy, 1.05); X.camSnap();
-        mom2 = X.actor('mom', { x: 180, style: F.styles.mom, s: C.MOM_S, lean: 0.1, flip: true });
-        leo = X.actor('leo', { x: 250, style: F.leoAt(2), flip: true, lean: 0.06 });
-        bean = X.actor('bean', { dog: true, s: 220, x: 300, sit: 1, flip: true, wag: 0.4 });
-        far = X.boat({ x: -74, hull: '#e9e2d6', lamp: false, riders: [] });   /* moored at the pier's end */
-        X.cloudKid();   /* on her crates, a little way off */
-      });
-      X.bed(1, 0.12, 'sea');
-      T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
-      /* the boat that takes people on has been coming for her since her promise was kept */
-      await X.TALK.say('mom', '저 배, 네가 내 밥 먹은 날부터\n저녁마다 와 있었단다.');
-      await X.TALK.say('mom', '네 아빠, 평생 기다리게만 했는데.\n…이제 가 줘야지.', { slow: true });
-      await X.TALK.say('leo', '…가요, 엄마.', { slow: true });
-      await X.TALK.say('leo', '기다리는 게 어떤 건지,\n이제 저도 알아요.');
-      await X.walk(mom2, 24, 46);
-      await X.board(mom2, far, -10);
-      mom2.flip = true;
-      /* the bell asks one last time; to send someone off, the lamps answer it backwards */
-      X.toll(3); await X.wait(0.8);
-      T.announce('배웅. 종이 울린 차례를 거꾸로, 마지막 등불부터 눌러 대답한다.');
-      await X.play(T.puzzle.bell({ rounds: [[0, 1, 2], [0, 2, 1, 3]], reverse: true }));
-      await X.TALK.say('leo', '…천천히 가요.', { slow: true });
-      await X.TALK.say('mom', '그래. 넌 천천히 와.', { slow: true });
-      A.theme({ voice: 'felt', vel: 0.32, beat: 0.8, left: true });
-      mom2.pose = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4) * 0.2, b: 0.3 }; };
-      leo.pose = (o, a2, t) => { o.armF = { a: 2.3 + Math.sin(t * 4 + 1) * 0.2, b: 0.3 }; };
-      X.sail(far, -1500, 34);
-      T.announce('하얀 배가 구름바다 너머로 멀어진다.');
-      X.cam(-260, 452, 1, 0.4);
-      await X.wait(3.4);
-      T.announce('빛의 폭포. 엄마의 하얀 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 산 사람들의 하늘로 떨어진다.');
-      await X.crossing([{ style: F.styles.mom, s: C.MOM_S }], { leoAge: 2, color: '#2a2440', also: X.seeOff() });
-      leo.pose = null;
+      await X.wait(1.2);
 
       /* ---- years on: a magpie from the post office of the wind, come to fetch him ---- */
       let pie;

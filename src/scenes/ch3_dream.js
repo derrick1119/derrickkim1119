@@ -232,13 +232,18 @@
       await X.dip(async () => { leo.x = SLIP - 172; leo.flip = true; leo.pose = (o) => { o.armF = { a: 1.05, b: 0.35 }; o.armB = { a: 0.9, b: 0.35 }; o.lean = 0.16; }; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
       T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
       await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
+      /* the last plank is on: he lets his arms down and turns round to Bram across the hull */
+      leo.pose = null;
+      await X.wait(0.5);
+      leo.flip = false; bram.flip = true;
+      await X.wait(0.4);
       await TALK.say('bram', '마르타 오는 날,\n이 배 띄우는 것 좀 거들어 주게.');
       await TALK.say('leo', '네. 꼭요.');
       /* a few days on: the two of them walk back up the hill together, to the timber he sawed, dry now */
       await X.dip(async () => { leo.pose = null; leo.x = PL.HX - 520; leo.flip = false; bram.x = PL.HX - 580; bram.flip = false; X.cam(PL.HX - 260, py, 1); X.camSnap(); });
       T.announce('며칠 뒤. 레오와 브램이 함께 언덕을 올라온다. 레오가 켜 둔 나무가 볕에 말라 있다.');
-      X.walk(bram, PL.HX - 200, 72);
-      await X.walk(leo, PL.HX - 118, 72);
+      X.walk(bram, PL.HX - 250, 72);
+      await X.walk(leo, PL.HX - 120, 72);
       X.cam(px, py, 1, 1.2);
       bram.flip = false; leo.flip = true;
       await TALK.say('bram', '자네가 켠 나무, 잘 말랐구먼.');
@@ -347,7 +352,7 @@
       X.bed(0, 0.13, 'walk');
       T.announce('아침. 비가 그쳤다. 언덕 아래에서 사람들이 올라온다.');
       const crew = [
-        X.actor('mom', { x: C.PLOT - 600, style: F.styles.mom, s: C.MOM_S, lean: 0.1 }),
+        X.actor('v2', { x: C.PLOT - 600, style: F.styles.villagerB, s: 136, lean: 0.06 }),
         X.actor('bram2', { x: C.PLOT - 680, style: F.styles.bram, s: 144, lean: 0.08 }),
         X.actor('rosa', { x: C.PLOT - 760, style: F.styles.rosa, s: 138 }),
         X.actor('v1', { x: C.PLOT - 840, style: F.styles.villagerA, s: 142 }),
@@ -362,7 +367,7 @@
       await TALK.say('rosa', '밤새 바람이 엄청났지.');
       await TALK.say('bram', '줄 가져왔네.\n혼자 끙끙대지 말고.');
       await TALK.say('kid', '나도 당길래!');
-      await TALK.say('mom', '다 같이 하면 금방이야.');
+      await TALK.say('rosa', '다 같이 하면 금방이야.');
       T.announce('다 같이 당기기. 하나, 둘, 셋 구령의 셋에 맞춰 눌러 다 함께 줄을 당긴다.');
       /* everyone takes the rope, in a line down the hill from the fallen frame */
       const pullers = [leo].concat(crew);
@@ -421,7 +426,7 @@
       await X.wait(0.6);
       await TALK.say('rosa', '저 담요… 백일 날 덮어 주려던 거야.\n끝도 못 맺고 왔는데.');
       await TALK.say('rosa', '아직도 덮어 주고 있네.', { slow: true });
-      await TALK.say('rosa', '그 애 오면, 다 뜬 걸로 덮어 줄 거야.\n다 늙어서 오겠지만.');
+      await TALK.say('rosa', '그 애 오면, 다 뜬 걸로 덮어 줄 거야.\n다 커서, 발도 안 덮이겠지만.');
       await TALK.say('rosa', '그래도 난 단번에 알아볼 거야.');
       await TALK.say('rosa', '이거 가져가. 저 자장가 한 소절.');
       await TALK.say('leo', '…아나도 릴리 재울 때 이 노래 불렀어요.');
@@ -456,12 +461,15 @@
       await TALK.say('kid', '그건 아저씨 거야.\n아저씨 생각하면서 빌었을 테니까.');
       grove.letGo();
       await X.gift('light', grove.heldAt());
-      await X.wait(1);
+      await X.wait(0.6);
+      await TALK.say('kid', '아저씨, 이제 셋 다 모였다.\n냄새, 소리, 빛.');
+      await TALK.say('leo', '…아나 꿈에, 갈 수 있겠네.', { slow: true });
+      await TALK.say('kid', '호수 가 보자.\n밤에는 더 잘 보여.');
+      await X.wait(0.6);
 
       /* ---- Ana ---- */
-      const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: true, i: 0, kid: F.styles.cloud });   /* 구름이 is already there, looking in */
+      const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: F.styles.kidA, i: 0, kid: F.styles.cloud });   /* Pipi brought him; 구름이 is already there, looking in */
       await X.view(lake2, { color: '#1b2a40' });
-      await TALK.say('mom', '너도 아나 보고 가렴.');
       T.announce('호수에 물결이 인다. 고리 셋을 눌러 돌려 비친 모습을 맞춘다.');
       await lake2.calm({ start: [2, 5, 7] });
       X.age('아나, 39');
@@ -469,8 +477,9 @@
       await X.wait(2.6);
       let sent = false;
       S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
-      await TALK.say('mom', '아는 냄새, 아는 소리,\n길을 비출 빛. 다 모였구나.');
-      await TALK.say('mom', '쓰고 나면 또 모으면 돼.\n오늘이 쓸 날이구나.');
+      await TALK.say('kid', '아줌마, 엄청 피곤해 보여….');
+      await TALK.say('leo', '오늘 가야겠다.\n꿈에서라도 좀 쉬게.', { slow: true });
+      await TALK.say('kid', '쓰고 나면 또 모으면 돼.\n나도 같이 모아 줄게.');
       S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
       const dreamt = lake2.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {

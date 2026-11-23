@@ -10,6 +10,9 @@
   T.stage = function (name, def) {
     const S = (T.scenes[name] = { def, actors: [], boats: [], ps: null, camT: { x: 0, y: 0, z: 1 }, camK: 2, dip: { a: 0, color: '#fff6e6' }, cards: {}, yr: { a: 0, n: 0, from: 0, to: 0, age: 36, age0: 36, tick: null } });
     const TALK = T.talk(S);
+    /* a name-and-age card ("로사의 아들, 72세") sits where the lines are written: a line waits until it has gone */
+    const say0 = TALK.say;
+    TALK.say = function () { const args = arguments; return S.ageHold ? S.ageHold.then(() => say0.apply(TALK, args)) : say0.apply(TALK, args); };
     const X = (S.X = { S, TALK, A: T.audio });
     const Wd = () => T.world;
 
@@ -17,7 +20,7 @@
     S.enter = function (args) {
       S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
       S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
-      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false;
+      S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } }; S.tray = null; S.trayHold = false; S.ageHold = null;
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
       Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
@@ -237,7 +240,14 @@
 
     /* ---------- cards, cuts, sound ---------- */
     X.title = function () { const c = S.cards.title, k = S.clock; T.announce(def.title.join(', ')); return k.wait(0.5).then(() => k.tween(c, 'a', 1, 1.2)).then(() => k.wait(2.4)).then(() => k.tween(c, 'a', 0, 1.2)); };
-    X.age = function (text) { const c = S.cards.age, k = S.clock; if (/, \d+$/.test(text)) text += '세'; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1).then(() => k.wait(2.8)).then(() => k.tween(c, 'a', 0, 1.2)); };
+    X.age = function (text) {
+      const c = S.cards.age, k = S.clock;
+      if (/, \d+$/.test(text)) text += '세';
+      c.text = text; T.announce(text);
+      const p = k.tween(c, 'a', 1, 1).then(() => k.wait(2.4)).then(() => k.tween(c, 'a', 0, 1));
+      const hold = (S.ageHold = p.then(() => { if (S.ageHold === hold) S.ageHold = null; }));
+      return p;
+    };
     /* the years going by: the count of years since he came runs up from `from` to `to` over a sweep of seasons.
        o: { age: hers at the end, during(seconds): change the hill while it runs } */
     X.years = async function (from, to, o = {}) {

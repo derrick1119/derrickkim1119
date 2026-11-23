@@ -159,7 +159,8 @@
       await TALK.say('leo', '…네. 코 하나 안 빠뜨리고요.');
       for (const [a, seat] of [[rosa, -40], [son, -14], [dil, 12]]) { await X.walk(a, 24, 56); await X.board(a, S.b2, seat); a.flip = true; }
       X.toll(3); await X.wait(0.8);
-      T.announce('배웅. 종이 울린 차례를 거꾸로 대답한다. 이번에는 대답하는 사이 등불이 자리를 바꾼다.');
+      await TALK.say('rosa', '보낼 땐 거꾸로 대답하는 거야.\n마지막 등불부터.');
+      T.announce('배웅. 종이 울린 차례를 거꾸로, 마지막 등불부터 대답한다. 대답하는 사이 등불이 자리를 바꾸기도 한다.');
       await X.play(T.puzzle.bell({ rounds: [[1, 3, 0], [2, 0, 3, 1]], reverse: true, shuffle: true }));
       const wave = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4 + a2.x) * 0.2, b: 0.3 }; };
       [rosa, son, dil, qleo0].forEach((a) => { a.pose = wave; });
