@@ -150,8 +150,6 @@
  "…응. 천천히 갈게.": "...Okay. I'll take my time.",
  "잘 컸다, 우리 아들.": "Look how you grew, my boy.",
  "…잘 가, 엄마.": "...Bye, Mom.",
- "아나 아줌마는 뭐 좋아해?": "What does Ana like?",
- "내가 끓인 스튜.\n맨날 짜다면서 다 먹었어.": "My stew.\nSaid it was too salty, every time. Ate it all.",
  "마지막 건 아까 만든 거야.\n아저씨 주려고. 스튜 냄비.": "I made the last one today.\nFor you. The stew pot.",
  "…엄마 갈 때도, 저랬어.": "...That's how it looked when Mom went.",
  "오늘로 꼭 일 년이지?": "A year today, isn't it?",
@@ -562,7 +560,6 @@
  "스튜 김, 자장가, 이 빛….\n셋 다 모였네.": "The stew's steam, the lullaby, this light....\nThat's all three.",
  "그게 뭔데?": "All three what?",
  "아나 꿈에 가는 길.": "The way into Ana's dream.",
- "다 쓰면, 또 모으면 되지?\n나도 같이 모아 줄게.": "If you use them up, you can gather more, right?\nI'll help.",
  "네 엄마는 저걸 세 번 보면서\n널 기다렸어.": "Your mother watched it go by three times\nwaiting for you.",
  "그때 호수에서 같이 본 줄무늬, 기억나?\n난 몇 해째 자꾸 틀려.": "The stripes we saw in the lake that time, remember?\nI've been getting them wrong for years.",
  "네. 다 기억해요.": "Yes. Every one.",
@@ -573,7 +570,11 @@
  "…릴리 모자랑 똑같다고만 생각했는데.": "...I only thought it looked like Lily's hat.",
  "당신 소원": "Your wish",
  "방 하나 비워 뒀어.\n당신이 정하라고.": "I left one room empty.\nFor you to decide.",
- "그럼 거긴 우리 둘째 방.": "Then it's our second girl's room."
+ "그럼 거긴 우리 둘째 방.": "Then it's our second girl's room.",
+ "아줌마 오면 뭐 해 줄 거야?": "What will you do for her when she comes?",
+ "집 다 지어 놓고… 스튜 끓여 줘야지.": "Have the house finished... and make her stew.",
+ "내가 끓이면 맨날 짜다면서,\n그래도 다 먹었거든.": "She always said mine was too salty,\nand ate every bit.",
+ "물가의 것들을 좌우로 끌어 보세요": "Drag the things on the bank left and right"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

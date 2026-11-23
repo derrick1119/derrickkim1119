@@ -266,13 +266,16 @@
       await TALK.say('bram', '바람 오기 전에 섰으니,\n됐다.');
       await X.wait(0.6);
       X.walk(bram, C.PLOT - 600, 80).then(() => { bram.hidden = true; });
-      await X.wait(1.6);
+      await X.wait(0.8);
+      await X.walk(leo, PL.HX - 20, 70);   /* he steps back to look at it standing */
+      leo.flip = true;
+      await X.wait(0.6);
 
       /* ---- Pipi's seeds: the first garden, on the slope below the plot ---- */
       const kid0 = X.actor('kid', { x: C.PLOT - 640, style: F.styles.kidA, s: 100 });
       kid0.pose = (o, a, t) => { if (!a.moving) { o.armF = { a: 1.4 + Math.sin(t * 6) * 0.2, b: 0.6 }; o.face.eye = 'happy'; } };
-      await X.walk(kid0, PL.HX - 110, 110);
-      leo.flip = true;
+      await X.walk(kid0, PL.HX - 104, 110);
+      kid0.flip = false; leo.flip = true;   /* face to face */
       await TALK.say('kid', '아저씨, 토마토 씨앗.\n엄마랑 베란다에서 키우던 거야.');
       await TALK.say('kid', '빨간 거 열리면 엄마 주기로 했는데…\n그 전에 내가 여기 왔어.');
       await TALK.say('leo', '그럼 여기서 키우자.\n엄마 오시면 드리게.');
@@ -481,7 +484,6 @@
       S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
       await TALK.say('kid', '아줌마, 엄청 피곤해 보여….');
       await TALK.say('leo', '오늘 가야겠다.\n꿈에서라도 좀 쉬게.', { slow: true });
-      await TALK.say('kid', '다 쓰면, 또 모으면 되지?\n나도 같이 모아 줄게.');
       S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
       const dreamt = lake2.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {

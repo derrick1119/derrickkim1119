@@ -626,6 +626,11 @@ T = [
     ("당신 소원", "Your wish"),
     ("방 하나 비워 뒀어.\n당신이 정하라고.", "I left one room empty.\nFor you to decide."),
     ("그럼 거긴 우리 둘째 방.", "Then it's our second girl's room."),
+    # ---- Pipi's question, and the lake hint that only comes when you're stuck
+    ("아줌마 오면 뭐 해 줄 거야?", "What will you do for her when she comes?"),
+    ("집 다 지어 놓고… 스튜 끓여 줘야지.", "Have the house finished... and make her stew."),
+    ("내가 끓이면 맨날 짜다면서,\n그래도 다 먹었거든.", "She always said mine was too salty,\nand ate every bit."),
+    ("물가의 것들을 좌우로 끌어 보세요", "Drag the things on the bank left and right"),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

@@ -158,7 +158,8 @@
       if (r.waste < 0.01 && !over && !under) {
         T.audio.promise();
         G.say = '';
-        G.clock.tween(G, 'grow', 1, 2.2, T.ease.out).then(() => G.finish(1.4));
+        /* the first year only sprouts come up; fruit is for later years (the scene after shows the same) */
+        G.clock.tween(G, 'grow', o.grow != null ? o.grow : [0.35, 0.5, 1][o.which || 0], 2.2, T.ease.out).then(() => G.finish(1.4));
         return;
       }
       G.tries++;

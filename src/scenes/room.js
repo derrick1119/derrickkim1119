@@ -335,7 +335,7 @@
   }
   S.enter = function (args) {
     const st = T.state;
-    S.sel = null; TALK.clear();
+    S.sel = null; TALK.clear(); S.intro = { a: 0 };
     S.dip.a = 0; S.card.a = 0; S.card.flip = 0; S.card.write = 0;
     S.hold.k = 0; S.hold.on = false; S.lastLeaf.fall = 0;
     S.ana.cry = 0; S.ana.joy = 0; S.leo.lean = 0; S.leo.reach = 0; S.leo.look = 0;
@@ -1077,7 +1077,7 @@
     }
     TALK.draw(g);
     drawCard(g);
-    if (S.intro && S.intro.a > 0.01) {
+    if (S.intro && S.intro.a > 0.01 && S.mode === 'hub' && !TALK.cur && !S.sel) {   /* only over the quiet room, never under a line */
       const x = -T.view.W / 2 + 96, a = S.intro.a;
       P.text(g, '늦가을, 병실', x, 762, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: a, align: 'left' });
       P.text(g, '레오는 아내 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 816, { font: 'serif', size: 25, color: '#f1e8d6', alpha: a, align: 'left' });

@@ -51,6 +51,10 @@
   const surf = (x) => SEA - Math.sin(x * 0.013 + T.time * 0.8) * 4;
   const HG = () => y3(HOUSE) + 2;                  /* Mom's doorstep */
   const UF = () => HG() - 186;                      /* her upstairs floor */
+  /* her house is drawn a size up around its doorstep, so that people inside have room over their heads; the
+     people keep their own size. Positions inside are in the house's own (unscaled) units: hs() maps them out */
+  const HK = 1.18;
+  const hs = (x, y) => [HOUSE + (x - HOUSE) * HK, HG() + (y - HG()) * HK];
   const toScreen = (wx, wy) => [(wx - S.cam.x) * S.cam.z, 450 + (wy - S.cam.y) * S.cam.z];
   const toWorld = (X, Y) => [X / S.cam.z + S.cam.x, (Y - 450) / S.cam.z + S.cam.y];
   S.toScreen = toScreen;
@@ -81,7 +85,7 @@
       1: [
         { x: 650, k: 'spr', s: 'shed' }, { x: 900, k: 'slip' }, { x: 1212, k: 'spr', s: 'post' }, { x: 1322, k: 'box' },
         { x: 1458, k: 'spr', s: 'build1' }, { x: 1458, k: 'builder' }, { x: 1648, k: 'spr', s: 'small' },
-        { x: 572, k: 'lamp' }, { x: 1076, k: 'lamp' }, { x: 1348, k: 'lamp' }, { x: 1520, k: 'lamp' }, { x: 1736, k: 'lamp' },   /* 1520: clear of build1's ladder */
+        { x: 572, k: 'lamp' }, { x: 1076, k: 'lamp' }, { x: 1348, k: 'lamp' }, { x: 1520, k: 'lamp' },   /* 1520: clear of build1's ladder; none at the gate, which has its own lantern */
         { x: 1384, k: 'tree', c: '#3f8076', s: 1 }, { x: 1576, k: 'tree', c: '#e0a94a', s: 0.9 },
         { x: J1 - 26, k: 'gate', n: 1 },
       ],
@@ -257,8 +261,8 @@
     else if (ph === 'walk' || ph === 'climb' || ph === 'point') { c.x = S.wx + 170; c.y = groundAt(S.wx) - 190; c.z = 1; }
     else if (ph === 'home') {
       const up = S.st === 'beam' || S.st === 'marks' || S.st === 'sweater' || S.st === 'wear';
-      if (S.st === 'marks') { c.x = HOUSE - 34; c.y = UF() - 104; c.z = 2.5; }
-      else { c.x = HOUSE; c.y = HG() - (up ? 250 : 186); c.z = up ? 1.7 : 1.5; }
+      if (S.st === 'marks') { const m = hs(HOUSE - 34, UF() - 104); c.x = m[0]; c.y = m[1]; c.z = 2.5 / HK; }
+      else { c.x = HOUSE; c.y = HG() - (up ? 250 : 186) * HK; c.z = (up ? 1.7 : 1.5) / Math.sqrt(HK); }
     } else if (ph === 'plot') { c.x = PLOT - 60; c.y = groundAt(PLOT) - 200; c.z = 1; }
     else if (ph === 'end') { c.x = 3600; c.y = 50; c.z = 0.6; }
   }
@@ -633,7 +637,7 @@
     if (S.ph === 'sail') { const s = seaLamp(); return s && !s.asked && S.boat.x >= s.x - 340 ? [s.x + 24, surf(s.x) - 96, 56] : null; }
     if (S.ph === 'walk') { const n = waitingAt(); if (n) { const q = gateAt(n); return [q[0], q[1], 48]; } return null; }
     if (S.ph === 'meet') return [S.mom.x, PIER_Y - 70, 70];
-    if (S.ph === 'home' && S.wait && SPOT[S.st]) return SPOT[S.st]();
+    if (S.ph === 'home' && S.wait && SPOT[S.st]) { const q = SPOT[S.st](); const m = hs(q[0], q[1]); return [m[0], m[1], q[2] * HK]; }
     if (S.ph === 'plot' && !S.plotGo) return [PLOT + 10, groundAt(PLOT) - 46, 70];
     return null;
   }
@@ -921,6 +925,7 @@
   /* ---------- drawing: Mom's house ---------- */
   function drawHome(g) {
     const t = T.time, open = S.home.open, hg = HG(), uf = hg - 186;
+    g.save(); g.translate(HOUSE, hg); g.scale(HK, HK); g.translate(-HOUSE, -hg);
     if (open > 0.005) {
       T.blit(g, S.spr.inside, HOUSE, hg);
       /* pot and bread */
@@ -955,11 +960,13 @@
       g.restore();
     }
     for (let i = 0; i < 4; i++) { const life = (t * 0.12 + i * 0.25) % 1; P.glow(g, HOUSE + 92 + Math.sin(t * 0.7 + i * 2) * (6 + life * 20) + life * 26, hg - 390 - life * 120, 16 + life * 26, '#fff6ea', Math.sin(life * Math.PI) * 0.34 * (1 - open * 0.6)); }
+    g.restore();
   }
   function handLamp(g, hand, lit) { P.line(g, hand[0], hand[1], hand[0], hand[1] + 9, 1.6, '#5d5066'); K.lantern(g, hand[0], hand[1] + 16, T.time, { bare: true, s: 0.8, lit, seed: hand[0] > 0 ? 3 : 7 }); }
 
   function inside(g) {
     const t = T.time, L = S.leo, N = S.mom, hg = HG(), uf = hg - 186, st = S.st;
+    const MOM_S = 132 / HK, LEO_S = 150 / HK;   /* drawn inside the house's transform: same size on screen as outdoors */
     const lUp = Math.abs(L.y - uf) < 2, nUp = Math.abs(N.y - uf) < 2;
     /* Mom */
     const ns = F.styles.mom, nh = F.hipHeight(ns, MOM_S);
@@ -1008,7 +1015,7 @@
     /* the boy he was, on the same stool, legs not reaching the floor */
     if (boy > 0.01) {
       const ks = F.styles.leoKid;
-      const ko = { x: HOUSE - 70, y: hg - 56, s: 118, style: ks, sit: true,
+      const ko = { x: HOUSE - 70, y: hg - 56, s: 118 / HK, style: ks, sit: true,
         legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 4) * 0.35 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * 4 + Math.PI) * 0.35 },
         face: { eye: cyc.chew ? 'happy' : 'open', mouth: 'smile', blush: 0.3 } };
       const ksp = eatPose(ko, cyc.lift, cyc.dip, [HOUSE - 38, hg - 73], 10);

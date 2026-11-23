@@ -107,8 +107,9 @@
       await X.TALK.say('bram', '피피도 여기 온 지 꽤 됐지.\n한 오 년 됐나.');
       await X.TALK.say('kid', '아저씨는 누구 기다려?');
       await X.TALK.say('leo', '아나. 내 아내.');
-      await X.TALK.say('kid', '아나 아줌마는 뭐 좋아해?');
-      await X.TALK.say('leo', '내가 끓인 스튜.\n맨날 짜다면서 다 먹었어.');
+      await X.TALK.say('kid', '아줌마 오면 뭐 해 줄 거야?');
+      await X.TALK.say('leo', '집 다 지어 놓고… 스튜 끓여 줘야지.');
+      await X.TALK.say('leo', '내가 끓이면 맨날 짜다면서,\n그래도 다 먹었거든.');
       await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
       await X.TALK.say('leo', '그래. 약속.');
       await X.wait(0.4);
