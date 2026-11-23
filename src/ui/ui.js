@@ -216,6 +216,16 @@ export class UI {
     this.grantSeen = game.state.grant; // 저장본을 바꾼 직후에는 동전을 날리지 않는다
     this.update(0);
     this.measure();
+    // 계기판 높이가 바뀌면(목표 칩·콤보가 나타날 때 등) 시선 경고·알림 자리만 바로 따라 내린다.
+    // 장면(기체 높이)은 흔들리지 않게 화면 크기가 바뀔 때만 다시 잰다.
+    this.hudObserver?.disconnect();
+    if (typeof ResizeObserver !== 'undefined') {
+      this.hudObserver = new ResizeObserver(() => {
+        const hudH = this.hud.offsetHeight;
+        if (hudH > 0) this.stage.style.setProperty('--hud-h', `${hudH}px`);
+      });
+      this.hudObserver.observe(this.hud);
+    }
   }
 
   /** 언어를 바꿨을 때처럼 글자가 전부 바뀌면 UI 를 새로 만든다. */
