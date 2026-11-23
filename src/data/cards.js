@@ -1,4 +1,5 @@
 import { UNITS, PLAYER_TYPES, HEROES } from './units.js';
+import { AXIS_CARDS } from './cards_axis.js';
 import { branchOf } from './branches.js';
 
 // 패: 싸움 중 손패에서 사기를 내고 쓴다 (전술 패 + 병력 패 + 영웅 패)
@@ -55,6 +56,7 @@ export const CARDS = {
 const UNIT_SYM = { sword: 'sword', shield: 'shield', spear: 'spear', xbow: 'bow', priest: 'support', knight: 'horse', wizard: 'flame', berserk: 'sword', cannon: 'cannon', magpie: 'bond', sapsal: 'bond', haetae: 'bond', samjoko: 'bond', tiger: 'bond' };
 for (const t of PLAYER_TYPES) CARDS['u_' + t] = { name: UNITS[t].name, sym: UNIT_SYM[t] || 'sword', kind: 'unit', unit: t, cost: UNITS[t].cost, rare: UNITS[t].cost > 2 ? 1 : 0, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[t].desc };
 for (const h of HEROES) CARDS['h_' + h] = { name: UNITS[h].name, kind: 'lead', unit: h, cost: 4, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[h].desc };
+Object.assign(CARDS, AXIS_CARDS);   // 빌드 축의 패 (data/cards_axis.js)
 for (const k of Object.keys(CARDS)) CARDS[k].id = k;
 // sym = 패 그림 귀퉁이에 찍는 낙관의 그림 기호 (render/symbols.js): 화살·연꽃·두루마리·투구·소용돌이. 병력 패는 병종마다 따로 가진다(UNIT_SYM)
 export const KIND = { unit: { name: '병력', col: '#3f5f8a', sym: 'sword' }, lead: { name: '영웅', col: '#a8322a', sym: 'helm' }, attack: { name: '공격', col: '#b8382a', sym: 'attack' }, support: { name: '지원', col: '#2f6f5c', sym: 'support' }, tactic: { name: '책략', col: '#5a4a8a', sym: 'trick' }, hero: { name: '영웅기', col: '#b8742a', sym: 'helm' }, curse: { name: '부정', col: '#5a5346', sym: 'curse' } };
