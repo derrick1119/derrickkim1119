@@ -2,6 +2,7 @@
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SKIN, FONT_B, st, fs, ell, rr, poly, line, path, text, paperSprite, drawSprite } from './draw.js';
 import { symbol } from './symbols.js';
 import { heroArt } from './icons_hero.js';
+import { AXIS_CARD_ART, AXIS_RELIC_ART } from './icons_axis.js';
 
 const WHITE = '#fbf7ec', BLACK = '#2b2a30', STEEL = '#e4e8ea', IRON = '#4a4a55', GREY = '#8a8a96', WOOD = '#a9753f', WOODD = '#7a4a2c', GOLD = '#e6b93e', BRASS = '#c9962e', FLAME = '#ff9a2e', GLOW = '#ffe9a0', STONE = '#a59f8f', STRAW = '#d9b24a', LEAF = '#5f9a6a', LEAFD = '#3f6b5c', PURPLE = '#6a4a9a', ICE = '#8fd3e8', WATER = '#bfe3ee';
 const PI = Math.PI;
@@ -263,6 +264,7 @@ export const CARD_ART = {
     ell(g, 13, -17, 1.2, 1.2, PURPLE); line(g, [16.6, -21, 18, -15], PURPLE, 1.6); ell(g, 18.6, -11.6, 1, 1, PURPLE);
   },
 };
+Object.assign(CARD_ART, AXIS_CARD_ART);   // 빌드 축의 패 (render/icons_axis.js)
 
 // ───────── 그 밖의 표시 ─────────
 export const MISC_ART = {
@@ -540,6 +542,7 @@ export const RELIC_ART = {
     cord(g, p => { p.moveTo(-9, 20); p.quadraticCurveTo(0, 23, 9, 20); }, ICE, 1.2);
   },
 };
+Object.assign(RELIC_ART, AXIS_RELIC_ART);   // 새 보물 (render/icons_axis.js)
 
 // ───────── 종이 오림으로 굽기 ─────────
 const cache = new Map();
@@ -559,3 +562,5 @@ export function warmIcons() {
   const step = () => { for (let n = 0; n < 2 && todo.length; n++) iconSprite(...todo.shift()); if (todo.length) setTimeout(step, 40); };
   setTimeout(step, 500);
 }
+// 다른 아이콘 파일(icons_axis.js)이 함께 쓰는 빛깔과 조각
+export { WHITE, BLACK, STEEL, IRON, GREY, WOOD, WOODD, GOLD, BRASS, FLAME, GLOW, STONE, STRAW, LEAF, LEAFD, PURPLE, ICE, WATER, PI, cord, flame, arrow, coin, rays, spark, cloud, paperTal, rattan, tassel, taegeuk, book };

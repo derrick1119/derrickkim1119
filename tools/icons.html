@@ -1,17 +1,25 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}</style></head>
 <body><canvas id="c" width="1440" height="1500"></canvas>
 <script type="module">
-// 전술 패·보물 아이콘 한눈에 보기
+// 전술 패·보물 아이콘 한눈에 보기. ?s=0.8 처럼 크기를 바꿔 볼 수 있고(패 귀퉁이 크기 확인), ?only=new 는 빌드 축의 새 그림만 보인다
 import { CARD_ART, RELIC_ART, cardIcon, relicIcon } from '../src/render/icons.js';
-import { CARDS } from '../src/data/cards.js';
+import { AXIS_CARD_ART, AXIS_RELIC_ART } from '../src/render/icons_axis.js';
+import { CARDS, isUnit } from '../src/data/cards.js';
 import { RELICS } from '../src/data/relics.js';
 import { text } from '../src/render/draw.js';
+const q = new URLSearchParams(location.search), S = Number(q.get('s')) || 2.1, onlyNew = q.get('only') === 'new';
 const c = document.getElementById('c'), g = c.getContext('2d');
 await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A')]);
+const cards = onlyNew ? Object.keys(AXIS_CARD_ART) : Object.keys(CARD_ART), relics = onlyNew ? Object.keys(AXIS_RELIC_ART) : Object.keys(RELIC_ART);
+const cols = 11, cw = 128, chH = Math.round(58 * S + 44), rows = n => Math.ceil(n / cols);
+// 그림이 없는 패·보물 (병력·영웅 패는 인형을 그리므로 빼고)
+const missing = [...Object.keys(CARDS).filter(k => !isUnit({ id: k }) && !CARD_ART[k]).map(k => '패:' + k), ...Object.keys(RELICS).filter(k => !RELIC_ART[k]).map(k => '보물:' + k)];
+window.missing = missing;
+c.height = 200 + (rows(cards.length) + rows(relics.length)) * chH;
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
-const sheet = (ids, draw, name, y0) => ids.forEach((k, i) => { const x = 80 + (i % 11) * 128, y = y0 + Math.floor(i / 11) * 170; draw(g, k, x, y, 2.1); text(g, name(k), x, y + 72, { size: 17 }); });
-text(g, '전술 패', 80, 40, { size: 30, align: 'left' }); sheet(Object.keys(CARD_ART), cardIcon, k => CARDS[k] ? CARDS[k].name : k, 120);
-const y2 = 120 + Math.ceil(Object.keys(CARD_ART).length / 11) * 170;
-text(g, '보물 · 부정', 80, y2 - 10, { size: 30, align: 'left' }); sheet(Object.keys(RELIC_ART), relicIcon, k => RELICS[k] ? RELICS[k].name : k, y2 + 70);
+const sheet = (ids, draw, name, y0) => ids.forEach((k, i) => { const x = 80 + (i % cols) * cw, y = y0 + Math.floor(i / cols) * chH; draw(g, k, x, y, S); text(g, name(k), x, y + Math.max(30, 34 * S), { size: 15, maxW: cw - 8 }); });
+text(g, `전술 패 ${cards.length}` + (missing.length ? `   · 그림 없음: ${missing.join(', ')}` : '   · 그림 없는 패·보물 없음'), 40, 40, { size: 24, align: 'left' }); sheet(cards, cardIcon, k => CARDS[k] ? CARDS[k].name : k, 120);
+const y2 = 120 + rows(cards.length) * chH;
+text(g, `보물 · 부정 ${relics.length}`, 40, y2 - 20, { size: 24, align: 'left' }); sheet(relics, relicIcon, k => RELICS[k] ? RELICS[k].name : k, y2 + 50);
 window.done = true;
 </script></body></html>
