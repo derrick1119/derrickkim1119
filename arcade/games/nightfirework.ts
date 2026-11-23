@@ -568,7 +568,7 @@ export function plan(s: FwState, join = false): { x: number; y: number; n: numbe
 // ───────────────────────────── 게임 ─────────────────────────────
 const game: GameDef<FwState> & { wows(s: FwState): number } = {
   id: 'nightfirework',
-  name: '밤하늘 불꽃 잇기',
+  name: '🎆 밤하늘 불꽃 잇기',
   genes: ['nightfirework', 'chain', 'pointer'],
   twist: '톡 한 번이 불씨 하나 — 그 자리 불꽃이 떠 있는 등불에 옮겨붙어 줄줄이 터지는데, 등불마다 터지는 모양(둘레·가로 줄·소용돌이·쪼개짐·물고기 풍덩·용)이 달라 연쇄가 갈리고, 터지는 동안 또 톡 하면 같은 연쇄로 이어져 숫자가 계속 오른다',
   rules: [

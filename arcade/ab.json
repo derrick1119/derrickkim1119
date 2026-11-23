@@ -627,6 +627,21 @@
       "machinePick": "cheesemouse",
       "machinePick2": "hauntfamily",
       "decidedAt": "2026-11-23"
+    },
+    {
+      "round": 44,
+      "openedAt": "2026-11-23",
+      "A": null,
+      "B": null,
+      "games": [
+        "nightfirework",
+        "skewerstall",
+        "eggnest"
+      ],
+      "winner": null,
+      "note": "41·42·43 세 라운드 연속 '해 봐도 재미가 없음'(43은 오너가 메뉴에서 고른 것) 뒤 '공장이 알아서 한 번 더'. 방식을 바꿈: 큰 게임(12판·성장·도감) 대신 한 화면·한 동작·한 판 1분짜리 손맛 장난감 셋 — 밤하늘 불꽃 잇기(톡, 등불 연쇄 + 꺼져 가는 고리 안을 톡해 이음 ×N) · 꼬치 꿰기 포장마차(긋기 실험, 그은 선이 꼬치가 되어 재료를 줄줄이 꿰고 손님 주문) · 알 깨기 부화 둥지(톡, 무엇이 나올지 깜짝·나온 아기가 옆 알을 깸·엄마 새가 채움·도감). 브리프 v25. 오너가 손이 가는 것을 고르면 그것만 깊게",
+      "machinePick": "nightfirework",
+      "machinePick2": "nightfirework"
     }
   ],
   "graduated": [

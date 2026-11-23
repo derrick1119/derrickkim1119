@@ -1,194 +1,193 @@
 {
- "hauntfamily": {
-  "id": "hauntfamily",
-  "name": "👻 이사 온 가족 쫓아내기",
+ "nightfirework": {
+  "id": "nightfirework",
+  "name": "🎆 밤하늘 불꽃 잇기",
   "n": 24,
   "dumb": {
-   "score": 4822,
-   "sec": 180
+   "score": 3041.5,
+   "sec": 118.3
   },
   "smart": {
-   "score": 27297.5,
-   "sec": 180,
-   "capped": 1
+   "score": 21138.5,
+   "sec": 102.4,
+   "capped": 0
   },
-  "skillGap": 5.66,
+  "skillGap": 6.95,
   "reveals": [
-   23.4,
-   31.4,
-   44.6
+   7,
+   9,
+   10
   ],
   "dumbReveals": [
-   18.8,
-   29.4
+   5.3,
+   9.6
   ],
   "parts": {
-   "skill": 0.834,
+   "skill": 0.932,
    "onboarding": 1,
-   "session": 0,
+   "session": 1,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.603,
+  "fun": 0.96,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 88,
+   "perMin": 38,
    "maxSame": 2
   },
   "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "버릇: 늘 가장 가까운 물건"
+   "rate": 0.25,
+   "stage": 6,
+   "bot": "늘 가운데에 가장 가까운 등불 톡"
   },
   "human": {
-   "sec": 268.7,
+   "sec": 110,
    "capped": 0,
-   "scoreRatio": 1.57
+   "scoreRatio": 0.97
   },
   "wow": {
-   "firstSec": 0.52,
+   "firstSec": 0.77,
    "seen": 1,
-   "dumbPerMin": 2.3,
-   "smartPerMin": 5.3
+   "dumbPerMin": 4.7,
+   "smartPerMin": 26.1
   },
   "stages": {
-   "change": 0.02,
-   "lateWow": 0.48,
-   "n": 9,
-   "tapOnly": true
-  },
-  "precision": 1,
-  "habitGap": 12.84
- },
- "cheesemouse": {
-  "id": "cheesemouse",
-  "name": "🐭 치즈 도둑 생쥐",
-  "n": 24,
-  "dumb": {
-   "score": 384.5,
-   "sec": 180
-  },
-  "smart": {
-   "score": 10140,
-   "sec": 180,
-   "capped": 1
-  },
-  "skillGap": 26.31,
-  "reveals": [
-   12.6,
-   19.8,
-   33.6
-  ],
-  "dumbReveals": [
-   9.1,
-   15.4
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 0,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.633,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 41,
-   "maxSame": 1.5
-  },
-  "habitStar3": {
-   "rate": 0.17,
-   "stage": 4,
-   "bot": "버릇: 늘 가장 가까운 치즈"
-  },
-  "human": {
-   "sec": 324.8,
-   "capped": 0.04,
-   "scoreRatio": 1.55
-  },
-  "wow": {
-   "firstSec": 11.3,
-   "seen": 1,
-   "dumbPerMin": 1.3,
-   "smartPerMin": 2
-  },
-  "stages": {
-   "change": 0.46,
-   "lateWow": 0.36,
-   "n": 8,
-   "tapOnly": true
-  },
-  "precision": 0.88,
-  "habitGap": 1.28
- },
- "castlegiant": {
-  "id": "castlegiant",
-  "name": "🏰 성을 등에 진 거인",
-  "n": 24,
-  "dumb": {
-   "score": 882,
-   "sec": 113.1
-  },
-  "smart": {
-   "score": 10260,
-   "sec": 180,
-   "capped": 1
-  },
-  "skillGap": 11.62,
-  "reveals": [
-   13.6,
-   19.3,
-   33.1
-  ],
-  "dumbReveals": [
-   9.1,
-   15.6
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 0,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.633,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 42,
-   "maxSame": 4
-  },
-  "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "버릇: 늘 바로 앞 땅"
-  },
-  "human": {
-   "sec": 313.4,
-   "capped": 0,
-   "scoreRatio": 1.75
-  },
-  "wow": {
-   "firstSec": 0.68,
-   "seen": 1,
-   "dumbPerMin": 7.2,
-   "smartPerMin": 16.2
-  },
-  "stages": {
-   "change": 0.11,
-   "lateWow": 1.01,
-   "n": 8,
+   "change": 0.14,
+   "lateWow": 0.69,
+   "n": 7,
    "tapOnly": true
   },
   "precision": 0.86,
-  "habitGap": 2.05
+  "habitGap": 4.26
+ },
+ "skewerstall": {
+  "id": "skewerstall",
+  "name": "🍡 꼬치 꿰기 포장마차",
+  "n": 24,
+  "dumb": {
+   "score": 4300,
+   "sec": 180
+  },
+  "smart": {
+   "score": 62465,
+   "sec": 180,
+   "capped": 1
+  },
+  "skillGap": 14.52,
+  "reveals": [
+   9,
+   10.9,
+   14.3
+  ],
+  "dumbReveals": [
+   8.1,
+   13.9
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 0,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.633,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 55,
+   "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.25,
+   "stage": 3,
+   "bot": "버릇: 늘 가로로 한 줄"
+  },
+  "human": {
+   "sec": 415.8,
+   "capped": 0,
+   "scoreRatio": 0.65
+  },
+  "wow": {
+   "firstSec": 0.07,
+   "seen": 1,
+   "dumbPerMin": 3.5,
+   "smartPerMin": 48.3
+  },
+  "stages": {
+   "change": 0,
+   "lateWow": 0.91,
+   "n": 3
+  },
+  "precision": 0.97,
+  "habitGap": 2.34
+ },
+ "eggnest": {
+  "id": "eggnest",
+  "name": "🥚 알 깨기 부화 둥지",
+  "n": 24,
+  "dumb": {
+   "score": 2149.5,
+   "sec": 75
+  },
+  "smart": {
+   "score": 9685,
+   "sec": 142.3,
+   "capped": 0
+  },
+  "skillGap": 4.5,
+  "reveals": [
+   15.3,
+   19.4,
+   28.6
+  ],
+  "dumbReveals": [
+   17.4,
+   28.8
+  ],
+  "parts": {
+   "skill": 0.724,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.897,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 26,
+   "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.33,
+   "stage": 5,
+   "bot": "버릇: 늘 가운데 알"
+  },
+  "human": {
+   "sec": 159.5,
+   "capped": 0,
+   "scoreRatio": 1.06
+  },
+  "wow": {
+   "firstSec": 0.15,
+   "seen": 1,
+   "dumbPerMin": 40.3,
+   "smartPerMin": 40
+  },
+  "stages": {
+   "change": 0.19,
+   "lateWow": 0.68,
+   "n": 6,
+   "tapOnly": true
+  },
+  "precision": 1,
+  "habitGap": 1.29
  }
 }

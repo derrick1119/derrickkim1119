@@ -5,10 +5,16 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`bodyhop.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { nightfirework, nightfireworkRandom, nightfireworkSmart, nightfireworkHabit, nightfireworkHabit2 } from './games/nightfirework.ts';
+import { skewerstall, skewerstallRandom, skewerstallSmart, skewerstallHabit, skewerstallHabit2 } from './games/skewerstall.ts';
+import { eggnest, eggnestRandom, eggnestSmart, eggnestHabit, eggnestHabit2 } from './games/eggnest.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 43라운드 판정(2026-11-23): 전체 폐기(해 봐도 재미가 없음) — 44라운드 준비 중(공장이 알아서 한 번 더)
+  // 44라운드(2026-11-23): 작은 손맛 장난감 셋(공장이 알아서 한 번 더)
+  { game: nightfirework, dumb: nightfireworkRandom, smart: nightfireworkSmart, habits: [nightfireworkHabit, nightfireworkHabit2] },
+  { game: skewerstall, dumb: skewerstallRandom, smart: skewerstallSmart, habits: [skewerstallHabit, skewerstallHabit2] },
+  { game: eggnest, dumb: eggnestRandom, smart: eggnestSmart, habits: [eggnestHabit, eggnestHabit2] },
 ];
