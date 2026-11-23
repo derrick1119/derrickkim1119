@@ -4,7 +4,7 @@
 import {
   CAM_Z, THREE, P, G, bake, bakeV, terrain, cloudLayer, cloudMat, pine, bush, rock, mushroom, halfW, smooth, fbm, noise2, rgb,
   mixv, rng, TAU, cachedTex, glowPoints, extrudeGeo, sphereGeo, roundBoxGeo, cylGeo, coneGeo, latheGeo, torusGeo, boxGeo,
-  lanePlants, flowerGeo, groundDecal, grassStrokes, speckle, glowS, sharedMat,
+  lanePlants, flowerGeo, groundDecal, grassStrokes, speckle, glowS, sharedMat, inkLine, dimWithWeather,
 } from './common.js';
 
 const LAKE_Y = -0.14;
@@ -80,7 +80,7 @@ function color(x, y, z, ny) {
 // 통로 흙길과 풀 결
 function drawDecal(ctx, W, Hh, X, Z, r) {
   const u = W / 13.2;
-  grassStrokes(ctx, 0, 0, W, Hh, 2200, ['rgba(30,70,45,0.22)', 'rgba(255,235,140,0.18)', 'rgba(40,90,50,0.16)'], r, [3, 7]);
+  grassStrokes(ctx, 0, 0, W, Hh, 650, ['rgba(30,70,45,0.15)', 'rgba(255,235,140,0.14)'], r, [4, 9]);
   const top = [];
   const bot = [];
   for (let x = -6.6; x <= 6.61; x += 0.1) {
@@ -104,7 +104,7 @@ function drawDecal(ctx, W, Hh, X, Z, r) {
   ctx.beginPath();
   for (let x = -6.6; x <= 6.61; x += 0.1) (x === -6.6 ? ctx.moveTo : ctx.lineTo).call(ctx, X(x), Z(tz(x)));
   ctx.stroke();
-  speckle(ctx, 0, 0, W, Hh, 1400, ['rgba(120,100,50,0.35)', 'rgba(255,245,200,0.45)'], r, [1, 3]);
+  speckle(ctx, 0, 0, W, Hh, 220, ['rgba(120,100,50,0.2)', 'rgba(255,245,200,0.3)'], r, [1.5, 3.5]);
   ctx.restore();
   // 모닥불 둘레 그을린 흙
   const fx = X(1.35);
@@ -138,7 +138,7 @@ function drawDecal(ctx, W, Hh, X, Z, r) {
 // ───────── 소품 ─────────
 
 function tent(parent, x, z, ry) {
-  const g = G(parent, x, 0, z, ry, 1.05);
+  const g = G(parent, x, 0, z, ry, 1.15);
   const body = extrudeGeo('tent', [[-0.85, 0], [0.85, 0], [0.06, 1.2], [-0.06, 1.2]], 1.5, 0.04);
   g.add(P(body, '', { fin: 'soft', tt: ['#c0502c', '#ffa24a'] }));
   // 문: 안에서 등불이 비치는 따뜻한 빛(블룸) + 젖힌 덮개
@@ -151,6 +151,7 @@ function tent(parent, x, z, ry) {
   }
   // 바닥 깔개
   g.add(P(roundBoxGeo(0.9, 0.03, 0.5, 0.015, 1), '#5a8fd0', { pos: [0, 0.015, 1.05], fin: 'soft', cast: false }));
+  inkLine(g, 0.035);
   return g;
 }
 
@@ -184,6 +185,7 @@ function logSeat(parent, x, z, ry, len = 0.9) {
   g.add(P(cylGeo(0.12, 0.12, 0.02, 12), '#ecc08a', { pos: [len / 2 + 0.005, 0.15, 0], rot: [0, 0, Math.PI / 2], cast: false }));
   g.add(P(cylGeo(0.12, 0.12, 0.02, 12), '#ecc08a', { pos: [-len / 2 - 0.005, 0.15, 0], rot: [0, 0, Math.PI / 2], cast: false }));
   g.add(P(torusGeo(0.06, 0.012, 4, 12), '#c8925a', { pos: [len / 2 + 0.016, 0.15, 0], rot: [0, Math.PI / 2, 0], cast: false }));
+  inkLine(g, 0.022);
   return g;
 }
 
@@ -194,6 +196,7 @@ function canoe(parent, x, z, ry) {
   g.add(P(roundBoxGeo(0.07, 0.035, 0.44, 0.015, 1), '#e0b07a', { pos: [0.3, 0.2, 0] }));
   g.add(P(roundBoxGeo(0.07, 0.035, 0.44, 0.015, 1), '#e0b07a', { pos: [-0.3, 0.2, 0] }));
   g.add(P(roundBoxGeo(0.9, 0.03, 0.06, 0.012, 1), '#c08a56', { pos: [0.1, 0.24, 0.12], rot: [0, 0.3, 0.1] }));
+  inkLine(g, 0.025);
   return g;
 }
 
@@ -218,6 +221,7 @@ function signpost(parent, x, z, ry) {
   // 판 위 글씨 자리(짙은 띠)
   g.add(P(roundBoxGeo(0.3, 0.035, 0.01, 0.01, 1), '#6a4026', { pos: [0.08, 0.88, 0.075], cast: false }));
   g.add(P(roundBoxGeo(0.3, 0.035, 0.01, 0.01, 1), '#6a4026', { pos: [-0.08, 0.66, 0.075], cast: false }));
+  inkLine(g, 0.025);
   return g;
 }
 
@@ -276,7 +280,7 @@ export function buildCamp({ w }) {
   const waterGeo = new THREE.PlaneGeometry(400, 60, 1, 1);
   waterGeo.rotateX(-Math.PI / 2);
   waterGeo.translate(0, LAKE_Y, -24);
-  const water = new THREE.Mesh(waterGeo, reflMat('water', () => new THREE.MeshBasicMaterial({ color: '#2c3478', transparent: true, opacity: 0.42, depthWrite: false })));
+  const water = new THREE.Mesh(waterGeo, reflMat('water', () => new THREE.MeshBasicMaterial({ color: '#4c4596', transparent: true, opacity: 0.66, depthWrite: false })));
   water.userData.ownGeometry = true;
   water.renderOrder = 2;
   const rip = cachedTex('lakeRipple', 256, 512, (ctx, W, Hh) => {
@@ -318,7 +322,7 @@ export function buildCamp({ w }) {
   const eR = halfW(w, -5) + 0.5;
   const dark = ['#123634', '#4f8250'];
   for (const [x, z, s] of [[eL, -4, 2.3], [eL + 1.0, -6.2, 1.7], [eL + 0.2, -8.5, 2.0], [eR, -5, 2.2], [eR - 1.1, -3.2, 1.4], [eR - 0.4, -8, 1.9]]) {
-    pine(props, x, H(x, z), z, s, r, { leaf: z > -5.5 ? dark : sets[(r() * 3) | 0], seg: 12, tiers: 4 });
+    pine(props, x, H(x, z), z, s, r, { leaf: z > -5.5 ? dark : sets[(r() * 3) | 0], seg: 12, tiers: 4, ink: 0.03 });
   }
   for (const [x, z] of [[eL + 1.8, -2.4], [eR - 1.9, -2.2]]) bush(props, x, 0, z, 0.95, r, { leaf: ['#244a3a', '#7aa050'] });
 
@@ -333,8 +337,8 @@ export function buildCamp({ w }) {
   canoe(props, -0.6, nearShore(-0.6) - 0.5, 0.2);
   jetty(props, 2.6, nearShore(2.6) + 0.35, -0.15);
   signpost(props, -3.2, -1.5, 0.3);
-  for (const [x, z, s] of [[-2.7, -2.1, 0.9], [3.1, -4.3, 1.3], [2.4, -6.2, 0.9], [-3.4, -5.8, 1.1], [0.2, -6.0, 0.7]]) rock(props, x, H(x, z), z, s, r, '#a59fbc');
-  for (const [x, z, s, c] of [[-2.4, -1.7, 1.0, '#e2483c'], [-2.15, -1.9, 0.7, '#e2483c'], [3.4, -2.0, 0.9, '#f08a3c'], [eR - 1.5, -4.0, 1.2, '#e2483c']]) mushroom(props, x, H(x, z), z, s, r, { cap: c });
+  for (const [x, z, s] of [[3.1, -4.3, 1.4], [-3.4, -5.8, 1.2]]) rock(props, x, H(x, z), z, s, r, '#a59fbc');
+  for (const [x, z, s, c] of [[-2.4, -1.75, 1.2, '#e2483c'], [eR - 1.5, -4.0, 1.3, '#f08a3c']]) mushroom(props, x, H(x, z), z, s, r, { cap: c });
   // 전구 줄(텐트 뒤 기둥 ↔ 오른쪽 소나무 앞 기둥): 늘어진 줄 + 빛나는 전구(블룸)
   const poleA = [-2.9, -4.4];
   const poleB = [3.4, -5.2];
@@ -436,6 +440,8 @@ export function buildCamp({ w }) {
   sun.position.set(SUNX, 11, -240);
   const sunCore = glowS('camp:sunCore', '#fff6d8', 9, 0.95, 1.6);
   sunCore.position.set(SUNX, 10.5, -239);
+  dimWithWeather('camp:sun', sun.material);
+  dimWithWeather('camp:sunCore', sunCore.material);
   root.add(sunCore, sun);
 
   // 노을 구름

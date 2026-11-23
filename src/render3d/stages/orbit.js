@@ -15,41 +15,41 @@ function wrapNoise(u, v, f, oct = 4) {
   return a + (fbm((u - 1) * f, v * f, oct) - a) * k * k * (3 - 2 * k);
 }
 
-function earthTex() {
-  return cachedTex('earth', 1024, 512, (ctx, W, Hh) => {
-    const img = ctx.createImageData(W, Hh);
-    const d = img.data;
-    const deep = [24, 78, 196];
-    const shallow = [70, 176, 230];
-    const green = [92, 186, 82];
-    const green2 = [46, 132, 70];
-    const sand = [226, 198, 126];
-    const ice = [240, 246, 255];
-    for (let y = 0; y < Hh; y++) {
-      const v = y / Hh;
-      const lat = Math.abs(v - 0.5) * 2;
-      for (let x = 0; x < W; x++) {
-        const u = x / W;
-        const n = wrapNoise(u, v, 3.5) + 0.08 * (wrapNoise(u, v, 11.5, 2) - 0.5);
-        const m = wrapNoise(u, v + 3.7, 5.5, 2);
-        const land = n - 0.53;
-        const sea = deep.map((k, i) => k + (shallow[i] - k) * Math.max(0, 1 + land * 12) ** 2);
-        let g = green.map((k, i) => k + (green2[i] - k) * Math.min(1, Math.max(0, land) * 9));
-        if (m > 0.56 && lat < 0.6) g = g.map((k, i) => k + (sand[i] - k) * Math.min(1, (m - 0.56) * 6));
-        const coast = Math.min(1, Math.max(0, (land + 0.004) / 0.012));
-        const beach = Math.max(0, 1 - Math.abs(land - 0.004) / 0.01) * 0.6;
-        let c = sea.map((k, i) => k + (g[i] - k) * coast);
-        c = c.map((k, i) => k + (sand[i] - k) * beach);
-        const ic = Math.min(1, Math.max(0, (lat - 0.82 - 0.06 * (n - 0.5)) * 25));
-        if (ic > 0) c = c.map((k, i) => k + (ice[i] - k) * ic);
-        const o = (y * W + x) * 4;
-        d[o] = c[0];
-        d[o + 1] = c[1];
-        d[o + 2] = c[2];
-        d[o + 3] = 255;
-      }
+const fieldCache = new Map();
+/** 반정밀 실수 값 지도(채널 2개, 선형 보간). 8비트 캔버스와 달리 크게 늘려도 계단·띠가 생기지 않는다. */
+function fieldTex(key, W, Hh, fn) {
+  let t = fieldCache.get(key);
+  if (t) return t;
+  const data = new Uint16Array(W * Hh * 2);
+  const out = [0, 0];
+  for (let y = 0; y < Hh; y++) {
+    for (let x = 0; x < W; x++) {
+      fn(x / W, y / Hh, out);
+      const o = (y * W + x) * 2;
+      data[o] = THREE.DataUtils.toHalfFloat(out[0]);
+      data[o + 1] = THREE.DataUtils.toHalfFloat(out[1]);
     }
-    ctx.putImageData(img, 0, 0);
+  }
+  t = new THREE.DataTexture(data, W, Hh, THREE.RGFormat, THREE.HalfFloatType);
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps = true;
+  t.flipY = false;
+  t.needsUpdate = true;
+  fieldCache.set(key, t);
+  return t;
+}
+
+/**
+ * 지구 바탕 "값 지도": R = 땅 높이 잡음(0.53 위가 땅), G = 메마름(사막 띠). 색은 셰이더가 칠한다 →
+ * 아무리 크게 보여도 해안선이 흐려지지 않고 또렷한 장난감 지구본이 된다.
+ * (캔버스 지도와 같은 방향이 되도록 v 를 뒤집어 채운다)
+ */
+function earthField() {
+  return fieldTex('earth', 1024, 512, (u, v, out) => {
+    const vv = 1 - v;
+    out[0] = wrapNoise(u, vv, 3.5) + 0.08 * (wrapNoise(u, vv, 11.5, 2) - 0.5);
+    out[1] = wrapNoise(u, vv + 3.7, 5.5, 2);
   });
 }
 
@@ -74,22 +74,12 @@ function lightsTex() {
   });
 }
 
-function cloudTex() {
-  return cachedTex('earthClouds', 1024, 512, (ctx, W, Hh) => {
-    const img = ctx.createImageData(W, Hh);
-    const d = img.data;
-    for (let y = 0; y < Hh; y++) {
-      const v = y / Hh;
-      for (let x = 0; x < W; x++) {
-        const u = x / W;
-        const n = wrapNoise(u, v * 2.8, 4.5, 3) * 0.7 + wrapNoise(u, v * 2, 7, 2) * 0.3;
-        const a = Math.max(0, Math.min(1, (n - 0.5) * 5));
-        const o = (y * W + x) * 4;
-        d[o] = d[o + 1] = d[o + 2] = 255;
-        d[o + 3] = a * 235;
-      }
-    }
-    ctx.putImageData(img, 0, 0);
+/** 구름 값 지도(R = 구름 잡음). 셰이더가 0.54 에서 또렷하게 잘라 솜뭉치 모양을 만든다. */
+function cloudField() {
+  return fieldTex('earthClouds', 1024, 512, (u, v, out) => {
+    const vv = 1 - v;
+    out[0] = wrapNoise(u, vv * 2.8, 4.5, 3) * 0.7 + wrapNoise(u, vv * 2, 7, 2) * 0.3;
+    out[1] = 0;
   });
 }
 
@@ -182,13 +172,13 @@ export function buildOrbit({ w }) {
   const spin = G(earth);
   spin.rotation.x = -Math.PI / 2 + 0.25;
   const turn = G(spin);
-  const eTex = earthTex();
+  const eTex = earthField();
   eTex.wrapS = THREE.RepeatWrapping;
   eTex.repeat.set(2, 1);
   const lTex = lightsTex();
   lTex.wrapS = THREE.RepeatWrapping;
   lTex.repeat.set(2, 1);
-  const cTex = cloudTex();
+  const cTex = cloudField();
   cTex.wrapS = THREE.RepeatWrapping;
   cTex.repeat.set(2, 1);
   const sphere = (rad, ws, hs) => sharedMat(`orbit:sphere${rad}|${ws}|${hs}`, () => {
@@ -198,9 +188,48 @@ export function buildOrbit({ w }) {
   });
   // 지구 재질: 밤 쪽(해를 등진 곳)에만 도시 불빛이 켜진다(블룸)
   const earthMaterial = sharedMat('orbit:earth', () => {
-    const m = new THREE.MeshStandardMaterial({ map: eTex, roughness: 0.75, metalness: 0, envMapIntensity: 0.3, emissiveMap: lTex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 2.4 });
+    const m = new THREE.MeshStandardMaterial({ map: eTex, roughness: 0.55, metalness: 0, envMapIntensity: 0.45, emissiveMap: lTex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 2.4 });
+    const U = {
+      eDeep: { value: new THREE.Color('#1c48c0') },
+      eShallow: { value: new THREE.Color('#46b4ec') },
+      eReef: { value: new THREE.Color('#8ce4f0') },
+      eGreen: { value: new THREE.Color('#68c454') },
+      eGreen2: { value: new THREE.Color('#2e8a4a') },
+      eSand: { value: new THREE.Color('#f0d088') },
+      eIce: { value: new THREE.Color('#f4f8ff') },
+    };
     m.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
+      Object.assign(shader.uniforms, U);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 eDeep; uniform vec3 eShallow; uniform vec3 eReef; uniform vec3 eGreen; uniform vec3 eGreen2; uniform vec3 eSand; uniform vec3 eIce;\nfloat eCoast;')
+        .replace(
+          '#include <map_fragment>',
+          `vec4 ef = texture2D( map, vMapUv );
+          float land = ef.r - 0.53;
+          float aa = fwidth( land ) * 1.2 + 1e-4;
+          eCoast = smoothstep( -aa, aa, land );
+          // 바다: 깊은 파랑 → 얕은 하늘빛, 해안 바로 앞은 옥빛 띠
+          float shal = smoothstep( -0.11, 0.0, land );
+          vec3 sea = mix( eDeep, eShallow, shal * shal );
+          sea = mix( sea, eReef, smoothstep( -0.022, -0.004, land ) * 0.6 );
+          // 땅: 볕 든 연두 → 안쪽 짙은 초록, 메마른 곳은 모래빛(경계도 또렷하게)
+          vec3 grn = mix( eGreen, eGreen2, smoothstep( 0.0, 0.11, land ) );
+          float dry = ef.g - 0.62;
+          float lat = abs( fract( vMapUv.y ) - 0.5 ) * 2.0;
+          float daa = max( fwidth( dry ) * 1.2, 0.004 );
+          grn = mix( grn, eSand, smoothstep( -daa, daa, dry ) * ( 1.0 - smoothstep( 0.5, 0.62, lat ) ) * 0.85 );
+          vec3 ec = mix( sea, grn, eCoast );
+          float ice = lat - 0.82 - 0.06 * ( ef.r - 0.5 );
+          float iaa = max( fwidth( ice ) * 1.2, 0.004 );
+          ec = mix( ec, eIce, smoothstep( -iaa, iaa, ice ) );
+          diffuseColor.rgb *= ec;`,
+        )
+        .replace(
+          '#include <roughnessmap_fragment>',
+          // 바다는 반들반들(해 쪽에 장난감 지구본 같은 반짝임), 땅은 보들하게
+          '#include <roughnessmap_fragment>\nroughnessFactor = mix( 0.32, 0.85, eCoast );',
+        )
+        .replace(
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
         #if NUM_DIR_LIGHTS > 0
@@ -208,17 +237,30 @@ export function buildOrbit({ w }) {
         #endif`,
       );
     };
-    m.customProgramCacheKey = () => 'earthNight';
+    m.customProgramCacheKey = () => 'earthToy';
     return m;
   });
   const ball = new THREE.Mesh(sphere(R, 96, 64), earthMaterial);
   turn.add(ball);
-  const clouds = new THREE.Mesh(sphere(R * 1.008, 96, 64), sharedMat('orbit:clouds', () => new THREE.MeshStandardMaterial({ map: cTex, transparent: true, roughness: 1, depthWrite: false })));
+  // 구름: 값 지도를 또렷하게 잘라 솜뭉치처럼(가장자리는 매끈, 가운데는 더 하얗게)
+  const clouds = new THREE.Mesh(sphere(R * 1.008, 96, 64), sharedMat('orbit:clouds', () => {
+    const m = new THREE.MeshStandardMaterial({ map: cTex, transparent: true, roughness: 0.9, depthWrite: false });
+    m.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `float cf = texture2D( map, vMapUv ).r - 0.585;
+        float caa = fwidth( cf ) * 1.2 + 1e-4;
+        diffuseColor.a *= smoothstep( -caa, caa, cf ) * mix( 0.7, 0.9, smoothstep( 0.0, 0.07, cf ) );`,
+      );
+    };
+    m.customProgramCacheKey = () => 'earthCloudToy';
+    return m;
+  }));
   const cloudTurn = G(spin);
   cloudTurn.add(clouds);
   // 대기: 안쪽 테두리 + 바깥 후광
   const atmoIn = new THREE.Mesh(sphere(R * 1.012, 96, 48), atmosphere('#7fd0ff', 2.2, 0.95, THREE.FrontSide));
-  const atmoOut = new THREE.Mesh(sphere(R * 1.06, 96, 48), atmosphere('#5aa8ff', 5.0, 1.9, THREE.BackSide));
+  const atmoOut = new THREE.Mesh(sphere(R * 1.06, 96, 48), atmosphere('#5aa8ff', 5.0, 1.45, THREE.BackSide));
   earth.add(atmoIn, atmoOut);
 
   // 오로라: 카메라에서 본 지구 테두리(가장자리 원)를 따라 그 바깥에 두른 띠. 가장자리 원이 놓인 평면에 눕힌다.
@@ -273,7 +315,8 @@ export function buildOrbit({ w }) {
   sunGlow.position.set(-62, 5, -330);
   const sunCore = glowS('orbit:sunCore', '#ffffff', 16, 1.0, 2.2);
   sunCore.position.set(-62, 4.5, -329);
-  const streak = glowS('orbit:streak', '#cfe6ff', 1, 0.5, 1.3);
+  // 해 빛줄기는 블룸 문턱 아래로(화면 폭 전체에 걸쳐 있어 넘으면 위쪽 전체가 청록 안개에 덮인다)
+  const streak = glowS('orbit:streak', '#cfe6ff', 1, 0.42, 0.9);
   streak.scale.set(220, 5, 1);
   streak.position.set(-62, 4.5, -328);
   root.add(sunGlow, sunCore, streak);

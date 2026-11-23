@@ -5,7 +5,7 @@
 import {
   THREE, P, G, bake, bakeV, terrain, cloudLayer, cloudMat, roundTree, bush, streetLamp, car, stripGround, speckle,
   halfW, smooth, rgb, mixv, rng, TAU, cachedTex, glowPoints, mix, screenModel, sphereGeo, boxGeo, roundBoxGeo, cylGeo,
-  coneGeo, capsuleGeo, torusGeo, LEAF, glowS, sharedMat, scatter, flowerGeo, tuftGeo, partsGeo,
+  coneGeo, capsuleGeo, torusGeo, LEAF, glowS, sharedMat, scatter, partsGeo, inkLine, dimWithWeather,
 } from './common.js';
 import { glowTexture } from '../kit.js';
 
@@ -15,60 +15,53 @@ const CELLS = 8;
 function windowTextures() {
   const r = rng(41);
   const lit = [];
-  for (let i = 0; i < CELLS * CELLS; i++) lit.push(r() < 0.26 ? 1 + ((r() * 3) | 0) : 0);
+  for (let i = 0; i < CELLS * CELLS; i++) lit.push(r() < 0.2 ? 1 + ((r() * 3) | 0) : 0);
   const S = 64;
-  const map = cachedTex('cityWin2', S * CELLS, S * CELLS, (ctx) => {
+  const rr = (ctx, x, y, w, h, k) => {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, k);
+    else ctx.rect(x, y, w, h);
+    ctx.fill();
+  };
+  // 장난감 빌딩 창: 큼직한 둥근 창 하나씩, 벽과 창의 대비는 낮게(멀리서 잔무늬가 되지 않게)
+  const map = cachedTex('cityWin3', S * CELLS, S * CELLS, (ctx) => {
     for (let j = 0; j < CELLS; j++) {
       for (let i = 0; i < CELLS; i++) {
         const x = i * S;
         const y = j * S;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(x, y, S, S);
-        // 층 띠(아래 그늘)
-        ctx.fillStyle = '#e2dcec';
-        ctx.fillRect(x, y + S - 9, S, 9);
-        ctx.fillStyle = '#cfc6dc';
-        ctx.fillRect(x, y + S - 3, S, 3);
+        // 층 띠(아래 살짝 그늘)
+        ctx.fillStyle = '#ece8f2';
+        ctx.fillRect(x, y + S - 7, S, 7);
         const L = lit[j * CELLS + i];
-        const gx = x + 14;
-        const gy = y + 11;
-        const gw = S - 28;
-        const gh = S - 27;
-        // 창틀
-        ctx.fillStyle = '#d6cfe2';
-        ctx.fillRect(gx - 3, gy - 3, gw + 6, gh + 6);
+        const gx = x + 11;
+        const gy = y + 9;
+        const gw = S - 22;
+        const gh = S - 22;
+        ctx.fillStyle = '#e4deee';
+        rr(ctx, gx - 3, gy - 3, gw + 6, gh + 6, 9);
         if (L) {
           const g = ctx.createLinearGradient(0, gy, 0, gy + gh);
-          g.addColorStop(0, ['#ffe9a8', '#ffd890', '#ffd0b0'][L - 1]);
-          g.addColorStop(1, ['#ffc867', '#ffb45a', '#ff9f80'][L - 1]);
+          g.addColorStop(0, ['#ffeab0', '#ffdc9a', '#ffd6b8'][L - 1]);
+          g.addColorStop(1, ['#ffcc70', '#ffbb66', '#ffa88a'][L - 1]);
           ctx.fillStyle = g;
         } else {
           const g = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh);
-          g.addColorStop(0, '#7484c8');
-          g.addColorStop(0.55, '#3d4a8c');
-          g.addColorStop(1, '#2a3268');
+          g.addColorStop(0, '#a8b0e0');
+          g.addColorStop(1, '#6a72b4');
           ctx.fillStyle = g;
         }
-        ctx.fillRect(gx, gy, gw, gh);
+        rr(ctx, gx, gy, gw, gh, 7);
         if (!L) {
-          ctx.fillStyle = 'rgba(255,255,255,0.3)';
-          ctx.beginPath();
-          ctx.moveTo(gx + 4, gy + gh - 6);
-          ctx.lineTo(gx + gw * 0.55, gy + 3);
-          ctx.lineTo(gx + gw * 0.75, gy + 3);
-          ctx.lineTo(gx + 10, gy + gh - 4);
-          ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.35)';
+          rr(ctx, gx + 5, gy + 5, gw * 0.22, gh * 0.5, 4);
         }
-        ctx.fillStyle = 'rgba(40,40,80,0.35)';
-        ctx.fillRect(gx + gw / 2 - 1, gy, 2, gh);
-        // 창턱
-        ctx.fillStyle = '#f6f2fa';
-        ctx.fillRect(gx - 4, gy + gh + 2, gw + 8, 4);
       }
     }
   });
   map.wrapS = map.wrapT = THREE.RepeatWrapping;
-  const emi = cachedTex('cityWinE2', S * CELLS, S * CELLS, (ctx) => {
+  const emi = cachedTex('cityWinE3', S * CELLS, S * CELLS, (ctx) => {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, S * CELLS, S * CELLS);
     for (let j = 0; j < CELLS; j++) {
@@ -76,7 +69,7 @@ function windowTextures() {
         const L = lit[j * CELLS + i];
         if (!L) continue;
         ctx.fillStyle = ['#ffd27a', '#ffb860', '#ff9a7a'][L - 1];
-        ctx.fillRect(i * S + 14, j * S + 11, S - 28, S - 27);
+        rr(ctx, i * S + 11, j * S + 9, S - 22, S - 22, 7);
       }
     }
   });
@@ -84,11 +77,12 @@ function windowTextures() {
   return { map, emi };
 }
 
-function towerMat(tint) {
-  return sharedMat(`city:tower${tint}`, () => {
+/** 빌딩 재질 하나(색은 꼭짓점 색으로) → 굽기 때 모든 빌딩이 한 덩어리(그리기 1번)로 합쳐진다. */
+function towerMat() {
+  return sharedMat('city:tower', () => {
     const { map, emi } = windowTextures();
     // 불 켜진 창은 방출 1.5 → 가장 밝은 노란 창만 블룸 문턱을 살짝 넘는다(군데군데 반짝)
-    return new THREE.MeshStandardMaterial({ color: tint, map, emissiveMap: emi, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.5, roughness: 0.7, envMapIntensity: 0.7 });
+    return new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map, emissiveMap: emi, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.5, roughness: 0.62, envMapIntensity: 0.75 });
   });
 }
 
@@ -111,17 +105,28 @@ function towerGeo(w, h, d, colW, floorH, ou, ov) {
   return g;
 }
 
-function tower(parent, x, z, w, h, d, tint, r, { colW = 0.56, floorH = 0.6, ry = 0, trim = true } = {}) {
-  const m = new THREE.Mesh(towerGeo(w, h, d, colW, floorH, (r() * CELLS) | 0, (r() * CELLS) | 0), towerMat(tint));
+function tower(parent, x, z, w, h, d, tint, r, { colW = 0.62, floorH = 0.68, ry = 0, trim = true, ink = 0 } = {}) {
+  const geo = towerGeo(w, h, d, colW, floorH, (r() * CELLS) | 0, (r() * CELLS) | 0);
+  const c = new THREE.Color(tint);
+  const col = new Float32Array(geo.attributes.position.count * 3);
+  for (let i = 0; i < col.length; i += 3) col.set([c.r, c.g, c.b], i);
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const m = new THREE.Mesh(geo, towerMat());
   m.position.set(x, h / 2, z);
   m.rotation.y = ry;
   m.userData.ownGeometry = true;
+  if (ink) {
+    m.userData.ol = ink;
+    m.userData.olCol = mix(tint, '#2a2058', 0.62);
+  }
   parent.add(m);
   if (trim) {
     // 두툼한 옥상 난간 + 1층 받침(빌딩 덩어리를 또렷하게)
     const dark = mix(tint, '#2a2a5a', 0.42);
-    parent.add(P(roundBoxGeo(w + 0.16, 0.24, d + 0.16, 0.06, 1), '', { pos: [x, h + 0.06, z], rot: [0, ry, 0], fin: 'soft', tt: [dark, mix(tint, '#ffffff', 0.25)] }));
+    const cap = P(roundBoxGeo(w + 0.16, 0.24, d + 0.16, 0.06, 1), '', { pos: [x, h + 0.06, z], rot: [0, ry, 0], fin: 'soft', tt: [dark, mix(tint, '#ffffff', 0.25)] });
+    parent.add(cap);
     parent.add(P(roundBoxGeo(w + 0.06, 0.5, d + 0.06, 0.04, 1), dark, { pos: [x, 0.25, z], rot: [0, ry, 0], fin: 'soft' }));
+    if (ink) inkLine(cap, ink);
   }
   return m;
 }
@@ -239,6 +244,7 @@ function shop(parent, x, z, w, floors, wall, awning, r, lamps) {
   g.add(P(roundBoxGeo(w * 0.44, 0.1, 0.06, 0.04, 1), neon, { pos: [0, 0.8, 0.74], fin: 'neon', cast: false }));
   if (r() < 0.7) g.add(P(roundBoxGeo(0.42, 0.28, 0.38, 0.04, 1), '', { pos: [(r() - 0.5) * w * 0.5, h + 0.3, -0.2], fin: 'soft', tt: ['#8a86a8', '#e0dcf0'] }));
   lamps.push([x, 0.3, z + 0.95, '#ffcf7a']);
+  inkLine(g, 0.03);
   return { g, h };
 }
 
@@ -247,11 +253,12 @@ function helicopter(parent) {
   root.userData.dynamic = true;
   const body = G(root);
   const navy = '#2b3a78';
-  body.add(P(sphereGeo(1, 22, 16), '', { scale: [0.62, 0.42, 0.42], fin: 'soft', tt: ['#1c2658', '#4a5ca8'] }));
-  body.add(P(sphereGeo(1, 20, 14), '#9fe8ff', { pos: [0.3, 0.05, 0], scale: [0.36, 0.32, 0.36], fin: 'gloss' }));
-  body.add(P(sphereGeo(1, 16, 10), '#ffffff', { pos: [-0.05, -0.08, 0], scale: [0.55, 0.12, 0.425], fin: 'soft' }));
-  body.add(P(capsuleGeo(0.08, 1.1, 4, 10), navy, { pos: [-0.85, 0.08, 0], rot: [0, 0, Math.PI / 2 - 0.08], fin: 'soft' }));
-  body.add(P(roundBoxGeo(0.22, 0.32, 0.04, 0.02, 1), navy, { pos: [-1.38, 0.24, 0], rot: [0, 0, 0.3], fin: 'soft' }));
+  // 경찰 헬기 장난감: 흰 몸통에 남색 띠, 큰 하늘빛 앞유리
+  body.add(P(sphereGeo(1, 22, 16), '', { scale: [0.62, 0.44, 0.44], fin: 'soft', tt: ['#9aa4d8', '#ffffff'] }));
+  body.add(P(sphereGeo(1, 20, 14), '', { pos: [0.3, 0.06, 0], scale: [0.36, 0.32, 0.37], fin: 'soft', tt: ['#4a8ad8', '#bff0ff'] }));
+  body.add(P(sphereGeo(1, 16, 10), navy, { pos: [-0.05, -0.1, 0], scale: [0.6, 0.14, 0.45], fin: 'soft' }));
+  body.add(P(capsuleGeo(0.09, 1.1, 4, 10), '', { pos: [-0.85, 0.08, 0], rot: [0, 0, Math.PI / 2 - 0.08], fin: 'soft', tt: ['#9aa4d8', '#ffffff'] }));
+  body.add(P(roundBoxGeo(0.24, 0.34, 0.05, 0.02, 1), navy, { pos: [-1.38, 0.24, 0], rot: [0, 0, 0.3], fin: 'soft' }));
   for (const sz of [-0.3, 0.3]) {
     body.add(P(capsuleGeo(0.03, 0.95, 3, 6), '#3c4569', { pos: [0.02, -0.5, sz], rot: [0, 0, Math.PI / 2] }));
     body.add(P(cylGeo(0.02, 0.02, 0.18, 5), '#3c4569', { pos: [0.18, -0.4, sz] }));
@@ -262,14 +269,15 @@ function helicopter(parent) {
   body.add(P(sphereGeo(0.06, 8, 6), '#3a8aff', { pos: [-0.1, 0.42, -0.18], fin: 'neon' }));
   body.add(P(cylGeo(0.09, 0.11, 0.13, 10), '#e9e4f2', { pos: [0.45, -0.3, 0], rot: [0, 0, 0.6], fin: 'soft' }));
   body.add(P(cylGeo(0.075, 0.075, 0.03, 10), '#fff6d8', { pos: [0.49, -0.36, 0], rot: [0, 0, 0.6], fin: 'glow' }));
+  for (let i = 0; i < 2; i++) body.add(P(roundBoxGeo(0.4, 0.04, 0.02, 0.01, 1), '#e9e4f2', { pos: [-1.42, 0.25, 0.06], rot: [0, 0, (i * Math.PI) / 2 + 0.4], fin: 'soft' }));
+  inkLine(body, 0.035);
   bakeV(body, { ao: 0 });
   const rotor = G(root, 0, 0.55, 0);
   for (let i = 0; i < 4; i++) rotor.add(P(roundBoxGeo(1.5, 0.025, 0.09, 0.01, 1), '#3c4569', { pos: [Math.cos((i * TAU) / 4) * 0.75, 0, -Math.sin((i * TAU) / 4) * 0.75], rot: [0, (i * TAU) / 4, 0] }));
   rotor.add(P(cylGeo(0.07, 0.07, 0.05, 10), '#3c4569'));
   bakeV(rotor, { ao: 0 });
+  // 꼬리 날개는 몸통에 붙여 같이 굽는다(그리기 한 번 아끼기)
   const tail = G(root, -1.42, 0.25, 0.06);
-  for (let i = 0; i < 2; i++) tail.add(P(roundBoxGeo(0.4, 0.04, 0.02, 0.01, 1), '#e9e4f2', { rot: [0, 0, (i * Math.PI) / 2] }));
-  bakeV(tail, { ao: 0 });
   return { root, rotor, tail };
 }
 
@@ -277,49 +285,50 @@ function helicopter(parent) {
 function ferrisWheel(parent, x, y, z, s) {
   const g = G(parent, x, y, z, 0.35, s);
   const R = 3.0;
-  const legTT = ['#4a3a7a', '#a898e0'];
-  for (const sz of [-0.45, 0.45]) {
-    for (const sx of [-1, 1]) g.add(P(cylGeo(0.09, 0.12, 4.2, 8), '', { pos: [sx * 1.0, 1.95, sz], rot: [0, 0, sx * 0.26], tt: legTT }));
+  const legTT = ['#3a2a74', '#9a88e0'];
+  for (const sz of [-0.5, 0.5]) {
+    for (const sx of [-1, 1]) g.add(P(cylGeo(0.12, 0.16, 4.2, 10), '', { pos: [sx * 1.0, 1.95, sz], rot: [0, 0, sx * 0.26], fin: 'soft', tt: legTT }));
   }
-  g.add(P(roundBoxGeo(3.0, 0.3, 1.4, 0.08, 1), '#3c3a78', { pos: [0, 0.15, 0], fin: 'soft' }));
+  g.add(P(roundBoxGeo(3.0, 0.34, 1.5, 0.12, 2), '', { pos: [0, 0.17, 0], fin: 'soft', tt: ['#2a2a68', '#5a58a8'] }));
+  inkLine(g, 0.06);
+  // 바퀴(돈다): 통통한 바깥 테 두 겹 + 굵은 살 8쌍 + 금빛 축
   const wheel = G(g, 0, 3.9, 0);
   wheel.userData.dynamic = true;
-  const rim = torusGeo(R, 0.07, 6, 48);
-  wheel.add(P(rim, '#f4f0ff', { pos: [0, 0, 0.32], fin: 'soft' }));
-  wheel.add(P(rim, '#f4f0ff', { pos: [0, 0, -0.32], fin: 'soft' }));
-  wheel.add(P(torusGeo(R * 0.55, 0.04, 5, 32), '#c8c0f0', { pos: [0, 0, 0.32], fin: 'soft' }));
-  wheel.add(P(cylGeo(0.3, 0.3, 0.9, 14), '#5a4a9a', { rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
-  const n = 12;
+  const rim = torusGeo(R, 0.13, 8, 56);
+  const rimTT = ['#b8a8f0', '#ffffff'];
+  wheel.add(P(rim, '', { pos: [0, 0, 0.34], fin: 'soft', tt: rimTT }));
+  wheel.add(P(rim, '', { pos: [0, 0, -0.34], fin: 'soft', tt: rimTT }));
+  wheel.add(P(torusGeo(R * 0.52, 0.07, 6, 36), '', { pos: [0, 0, 0.34], fin: 'soft', tt: ['#ff7aa8', '#ffc0d8'] }));
+  wheel.add(P(cylGeo(0.42, 0.42, 0.95, 18), '', { rot: [Math.PI / 2, 0, 0], fin: 'soft', tt: ['#3a2a74', '#7a68c8'] }));
+  wheel.add(P(cylGeo(0.26, 0.26, 1.0, 16), '#ffc444', { rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
+  const n = 8;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * TAU;
-    for (const sz of [-0.32, 0.32]) {
-      const sp = P(cylGeo(0.025, 0.025, R, 4), '#e0d8ff', { pos: [Math.cos(a) * R * 0.5, Math.sin(a) * R * 0.5, sz], rot: [0, 0, a - Math.PI / 2], fin: 'soft' });
-      wheel.add(sp);
+    for (const sz of [-0.34, 0.34]) {
+      wheel.add(P(cylGeo(0.05, 0.05, R, 6), '#e8e0ff', { pos: [Math.cos(a) * R * 0.5, Math.sin(a) * R * 0.5, sz], rot: [0, 0, a - Math.PI / 2], fin: 'soft' }));
     }
   }
-  // 칸 12개는 인스턴스 하나로(늘 아래로 매달리게 매 프레임 자리만 옮긴다)
+  inkLine(wheel, 0.05);
+  // 칸(인스턴스 하나, 늘 아래로 매달리게 매 프레임 자리만 옮긴다): 사탕색 둥근 곤돌라
   const cabCols = ['#ff6fa8', '#5fd0ff', '#ffd23f', '#9fe870', '#c88aff', '#ff9a5a'];
-  const cabGeo = partsGeo('ferrisCab', [
-    [cylGeo(0.02, 0.02, 0.3, 4), '#e0d8ff', { pos: [0, -0.15, 0] }],
-    [roundBoxGeo(0.42, 0.36, 0.42, 0.12, 2), '#ffffff', { pos: [0, -0.44, 0], grad: [0.7, 1.1] }],
-    [roundBoxGeo(0.3, 0.13, 0.44, 0.05, 1), '#fff6c8', { pos: [0, -0.4, 0] }],
-    [roundBoxGeo(0.46, 0.05, 0.46, 0.02, 1), '#ffffff', { pos: [0, -0.24, 0] }],
+  const nc = 10;
+  const cabGeo = partsGeo('ferrisCab2', [
+    [cylGeo(0.03, 0.03, 0.3, 5), '#e0d8ff', { pos: [0, -0.15, 0] }],
+    [roundBoxGeo(0.56, 0.48, 0.52, 0.2, 3), '#ffffff', { pos: [0, -0.5, 0], grad: [0.72, 1.12] }],
+    [roundBoxGeo(0.4, 0.16, 0.54, 0.06, 2), '#fff6c8', { pos: [0, -0.46, 0] }],
+    [sphereGeo(1, 12, 6), '#ffffff', { pos: [0, -0.25, 0], scale: [0.3, 0.07, 0.28] }],
   ]);
-  const cabins = scatter(g, cabGeo, Array.from({ length: n }, (_, i) => [0, 3.9, 0, 1, 0, cabCols[i % cabCols.length]]), { fin: 'soft' });
+  const cabins = scatter(g, cabGeo, Array.from({ length: nc }, (_, i) => [0, 3.9, 0, 1, 0, cabCols[i % cabCols.length]]), { fin: 'soft' });
   cabins.userData.dynamic = true;
   const bulbs = [];
-  for (let i = 0; i < 36; i++) {
-    const a = (i / 36) * TAU;
-    bulbs.push([Math.cos(a) * R, Math.sin(a) * R, 0.42, ['#fff2a0', '#ff9ad0', '#9fe8ff'][i % 3]]);
-  }
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * TAU;
-    bulbs.push([Math.cos(a) * R * 0.55, Math.sin(a) * R * 0.55, 0.38, '#fff6d0']);
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * TAU;
+    bulbs.push([Math.cos(a) * R, Math.sin(a) * R, 0.5, ['#fff2a0', '#ff9ad0', '#9fe8ff'][i % 3]]);
   }
   const o3 = new THREE.Object3D();
   const spin = (th) => {
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + th;
+    for (let i = 0; i < nc; i++) {
+      const a = (i / nc) * TAU + th;
       o3.position.set(Math.cos(a) * R, 3.9 + Math.sin(a) * R, 0);
       o3.updateMatrix();
       cabins.setMatrixAt(i, o3.matrix);
@@ -348,7 +357,7 @@ function beamCone() {
     return cg;
   });
   // 빛 색을 HDR 로 키워 빔 머리 쪽이 블룸에 걸린다
-  const m = new THREE.Mesh(geo, sharedMat('city:beam', () => new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff3c8').multiplyScalar(1.6), map: tex, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })));
+  const m = new THREE.Mesh(geo, sharedMat('city:beam', () => new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff3c8').multiplyScalar(1.6), map: tex, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })));
   m.renderOrder = 6;
   return m;
 }
@@ -387,7 +396,7 @@ function drawStreet(ctx, W, Hh, row) {
   dk.addColorStop(1, 'rgba(60,40,90,0.4)');
   ctx.fillStyle = dk;
   ctx.fillRect(0, 0, W, row(0.5));
-  speckle(ctx, 0, 0, W, row(-0.85), 900, ['rgba(90,70,100,0.1)', 'rgba(255,255,255,0.35)'], r, [1, 3]);
+  speckle(ctx, 0, 0, W, row(-0.85), 200, ['rgba(90,70,100,0.08)', 'rgba(255,255,255,0.25)'], r, [1.5, 3]);
   // 연석(윗면 밝게, 옆면 그늘)
   fill(-0.85, -1.02, '#f6eef0');
   fill(-1.0, -1.1, '#8a7f9a');
@@ -396,7 +405,6 @@ function drawStreet(ctx, W, Hh, row) {
   rg.addColorStop(1, '#4a4e70');
   ctx.fillStyle = rg;
   ctx.fillRect(0, row(-1.1), W, row(-4.6) - row(-1.1));
-  speckle(ctx, 0, row(-1.1), W, row(-4.6) - row(-1.1), 800, ['rgba(255,255,255,0.07)', 'rgba(10,10,30,0.14)'], r, [1, 3]);
   const sh = ctx.createLinearGradient(0, row(-1.1), 0, row(-1.5));
   sh.addColorStop(0, 'rgba(20,10,40,0.35)');
   sh.addColorStop(1, 'rgba(20,10,40,0)');
@@ -478,10 +486,11 @@ export function buildCity({ w, h }) {
       const z = row.z + (r() - 0.5) * 2;
       const bw = (2 * span) / row.n * (0.75 + r() * 0.3);
       if (ri < 2 && x - bw / 2 < FW.x + 3.4) continue;
-      const yS = 395 - 120 * sideK(x, z) - ri * 6 - r() * 26;
+      // 가운데는 낮게(기체 뒤로 하늘이 열리게), 양옆은 높게
+      const yS = 432 - 150 * sideK(x, z) - ri * 6 - r() * 22;
       const hh = Math.max(2.5, topAt(x, z, yS));
       const dd = row.d + r();
-      tower(props, x, z, bw, hh, dd, tints[(i * 3 + ri) % tints.length], r, { trim: ri < 3 });
+      tower(props, x, z, bw, hh, dd, tints[(i * 3 + ri) % tints.length], r, { trim: ri < 3, ink: ri < 2 ? 0.06 : 0 });
       roofs.push([x, hh, z, bw, dd]);
     }
   });
@@ -490,7 +499,7 @@ export function buildCity({ w, h }) {
     const z = -60 - r() * 60;
     const span = halfW(w, z) * 1.15;
     const x = (r() * 2 - 1) * span;
-    const hh = Math.max(4, topAt(x, z, 400 - 150 * sideK(x, z) - r() * 30));
+    const hh = Math.max(4, topAt(x, z, 425 - 165 * sideK(x, z) - r() * 26));
     tower(props, x, z, 3 + r() * 3, hh, 3 + r() * 2, ['#c9b2d6', '#b9b0dc', '#d8b6c6'][(r() * 3) | 0], r, { colW: 0.8, floorH: 0.9, trim: false });
   }
   // 랜드마크 첨탑 빌딩(오른쪽 뒤): 층층이 좁아지는 꼭대기 + 빛나는 왕관 + 붉은 항공등
@@ -546,17 +555,6 @@ export function buildCity({ w, h }) {
     g.add(P(torusGeo(0.21, 0.035, 6, 16), '#f6c09a', { pos: [0, 0.32, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
     bush(g, 0, 0.28, 0, 0.7, r, { flowers: 5, flowerColor: '#ff8fb0', seg: 9 });
   }
-  // 보도 앞 판석 사이 풀·꽃(인스턴스, 아주 조금)
-  const tg = [];
-  const fl = [];
-  for (let i = 0; i < 26; i++) {
-    const z = 1.0 + r() * 3.2;
-    const x = (r() < 0.5 ? -1 : 1) * (0.5 + 0.5 * r()) * (halfW(w, z) + 0.3);
-    if (r() < 0.6) tg.push([x, 0, z, 0.5 + r() * 0.3, r() * TAU, ['#5a9a3e', '#6aaa44'][(r() * 2) | 0]]);
-    else fl.push([x, 0, z, 0.9 + r() * 0.3, r() * TAU, '#ffffff']);
-  }
-  scatter(props, tuftGeo(1), tg);
-  scatter(props, flowerGeo('#ffffff', '#ffc83a'), fl);
   bake(props, { zMin: -10 });
   bakeV(fw.wheel, { ao: 0 });
   root.add(street, ground);
@@ -572,6 +570,7 @@ export function buildCity({ w, h }) {
   // 노을 해
   const sun = glowS('city:sun', '#ffc27a', 46, 0.75);
   sun.position.set(-26, 12, -260);
+  dimWithWeather('city:sun', sun.material);
   root.add(sun);
 
   // 헬기 + 탐조등
@@ -626,7 +625,6 @@ export function buildCity({ w, h }) {
       const vz = Math.cos(a * 2) * 1.6;
       heli.root.rotation.set(0, Math.atan2(-vz, vx), -Math.cos(a) * 0.12);
       heli.rotor.rotation.y = t * 22;
-      heli.tail.rotation.z = t * 30;
       // 탐조등: 헬기 배에서 거리로, 좌우로 훑는다
       const tx = hx * 0.4 + Math.sin(t * 0.7) * 2.6;
       const tz = -3 + Math.sin(t * 0.45) * 1.2;

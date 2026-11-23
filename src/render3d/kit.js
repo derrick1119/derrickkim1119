@@ -1,9 +1,11 @@
 // 3D 그림 공통 도구. 모든 3D 모듈(기체·지구인·표본·무대)은 여기서 재질과 도형을 가져다 쓴다.
 //
-// 그림 문법(컨셉 아트의 3D 카툰 렌더):
-//   · 재질은 무광에 가까운 플라스틱/점토(roughness 0.55~0.9). 금속은 기체에만.
-//   · 빛: 왼쪽 위 앞에서 오는 따뜻한 햇빛 + 하늘빛(위 파랑, 아래 풀색) + 그림자. 엔진이 켠다.
-//   · 캐릭터·기체·표본에는 가는 남색 외곽선(addOutline)을 둘러 배경에서 떠 보이게 한다. 배경 소품에는 두르지 않는다.
+// 그림 문법(피포에 맞춘 '장난감 디오라마' — 말랑한 비닐/점토 장난감 한 벌):
+//   · 재질은 칠한 비닐: 볕 쪽 윗면은 따뜻하고 밝게, 그늘은 푸른 보랏빛(무대는 굽기 때 꼭짓점 색으로 칠한다).
+//     잎·풀은 보들한 무광, 칠한 소품은 부드러운 윤(roughness ~0.5), 유리·물·기체 래커만 반들반들.
+//   · 빛: 왼쪽 위 앞에서 오는 따뜻한 햇빛 + 하늘빛(위 파랑, 아래 땅빛) + 오른쪽 뒤 차가운 채움 빛 + 그림자. 엔진이 켠다.
+//   · 외곽선 위계: 캐릭터·기체(가장 굵게) > 무대의 큰 소품·랜드마크(stages/common 의 inkLine, 세계 단위라 멀수록 가늘어짐)
+//     > 먼 배경(없음). 선 색은 피포와 같은 보라 기운 남색 계열.
 //   · 얼굴(눈·눈썹·입·볼)은 캔버스로 그린 그림을 머리 앞면에 붙인다(faceCap).
 //   · 빛나는 것(조명·빔·반딧불)은 glowSprite 를 겹친다.
 // 단위: 1 = 화면에서 64px(행동 평면 z = 0 기준). 사람 키 ≈ 1.0.
@@ -384,11 +386,20 @@ export function makeSky(c) {
       uniform vec3 top; uniform vec3 mid; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float sunSize; uniform float sunStrength;
       varying vec3 vDir;
       void main(){
-        float h = clamp(vDir.y, -0.2, 1.0);
-        vec3 col = h < 0.18 ? mix(horizon, mid, smoothstep(-0.02, 0.18, h)) : mix(mid, top, smoothstep(0.18, 0.75, h));
-        float d = max(dot(normalize(vDir), sunDir), 0.0);
-        col += sunColor * (pow(d, 64.0) * 0.6 + pow(d, 8.0) * 0.18) * sunStrength;
-        col += sunColor * smoothstep(1.0 - sunSize, 1.0 - sunSize * 0.6, d) * sunStrength * 1.5;
+        vec3 d = normalize(vDir);
+        float h = d.y;
+        // 칠한 하늘: 지평선 → 가운데 → 꼭대기를 겹치는 긴 곡선으로 잇는다(띠 없이 매끈하게).
+        // 화면에 보이는 하늘은 h ≈ 0 ~ 0.45 라 그 안에서 세 색이 모두 보이게 맞춘다.
+        vec3 col = mix(horizon, mid, smoothstep(-0.03, 0.2, h));
+        col = mix(col, top, smoothstep(0.12, 0.52, h));
+        // 해 쪽 하늘은 살짝 밝고 따뜻하게, 반대쪽은 조금 더 깊게(그린 듯한 공기 원근)
+        float side = dot(normalize(vec2(d.x, d.z) + 1e-4), normalize(vec2(sunDir.x, sunDir.z) + 1e-4));
+        col *= 1.0 + 0.05 * side * (1.0 - smoothstep(0.0, 0.5, h));
+        // 지평선 바로 위 얇은 빛 띠(지평선 색을 조금 밝힌 것)
+        col = mix(col, min(horizon * 1.12 + 0.03, vec3(1.0)), exp(-abs(h - 0.012) * 26.0) * 0.32);
+        float sd = max(dot(d, sunDir), 0.0);
+        col += sunColor * (pow(sd, 64.0) * 0.6 + pow(sd, 8.0) * 0.2 + pow(sd, 2.0) * 0.05) * sunStrength;
+        col += sunColor * smoothstep(1.0 - sunSize, 1.0 - sunSize * 0.6, sd) * sunStrength * 1.5;
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -405,7 +416,7 @@ export function makeSky(c) {
  * 뭉게구름 한 덩이(구 여러 개). 위는 하얗고 아래는 푸르스름하다.
  * blobs = [[x, y, z, r], ...] (로컬 단위)
  */
-export function cloud3d(blobs, { color = '#ffffff', shadeColor = '#c4cff2', opacity = 1, fog = true } = {}) {
+export function cloud3d(blobs, { color = '#ffffff', shadeColor = '#aeb8f0', opacity = 1, fog = true } = {}) {
   const g = new THREE.Group();
   const material = cloudMaterial(color, shadeColor, opacity, fog);
   for (const [x, y, z, r] of blobs) {
@@ -421,6 +432,14 @@ export function cloud3d(blobs, { color = '#ffffff', shadeColor = '#c4cff2', opac
 const cloudMats = new Map();
 /** 지금까지 만든 구름 재질들(날씨가 밤·폭풍일 때 구름 빛을 낮추는 데 쓴다). */
 export const cloudMaterials = () => cloudMats.values();
+/**
+ * 다른 곳(무대)에서 만든 구름 재질도 날씨가 함께 어둡게 하도록 등록한다.
+ * 재질은 emissiveIntensity 를 읽고 쓸 수 있어야 한다(밝기 배율로 쓰는 속성이면 된다).
+ */
+export function trackCloudMaterial(key, m) {
+  if (!cloudMats.has(`ext:${key}`)) cloudMats.set(`ext:${key}`, m);
+  return m;
+}
 function cloudMaterial(color, shadeColor, opacity, fog) {
   const key = `${color}|${shadeColor}|${opacity}|${fog}`;
   let m = cloudMats.get(key);
@@ -438,7 +457,7 @@ function cloudMaterial(color, shadeColor, opacity, fog) {
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWY = normalize( mat3( modelMatrix ) * objectNormal ).y;');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform vec3 shadeCol; varying float vWY;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = mix( shadeCol * 0.8, totalEmissiveRadiance, smoothstep( -0.55, 0.45, vWY ) );');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = mix( shadeCol * 0.82, totalEmissiveRadiance, smoothstep( -0.7, 0.55, vWY ) );');
   };
   m.customProgramCacheKey = () => 'cloud3d';
   cloudMats.set(key, m);

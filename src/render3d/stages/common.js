@@ -8,9 +8,11 @@
 //   · 풀 포기·꽃·조약돌처럼 잔뜩 반복되는 작은 것은 InstancedMesh 하나로 그린다(scatter).
 //   · 지형은 꼭짓점 색을 쓰는 높이 그물 한 장, 길 가장자리 같은 잔무늬는 반투명 그림 한 장(decal)을 덮는다.
 //   · 구름은 덩이마다 구 여러 개를 한 도형으로 합쳐 한 번에 그린다.
+//   · 단색 소품도 굽기 때 칠한 비닐 그라데이션(볕 쪽 위 따뜻하게, 아래 푸른 그늘)을 얹고, 접지 그늘은 남보랏빛으로 가라앉힌다.
+//   · 큰 소품(랜드마크·앞줄 집·액자 나무)은 inkLine 으로 외곽선을 표시해 두면 굽기 때 한 덩어리(그리기 1번)로 합쳐진다.
 //   · 빛나는 것(등·창·불·별)만 방출 세기를 1.5 이상으로 올려 블룸이 걸리게 한다. 나머지는 1 아래로 둔다.
 //   · 스프라이트·물·빛기둥 재질은 key 로 캐시해 무대를 다시 만들어도 새 재질을 만들지 않는다(재질 누수 방지).
-import { THREE, mat, sphereGeo, boxGeo, roundBoxGeo, capsuleGeo, cylGeo, coneGeo, torusGeo, latheGeo, glowTexture, rng } from '../kit.js';
+import { THREE, mat, sphereGeo, boxGeo, roundBoxGeo, capsuleGeo, cylGeo, coneGeo, torusGeo, latheGeo, glowTexture, rng, trackCloudMaterial } from '../kit.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const CAM_Z = 14;
@@ -96,12 +98,14 @@ export function palUV(hex) {
 
 // 마감별 거칠기 등. glow 류는 방출 세기: 블룸 문턱(밝기 1.25)을 넘도록 노란빛 glow 2.2, 채도 높은 빛 neon 3.4,
 // 창문처럼 넓은 빛은 warm 1.65(살짝만 번짐), lit 0.85(밝기만, 번짐 없음)
+// 장난감 한 벌의 재질 문법: 잎·풀은 보들한 무광(matte), 칠한 나무·벽·지붕은 말랑한 비닐(soft: 부드러운 윤과 하늘빛 반사),
+// 유리·물·사탕빛 장식은 반들반들(gloss). 거칠기를 너무 낮추면 햇빛 점이 하얗게 타므로 0.4 아래로는 gloss 만.
 const FIN_OPT = {
-  matte: { rough: 0.9 },
-  soft: { rough: 0.62 },
-  gloss: { rough: 0.22, env: 1.1 },
-  metal: { rough: 0.4, metal: 0.5, env: 1 },
-  flat: { rough: 0.85, flat: true },
+  matte: { rough: 0.8, env: 0.5 },
+  soft: { rough: 0.48, env: 0.8 },
+  gloss: { rough: 0.2, env: 1.15 },
+  metal: { rough: 0.38, metal: 0.5, env: 1 },
+  flat: { rough: 0.8, flat: true },
 };
 const GLOW_K = { glow: 2.2, neon: 3.4, warm: 1.65, lit: 0.85 };
 const finishCache = new Map();
@@ -166,6 +170,7 @@ export function P(geo, hex, o = {}) {
   }
   if (o.cast === false) m.userData.noCast = true;
   if (o.tt) m.userData.tt = o.tt;
+  else m.userData.hex = hex;
   if (o.ao === false) m.userData.noAO = true;
   return m;
 }
@@ -200,18 +205,109 @@ const _m4 = new THREE.Matrix4();
 const _wp = new THREE.Vector3();
 const _lo = new THREE.Color();
 const _hi = new THREE.Color();
+const _box = new THREE.Box3();
+const INK = '#2b1a5e'; // 피포 외곽선과 같은 보라 기운 남색
+// 칠한 비닐 그라데이션(두 톤 색이 없는 단색 소품): 볕 쪽 윗면은 살짝 따뜻하게, 그늘 쪽 아랫면은 푸른 보랏빛으로.
+const PAINT_LO = [0.8, 0.82, 0.96];
+const PAINT_HI = [1.06, 1.03, 0.97];
+// 접지 그늘 색(검정이 아니라 남보랏빛으로 가라앉는다)
+const AO_TINT = [1.0, 1.0, 0.72];
+
+/**
+ * 큰 소품(랜드마크)에 외곽선을 두른다. 구울 때 같은 묶음의 외곽선이 모두 한 덩어리(그리기 1번)로 합쳐진다.
+ * 선은 소품 그늘색을 남색 쪽으로 짙게 한 색이고, 두께는 세계 단위(멀수록 저절로 가늘어진다).
+ * 표면 장식(cast: false)·빛나는 부품은 빼고, 얇은 부품은 그 두께에 맞춰 선도 가늘어진다.
+ * @param {THREE.Object3D} obj  @param {number} t 두께(세계 단위)  @param {string} [col] 선 색(없으면 소품 색에서)
+ */
+export function inkLine(obj, t = 0.035, col = null) {
+  obj.updateMatrixWorld(true);
+  obj.traverse((m) => {
+    if (!m.isMesh || !palFin.has(m.material) || m.userData.noCast || GLOW_K[palFin.get(m.material)]) return;
+    m.userData.ol = t;
+    if (col) m.userData.olCol = col;
+  });
+  return obj;
+}
+
+let olMat = null;
+function outlineBakeMat() {
+  olMat ??= new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: true });
+  return olMat;
+}
+
+/** 위치가 같은 꼭짓점끼리 법선을 평균한다(모서리가 갈라진 도형에도 틈 없는 외곽선을 위해). */
+function smoothNormals(pos, nrm) {
+  const n = pos.length / 3;
+  const acc = new Map();
+  const keys = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = `${Math.round(pos[i * 3] * 500)}|${Math.round(pos[i * 3 + 1] * 500)}|${Math.round(pos[i * 3 + 2] * 500)}`;
+    keys[i] = k;
+    let a = acc.get(k);
+    if (!a) acc.set(k, (a = [0, 0, 0]));
+    a[0] += nrm[i * 3];
+    a[1] += nrm[i * 3 + 1];
+    a[2] += nrm[i * 3 + 2];
+  }
+  const out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const a = acc.get(keys[i]);
+    const l = Math.hypot(a[0], a[1], a[2]) || 1;
+    out[i * 3] = a[0] / l;
+    out[i * 3 + 1] = a[1] / l;
+    out[i * 3 + 2] = a[2] / l;
+  }
+  return out;
+}
+
+function outlineGeo(g, t, hex) {
+  g.computeBoundingBox();
+  const b = g.boundingBox;
+  const minExt = Math.min(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z);
+  const te = Math.min(t, minExt * 0.32);
+  if (te < t * 0.3) return null;
+  const pos = g.attributes.position.array;
+  const sn = smoothNormals(pos, g.attributes.normal.array);
+  const n = pos.length / 3;
+  const p2 = new Float32Array(n * 3);
+  for (let i = 0; i < n * 3; i++) p2[i] = pos[i] + sn[i] * te;
+  const c = _lo.set(hex);
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    col[i * 3] = c.r;
+    col[i * 3 + 1] = c.g;
+    col[i * 3 + 2] = c.b;
+  }
+  const og = new THREE.BufferGeometry();
+  og.setAttribute('position', new THREE.BufferAttribute(p2, 3));
+  og.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return og;
+}
 
 /**
  * 움직이지 않는 묶음을 재질별로 하나의 메시로 합친다(kit 의 bakeStatic 과 같고, 팔레트 소품에는 꼭짓점 색을 굽는다).
- * @param {{H?: (x:number,z:number)=>number, ao?: number, aoH?: number, light?: number[]}} o
- *   H = 땅 높이(접지 그늘 기준), ao = 땅에 닿는 곳을 어둡게 하는 정도, aoH = 그늘이 올라오는 높이, light = 두 톤의 해 방향.
+ * @param {{H?: (x:number,z:number)=>number, ao?: number, aoH?: number, light?: number[], paint?: number}} o
+ *   H = 땅 높이(접지 그늘 기준), ao = 땅에 닿는 곳을 어둡게 하는 정도, aoH = 그늘이 올라오는 높이, light = 두 톤의 해 방향,
+ *   paint = 단색 소품에 칠하는 비닐 그라데이션 세기(0 = 끔).
+ * 두 톤(tt) 소품은 userData.ttGroup 이 있으면 그 묶음 전체를 한 덩어리로 보고 칠한다(나무 잎 덩이들이 한 몸처럼 그늘진다).
  */
-export function bakeV(group, { H = null, ao = 0.32, aoH = 0.5, light = LIGHT } = {}) {
+export function bakeV(group, { H = null, ao = 0.32, aoH = 0.5, light = LIGHT, paint = 1 } = {}) {
   group.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(group.matrixWorld).invert();
   const L = new THREE.Vector3(...light).normalize();
   const buckets = new Map();
   const remove = [];
+  const olGeos = [];
+  const ttSpheres = new Map();
+  const ttSphere = (tg) => {
+    let s = ttSpheres.get(tg);
+    if (!s) {
+      _box.setFromObject(tg).applyMatrix4(inv);
+      s = _box.getBoundingSphere(new THREE.Sphere());
+      ttSpheres.set(tg, s);
+    }
+    return s;
+  };
   group.traverse((o) => {
     if (!o.isMesh || o.isInstancedMesh || o.userData.dynamic || o.name === 'outline') return;
     for (let p = o.parent; p && p !== group; p = p.parent) if (p.userData.dynamic) return;
@@ -219,7 +315,9 @@ export function bakeV(group, { H = null, ao = 0.32, aoH = 0.5, light = LIGHT } =
     const material = fin ? finish(fin, true) : o.material;
     const key = `${material.uuid}|${o.castShadow ? 1 : 0}|${o.receiveShadow ? 1 : 0}`;
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-    for (const name of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+    // 꼭짓점 색을 쓰는 재질(팔레트가 아닌 것)은 색을 지킨다
+    const keep = !fin && material.vertexColors ? ['position', 'normal', 'uv', 'color'] : ['position', 'normal', 'uv'];
+    for (const name of Object.keys(g.attributes)) if (!keep.includes(name)) g.deleteAttribute(name);
     const n = g.attributes.position.count;
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2));
     if (!g.attributes.normal) g.computeVertexNormals();
@@ -229,32 +327,56 @@ export function bakeV(group, { H = null, ao = 0.32, aoH = 0.5, light = LIGHT } =
       const nrm = g.attributes.normal.array;
       const col = new Float32Array(n * 3).fill(1);
       const tt = o.userData.tt;
+      const glow = !!GLOW_K[fin];
       if (tt) {
         _lo.set(tt[0]);
         _hi.set(tt[1]);
         const bias = tt[2] ?? 0;
-        g.computeBoundingSphere();
-        const c = g.boundingSphere.center;
-        const r = Math.max(1e-3, g.boundingSphere.radius);
+        let c;
+        let r;
+        if (o.userData.ttGroup) {
+          const s = ttSphere(o.userData.ttGroup);
+          c = s.center;
+          r = Math.max(1e-3, s.radius);
+        } else {
+          g.computeBoundingSphere();
+          c = g.boundingSphere.center;
+          r = Math.max(1e-3, g.boundingSphere.radius);
+        }
+        // 부드러운 그라데이션(칠한 비닐): 경계를 넓게 풀어 두 톤이 띠로 끊기지 않게
         for (let i = 0; i < n; i++) {
           const k = nrm[i * 3] * L.x + nrm[i * 3 + 1] * L.y + nrm[i * 3 + 2] * L.z;
-          const s = smooth(-0.25, 0.35, k * 0.7 + ((pos[i * 3 + 1] - c.y) / r) * 0.45 + bias);
+          const s = smooth(-0.5, 0.55, k * 0.6 + ((pos[i * 3 + 1] - c.y) / r) * 0.55 + bias);
           col[i * 3] = _lo.r + (_hi.r - _lo.r) * s;
           col[i * 3 + 1] = _lo.g + (_hi.g - _lo.g) * s;
           col[i * 3 + 2] = _lo.b + (_hi.b - _lo.b) * s;
         }
+      } else if (paint > 0 && !glow && fin !== 'unlit') {
+        g.computeBoundingBox();
+        const y0 = g.boundingBox.min.y;
+        const yr = Math.max(1e-3, g.boundingBox.max.y - y0);
+        for (let i = 0; i < n; i++) {
+          const k = nrm[i * 3] * L.x + nrm[i * 3 + 1] * L.y + nrm[i * 3 + 2] * L.z;
+          const s = smooth(-0.6, 0.8, k * 0.55 + ((pos[i * 3 + 1] - y0) / yr - 0.5) * 0.8);
+          for (let j = 0; j < 3; j++) col[i * 3 + j] = 1 + (PAINT_LO[j] + (PAINT_HI[j] - PAINT_LO[j]) * s - 1) * paint;
+        }
       }
-      if (ao > 0 && !o.userData.noAO && !GLOW_K[fin]) {
+      if (ao > 0 && !o.userData.noAO && !glow) {
         o.getWorldPosition(_wp);
         const gy = o.userData.groundY ?? (H ? H(_wp.x, _wp.z) : 0);
         for (let i = 0; i < n; i++) {
-          const f = 1 - ao * (1 - smooth(0, aoH, pos[i * 3 + 1] - gy));
-          col[i * 3] *= f;
-          col[i * 3 + 1] *= f;
-          col[i * 3 + 2] *= f * 0.97 + 0.03; // 그늘은 살짝 푸르게
+          const d = ao * (1 - smooth(0, aoH, pos[i * 3 + 1] - gy));
+          col[i * 3] *= 1 - d * AO_TINT[0];
+          col[i * 3 + 1] *= 1 - d * AO_TINT[1];
+          col[i * 3 + 2] *= 1 - d * AO_TINT[2];
         }
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    }
+    if (o.userData.ol) {
+      const base = o.userData.olCol || mix(o.userData.tt ? o.userData.tt[0] : o.userData.hex || '#555577', INK, 0.55);
+      const og = outlineGeo(g, o.userData.ol, base);
+      if (og) olGeos.push(og);
     }
     if (!buckets.has(key)) buckets.set(key, { material, cast: o.castShadow, receive: o.receiveShadow, geos: [] });
     buckets.get(key).geos.push(g);
@@ -270,6 +392,18 @@ export function bakeV(group, { H = null, ao = 0.32, aoH = 0.5, light = LIGHT } =
     m.receiveShadow = b.receive;
     m.matrixAutoUpdate = false;
     m.userData.ownGeometry = true;
+    group.add(m);
+  }
+  if (olGeos.length) {
+    const merged = mergeGeometries(olGeos, false);
+    for (const g of olGeos) g.dispose();
+    const m = new THREE.Mesh(merged, outlineBakeMat());
+    m.name = 'outline';
+    m.castShadow = false;
+    m.receiveShadow = false;
+    m.matrixAutoUpdate = false;
+    m.userData.ownGeometry = true;
+    m.raycast = () => {};
     group.add(m);
   }
   return group;
@@ -398,6 +532,22 @@ export function glowS(key, color, size = 1, opacity = 0.8, boost = 1) {
   s.renderOrder = 5;
   s.raycast = () => {};
   return s;
+}
+
+/**
+ * 해·햇무리처럼 날씨(밤·비)에 함께 사그라들어야 하는 빛 재질을 날씨 층에 등록한다.
+ * 날씨 층은 구름 재질의 emissiveIntensity(맑음 1 → 밤 0.3)를 바꾸므로, 그 값을 제곱해 불투명도에 곱한다.
+ * 무대가 매 프레임 opacity 를 바꿔도 그대로 곱해진다.
+ */
+export function dimWithWeather(key, m) {
+  if (m.userData.weatherDim) return m;
+  let base = m.opacity;
+  let k = 1;
+  Object.defineProperty(m, 'opacity', { get: () => base * k * k, set: (v) => (base = v), configurable: true });
+  Object.defineProperty(m, 'emissiveIntensity', { get: () => k, set: (v) => (k = Number.isFinite(v) ? v : 1), configurable: true });
+  m.userData.weatherDim = true;
+  trackCloudMaterial(`glow:${key}`, m);
+  return m;
 }
 
 const sharedMats = new Map();
@@ -537,10 +687,8 @@ export function mesa({ cx, cz, R, top = 4, bottom = -1, rings = 9, seg = 72, dom
     c.set(hex);
     col.push(c.r, c.g, c.b);
   };
-  const band = (k) => {
-    const v = (Math.sin(k * 2.3 + phase[2]) + 1) / 2;
-    return k < 2 ? rock[2] : mix(rock[0], rock[1], v * 0.8);
-  };
+  // 바위 옆벽: 아래(짙은 색) → 위(밝은 색)로 매끈하게 칠한 그라데이션(줄무늬 없이, 장난감 점토처럼)
+  const band = (k) => (k / rings < 0.5 ? mix(rock[2], rock[1], (k / rings) * 2) : mix(rock[1], rock[0], (k / rings - 0.5) * 2));
   // 옆벽 고리들(아래 → 위), 맨 위 두 고리는 풀 언저리
   const layers = [];
   for (let k = 0; k <= rings; k++) layers.push({ y: bottom + ((top - bottom) * k) / rings, k, colr: k >= rings ? grass[0] : band(k), wall: true });
@@ -553,9 +701,9 @@ export function mesa({ cx, cz, R, top = 4, bottom = -1, rings = 9, seg = 72, dom
       const rad = R(t);
       const base = rad * ringR(Math.min(L.k, rings), t);
       const f = L.wall ? base : L.k === rings + 1 ? base - 0.25 : L.k === rings + 2 ? base * 0.62 : base * 0.3;
-      const nn = L.wall ? 1 + (r() - 0.5) * 0.04 : 1;
-      const hex = L.wall && L.k < rings ? mix(L.colr, '#ffffff', (r() - 0.5) * 0.12 + 0.03) : L.colr;
-      push(cx + Math.cos(t) * f * nn, L.y + (L.wall && L.k > 0 && L.k < rings ? (r() - 0.5) * 0.12 : 0), cz - Math.sin(t) * f * nn, hex);
+      const nn = L.wall ? 1 + (r() - 0.5) * 0.02 : 1;
+      const hex = L.colr;
+      push(cx + Math.cos(t) * f * nn, L.y + (L.wall && L.k > 0 && L.k < rings ? (r() - 0.5) * 0.06 : 0), cz - Math.sin(t) * f * nn, hex);
     }
   }
   const centre = pos.length / 3;
@@ -694,7 +842,27 @@ export function car(parent, x, y, z, ry = 0, s = 1, col = '#e2483c') {
   for (const sx of [-0.4, 0.4]) for (const sz of [-0.3, 0.3]) g.add(P(cylGeo(0.14, 0.14, 0.1, 14), '#2b2f45', { pos: [sx, 0.14, sz], rot: [Math.PI / 2, 0, 0] }));
   g.add(P(sphereGeo(1, 8, 6), '#fff3c4', { pos: [0.64, 0.34, 0.2], scale: [0.03, 0.05, 0.06], fin: 'gloss' }));
   g.add(P(sphereGeo(1, 8, 6), '#fff3c4', { pos: [0.64, 0.34, -0.2], scale: [0.03, 0.05, 0.06], fin: 'gloss' }));
+  inkLine(g, 0.028);
   return g;
+}
+
+/**
+ * 작은 새 떼(한 덩이로 구워 함께 맴돈다). 반환한 묶음의 위치·회전을 update 에서 움직인다.
+ * birds = [[x, y, z, 크기], ...] (묶음 기준), col = 몸 색, wing = 날개 끝 색.
+ */
+export function birdFlock(parent, birds = [[0, 0, 0, 1], [1.4, 0.5, -0.6, 0.85], [-1.1, 0.8, 0.4, 0.9]], { col = '#ffffff', wing = '#9aa3c0' } = {}) {
+  const flock = G(parent);
+  flock.userData.dynamic = true;
+  for (const [gx, gy, gz, k] of birds) {
+    const b = G(flock, gx, gy, gz, 0.3, k);
+    b.add(P(capsuleGeo(0.06, 0.3, 3, 8), col, { rot: [0, 0, Math.PI / 2], fin: 'soft' }));
+    for (const sg of [-1, 1]) {
+      b.add(P(roundBoxGeo(0.08, 0.025, 0.34, 0.01, 1), col, { pos: [0, 0.06, sg * 0.17], rot: [sg * 0.45, 0, 0], fin: 'soft' }));
+      b.add(P(roundBoxGeo(0.07, 0.022, 0.2, 0.01, 1), wing, { pos: [0, 0.16, sg * 0.42], rot: [-sg * 0.35, 0, 0], fin: 'soft' }));
+    }
+  }
+  bakeV(flock, { ao: 0 });
+  return flock;
 }
 
 /** 다듬은 산울타리(둥근 상자). */
@@ -871,10 +1039,12 @@ export function starField(seed, { n = 260, R = 420, yMin = 0.04, big = 0.12, col
 
 const cloudMatCache = new Map();
 /**
- * 구름 재질: 거의 스스로 빛나는 흰색에, 해를 등진 쪽과 아랫면은 라벤더빛 그늘이 진다.
+ * 구름 재질(장난감 솜사탕): 해 쪽 윗면은 따뜻한 흰색, 몸통은 부드러운 중간색, 아랫면·그늘은 라벤더빛.
+ * 빛 계산 없이 칠한 색이라 땅빛에 물들지 않는다. 가장자리에 해빛이 비쳐 드는 얇은 빛 테(속 비침)를 더한다.
  * light = 해가 오는 방향(세계), color = 볕 받는 면, shade = 그늘, rim = 가장자리 밝기.
+ * 날씨 층이 밤·비에 구름을 어둡게 하도록 emissiveIntensity(밝기 배율)를 열어 두고 kit 에 등록한다.
  */
-export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fog = false, light = [-0.5, 0.8, 0.45], mid = null, steps = [-0.75, 0.05, 0.0, 0.7], rim = 0.35 } = {}) {
+export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fog = false, light = [-0.5, 0.8, 0.45], mid = null, steps = [-0.85, 0.1, -0.05, 0.85], rim = 0.35 } = {}) {
   const key = `${color}|${shade}|${opacity}|${fog}|${light}|${mid}|${steps}|${rim}`;
   let m = cloudMatCache.get(key);
   if (m) return m;
@@ -884,29 +1054,41 @@ export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fo
   const top = new THREE.Color(color);
   const sh = new THREE.Color(shade);
   const md = new THREE.Color(mid || mix(color, shade, 0.35));
+  const bright = { value: 1 };
+  Object.defineProperty(m, 'emissiveIntensity', { get: () => bright.value, set: (v) => (bright.value = Number.isFinite(v) ? v : 1), configurable: true });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.cTop = { value: top };
     shader.uniforms.cShade = { value: sh };
     shader.uniforms.cMid = { value: md };
     shader.uniforms.cL = { value: L };
+    shader.uniforms.cBright = bright;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWN; varying vec3 vVD;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWN = normalize( mat3( modelMatrix ) * normal );\nvVD = normalize( ( modelMatrix * vec4( position, 1.0 ) ).xyz - cameraPosition );');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 cTop; uniform vec3 cShade; uniform vec3 cMid; uniform vec3 cL; varying vec3 vWN; varying vec3 vVD;')
+      .replace('#include <common>', '#include <common>\nuniform vec3 cTop; uniform vec3 cShade; uniform vec3 cMid; uniform vec3 cL; uniform float cBright; varying vec3 vWN; varying vec3 vVD;')
       .replace(
         'vec4 diffuseColor = vec4( diffuse, opacity );',
         `vec3 n = normalize( vWN );
-        float lit = dot( n, cL ) * 0.55 + n.y * 0.45;
+        float lit = dot( n, cL ) * 0.5 + n.y * 0.5;
         vec3 cc = mix( cShade, cMid, smoothstep( ${steps[0].toFixed(3)}, ${steps[1].toFixed(3)}, lit ) );
         cc = mix( cc, cTop, smoothstep( ${steps[2].toFixed(3)}, ${steps[3].toFixed(3)}, lit ) );
-        float rim = pow( 1.0 - abs( dot( n, -vVD ) ), 3.0 );
-        cc = mix( cc, cTop, rim * ${rim.toFixed(3)} * smoothstep( -0.2, 0.4, n.y ) );
+        float facing = abs( dot( n, -vVD ) );
+        float rim = pow( 1.0 - facing, 2.5 );
+        // 윗 가장자리는 하얗게 빛나고(솜 끝에 빛이 비침), 해를 향한 가장자리는 따뜻하게 더 밝다
+        float sunward = smoothstep( -0.3, 0.8, dot( n, cL ) );
+        cc = mix( cc, cTop * ( 1.0 + 0.12 * sunward ), rim * ${rim.toFixed(3)} * smoothstep( -0.35, 0.45, n.y ) );
+        // 아랫면 가운데는 살짝 더 깊게(덩어리감)
+        cc *= 1.0 - 0.08 * smoothstep( 0.0, -0.9, n.y ) * facing;
+        // 날씨가 어둡게 하면(밤·비) 잿빛이 아니라 푸른 밤빛으로 가라앉는다
+        cc *= cBright;
+        cc = mix( cc * vec3( 0.72, 0.8, 1.18 ), cc, smoothstep( 0.3, 1.0, cBright ) );
         vec4 diffuseColor = vec4( cc, opacity );`,
       );
   };
-  m.customProgramCacheKey = () => `cloudMat2|${steps}|${rim}`;
+  m.customProgramCacheKey = () => `cloudMat3|${steps}|${rim}`;
   cloudMatCache.set(key, m);
+  trackCloudMaterial(`stage:${key}`, m);
   return m;
 }
 
@@ -915,12 +1097,14 @@ export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fo
  * @param {()=>number} r 난수
  * @param {{w:number, h:number, d?:number, n?:number, seg?:number, flat?:number}} o  w = 가로 폭, h = 높이
  */
-export function cumulusGeo(r, { w = 6, h = 2.6, d = null, n = 14, seg = 18, flat = 0.25, base = 0.18, soft = [0.6, 0.5] } = {}) {
+export function cumulusGeo(r, { w = 6, h = 2.6, d = null, n = 14, seg = 18, flat = 0.25, base = 0.18, soft = [0.42, 0.75] } = {}) {
   const geos = [];
   const depth = d ?? w * 0.35;
   const sg = sphereGeo(1, seg, Math.round(seg * 0.7));
   const blobs = [];
-  // 받침(가로로 길게, 바닥은 나중에 눌린다) → 몸통(둥근 지붕 모양) → 꼭대기 작은 솜뭉치(꽃양배추 윤곽)
+  // 장난감 구름: 덩이는 적고 크게(꽃양배추처럼 잘게 울퉁불퉁하지 않게)
+  n = Math.max(7, Math.round(n * 0.62));
+  // 받침(가로로 길게, 바닥은 나중에 눌린다) → 몸통(둥근 지붕 모양) → 꼭대기 솜뭉치
   const nb = Math.max(3, Math.round(n * 0.3));
   for (let i = 0; i < nb; i++) {
     const t = nb === 1 ? 0.5 : i / (nb - 1);
@@ -932,14 +1116,14 @@ export function cumulusGeo(r, { w = 6, h = 2.6, d = null, n = 14, seg = 18, flat
   for (let i = 0; i < nBody; i++) {
     const t = 0.12 + r() * 0.76;
     const e = env(t);
-    const rr = w * (0.11 + 0.06 * r()) * (0.55 + 0.45 * e);
-    blobs.push([(t - 0.5) * w * 0.78, h * 0.18 + e * h * 0.3 * (0.6 + 0.4 * r()), (r() - 0.5) * depth * 0.35 + depth * 0.05, rr]);
+    const rr = w * (0.13 + 0.06 * r()) * (0.55 + 0.45 * e);
+    blobs.push([(t - 0.5) * w * 0.74, h * 0.16 + e * h * 0.28 * (0.6 + 0.4 * r()), (r() - 0.5) * depth * 0.35 + depth * 0.05, rr]);
   }
   const nCrown = n - nb - nBody;
   for (let i = 0; i < nCrown; i++) {
     const t = 0.15 + (i + r() * 0.8) / nCrown * 0.7;
     const e = env(t);
-    const rr = w * (0.065 + 0.04 * r()) * (0.6 + 0.4 * e);
+    const rr = w * (0.085 + 0.04 * r()) * (0.6 + 0.4 * e);
     const y = h * (0.3 + 0.45 * e) + rr * 0.2;
     blobs.push([(t - 0.5) * w * 0.74, Math.min(y, h - rr), (r() - 0.5) * depth * 0.3 + depth * 0.12, rr]);
   }
@@ -1023,18 +1207,16 @@ export const LEAF = {
 };
 const TRUNK = ['#5a3420', '#a36d3c'];
 
-const DEF_PUFFS = [
-  // x, y, z, r  (줄기 끝 위 기준) — 가운데 큰 덩이 + 둘레 덩이 + 위 작은 혹: 뭉실뭉실한 실루엣
-  [0, 0.1, 0, 0.58],
-  [0.42, -0.08, 0.1, 0.42],
-  [-0.4, -0.06, 0.08, 0.44],
-  [0.06, -0.14, 0.4, 0.42],
-  [-0.08, -0.1, -0.38, 0.42],
-  [0.22, 0.42, 0.12, 0.34],
-  [-0.24, 0.36, -0.06, 0.32],
+/** 장난감 나무 왕관: 큰 덩이 하나 + 둘레 둥근 덩이 넷(적고 크게, 실루엣은 또렷하게). */
+const BIG_PUFFS = [
+  [0, 0.12, 0, 0.66],
+  [0.46, -0.1, 0.06, 0.46],
+  [-0.44, -0.08, 0.04, 0.48],
+  [0.04, -0.12, 0.42, 0.46],
+  [0.02, 0.5, 0.02, 0.4],
 ];
 
-/** 둥근 활엽수. 덩이마다 볕 쪽 위는 밝고 아래·그늘 쪽은 짙은 두 톤. o = { leaf:[그늘,볕], trunk, seg, trunkH, puffs, roots } */
+/** 둥근 활엽수(잎 왕관 전체를 한 덩어리로 칠한 두 톤). o = { leaf:[그늘,볕], trunk, seg, trunkH, puffs, roots, ink(외곽선 두께) } */
 export function roundTree(parent, x, y, z, s = 1, r = Math.random, o = {}) {
   const leaf = o.leaf || LEAF.meadow;
   const trunk = o.trunk || TRUNK;
@@ -1045,11 +1227,15 @@ export function roundTree(parent, x, y, z, s = 1, r = Math.random, o = {}) {
   if (o.roots !== false) g.add(P(sphereGeo(1, 9, 5), '', { pos: [0, 0.03, 0], scale: [0.24, 0.1, 0.24], tt: trunk }));
   const sg = sphereGeo(1, seg, Math.max(6, Math.round(seg * 0.7)));
   const cy = th + 0.42;
-  // 먼 나무(거친 분할)는 위 작은 혹을 빼고 덩이 다섯 개만
-  for (const [px, py, pz, pr] of o.puffs || (seg <= 7 ? DEF_PUFFS.slice(0, 5) : DEF_PUFFS)) {
-    const j = 0.9 + r() * 0.2;
-    g.add(P(sg, '', { pos: [px, cy + py, pz], scale: [pr * j, pr * j * 0.88, pr * j], tt: [leaf[0], leaf[1], 0.04 + py * 0.25] }));
+  // 잎 덩이들은 한 몸(canopy)으로 칠한다: 덩이마다 따로 밝아지지 않고 왕관 전체가 볕 쪽 위는 밝고 아래는 짙다
+  const canopy = G(g);
+  for (const [px, py, pz, pr] of o.puffs || (seg <= 7 ? BIG_PUFFS.slice(0, 3) : BIG_PUFFS)) {
+    const j = 0.92 + r() * 0.16;
+    const m = P(sg, '', { pos: [px, cy + py, pz], scale: [pr * j, pr * j * 0.9, pr * j], tt: [leaf[0], leaf[1], 0.02] });
+    m.userData.ttGroup = canopy;
+    canopy.add(m);
   }
+  if (o.ink) inkLine(g, o.ink);
   return g;
 }
 
@@ -1059,13 +1245,16 @@ export function bush(parent, x, y, z, s = 1, r = Math.random, o = {}) {
   const seg = o.seg || 10;
   const g = G(parent, x, y, z, r() * TAU, s);
   const sg = sphereGeo(1, seg, Math.max(5, Math.round(seg * 0.65)));
-  const n = o.n || 4;
+  const n = o.n || 3;
   const fl = o.flat ?? 0.85;
+  const body = G(g);
   for (let i = 0; i < n; i++) {
     const a = (i / n) * TAU + r();
-    const rr = 0.24 + r() * 0.12;
-    const rad = i === 0 ? 0 : 0.22 + r() * 0.1;
-    g.add(P(sg, '', { pos: [Math.cos(a) * rad, rr * fl * 0.8 + (i === 0 ? 0.08 : 0), Math.sin(a) * rad], scale: [rr, rr * fl, rr], tt: [leaf[0], leaf[1], i === 0 ? 0.08 : 0] }));
+    const rr = (i === 0 ? 0.34 : 0.26) + r() * 0.08;
+    const rad = i === 0 ? 0 : 0.24 + r() * 0.08;
+    const m = P(sg, '', { pos: [Math.cos(a) * rad, rr * fl * 0.8 + (i === 0 ? 0.06 : 0), Math.sin(a) * rad], scale: [rr, rr * fl, rr], tt: [leaf[0], leaf[1], 0.04] });
+    m.userData.ttGroup = body;
+    body.add(m);
   }
   if (o.flowers) {
     const fs = sphereGeo(1, 8, 6);
@@ -1090,19 +1279,23 @@ function pineTierGeo(seg = 10) {
   return g;
 }
 
-/** 소나무(둥근 층 3~4개, 두 톤). o = { leaf:[그늘,볕], trunk, tiers, seg, snow } */
+/** 소나무(둥근 층 3~4개, 나무 전체를 한 덩어리로 칠한 두 톤). o = { leaf:[그늘,볕], trunk, tiers, seg, snow, ink } */
 export function pine(parent, x, y, z, s = 1, r = Math.random, o = {}) {
   const leaf = o.leaf || LEAF.pine;
   const g = G(parent, x, y, z, r() * TAU, s);
   g.add(P(cylGeo(0.07, 0.11, 0.42, 7), '', { pos: [0, 0.21, 0], tt: o.trunk || TRUNK }));
   const tiers = o.tiers || 3;
   const tg = pineTierGeo(o.seg || 10);
+  const crown = G(g);
   for (let i = 0; i < tiers; i++) {
     const k = i / tiers;
     const rad = 0.66 * (1 - k * 0.55);
     const hh = 0.78 * (1 - k * 0.25);
-    g.add(P(tg, '', { pos: [0, 0.32 + i * 0.42, 0], scale: [rad, hh, rad], tt: [leaf[0], leaf[1], -0.05 + k * 0.2] }));
+    const m = P(tg, '', { pos: [0, 0.32 + i * 0.42, 0], scale: [rad, hh, rad], tt: [leaf[0], leaf[1], -0.02 + k * 0.08] });
+    m.userData.ttGroup = crown;
+    crown.add(m);
   }
+  if (o.ink) inkLine(g, o.ink);
   if (o.snow) g.add(P(tg, '#f4f8ff', { pos: [0, 0.32 + (tiers - 1) * 0.42 + 0.38, 0], scale: [0.18, 0.3, 0.18] }));
   return g;
 }
@@ -1302,7 +1495,7 @@ export function lanePlants(parent, o) {
   };
   const grass = o.grass || ['#5aa83f', '#6fbf4a', '#4b9a3a'];
   // 1) 앞 띠(조작부 아래까지): 풀 포기·꽃·잎 방석, 구석에 몰리게
-  place(110, 0.95, 4.2, 0.6, (x, y, z) => {
+  place(48, 0.95, 4.2, 0.7, (x, y, z) => {
     const k = r();
     const hm = maxH(z);
     if (k < 0.55) tufts[(r() * 3) | 0].push([x, y, z, Math.min(hm / tH, 0.6 + r() * 0.4), r() * TAU, pick(grass)]);
@@ -1312,7 +1505,7 @@ export function lanePlants(parent, o) {
     } else if (o.clover) clo.push([x, y, z, Math.min(hm / cH, 0.8 + r() * 0.5), r() * TAU, pick(o.clover)]);
   });
   // 2) 통로 가장자리(낮게): 통로 한가운데는 비운다
-  place(60, -0.9, 0.9, 0.75, (x, y, z) => {
+  place(22, -0.9, 0.9, 0.85, (x, y, z) => {
     if (Math.abs(z) < 0.45 && r() < 0.8) return;
     const k = r();
     const hm = maxH(z);
@@ -1324,7 +1517,7 @@ export function lanePlants(parent, o) {
   });
   // 3) 뒤 띠(통로 뒤 ~ 소품 앞)
   const [bz0, bz1] = o.back || [-5.5, -0.95];
-  place(130, bz0, bz1, 0.35, (x, y, z) => {
+  place(56, bz0, bz1, 0.45, (x, y, z) => {
     const k = r();
     if (k < 0.55) tufts[(r() * 3) | 0].push([x, y, z, 0.8 + r() * 0.6, r() * TAU, pick(grass)]);
     else if (k < 0.82 && fl.length) {
@@ -1372,14 +1565,14 @@ export function fence(parent, pts, { gap = 0.66, h = 0.46, col = '#c08550', dark
 }
 
 /** 하얀 말뚝 울타리(두툼하게, 끝이 둥근 말뚝). */
-export function picketFence(parent, x0, x1, z, { h = 0.36, col = '#fbf6ec', y = 0, gap = 0.17 } = {}) {
+export function picketFence(parent, x0, x1, z, { h = 0.36, col = '#fbf6ec', y = 0, gap = 0.24 } = {}) {
   const g = G(parent);
-  const pk = roundBoxGeo(0.085, h, 0.05, 0.022, 1);
+  const pk = roundBoxGeo(0.11, h, 0.06, 0.03, 1);
   const tip = sphereGeo(1, 8, 4);
   const tt = [mix(col, '#7a86c8', 0.35), col];
   for (let x = x0; x <= x1 + 1e-6; x += gap) {
     g.add(P(pk, '', { pos: [x, y + h / 2, z], fin: 'soft', tt }));
-    g.add(P(tip, '', { pos: [x, y + h, z], scale: [0.043, 0.05, 0.026], fin: 'soft', tt }));
+    g.add(P(tip, '', { pos: [x, y + h, z], scale: [0.055, 0.06, 0.031], fin: 'soft', tt }));
   }
   const rail = roundBoxGeo(x1 - x0 + 0.12, 0.06, 0.04, 0.02, 1);
   for (const ry of [h * 0.3, h * 0.72]) g.add(P(rail, '', { pos: [(x0 + x1) / 2, y + ry, z - 0.04], fin: 'soft', tt }));
@@ -1437,7 +1630,7 @@ export function extrudeGeo(key, pts, d, bevel = 0) {
 
 /**
  * 동화풍 집. 정면은 +z. side = true 면 처마 쪽(긴 지붕 비탈)이 정면을 본다.
- * o = { w, d, h, wall, roof, trim, door, chimney, win, floors, detail(0..2), lit, side, shutters }
+ * o = { w, d, h, wall, roof, trim, door, chimney, win, floors, detail(0..2), lit, side, shutters, ink(외곽선 두께) }
  */
 export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
   const g = G(parent, x, y, z, ry, s);
@@ -1489,12 +1682,12 @@ export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
   const floors = o.floors ?? 1;
   const fh = h / floors;
   if (detail > 0) {
-    const wg = boxGeo(0.2, 0.23, 0.04);
-    const fr = boxGeo(0.28, 0.31, 0.03);
-    const sill = boxGeo(0.32, 0.04, 0.08);
-    const mull = boxGeo(0.02, 0.23, 0.045);
-    const shut = boxGeo(0.09, 0.27, 0.03);
-    const cols = Math.max(1, Math.round(faceW / 0.5));
+    // 창: 둥근 틀 + 반들한 유리 + 창턱(창살 없이 굵직하게)
+    const wg = roundBoxGeo(0.21, 0.25, 0.04, 0.04, 1);
+    const fr = roundBoxGeo(0.3, 0.34, 0.03, 0.06, 1);
+    const sill = roundBoxGeo(0.34, 0.05, 0.08, 0.02, 1);
+    const shut = roundBoxGeo(0.09, 0.28, 0.03, 0.03, 1);
+    const cols = Math.max(1, Math.round(faceW / 0.56));
     const doorX = o.doorX ?? (side ? -faceW * 0.18 : 0);
     for (let f = 0; f < floors; f++) {
       const wy = fh * f + fh * 0.56;
@@ -1503,11 +1696,10 @@ export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
         if (f === 0 && Math.abs(wx - doorX) < 0.24 && o.door !== false) continue;
         put(fr, trim, wx, wy, 0.012, 'soft');
         put(wg, winCol, wx, wy, 0.022, fin);
-        put(mull, trim, wx, wy, 0.03, 'soft');
-        put(sill, trim, wx, wy - 0.16, 0.03, 'soft');
+        put(sill, trim, wx, wy - 0.17, 0.03, 'soft');
         if (o.shutters) {
-          put(shut, o.shutters, wx - 0.19, wy, 0.02, 'soft');
-          put(shut, o.shutters, wx + 0.19, wy, 0.02, 'soft');
+          put(shut, o.shutters, wx - 0.2, wy, 0.02, 'soft');
+          put(shut, o.shutters, wx + 0.2, wy, 0.02, 'soft');
         }
       }
     }
@@ -1526,10 +1718,10 @@ export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
       dm.add(P(boxGeo(0.18, 0.2, 0.04), winCol, { pos: [0, 0.14, 0.2], fin, cast: false }));
     }
     if (o.door !== false) {
-      put(boxGeo(0.3, 0.46, 0.04), trim, doorX, 0.23, 0.008, 'soft');
-      put(boxGeo(0.24, 0.42, 0.05), o.door || '#8f5a3a', doorX, 0.21, 0.015, 'soft');
-      put(boxGeo(0.4, 0.05, 0.16), trim, doorX, 0.5, 0.07, 'soft');
-      put(boxGeo(0.4, 0.05, 0.2), '#d9cfc2', doorX, 0.025, 0.1, 'soft');
+      put(roundBoxGeo(0.32, 0.48, 0.04, 0.05, 1), trim, doorX, 0.24, 0.008, 'soft');
+      put(roundBoxGeo(0.25, 0.43, 0.05, 0.05, 1), o.door || '#8f5a3a', doorX, 0.215, 0.015, 'soft');
+      put(sphereGeo(0.03, 8, 6), '#ffc444', doorX + 0.08, 0.22, 0.045, 'gloss');
+      put(roundBoxGeo(0.42, 0.06, 0.18, 0.025, 1), trim, doorX, 0.5, 0.07, 'soft');
     }
   } else {
     // 먼 집: 창 몇 개만
@@ -1537,6 +1729,7 @@ export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
     const cols = Math.max(1, Math.round(faceW / 0.55));
     for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) put(wg, winCol, -faceW / 2 + (faceW / cols) * (c + 0.5), fh * f + fh * 0.55, 0.01, fin);
   }
+  if (o.ink) inkLine(g, o.ink);
   return g;
 }
 

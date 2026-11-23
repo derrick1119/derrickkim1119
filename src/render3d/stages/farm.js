@@ -3,8 +3,8 @@
 import {
   THREE, P, G, bake, bakeV, terrain, cloudLayer, cloudMat, roundTree, bush, rock, mushroom, fence, hayBale, house,
   groundBlob, waterMat, mesa, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU, sphereGeo, roundBoxGeo, cylGeo,
-  coneGeo, torusGeo, latheGeo, extrudeGeo, capsuleGeo, LEAF, lanePlants, flowerGeo, tulipGeo, groundDecal, grassStrokes,
-  speckle, glowS, sharedMat,
+  coneGeo, torusGeo, latheGeo, extrudeGeo, LEAF, lanePlants, flowerGeo, tulipGeo, groundDecal, grassStrokes,
+  speckle, glowS, sharedMat, inkLine, birdFlock,
 } from './common.js';
 
 const SEA_Y = -0.55;
@@ -89,7 +89,7 @@ function color(x, y, z, ny) {
   const n = fbm(x * 0.28 + 3, z * 0.28, 3);
   const n2 = noise2(x * 1.3 + 5, z * 1.6);
   let c = mixv(C_DEEP, C_GRASS, smooth(0.25, 0.62, n));
-  c = mixv(c, C_LIT, smooth(0.5, 0.8, n2) * 0.5 + smooth(1.0, 3.5, y) * 0.3);
+  c = mixv(c, C_LIT, smooth(0.55, 0.85, n2) * 0.22 + smooth(1.0, 3.5, y) * 0.3);
   // 가운데 들판(헛간 앞)은 볕이 가득
   c = mixv(c, C_LIT, Math.exp(-((x - 0.5) ** 2) / 30 - ((z + 9) ** 2) / 14) * 0.35);
   // 앞 풀밭은 짙고 차갑게(액자) — 통로 뒤 가장자리도 살짝
@@ -126,7 +126,7 @@ function seaColor(x, y, z) {
 function drawDecal(ctx, W, Hh, X, Z, r) {
   const u = W / 13.2;
   // 풀 결
-  grassStrokes(ctx, 0, 0, W, Hh, 2400, ['rgba(30,100,45,0.2)', 'rgba(25,80,50,0.16)', 'rgba(225,255,150,0.2)', 'rgba(200,240,120,0.16)'], r, [3, 7]);
+  grassStrokes(ctx, 0, 0, W, Hh, 700, ['rgba(30,100,45,0.14)', 'rgba(225,255,150,0.14)'], r, [4, 9]);
   // 길 모양(위·아래 가장자리 점)
   const top = [];
   const bot = [];
@@ -172,31 +172,8 @@ function drawDecal(ctx, W, Hh, X, Z, r) {
   for (let z = -0.4; z >= -7; z -= 0.1) (z === -0.4 ? ctx.moveTo : ctx.lineTo).call(ctx, X(branchX(z)), Z(z));
   ctx.lineWidth = u * 0.32;
   ctx.stroke();
-  // 바퀴 자국
-  ctx.strokeStyle = 'rgba(170,120,70,0.35)';
-  ctx.lineWidth = u * 0.05;
-  for (const off of [-0.22, 0.22]) {
-    ctx.beginPath();
-    for (let x = -6.6; x <= 6.61; x += 0.1) (x === -6.6 ? ctx.moveTo : ctx.lineTo).call(ctx, X(x), Z(pathZ(x) + off));
-    ctx.stroke();
-  }
-  speckle(ctx, 0, 0, W, Hh, 1600, ['rgba(150,100,60,0.35)', 'rgba(255,245,220,0.5)', 'rgba(120,80,50,0.25)'], r, [1, 3.2]);
+  speckle(ctx, 0, 0, W, Hh, 260, ['rgba(150,100,60,0.18)', 'rgba(255,245,220,0.3)'], r, [1.5, 3.5]);
   ctx.restore();
-  // 길가 돌멩이(그림)
-  for (let i = 0; i < 70; i++) {
-    const x = -6.4 + r() * 12.8;
-    const side = r() < 0.5 ? -1 : 1;
-    const z = pathZ(x) + side * (PATH_W + 0.02 + r() * 0.06);
-    const s = u * (0.05 + r() * 0.05);
-    ctx.fillStyle = r() < 0.5 ? '#d8d0e4' : '#bfb6d0';
-    ctx.beginPath();
-    ctx.ellipse(X(x), Z(z), s, s * 0.6, 0, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath();
-    ctx.ellipse(X(x) - s * 0.25, Z(z) - s * 0.2, s * 0.4, s * 0.22, 0, 0, TAU);
-    ctx.fill();
-  }
   // 연못 자리는 비우고, 멀리 갈수록 흐려진다
   ctx.globalCompositeOperation = 'destination-out';
   ctx.beginPath();
@@ -215,9 +192,9 @@ function drawDecal(ctx, W, Hh, X, Z, r) {
 function barn(parent, x, y, z, ry, s) {
   const g = G(parent, x, y, z, ry, s);
   const red = '#dc4636';
-  const redTT = ['#a8302e', '#ef5a40'];
+  const redTT = ['#a8243a', '#ff5e48'];
   const white = '#fff8ea';
-  const roofTT = ['#3e4a80', '#7f8fc8'];
+  const roofTT = ['#2c3678', '#7486d8'];
   const W = 2.0;
   const Hh = 1.2;
   const D = 1.6;
@@ -272,63 +249,79 @@ function barn(parent, x, y, z, ry, s) {
   // 사일로(두 톤 + 테)
   const sl = G(g, -W / 2 - 0.52, 0, -0.25);
   sl.add(P(cylGeo(0.42, 0.44, 2.0, 20), '', { pos: [0, 1.0, 0], fin: 'soft', tt: ['#b9b2c8', '#fbf6ee'] }));
-  for (const yy of [0.5, 1.0, 1.5]) sl.add(P(torusGeo(0.43, 0.03, 5, 24), '#9a92b0', { pos: [0, yy, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft', cast: false }));
+  for (const yy of [0.7, 1.4]) sl.add(P(torusGeo(0.43, 0.03, 5, 24), '#9a92b0', { pos: [0, yy, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft', cast: false }));
   sl.add(P(sphereGeo(1, 20, 10), '', { pos: [0, 2.0, 0], scale: [0.45, 0.36, 0.45], fin: 'soft', tt: roofTT }));
+  inkLine(g, 0.04);
   return g;
 }
 
 function lighthouse(parent, x, y, z, s) {
   const g = G(parent, x, y, z, 0, s);
-  g.add(P(cylGeo(0.52, 0.6, 0.26, 20), '', { pos: [0, 0.13, 0], tt: ['#8f88a8', '#ddd8ea'] }));
-  const segs = 5;
-  const H0 = 0.26;
-  const tot = 2.2;
-  for (let i = 0; i < segs; i++) {
-    const r0 = 0.42 - (i / segs) * 0.13;
-    const r1 = 0.42 - ((i + 1) / segs) * 0.13;
-    const hh = tot / segs;
-    const c = i % 2 ? ['#b8302a', '#f2584a'] : ['#c9c2dc', '#fffaf0'];
-    g.add(P(cylGeo(r1, r0, hh, 20), '', { pos: [0, H0 + hh * (i + 0.5), 0], fin: 'soft', tt: c }));
+  // 받침 바위 단 + 통통한 탑(아래가 넓은 매끈한 윤곽, 빨강·크림 띠 세 줄)
+  g.add(P(cylGeo(0.62, 0.7, 0.3, 24), '', { pos: [0, 0.15, 0], fin: 'soft', tt: ['#9a8fb4', '#efe8f6'] }));
+  const H0 = 0.28;
+  const tot = 2.1;
+  const prof = (k) => 0.5 - 0.15 * k - 0.04 * k * k;
+  const bands = 4;
+  for (let i = 0; i < bands; i++) {
+    const k0 = i / bands;
+    const k1 = (i + 1) / bands;
+    const geo = latheGeo([[prof(k0), 0], [prof((k0 * 2 + k1) / 3), tot / bands / 3], [prof((k0 + k1 * 2) / 3), (2 * tot) / bands / 3], [prof(k1), tot / bands]], 28, `lh2band${i}`);
+    const c = i % 2 ? ['#b8263a', '#ff6a5a'] : ['#c8c0e0', '#fffaf0'];
+    g.add(P(geo, '', { pos: [0, H0 + (tot * i) / bands, 0], fin: 'soft', tt: c }));
   }
   const top = H0 + tot;
-  g.add(P(cylGeo(0.44, 0.36, 0.1, 20), '#2e3768', { pos: [0, top + 0.05, 0], fin: 'soft' }));
-  g.add(P(torusGeo(0.4, 0.025, 4, 24), '#2e3768', { pos: [0, top + 0.24, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
-  g.add(P(cylGeo(0.22, 0.22, 0.36, 16), '#fff1b0', { pos: [0, top + 0.27, 0], fin: 'glow' }));
+  // 발코니(두툼한 남색 원반 + 금빛 난간)
+  g.add(P(cylGeo(0.5, 0.36, 0.14, 28), '', { pos: [0, top + 0.05, 0], fin: 'soft', tt: ['#1f2a5e', '#4a5aa8'] }));
+  g.add(P(torusGeo(0.46, 0.035, 8, 32), '#ffc444', { pos: [0, top + 0.26, 0], rot: [Math.PI / 2, 0, 0], fin: 'gloss' }));
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU;
+    g.add(P(cylGeo(0.018, 0.018, 0.2, 6), '#ffc444', { pos: [Math.cos(a) * 0.46, top + 0.17, Math.sin(a) * 0.46], fin: 'gloss', cast: false }));
+  }
+  // 등실: 빛나는 유리통 + 남색 기둥
+  g.add(P(cylGeo(0.25, 0.25, 0.4, 20), '#fff3b8', { pos: [0, top + 0.32, 0], fin: 'glow' }));
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * TAU;
-    g.add(P(roundBoxGeo(0.04, 0.36, 0.04, 0.015, 1), '#2e3768', { pos: [Math.cos(a) * 0.225, top + 0.27, Math.sin(a) * 0.225] }));
+    g.add(P(roundBoxGeo(0.05, 0.42, 0.05, 0.02, 1), '#2a3570', { pos: [Math.cos(a) * 0.255, top + 0.32, Math.sin(a) * 0.255], fin: 'soft' }));
   }
-  g.add(P(sphereGeo(1, 18, 10), '', { pos: [0, top + 0.46, 0], scale: [0.3, 0.24, 0.3], fin: 'soft', tt: ['#a8302a', '#f2584a'] }));
-  g.add(P(sphereGeo(0.07, 8, 6), '#2e3768', { pos: [0, top + 0.72, 0] }));
-  house(g, 0.95, 0, 0.15, -0.3, 0.62, { w: 1.1, d: 0.9, h: 0.7, wall: '#fbf6ec', roof: '#e2483c', detail: 1, chimney: true });
-  return { g, lampY: y + (top + 0.27) * s };
+  // 빨간 둥근 지붕 + 금빛 꼭지
+  const cap = latheGeo([[0.38, 0], [0.37, 0.06], [0.3, 0.2], [0.16, 0.32], [0.0, 0.36]], 24, 'lhcap2');
+  g.add(P(cap, '', { pos: [0, top + 0.52, 0], fin: 'soft', tt: ['#a01e34', '#ff6a5a'] }));
+  g.add(P(sphereGeo(1, 12, 8), '#ffc444', { pos: [0, top + 0.92, 0], scale: 0.075, fin: 'gloss' }));
+  // 등대지기 집(작게)
+  house(g, 0.95, 0, 0.2, -0.3, 0.6, { w: 1.1, d: 0.9, h: 0.7, wall: '#fbf6ec', roof: '#e2483c', detail: 1, chimney: true });
+  inkLine(g, 0.05);
+  return { g, lampY: y + (top + 0.32) * s };
 }
 
 function windmill(parent, x, y, z, ry, s) {
   const g = G(parent, x, y, z, ry, s);
-  g.add(P(cylGeo(0.74, 0.82, 0.32, 20), '', { pos: [0, 0.16, 0], tt: ['#8f88a8', '#ddd8ea'] }));
-  const tower = latheGeo([[0.68, 0], [0.64, 0.6], [0.55, 1.4], [0.46, 2.2], [0.43, 2.4], [0, 2.4]], 24, 'milltower');
-  g.add(P(tower, '', { pos: [0, 0.3, 0], fin: 'soft', tt: ['#d8c4a8', '#fff6e4'] }));
-  g.add(P(torusGeo(0.52, 0.07, 6, 24), '#8f5a3a', { pos: [0, 1.25, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
-  g.add(P(sphereGeo(1, 20, 12), '', { pos: [0, 2.7, 0], scale: [0.58, 0.45, 0.65], fin: 'soft', tt: ['#6a3024', '#c0603e'] }));
-  g.add(P(roundBoxGeo(0.32, 0.48, 0.06, 0.03, 2), '#7a4a2e', { pos: [0, 0.52, 0.66], rot: [-0.05, 0, 0], fin: 'soft' }));
-  for (const yy of [1.1, 1.8]) {
-    g.add(P(roundBoxGeo(0.22, 0.26, 0.06, 0.03, 2), '#ffffff', { pos: [0, yy, 0.61 - yy * 0.06], rot: [-0.08, 0, 0], fin: 'soft' }));
-    g.add(P(roundBoxGeo(0.15, 0.19, 0.06, 0.03, 2), '#7fc0ee', { pos: [0, yy, 0.62 - yy * 0.06], rot: [-0.08, 0, 0], fin: 'gloss' }));
-  }
-  // 날개(돈다): 허브 묶음은 굽지 않고, 날개만 따로 한 덩이로 합친다
-  const hub = G(g, 0, 2.68, 0.64);
+  g.add(P(cylGeo(0.76, 0.84, 0.3, 24), '', { pos: [0, 0.15, 0], fin: 'soft', tt: ['#9a8fb4', '#efe8f6'] }));
+  const tower = latheGeo([[0.7, 0], [0.68, 0.3], [0.6, 1.2], [0.5, 2.1], [0.48, 2.35], [0, 2.35]], 28, 'milltower2');
+  g.add(P(tower, '', { pos: [0, 0.3, 0], fin: 'soft', tt: ['#d4bfa6', '#fff8ea'] }));
+  g.add(P(torusGeo(0.56, 0.08, 8, 28), '', { pos: [0, 1.3, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft', tt: ['#6a3a22', '#c07a48'] }));
+  // 둥근 빨간 모자
+  g.add(P(sphereGeo(1, 24, 14), '', { pos: [0, 2.68, 0], scale: [0.62, 0.5, 0.68], fin: 'soft', tt: ['#a01e34', '#ff6a5a'] }));
+  g.add(P(sphereGeo(1, 10, 8), '#ffc444', { pos: [0, 3.2, 0], scale: 0.08, fin: 'gloss' }));
+  // 문과 둥근 창
+  g.add(P(roundBoxGeo(0.34, 0.5, 0.08, 0.06, 2), '#7a4a2e', { pos: [0, 0.55, 0.66], rot: [-0.05, 0, 0], fin: 'soft' }));
+  g.add(P(cylGeo(0.13, 0.13, 0.06, 18), '#fff8ea', { pos: [0, 1.75, 0.555], rot: [Math.PI / 2 - 0.1, 0, 0], fin: 'soft', cast: false }));
+  g.add(P(cylGeo(0.09, 0.09, 0.07, 18), '#7fc8f4', { pos: [0, 1.75, 0.565], rot: [Math.PI / 2 - 0.1, 0, 0], fin: 'gloss', cast: false }));
+  inkLine(g, 0.05);
+  // 날개(돈다): 통통한 크림색 노 네 장에 빨간 끝동 — 살대 격자 대신 굵직한 장난감 날개
+  const hub = G(g, 0, 2.66, 0.66);
   hub.userData.dynamic = true;
   const sails = G(hub);
-  sails.add(P(cylGeo(0.14, 0.14, 0.22, 14), '#6b4128', { rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
+  sails.add(P(cylGeo(0.16, 0.16, 0.22, 16), '', { rot: [Math.PI / 2, 0, 0], fin: 'soft', tt: ['#6a3a22', '#b8743e'] }));
+  sails.add(P(sphereGeo(1, 12, 8), '#ffc444', { pos: [0, 0, 0.12], scale: [0.09, 0.09, 0.06], fin: 'gloss' }));
   for (let i = 0; i < 4; i++) {
     const arm = G(sails, 0, 0, 0.06);
     arm.rotation.z = (i / 4) * TAU + 0.3;
-    arm.add(P(roundBoxGeo(0.09, 1.8, 0.06, 0.03, 2), '#6e4426', { pos: [0, 0.92, 0], fin: 'soft' }));
-    arm.add(P(roundBoxGeo(0.42, 1.28, 0.03, 0.014, 2), '#fff4dc', { pos: [0.23, 1.07, -0.01], fin: 'soft' }));
-    for (let k = 0; k < 5; k++) arm.add(P(roundBoxGeo(0.44, 0.035, 0.04, 0.012, 1), '#a8784e', { pos: [0.23, 0.5 + k * 0.28, 0.012] }));
-    arm.add(P(roundBoxGeo(0.035, 1.28, 0.04, 0.012, 1), '#a8784e', { pos: [0.44, 1.07, 0.012] }));
+    arm.add(P(roundBoxGeo(0.1, 1.75, 0.07, 0.035, 2), '', { pos: [0, 0.9, 0], fin: 'soft', tt: ['#5a321e', '#a8703e'] }));
+    arm.add(P(roundBoxGeo(0.46, 1.1, 0.06, 0.06, 3), '', { pos: [0.22, 1.08, -0.01], fin: 'soft', tt: ['#e8d8c0', '#fffaf0'] }));
+    arm.add(P(roundBoxGeo(0.46, 0.24, 0.065, 0.06, 3), '', { pos: [0.22, 1.66, -0.008], fin: 'soft', tt: ['#b8263a', '#ff6a5a'] }));
   }
+  inkLine(sails, 0.04);
   return { g, sails };
 }
 
@@ -364,12 +357,10 @@ function pond(parent, r) {
     g.add(water);
   }
   // 물가 돌(굵직하게)
-  for (let i = 0; i < 30; i++) {
-    const a = (i / 30) * TAU + r() * 0.15;
-    if (a > 0.3 && a < 1.2) continue;
-    const x = cx + Math.cos(a) * rx * 1.03;
-    const z = cz + Math.sin(a) * rz * 1.03;
-    rock(g, x, -0.08, z, 0.32 + r() * 0.2, r, r() < 0.5 ? '#c9c3d8' : '#b5aec6');
+  // 물가: 매끈한 흙 둑 + 큼직한 돌 몇 개(자갈 고리 대신)
+  g.add(P(torusGeo(1, 0.09, 8, 40), '', { pos: [cx, -0.05, cz], rot: [Math.PI / 2, 0, 0], scale: [rx * 1.02, rz * 1.02, 1], tt: ['#7a9a4a', '#b8d878'], cast: false }));
+  for (const [a, k] of [[2.2, 0.55], [2.75, 0.4], [3.9, 0.5], [4.6, 0.36], [5.6, 0.48]]) {
+    rock(g, cx + Math.cos(a) * rx * 1.04, -0.06, cz + Math.sin(a) * rz * 1.04, k, r, '#c9c3d8');
   }
   // 연잎과 연꽃
   for (const [px, pz, k] of [[-0.7, -0.4, 1], [-0.45, -0.7, 0.8], [0.65, -0.5, 0.9], [0.2, -0.9, 0.7], [-0.1, 0.5, 0.8]]) {
@@ -412,7 +403,7 @@ export function buildFarm({ w }) {
   const ground = terrain({ H, C: color, rows: 140, cols: 104, keep: (x, z, y) => y > SEA_Y - 0.9 });
   const sea = terrain({ H: () => SEA_Y, C: seaColor, zNear: -18, zFar: -760, rows: 56, cols: 56, wide: 1.6, rough: 0.24, matKey: 'sea' });
   sea.material.envMapIntensity = 1.25;
-  const cape = mesa({ cx: CAPE.cx, cz: CAPE.cz, R: capeR, top: CAPE.top, bottom: SEA_Y - 0.6, rings: 8, seg: 60, dome: 0.45, seed: 3, rock: ['#d9a06a', '#b4764e', '#8a5640'], grass: ['#7cc045', '#b2dc5a'] });
+  const cape = mesa({ cx: CAPE.cx, cz: CAPE.cz, R: capeR, top: CAPE.top, bottom: SEA_Y - 0.6, rings: 6, seg: 60, dome: 0.5, seed: 3, rock: ['#ffd2a0', '#e09a70', '#a8645c'], grass: ['#7cc045', '#b2dc5a'], lump: 0.06 });
   const decal = groundDecal({ key: 'farm', draw: drawDecal, H: (x, z) => (z < -5.4 ? Math.max(0, H(x, z)) : 0) });
 
   const sets = [LEAF.meadow, LEAF.fresh, LEAF.deep];
@@ -432,7 +423,7 @@ export function buildFarm({ w }) {
     tree(x, z, s, (r() * 3) | 0, 8, cape.topY(x, z) - 0.05);
   }
   for (const [dx, dz] of [[1.8, 3.8], [-0.4, 5.0], [2.9, 3.0]]) bush(props, CAPE.cx + dx, cape.topY(CAPE.cx + dx, CAPE.cz + dz), CAPE.cz + dz, 1.0, r, { seg: 8, flowers: 3 });
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 4; i++) {
     const t = 4.6 + r() * 2.2;
     const rr = capeR(t) * (1.02 + r() * 0.05);
     rock(props, CAPE.cx + Math.cos(t) * rr, SEA_Y - 0.1, CAPE.cz - Math.sin(t) * rr, 1.4 + r() * 1.4, r, '#b0a6c2');
@@ -445,7 +436,7 @@ export function buildFarm({ w }) {
   const mZ = -33;
   const mill = windmill(props, mX, H(mX, mZ) - 0.05, mZ, -0.32, 1.3);
   const spots = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 26; i++) {
     const z = -25 - r() * 26;
     const x = rightX(z) + 1.4 + r() * (7 + (-24 - z) * 0.25);
     if (Math.hypot(x - mX, z - mZ) < 2.4) continue;
@@ -508,24 +499,22 @@ export function buildFarm({ w }) {
 
   // 가까운 들판: 연못, 울타리, 건초, 버섯
   pond(props, r);
-  fence(props, [[POND.x - 2.6, POND.z - 1.6], [POND.x - 0.5, POND.z - 1.9], [POND.x + 1.6, POND.z - 1.6]], { y: H });
   fence(props, [[0.9, -2.7], [2.6, -2.75], [4.4, -2.6], [hw0 * 2.2, -2.8]], { y: H });
   hayBale(props, 2.0, 0, -3.8, 1.0, 0.5);
   hayBale(props, 3.6, 0, -4.6, 1.1, -0.2);
-  hayBale(props, 2.9, 0, -4.15, 0.8, 1.2);
-  for (const [x, z, s] of [[-3.3, -2.2, 1.1], [-2.9, -2.6, 0.8], [3.0, -1.6, 0.9], [0.4, -7.4, 1.0], [-4.6, -8.2, 1.2]]) mushroom(props, x, H(x, z), z, s, r);
+  for (const [x, z, s] of [[-3.3, -2.3, 1.25], [3.2, -1.7, 1.0]]) mushroom(props, x, H(x, z), z, s, r);
 
   // 화면 양옆 큰 나무(액자, 짙은 잎)
   const edgeL = -halfW(w, -3.2) - 0.1;
   const edgeR = halfW(w, -4.2) + 0.1;
-  roundTree(props, edgeL, 0, -3.2, 1.6, r, { leaf: LEAF.deep, seg: 16 });
-  roundTree(props, edgeR + 0.3, 0, -4.2, 1.65, r, { leaf: LEAF.deep, seg: 16 });
-  roundTree(props, edgeL + 1.3, 0, -7.2, 1.2, r, { leaf: LEAF.meadow, seg: 14 });
-  roundTree(props, edgeR - 0.6, 0, -8.5, 1.3, r, { leaf: LEAF.fresh, seg: 14 });
-  for (const [x, z, s] of [[edgeL + 0.9, -2.1, 1.15], [edgeR - 0.7, -2.2, 1.25], [edgeL + 2.4, -4.4, 0.8], [edgeR - 1.7, -5.8, 0.9], [-4.4, -8.6, 1], [0.3, -7.8, 0.8], [-2.6, -10.5, 0.9], [0.2, -11, 0.8]]) {
+  roundTree(props, edgeL, 0, -3.2, 1.6, r, { leaf: LEAF.deep, seg: 16, ink: 0.03 });
+  roundTree(props, edgeR + 0.3, 0, -4.2, 1.65, r, { leaf: LEAF.deep, seg: 16, ink: 0.03 });
+  roundTree(props, edgeL + 1.3, 0, -7.2, 1.2, r, { leaf: LEAF.meadow, seg: 14, ink: 0.03 });
+  roundTree(props, edgeR - 0.6, 0, -8.5, 1.3, r, { leaf: LEAF.fresh, seg: 14, ink: 0.03 });
+  for (const [x, z, s] of [[edgeL + 0.9, -2.1, 1.3], [edgeR - 0.7, -2.2, 1.35], [edgeR - 1.7, -5.8, 1.0], [-4.4, -8.6, 1.1], [0.2, -11, 0.9]]) {
     bush(props, x, H(x, z), z, s, r, { flowers: r() < 0.6 ? 5 : 0, flowerColor: ['#ffffff', '#ff8fb0', '#ffd23f'][(r() * 3) | 0], leaf: z > -5 ? LEAF.deep : LEAF.fresh });
   }
-  for (const [x, z, s] of [[-2.8, -2.4, 0.9], [3.6, -1.7, 0.7], [-0.6, -9.5, 0.9], [edgeL + 1.8, -1.5, 0.8]]) rock(props, x, H(x, z), z, s, r);
+  for (const [x, z, s] of [[-2.7, -2.6, 1.0], [-0.6, -9.5, 0.9]]) rock(props, x, H(x, z), z, s, r);
 
   // 통로 둘레 풀·꽃·조약돌(인스턴스)
   const avoidPath = (x, z) => inPond(x, z, 1.2) || (z < -0.2 && Math.abs(x - branchX(z)) < 0.45) || (Math.abs(z - pathZ(x)) < PATH_W - 0.05 && Math.abs(z) < 0.95) || (x > 1.4 && x < 4.4 && z < -3.2 && z > -5.2);
@@ -546,17 +535,7 @@ export function buildFarm({ w }) {
   });
 
   // 갈매기 몇 마리(한 덩이로 합쳐 천천히 맴돈다)
-  const gulls = G(root);
-  gulls.userData.dynamic = true;
-  for (const [gx, gy, gz, k] of [[0, 0, 0, 1], [1.4, 0.5, -0.6, 0.85], [-1.1, 0.8, 0.4, 0.9]]) {
-    const b = G(gulls, gx, gy, gz, 0.3, k);
-    b.add(P(capsuleGeo(0.06, 0.3, 3, 8), '#ffffff', { rot: [0, 0, Math.PI / 2], fin: 'soft' }));
-    for (const sg of [-1, 1]) {
-      b.add(P(roundBoxGeo(0.08, 0.025, 0.34, 0.01, 1), '#f4f6ff', { pos: [0, 0.06, sg * 0.17], rot: [sg * 0.45, 0, 0], fin: 'soft' }));
-      b.add(P(roundBoxGeo(0.07, 0.022, 0.2, 0.01, 1), '#9aa3c0', { pos: [0, 0.16, sg * 0.42], rot: [-sg * 0.35, 0, 0], fin: 'soft' }));
-    }
-  }
-  bakeV(gulls, { ao: 0 });
+  const gulls = birdFlock(root);
 
   // 움직이는 것: 풍차 날개, 배
   const sails = mill.sails;
@@ -571,7 +550,7 @@ export function buildFarm({ w }) {
   root.add(beacon);
 
   // 구름: 양옆 큰 뭉게구름 + 수평선 구름 띠
-  const cm = cloudMat('#ffffff', '#9aa6e8', { mid: '#e4e8fb' });
+  const cm = cloudMat('#ffffff', '#8c98e4', { mid: '#dde2fb' });
   const cmFar = cloudMat('#f8fbff', '#c2cdf0', { fog: true });
   const sky = G(root);
   const drift = cloudLayer(sky, 5, [

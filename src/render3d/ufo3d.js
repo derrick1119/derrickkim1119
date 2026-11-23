@@ -1,5 +1,5 @@
-// 3D 기체 8형태. 조종사는 피포(pipo.js). 짙은 남보라 금속 접시에 금빛 테두리와 리벳,
-// 띠를 따라 박힌 알약 모양 청록 조명, 아래쪽 발광부, 유리 돔(피포의 더듬이가 돔을 뚫고 나와 있다).
+// 3D 기체 8형태. 조종사는 피포(pipo.js). 사탕처럼 래커 칠한 남보라 접시(칠한 광택 줄, 옅은 판 이음매)에 반들한 금빛 테,
+// 통통한 범퍼 고리에 박힌 알약 모양 청록 조명, 아래쪽 발광부, 유리 돔(피포의 더듬이가 돔을 뚫고 나와 있다). 외곽선은 피포와 같은 색.
 // 모델 단위: 원점 = 기체 중심, 윗면이 +y. 장면이 화면 너비에 맞춰 배율을 정하고, 윗면이 보이게 앞으로 기울인다.
 import {
   THREE,
@@ -15,18 +15,119 @@ import {
   roundBoxGeo,
   addOutline,
   glowSprite,
+  canvasTexture,
 } from './kit.js';
 import { createPipo } from './pipo.js';
 
 /** 윗면이 카메라를 보도록 앞으로 기울이는 각도(라디안). */
 export const UFO_TILT = 0.36;
 
-// 선체: 남보라 금속(피포의 보라와 어울리게) + 금빛 장식
-const HULL = '#3a3e92';
-const HULL_DARK = '#1e2257';
+// 선체: 사탕처럼 래커 칠한 남보라(피포의 보라와 어울리게) + 반들반들한 금빛 테 + 청록 알약 조명.
+// 재질 문법: 윗면은 꼭대기로 갈수록 밝아지는 칠한 그라데이션에 아주 옅은 판 이음매, 투명 코팅(clearcoat)으로
+// 하늘이 매끈하게 비친다. 아랫면은 더 짙은 남색 래커. 테두리는 통통한 범퍼 고리에 알약 조명이 박혀 있다.
+const HULL = '#352c94';
+const HULL_DARK = '#1a1a54';
+const BUMPER = '#22216a';
 const GOLD = '#ffc444';
 const AMBER = '#ffb347';
 const DIM = '#24505c';
+/** 외곽선 색: 피포와 같은 보라 기운 남색(조종사와 기체가 한 장난감처럼 보이게). */
+const LINE = '#2b1a5e';
+
+// ───────── 선체 재질(모든 기체가 함께 쓴다) ─────────
+
+let hullTexCache = null;
+/** 윗면 칠: 테두리(v=0)는 조금 짙고 꼭대기(v=1)로 갈수록 밝다 + 방사형 판 이음매 8줄 + 동심 홈 한 줄. 색은 재질 색이 곱한다. */
+function hullTexture() {
+  if (hullTexCache) return hullTexCache;
+  hullTexCache = canvasTexture(512, 256, (ctx, w, h) => {
+    // 캔버스 아래 = 테두리(v=0), 위 = 꼭대기(v=1)
+    const g = ctx.createLinearGradient(0, h, 0, 0);
+    g.addColorStop(0, '#b4b4c8');
+    g.addColorStop(0.35, '#d6d6e4');
+    g.addColorStop(0.75, '#f4f4fa');
+    g.addColorStop(1, '#ffffff');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    // 판 이음매(새긴 선: 짙은 선 + 옆의 밝은 선), 꼭대기 단 아래까지만
+    const y0 = h * 0.08;
+    const y1 = h * 0.52;
+    for (let i = 0; i < 8; i++) {
+      const x = ((i + 0.5) / 8) * w;
+      ctx.fillStyle = 'rgba(40,36,90,0.42)';
+      ctx.fillRect(x - 1.5, h - y1, 3, y1 - y0);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(x + 1.5, h - y1, 2, y1 - y0);
+    }
+    // 동심 홈
+    ctx.fillStyle = 'rgba(40,36,90,0.35)';
+    ctx.fillRect(0, h - h * 0.3 - 2, w, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(0, h - h * 0.3 + 1, w, 2);
+  });
+  hullTexCache.anisotropy = 8;
+  return hullTexCache;
+}
+
+let hullGlossCache = null;
+/**
+ * 윗면의 칠한 광택(발광 지도): 바탕은 아주 짙은 남보라(그늘에서도 색이 살아 있게), 앞 왼쪽 비탈에는
+ * 장난감 래커처럼 또렷한 흰 반사 줄 하나와 작은 점 하나. 기체는 y 축으로 돌지 않으므로 반사가 늘 왼쪽 위에 머문다.
+ * u = 0 이 정면(+z), u = 0.75 가 왼쪽(−x).
+ */
+function hullGloss() {
+  if (hullGlossCache) return hullGlossCache;
+  hullGlossCache = canvasTexture(512, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#100f48';
+    ctx.fillRect(0, 0, w, h);
+    const streak = (u0, u1, v, th, a) => {
+      // 캔버스 아래 = 테두리(v=0)
+      const y = h * (1 - v);
+      const g = ctx.createLinearGradient(0, y - th, 0, y + th);
+      g.addColorStop(0, 'rgba(220,226,255,0)');
+      g.addColorStop(0.5, `rgba(220,226,255,${a})`);
+      g.addColorStop(1, 'rgba(220,226,255,0)');
+      ctx.fillStyle = g;
+      ctx.save();
+      ctx.beginPath();
+      // 끝이 가늘어지는 줄: 가로로 긴 타원
+      ctx.ellipse(((u0 + u1) / 2) * w, y, ((u1 - u0) / 2) * w, th, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+    streak(0.69, 0.92, 0.25, 20, 1);
+    streak(0.76, 0.9, 0.86, 13, 0.8);
+  });
+  return hullGlossCache;
+}
+
+const hullMats = new Map();
+/** 래커 칠 재질(투명 코팅). kind: top(윗면, 칠 그라데이션) | plain | gold */
+function lacquer(color, kind = 'plain') {
+  const key = `${color}|${kind}`;
+  let m = hullMats.get(key);
+  if (m) return m;
+  if (kind === 'gold') {
+    m = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), metalness: 0.8, roughness: 0.28, clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 0.95 });
+  } else {
+    // 피포처럼 제 색으로 살짝 스스로 빛나게(그늘에서도 잿빛이 아니라 진한 남보라로 남는다)
+    const top = kind === 'top';
+    m = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(color),
+      map: top ? hullTexture() : null,
+      metalness: 0.1,
+      roughness: 0.34,
+      clearcoat: 1,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 0.85,
+      emissive: top ? new THREE.Color('#ffffff') : new THREE.Color(color).multiplyScalar(0.55),
+      emissiveMap: top ? hullGloss() : null,
+      emissiveIntensity: top ? 1 : 0.3,
+    });
+  }
+  hullMats.set(key, m);
+  return m;
+}
 
 // ───────── 부품 ─────────
 
@@ -35,45 +136,45 @@ const DIM = '#24505c';
  */
 function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier = true }) {
   const g = new THREE.Group();
-  const hullMat = mat(top, { metal: 0.42, rough: 0.34, envIntensity: 1.25 });
-  const darkMat = mat(HULL_DARK, { metal: 0.4, rough: 0.42, envIntensity: 1 });
   const P = (pts) => pts.map(([r, y]) => [r * R, y * R]);
-  // 아랫면
-  const under = mesh(latheGeo(P([[0.3, -0.17], [0.55, -0.15], [0.82, -0.1], [0.97, -0.035], [1.0, 0]]), 48), darkMat);
-  // 옆띠(조명이 박히는 곳)
-  const band = mesh(latheGeo(P([[1.0, 0], [1.02, 0.04], [1.0, 0.08]]), 48), darkMat);
-  // 윗면 + 가운데 솟은 단
+  const ol = 0.026 * R;
+  // 아랫면: 배꼽에서 테두리까지 매끈한 사발(짙은 남색 래커)
+  const under = mesh(latheGeo(P([[0.0, -0.2], [0.2, -0.196], [0.4, -0.178], [0.6, -0.145], [0.76, -0.105], [0.87, -0.066], [0.94, -0.03], [0.965, 0.0]]), 44, `ufoUnder${R}`), lacquer(HULL_DARK));
+  // 테두리 범퍼: 통통한 고리(알약 조명이 박힌다)
+  const bumper = mesh(torusGeo(R * 0.955, R * 0.052, 10, 60), lacquer(BUMPER), { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.012, 0] });
+  // 윗면 + 가운데 솟은 단(둥글린 턱)
   const topPts = tier
-    ? [[1.0, 0.08], [0.93, 0.11], [0.78, 0.16], [0.64, 0.19], [0.62, 0.235], [0.5, 0.27], [0.001, 0.285]]
-    : [[1.0, 0.08], [0.9, 0.12], [0.7, 0.18], [0.45, 0.22], [0.001, 0.235]];
-  const upper = mesh(latheGeo(P(topPts), 56), hullMat);
-  for (const m of [under, band, upper]) addOutline(m, 0.016 * R);
-  g.add(under, band, upper);
-  // 금빛 장식: 가장자리 테 + 윗면 줄무늬 + 솟은 단의 리벳
-  const gold = mat(GOLD, { metal: 0.75, rough: 0.28, envIntensity: 1.4 });
-  const trim = mesh(torusGeo(R * 0.985, R * 0.022, 8, 72), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.085, 0], cast: false });
-  addOutline(trim, R * 0.006);
-  const stripe = mesh(torusGeo(R * 0.8, R * 0.014, 6, 64), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.155, 0], cast: false });
-  g.add(trim, stripe);
+    ? [[0.975, 0.045], [0.94, 0.085], [0.86, 0.12], [0.76, 0.152], [0.67, 0.178], [0.64, 0.19], [0.625, 0.21], [0.615, 0.24], [0.59, 0.262], [0.52, 0.276], [0.3, 0.286], [0.001, 0.29]]
+    : [[0.975, 0.045], [0.93, 0.09], [0.8, 0.14], [0.62, 0.185], [0.42, 0.215], [0.2, 0.232], [0.001, 0.236]];
+  const upper = mesh(latheGeo(P(topPts), 52, `ufoTop${R}|${tier}`), lacquer(top, 'top'));
+  addOutline(under, ol, LINE);
+  addOutline(bumper, ol * 0.8, LINE);
+  addOutline(upper, ol, LINE);
+  g.add(under, bumper, upper);
+  // 금빛 장식: 윗면 가장자리 테 + 솟은 단 밑동 테 + 단 둘레 둥근 징(적고 크게)
+  const gold = lacquer(GOLD, 'gold');
+  const trim = mesh(torusGeo(R * 0.9, R * 0.02, 6, 56), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.107, 0], cast: false });
+  g.add(trim);
   if (tier) {
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2;
-      g.add(mesh(sphereGeo(1, 8, 6), gold, { pos: [Math.sin(a) * R * 0.635, R * 0.215, Math.cos(a) * R * 0.635], scale: R * 0.022, cast: false }));
+    g.add(mesh(torusGeo(R * 0.648, R * 0.018, 6, 48), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.188, 0], cast: false }));
+    for (let i = 0; i < 8; i++) {
+      const a = ((i + 0.5) / 8) * Math.PI * 2;
+      g.add(mesh(sphereGeo(1, 10, 6), gold, { pos: [Math.sin(a) * R * 0.622, R * 0.226, Math.cos(a) * R * 0.622], scale: [R * 0.03, R * 0.03, R * 0.022], cast: false }));
     }
   }
-  // 띠의 청록 선
-  const line = mesh(torusGeo(R * 1.02, R * 0.006, 6, 64), o.lineMat, { cast: false, rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.04, 0] });
+  // 범퍼 위 청록 선
+  const line = mesh(torusGeo(R * 1.0, R * 0.006, 4, 56), o.lineMat, { cast: false, rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.052, 0] });
   g.add(line);
-  // 알약 조명
+  // 알약 조명(범퍼 앞에 반쯤 박힘)
   const sprites = [];
   for (let i = 0; i < pills; i++) {
     const a = (i / pills) * Math.PI * 2;
     const holder = new THREE.Group();
     holder.rotation.y = a;
-    const p = mesh(capsuleGeo(R * 0.038, R * 0.17, 4, 10), o.pillMat, { cast: false, rot: [0, 0, Math.PI / 2], pos: [0, R * 0.04, R * 1.028] });
+    const p = mesh(capsuleGeo(R * 0.04, R * 0.16, 3, 10), o.pillMat, { cast: false, rot: [0, 0, Math.PI / 2], pos: [0, R * 0.012, R * 0.995] });
     holder.add(p);
-    const sp = glowSprite(PAL.glow, R * 0.32, 0.6);
-    sp.position.set(0, R * 0.04, R * 1.08);
+    const sp = glowSprite(PAL.glow, R * 0.24, 0.6);
+    sp.position.set(0, R * 0.012, R * 1.07);
     holder.add(sp);
     sprites.push({ sp, i });
     g.add(holder);
@@ -82,21 +183,24 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
   const amberSprites = [];
   for (let i = 0; i < ambers; i++) {
     const a = -0.9 + (1.8 * i) / Math.max(1, ambers - 1);
-    const x = Math.sin(a) * R * 0.86;
-    const z = Math.cos(a) * R * 0.86;
-    const b = mesh(sphereGeo(1, 12, 8), o.amberMat, { cast: false, pos: [x, R * 0.125, z], scale: [R * 0.045, R * 0.02, R * 0.045] });
-    const sp = glowSprite(AMBER, R * 0.18, 0.5);
-    sp.position.set(x, R * 0.14, z);
-    g.add(b, sp);
+    const x = Math.sin(a) * R * 0.8;
+    const z = Math.cos(a) * R * 0.8;
+    // 금테 두른 호박색 보석 등
+    const b = mesh(sphereGeo(1, 10, 6), o.amberMat, { cast: false, pos: [x, R * 0.136, z], scale: [R * 0.03, R * 0.022, R * 0.03] });
+    const rim = mesh(torusGeo(R * 0.032, R * 0.008, 6, 18), lacquer(GOLD, 'gold'), { cast: false, pos: [x, R * 0.132, z], rot: [Math.PI / 2 - 0.12, 0, 0] });
+    const sp = glowSprite(AMBER, R * 0.09, 0.5);
+    sp.position.set(x, R * 0.15, z);
+    g.add(b, rim, sp);
     amberSprites.push(sp);
   }
-  // 아래 발광부
+  // 아래 발광부 + 금빛 테
   let bowl = null;
   if (emitter) {
-    bowl = mesh(sphereGeo(1, 28, 12), o.bowlMat, { cast: false, pos: [0, -R * 0.165, 0], scale: [R * 0.34, R * 0.11, R * 0.34] });
+    bowl = mesh(sphereGeo(1, 24, 10), o.bowlMat, { cast: false, pos: [0, -R * 0.19, 0], scale: [R * 0.3, R * 0.1, R * 0.3] });
     g.add(bowl);
+    g.add(mesh(torusGeo(R * 0.3, R * 0.022, 6, 36), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, -R * 0.19, 0], cast: false }));
   }
-  return { group: g, sprites, amberSprites, topY: (tier ? 0.285 : 0.235) * R, bellyY: -0.27 * R };
+  return { group: g, sprites, amberSprites, topY: (tier ? 0.29 : 0.236) * R, bellyY: -0.27 * R };
 }
 
 /** 조종석 유리: 가운데는 거의 투명(피포가 또렷이 보이게), 가장자리로 갈수록 하늘빛이 짙어진다. */
@@ -182,7 +286,8 @@ function antenna(o, x, y, len, lean, color) {
   const g = new THREE.Group();
   g.position.set(x, y, 0);
   g.rotation.z = lean;
-  const rod = mesh(cylGeo(0.012, 0.018, len, 8), mat(PAL.hullLight, { metal: 0.6, rough: 0.35 }), { pos: [0, len / 2, 0] });
+  const rod = mesh(cylGeo(0.014, 0.02, len, 8), lacquer(GOLD, 'gold'), { pos: [0, len / 2, 0] });
+  g.add(mesh(sphereGeo(1, 10, 8), lacquer(BUMPER), { pos: [0, 0.01, 0], scale: 0.035 }));
   const tipMat = color === AMBER ? o.amberMat : o.pillMat;
   const tip = mesh(sphereGeo(1, 12, 8), tipMat, { cast: false, pos: [0, len, 0], scale: 0.035 });
   const sp = glowSprite(color, 0.22, 0.7);
@@ -257,17 +362,17 @@ export function createUfo(form) {
   if (spec.deck) {
     const deckR = R * 0.55;
     const deckH = R * 0.12;
-    const deck = mesh(cylGeo(deckR, deckR * 1.04, deckH, 48), mat(tone(HULL, 0.05), { metal: 0.42, rough: 0.34, envIntensity: 1.25 }), { pos: [0, topY + deckH / 2 - 0.01, 0] });
-    addOutline(deck, 0.014 * R);
+    const deck = mesh(latheGeo([[deckR * 1.04, 0], [deckR * 1.05, deckH * 0.15], [deckR * 1.03, deckH * 0.85], [deckR * 0.99, deckH], [0.001, deckH]], 56, `ufoDeck${R}`), lacquer(tone(HULL, 0.05)), { pos: [0, topY - 0.01, 0] });
+    addOutline(deck, 0.02 * R, LINE);
     body.add(deck);
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
       const holder = new THREE.Group();
       holder.rotation.y = a;
-      holder.add(mesh(roundBoxGeo(0.09, 0.07, 0.02, 0.02, 2), o.pillMat, { cast: false, pos: [0, topY + deckH / 2, deckR * 1.02] }));
+      holder.add(mesh(roundBoxGeo(0.1, 0.075, 0.03, 0.025, 2), o.pillMat, { cast: false, pos: [0, topY + deckH / 2 - 0.01, deckR * 1.055] }));
       body.add(holder);
     }
-    const cap = mesh(cylGeo(deckR * 0.96, deckR, 0.02, 48), mat(PAL.hullLight, { metal: 0.6, rough: 0.3 }), { pos: [0, topY + deckH, 0] });
+    const cap = mesh(torusGeo(deckR * 0.99, R * 0.016, 8, 64), lacquer(GOLD, 'gold'), { rot: [Math.PI / 2, 0, 0], pos: [0, topY + deckH - 0.005, 0] });
     body.add(cap);
     topY += deckH;
     domeY = topY;
@@ -276,6 +381,11 @@ export function createUfo(form) {
   const domeR = R * spec.dome * (spec.tiers === 2 ? 0.8 : 1);
   const d = dome(o, domeY, domeR);
   body.add(d.group);
+  // 조종석 받침: 돔 고리 바깥을 두르는 금빛 테와 남색 래커 받침(돔 자체는 건드리지 않는다)
+  const seatRing = mesh(torusGeo(domeR * 1.13, domeR * 0.055, 8, 48), lacquer(GOLD, 'gold'), { rot: [Math.PI / 2, 0, 0], pos: [0, domeY + domeR * 0.005, 0], cast: false });
+  const seatBase = mesh(cylGeo(domeR * 1.17, domeR * 1.2, domeR * 0.07, 48), lacquer(BUMPER), { pos: [0, domeY - domeR * 0.03, 0], cast: false });
+  addOutline(seatBase, 0.012 * R, LINE);
+  body.add(seatBase, seatRing);
   const pilot = d.pilot;
   topY = domeY + domeR * 1.1; // 조종석 유리는 10% 더 높다
 
@@ -291,8 +401,14 @@ export function createUfo(form) {
   // 날개(순찰선)
   if (spec.fins) {
     for (const s of [-1, 1]) {
-      const fin = mesh(roundBoxGeo(0.34, 0.06, 0.16, 0.025, 2), mat(PAL.red, { rough: 0.5 }), { pos: [s * R * 1.05, 0.03, 0], rot: [0, 0, s * 0.35] });
-      addOutline(fin, 0.012);
+      // 뒤로 젖힌 사탕빛 날개: 납작한 구를 옆으로 늘이고 뒤로 비스듬히 민 모양(매끈해서 외곽선이 깨끗하다)
+      const fg = new THREE.SphereGeometry(1, 22, 12);
+      fg.scale(0.21, 0.05, 0.12);
+      fg.translate(s * 0.17, 0, 0);
+      fg.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, -0.55 * s, 0, 1, 0, 0, 0, 0, 1));
+      const fin = mesh(fg, lacquer('#ec3d52'), { pos: [s * R * 0.93, 0.02, 0.02], rot: [0, 0, s * 0.22] });
+      addOutline(fin, 0.016, LINE);
+      fin.add(mesh(sphereGeo(1, 10, 8), lacquer(GOLD, 'gold'), { pos: [s * 0.36, 0.0, -0.2], scale: [0.04, 0.04, 0.04], cast: false }));
       body.add(fin);
     }
   }
@@ -308,8 +424,10 @@ export function createUfo(form) {
   if (spec.radar) {
     radar = new THREE.Group();
     radar.position.set(-R * 0.48, main.topY, -R * 0.2);
-    radar.add(mesh(cylGeo(0.015, 0.02, 0.2, 8), mat(PAL.hullLight, { metal: 0.6, rough: 0.35 }), { pos: [0, 0.1, 0] }));
-    const dish = mesh(latheGeo([[0.001, 0], [0.08, 0.02], [0.15, 0.07], [0.17, 0.09]], 24, 'radar'), mat('#dfe6ff', { rough: 0.4, side: THREE.DoubleSide }), { pos: [0, 0.22, 0], rot: [-0.9, 0, 0] });
+    radar.add(mesh(cylGeo(0.016, 0.022, 0.2, 8), lacquer(GOLD, 'gold'), { pos: [0, 0.1, 0] }));
+    const dish = mesh(latheGeo([[0.001, 0], [0.08, 0.02], [0.15, 0.07], [0.17, 0.09]], 24, 'radar'), mat('#eef0ff', { rough: 0.35, side: THREE.DoubleSide, envIntensity: 1.1 }), { pos: [0, 0.22, 0], rot: [-0.9, 0, 0] });
+    addOutline(dish, 0.009, LINE);
+    dish.add(mesh(sphereGeo(1, 8, 6), o.pillMat, { pos: [0, 0.1, 0], scale: 0.025, cast: false }));
     radar.add(dish);
     body.add(radar);
   }
@@ -347,7 +465,7 @@ export function createUfo(form) {
   function update({ t = 0, mood = 'idle', lit = 1, beam = 0, look = null } = {}) {
     const L = Math.min(Math.max(lit, 0), 1);
     // 빛 번짐은 블룸이 맡으므로 조명 자체와 스프라이트는 은은하게
-    o.pillMat.emissiveIntensity = 0.15 + 1.55 * L;
+    o.pillMat.emissiveIntensity = 0.15 + 1.1 * L;
     o.pillMat.color.set(L > 0.3 ? '#bffaff' : DIM);
     o.lineMat.opacity = 0.15 + 0.8 * L;
     o.amberMat.emissiveIntensity = 0.1 + 1.5 * L;

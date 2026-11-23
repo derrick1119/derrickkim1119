@@ -4,7 +4,7 @@
 //    값 구조: 앞 솜은 라벤더 그늘이 깊고, 가운데 구름 바다는 눈부시게 하얗고, 먼 구름은 하늘빛 안개 속으로.
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, cumulus, halfW, rng, TAU, sphereGeo, coneGeo, latheGeo,
-  roundBoxGeo, mergeGeometries, roundTree, bush, rock, LEAF, glowS, sharedMat,
+  roundBoxGeo, mergeGeometries, roundTree, bush, rock, LEAF, glowS, sharedMat, inkLine, dimWithWeather,
 } from './common.js';
 
 // 구름 바닥 높이: 둥근 봉우리(돔)들을 겹친다. 가까운 곳은 낮고 잔잔하게, 멀수록 크고 높게.
@@ -82,7 +82,7 @@ function puffLayer(blobs, seg, material) {
 /** 떠 있는 풀섬: 거꾸로 선 바위 뿌리 + 풀 덮인 윗면 + 나무 + 작은 종탑 + 폭포. */
 function floatingIsland(parent, x, y, z, s, r, { tower = true, fall = true } = {}) {
   const g = G(parent, x, y, z, 0.3, s);
-  const rockTT = ['#8a5a6a', '#e0a878'];
+  const rockTT = ['#8a5070', '#f0b888'];
   const root = latheGeo([[0, -2.6], [0.35, -2.2], [0.9, -1.5], [1.5, -0.8], [2.0, -0.3], [2.25, -0.05], [2.3, 0]], 14, 'islandRoot');
   g.add(P(root, '', { tt: rockTT, fin: 'soft' }));
   for (const [rx, ry, rz, sc] of [[0.9, -1.0, 1.2, 0.9], [-1.3, -0.7, 0.9, 1.0], [0.2, -1.8, 0.6, 0.7], [1.6, -0.4, -0.6, 0.8]]) {
@@ -140,6 +140,7 @@ function floatingIsland(parent, x, y, z, s, r, { tower = true, fall = true } = {
     g.add(wf);
     g.add(P(sphereGeo(1, 10, 7), '#ffffff', { pos: [1.85, -2.3, 1.7], scale: [0.5, 0.3, 0.4], fin: 'unlit', cast: false, ao: false }));
   }
+  inkLine(g, 0.06);
   return g;
 }
 
@@ -164,7 +165,7 @@ function rainbow(parent, x, y, z, R, width) {
     rg.userData.shared = true;
     return rg;
   });
-  const m = new THREE.Mesh(geo, sharedMat('cloudsea:rainbowMat', () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide })));
+  const m = new THREE.Mesh(geo, sharedMat('cloudsea:rainbowMat', () => dimWithWeather('cloudsea:rainbow', new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }))));
   m.position.set(x, y, z);
   m.renderOrder = -2;
   parent.add(m);
@@ -177,17 +178,17 @@ export function buildCloudsea({ w }) {
   const r = rng(67);
   const light = [-0.55, 0.75, 0.35];
   // 구름 바다는 위에서 내리쬐는 빛으로: 윗면은 하얗고 카메라 쪽 옆면은 라벤더 그늘(겹겹이 띠가 진다)
-  const seaMat = cloudMat('#f8fbff', '#7480d0', { fog: true, light: [-0.35, 0.9, -0.35], mid: '#b4bcee', steps: [-0.55, 0.15, 0.28, 0.85], rim: 0.3 });
+  const seaMat = cloudMat('#ffffff', '#5f68c4', { fog: true, light: [-0.35, 0.9, -0.35], mid: '#b6bcf0', steps: [-0.6, 0.2, 0.32, 0.9], rim: 0.4 });
 
   // 바닥(통로와 그 앞): 잔잔한 솜 바닥 + 아래 깔개(구멍 메우기)
   const info = makeField(67);
-  const shadeC = [0.78, 0.8, 0.97];
+  const shadeC = [0.72, 0.74, 0.96];
   const floor = terrain({
     H: (x, z) => (z > -3 ? info(x, z).h : -0.7),
     C: (x, y, z) => {
       const k = z > -1 ? 1 : info(x, z).k;
       const t = Math.min(1, k / 0.55);
-      let a = 1 - (1 - t * t) * 0.8;
+      let a = 1 - (1 - t * t) * 0.62;
       // 앞쪽은 살짝 그늘(액자)
       a *= 1 - 0.12 * Math.min(1, Math.max(0, (z - 1) / 6));
       return [shadeC[0] + (1 - shadeC[0]) * a, shadeC[1] + (1 - shadeC[1]) * a, shadeC[2] + (1 - shadeC[2]) * a];
@@ -231,7 +232,7 @@ export function buildCloudsea({ w }) {
   root.add(puffLayer(near, 14, seaMat), puffLayer(mid, 12, seaMat), puffLayer(far, 10, seaMat));
 
   // 솟은 뭉게구름 탑(양옆)
-  const towerMat = cloudMat('#ffffff', '#98a4e4', { fog: true, light });
+  const towerMat = cloudMat('#ffffff', '#8490dc', { fog: true, light, mid: '#d8dcfa' });
   const towers = [
     [-halfW(w, -34) - 2, -1.5, -34, 18, 12],
     [halfW(w, -42) + 3, -1.5, -42, 22, 15],
@@ -246,8 +247,8 @@ export function buildCloudsea({ w }) {
 
   // 떠 있는 섬(왼쪽 가까이 큰 섬, 오른쪽 멀리 작은 섬) — 천천히 오르내린다
   const props = G(root);
-  const isl = floatingIsland(props, -halfW(w, -22) * 0.55, 2.9, -22, 1.0, r);
-  const isl2 = floatingIsland(props, halfW(w, -70) * 0.62, 6.5, -70, 1.25, r, { tower: false, fall: false });
+  const isl = floatingIsland(props, -halfW(w, -22) * 0.55, 2.9, -22, 1.15, r);
+  const isl2 = floatingIsland(props, halfW(w, -70) * 0.62, 6.5, -70, 1.4, r, { tower: false, fall: false });
   for (const g of [isl, isl2]) g.userData.dynamic = true;
   bake(isl, { ao: 0.2 });
   bake(isl2, { ao: 0.2 });
@@ -275,10 +276,12 @@ export function buildCloudsea({ w }) {
   sunGlow.position.set(-55, 70, -220);
   const sunCore = glowS('cloudsea:sunCore', '#ffffff', 16, 1.0, 1.8);
   sunCore.position.set(-55, 70, -219);
+  dimWithWeather('cloudsea:sunGlow', sunGlow.material);
+  dimWithWeather('cloudsea:sunCore', sunCore.material);
   root.add(sunGlow, sunCore);
 
   // 떠다니는 작은 구름(하늘 양옆, 지평선 근처)
-  const puff = cloudMat('#ffffff', '#aab6ee', { light });
+  const puff = cloudMat('#ffffff', '#949fe8', { light, mid: '#dfe3fb' });
   const sky = G(root);
   const drift = cloudLayer(sky, 69, [
     { x: 22, y: 20, z: -115, w: 16, h: 6, n: 14, seg: 12, speed: 0.35, span: 70 },
@@ -290,7 +293,7 @@ export function buildCloudsea({ w }) {
 
   const env = {
     sky: { top: '#1a4ed0', mid: '#5a9cf4', horizon: '#e2f2ff', sunDir: [-0.55, 0.6, -1], sunColor: '#fff6d8', sunStrength: 0.9, sunSize: 0.004 },
-    fog: { color: '#d0e6ff', near: 40, far: 440 },
+    fog: { color: '#d0e6ff', near: 55, far: 520 },
     sun: { color: '#fff4e0', intensity: 2.4, dir: [-0.6, 1, 0.6] },
     hemi: { sky: '#c0dcff', ground: '#d8e0ff', intensity: 0.95 },
     exposure: 1.0,

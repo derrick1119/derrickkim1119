@@ -3,8 +3,8 @@
 //    값 구조: 앞 잔디는 짙게, 보도와 앞줄 집은 볕을 받아 밝게, 언덕 위 집과 먼 산은 따뜻한 안개 속으로.
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, roundTree, bush, house, picketFence, streetLamp,
-  hedge, car, stripGround, speckle, grassStrokes, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU, roundBoxGeo, cylGeo,
-  coneGeo, boxGeo, sphereGeo, torusGeo, latheGeo, LEAF, lanePlants, flowerGeo, tulipGeo,
+  hedge, car, stripGround, grassStrokes, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU, roundBoxGeo, cylGeo,
+  coneGeo, boxGeo, sphereGeo, torusGeo, latheGeo, LEAF, lanePlants, flowerGeo, tulipGeo, inkLine, birdFlock,
 } from './common.js';
 
 const hill = (z) => (z > -8.5 ? 0 : 3.4 * (1 - Math.exp(-(-8.5 - z) / 11)));
@@ -53,8 +53,7 @@ function drawStreet(ctx, W, Hh, row) {
   gg.addColorStop(1, '#3f8a3c');
   ctx.fillStyle = gg;
   ctx.fillRect(0, 0, W, row(0.8));
-  speckle(ctx, 0, 0, W, row(0.8), 700, ['#5f9e3c', '#9bd35a', '#4f8f3a', '#a7d862'], r, [1.5, 4]);
-  grassStrokes(ctx, 0, 0, W, row(0.85), 1500, ['rgba(30,90,40,0.25)', 'rgba(210,250,140,0.22)', 'rgba(40,110,50,0.2)'], r, [4, 9]);
+  grassStrokes(ctx, 0, 0, W, row(0.85), 500, ['rgba(30,90,40,0.16)', 'rgba(210,250,140,0.16)'], r, [5, 10]);
   // 잔디와 보도 사이 그늘 띠
   fill(0.86, 0.78, 'rgba(40,80,40,0.35)');
   // 보도(따뜻한 보도블록, 블록마다 밝기 조금씩)
@@ -80,9 +79,8 @@ function drawStreet(ctx, W, Hh, row) {
   ctx.moveTo(0, row(-0.02));
   ctx.lineTo(W, row(-0.02));
   ctx.stroke();
-  speckle(ctx, 0, row(0.8), W, row(-0.85) - row(0.8), 300, ['rgba(120,100,80,0.14)', 'rgba(255,255,255,0.45)'], r, [1, 3]);
   // 떨어진 잎 몇 장
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 9; i++) {
     ctx.fillStyle = ['#e8a23a', '#d9773a', '#9bc84a'][(r() * 3) | 0];
     ctx.beginPath();
     ctx.ellipse(r() * W, row(0.75) + r() * (row(-0.8) - row(0.75)), 4 + r() * 3, 2 + r() * 1.5, r() * TAU, 0, TAU);
@@ -97,7 +95,6 @@ function drawStreet(ctx, W, Hh, row) {
   rg.addColorStop(1, '#666c8a');
   ctx.fillStyle = rg;
   ctx.fillRect(0, row(-1.1), W, row(-4.05) - row(-1.1));
-  speckle(ctx, 0, row(-1.1), W, row(-4.05) - row(-1.1), 700, ['rgba(255,255,255,0.08)', 'rgba(20,20,40,0.14)'], r, [1, 3]);
   // 연석 그림자
   const sh = ctx.createLinearGradient(0, row(-1.1), 0, row(-1.45));
   sh.addColorStop(0, 'rgba(20,20,50,0.35)');
@@ -143,6 +140,7 @@ function waterTower(parent, x, y, z, s) {
   // 사다리
   g.add(P(roundBoxGeo(0.04, 2.6, 0.04, 0.015, 1), '#7a6aa8', { pos: [0.2, 1.3, 0.62] }));
   g.add(P(roundBoxGeo(0.04, 2.6, 0.04, 0.015, 1), '#7a6aa8', { pos: [0.4, 1.3, 0.6] }));
+  inkLine(g, 0.06);
   return g;
 }
 
@@ -165,6 +163,7 @@ function church(parent, x, y, z) {
   ch.add(P(boxGeo(0.16, 0.035, 0.02), '#2b3a78', { pos: [0.06, 2.45, 1.285] }));
   ch.add(P(roundBoxGeo(0.34, 0.6, 0.06, 0.06, 2), '#7fa6d8', { pos: [0, 1.65, 1.24], fin: 'gloss' }));
   ch.add(P(roundBoxGeo(0.44, 0.64, 0.06, 0.06, 2), '#8f5a3a', { pos: [0, 0.32, 1.24], fin: 'soft' }));
+  inkLine(ch, 0.06);
 }
 
 /** @param {{w:number,h:number}} size */
@@ -202,15 +201,12 @@ export function buildSuburb({ w }) {
       pitch: 0.7 + r() * 0.2,
       chimneyX: r() < 0.5 ? -0.25 : 0.25,
       door: ['#8f5a3a', '#4f6fc2', '#d0563a', '#5aa36a'][i % 4],
+      ink: 0.032,
     });
     // 앞마당: 울타리, 산울타리, 꽃밭, 우체통
     picketFence(props, x - 0.95, x + 0.95, -5.45, { h: 0.36 });
     if (r() < 0.6) hedge(props, x + 0.55, 0, -6.1, 0.6, 1, '#4f9e3e');
     bush(props, x - 0.5, 0, -6.05, 0.55, r, { flowers: 4, flowerColor: ['#ff8fb0', '#ffffff', '#ffd23f'][i % 3], leaf: LEAF.fresh, seg: 8 });
-    const mb = G(props, x + 0.75, 0, -5.2, 0, 1);
-    mb.add(P(cylGeo(0.035, 0.04, 0.44, 6), '#7a4b2a', { pos: [0, 0.22, 0] }));
-    mb.add(P(roundBoxGeo(0.18, 0.15, 0.26, 0.06, 2), ['#4f6fc2', '#e2483c', '#5aa36a'][i % 3], { pos: [0, 0.5, 0], fin: 'soft' }));
-    mb.add(P(roundBoxGeo(0.02, 0.1, 0.05, 0.01, 1), '#ffd23f', { pos: [0.1, 0.57, 0.06] }));
   });
   // 앞줄 사이 나무
   for (let i = 0; i < front.length - 1; i++) {
@@ -220,11 +216,10 @@ export function buildSuburb({ w }) {
 
   // 언덕 위 집들(층층이)
   const rows = [
-    { z: -12.5, n: 6, s: 0.95, detail: 1 },
-    { z: -17, n: 7, s: 0.95, detail: 1 },
-    { z: -22.5, n: 8, s: 1.0, detail: 0 },
-    { z: -29, n: 9, s: 1.05, detail: 0 },
-    { z: -36, n: 10, s: 1.1, detail: 0 },
+    { z: -12.5, n: 5, s: 1.0, detail: 1 },
+    { z: -17.5, n: 5, s: 1.05, detail: 1 },
+    { z: -23.5, n: 6, s: 1.1, detail: 0 },
+    { z: -31, n: 6, s: 1.2, detail: 0 },
   ];
   const WT = { x: -halfW(w, -24) * 0.62, z: -24 };
   for (const row of rows) {
@@ -252,14 +247,14 @@ export function buildSuburb({ w }) {
         pitch: 0.65 + r() * 0.3,
         chimney: r() < 0.6,
       });
-      if (r() < 0.6) roundTree(props, x + 0.9 + r() * 0.4, y, z - 0.7, 0.75 + r() * 0.3, r, { leaf: sets[(r() * 3) | 0], seg: 7 });
+      if (r() < 0.35) roundTree(props, x + 0.9 + r() * 0.4, y, z - 0.7, 0.8 + r() * 0.3, r, { leaf: sets[(r() * 3) | 0], seg: 8 });
     }
   }
   // 마을의 얼굴: 시계탑 교회(오른쪽 언덕), 물탱크(왼쪽 언덕)
   church(props, 3.6, H(3.6, -31) - 0.05, -31);
   waterTower(props, WT.x, H(WT.x, WT.z) - 0.05, WT.z, 1.15);
   // 먼 언덕 숲
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 24; i++) {
     const z = -45 - r() * 40;
     const x = (r() * 2 - 1) * halfW(w, z) * 1.1;
     roundTree(props, x, H(x, z) - 0.1, z, 1.6 + r() * 1.2, r, { leaf: sets[(r() * 3) | 0], seg: 6, trunkH: 0.5 });
@@ -273,8 +268,8 @@ export function buildSuburb({ w }) {
   // 화면 양옆 큰 나무(액자)
   const edgeL = -halfW(w, -5.9) + 0.1;
   const edgeR = halfW(w, -6.2) - 0.1;
-  roundTree(props, edgeL, 0, -5.9, 1.6, r, { leaf: LEAF.deep, seg: 16 });
-  roundTree(props, edgeR, 0, -6.2, 1.7, r, { leaf: LEAF.deep, seg: 16 });
+  roundTree(props, edgeL, 0, -5.9, 1.6, r, { leaf: LEAF.deep, seg: 16, ink: 0.03 });
+  roundTree(props, edgeR, 0, -6.2, 1.7, r, { leaf: LEAF.deep, seg: 16, ink: 0.03 });
   bush(props, edgeL + 0.8, 0, -5.4, 1.0, r, { flowers: 5, flowerColor: '#ff8fb0' });
   bush(props, edgeR - 0.9, 0, -5.5, 1.1, r, { flowers: 5, flowerColor: '#ffffff' });
 
@@ -294,6 +289,8 @@ export function buildSuburb({ w }) {
 
   bake(props, { H });
   root.add(ground, street);
+  // 시계탑 둘레를 천천히 도는 작은 새 떼(마을의 숨결)
+  const birds = birdFlock(root, [[0, 0, 0, 0.9], [1.1, 0.4, -0.5, 0.75], [-0.9, 0.6, 0.3, 0.8], [0.4, 1.0, 0.6, 0.7]], { col: '#fffaf0', wing: '#a89cc8' });
 
   // 구름(따뜻한 오후빛)
   const cm = cloudMat('#fffaf0', '#a9a2e0', { light: [-0.8, 0.6, 0.3], mid: '#f3e4e8' });
@@ -325,6 +322,9 @@ export function buildSuburb({ w }) {
     update(t) {
       drift(t);
       bank(t);
+      const a = t * 0.16;
+      birds.position.set(3.6 + Math.sin(a) * 4.5, 9.2 + Math.sin(t * 0.6) * 0.3, -31 + Math.cos(a) * 2.5);
+      birds.rotation.y = Math.atan2(Math.sin(a) * 2.5, Math.cos(a) * 4.5);
     },
   };
 }

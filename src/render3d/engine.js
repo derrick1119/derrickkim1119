@@ -24,6 +24,7 @@ export const DEFAULT_ENV = {
   fog: { color: '#a9d2ff', near: 30, far: 220 },
   sun: { color: '#fff0d6', intensity: 2.1, dir: [-0.55, 1, 0.75] },
   hemi: { sky: '#b4d6ff', ground: '#8fb86a', intensity: 0.85 },
+  fill: { color: '#b9b4ff', intensity: 0.4, dir: [0.75, 0.35, -0.3] },
   exposure: 1.0,
 };
 
@@ -37,8 +38,8 @@ const GradeShader = {
     saturation: { value: 1.12 },
     contrast: { value: 1.06 },
     vignette: { value: 0.22 },
-    shadowTint: { value: new THREE.Color('#1c2a6b') },
-    highlightTint: { value: new THREE.Color('#fff1d6') },
+    shadowTint: { value: new THREE.Color('#2a2470') },
+    highlightTint: { value: new THREE.Color('#fff0d4') },
     aspect: { value: 0.5 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -48,14 +49,21 @@ const GradeShader = {
     void main(){
       vec3 c = texture2D( tDiffuse, vUv ).rgb;
       float l = dot( c, vec3( 0.299, 0.587, 0.114 ) );
-      c = mix( vec3( l ), c, saturation );
-      c = ( c - 0.5 ) * contrast + 0.5;
-      // 그늘은 차가운 남색, 밝은 곳은 따뜻한 햇빛 쪽으로 아주 살짝
-      c = mix( c, c * shadowTint * 2.2, ( 1.0 - smoothstep( 0.0, 0.45, l ) ) * 0.12 );
-      c = mix( c, c * highlightTint, smoothstep( 0.55, 1.0, l ) * 0.25 );
+      // 채도: 이미 진한 색은 덜 올려(사탕색이 타지 않게) 흐린 색 위주로 살린다
+      float sat = max( max( c.r, c.g ), c.b ) - min( min( c.r, c.g ), c.b );
+      c = mix( vec3( l ), c, mix( saturation, 1.0 + ( saturation - 1.0 ) * 0.4, smoothstep( 0.35, 0.8, sat ) ) );
+      // 대비: 가운데를 축으로 한 부드러운 S 곡선(검정·흰색은 그대로)
+      vec3 s = c * c * ( 3.0 - 2.0 * c );
+      c = mix( c, s, clamp( ( contrast - 1.0 ) * 2.2, 0.0, 1.0 ) );
+      // 갈라 물들이기: 그늘은 피포와 어울리는 남보랏빛, 밝은 곳은 따뜻한 햇빛
+      c = mix( c, c * shadowTint * 2.4, ( 1.0 - smoothstep( 0.0, 0.42, l ) ) * 0.14 );
+      c = mix( c, c * highlightTint, smoothstep( 0.55, 1.0, l ) * 0.22 );
       vec2 d = vUv - 0.5; d.x *= aspect;
-      float v = smoothstep( 0.75, 0.2, length( d ) );
+      float v = smoothstep( 0.78, 0.2, length( d ) );
       c *= mix( 1.0 - vignette, 1.0, v );
+      // 아주 옅은 떨림(dither): 하늘처럼 넓은 그라데이션의 띠무늬를 없앤다
+      float n = fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
+      c += ( n - 0.5 ) / 255.0;
       gl_FragColor = vec4( clamp( c, 0.0, 1.0 ), 1.0 );
     }`,
 };
@@ -99,6 +107,14 @@ export class Engine {
     sc.far = 60;
     scene.add(sun, sun.target);
     this.sun = sun;
+    // 그늘 쪽 채움 빛(오른쪽 뒤에서 오는 차가운 라벤더빛, 그림자 없음): 그늘이 검게 죽지 않고 색을 띤다.
+    // 세기는 하늘빛(hemi) 세기를 따라가므로 날씨가 하늘빛을 낮추면 함께 낮아진다.
+    const fill = new THREE.DirectionalLight('#b9b4ff', 0.4);
+    fill.position.set(18, 9, -6);
+    scene.add(fill, fill.target);
+    this.fill = fill;
+    this.fillBase = 0.4;
+    this.hemiBase = 1;
 
     this.sky = null;
     this.stage = null;
@@ -116,7 +132,8 @@ export class Engine {
     this.composer = new EffectComposer(renderer, rt);
     this.composer.addPass(new RenderPass(scene, this.camera));
     // 문턱을 높여 스스로 빛나는 것(조명·빔·불)만 번지게 한다
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.45, 1.25);
+    // 반경을 좁게: 빛이 또렷한 알갱이로 번지고 둘레 물체(기체 몸통 등)를 물들이지 않게
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.3, 1.25);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.grade = new ShaderPass(GradeShader);
@@ -157,6 +174,12 @@ export class Engine {
     this.hemi.color.set(hemi.sky);
     this.hemi.groundColor.set(hemi.ground);
     this.hemi.intensity = hemi.intensity;
+    this.hemiBase = hemi.intensity || 1;
+    const fill = { ...DEFAULT_ENV.fill, ...(env.fill || {}) };
+    this.fill.color.set(fill.color);
+    this.fillBase = fill.intensity;
+    this.fill.position.set(...fill.dir).normalize().multiplyScalar(30);
+    this.fill.intensity = fill.intensity;
     this.renderer.toneMappingExposure = e.exposure ?? 1;
     // 무대가 색 보정을 조금 바꿀 수 있다(밤 무대는 비네트를 더 진하게 등)
     const g = { saturation: 1.12, contrast: 1.06, vignette: 0.22, bloom: 0.5, ...(env.grade || {}) };
@@ -269,6 +292,8 @@ export class Engine {
   }
 
   render() {
+    // 채움 빛은 하늘빛을 따라간다(날씨 층은 sun·hemi 만 만진다)
+    this.fill.intensity = this.fillBase * (this.hemi.intensity / this.hemiBase);
     if (this.post) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
   }

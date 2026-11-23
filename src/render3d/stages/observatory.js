@@ -5,7 +5,7 @@
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, pine, bush, rock, mushroom, halfW, smooth, fbm, noise2, rgb,
   mixv, rng, TAU, glowPoints, starField, cachedTex, house, sphereGeo, roundBoxGeo, cylGeo, coneGeo, torusGeo, latheGeo,
-  LEAF, lanePlants, flowerGeo, groundDecal, grassStrokes, speckle, glowS, sharedMat,
+  LEAF, lanePlants, flowerGeo, groundDecal, grassStrokes, speckle, glowS, sharedMat, inkLine, bakeV,
 } from './common.js';
 
 const OBS = { x: 2.6, z: -15.5 };
@@ -45,7 +45,7 @@ function color(x, y, z, ny) {
 // 통로 앞 풀 결 + 오솔길 시작(통로에서 갈라져 언덕으로)
 function drawDecal(ctx, W, Hh, X, Z, r) {
   const u = W / 13.2;
-  grassStrokes(ctx, 0, 0, W, Hh, 2400, ['rgba(10,40,50,0.28)', 'rgba(150,230,200,0.14)', 'rgba(20,60,70,0.2)'], r, [3, 7]);
+  grassStrokes(ctx, 0, 0, W, Hh, 700, ['rgba(10,40,50,0.18)', 'rgba(150,230,200,0.1)'], r, [4, 9]);
   // 통로 길(달빛에 밝은 흙길)
   const lz = (x) => -0.05 + 0.06 * Math.sin(x * 0.9 + 1);
   const top = [];
@@ -94,7 +94,7 @@ function drawDecal(ctx, W, Hh, X, Z, r) {
     ctx.ellipse(X(x), Z(z) + u * 0.04, u * 0.17, u * 0.06, 0, 0, Math.PI);
     ctx.fill();
   }
-  speckle(ctx, 0, 0, W, Hh, 1200, ['rgba(60,60,90,0.3)', 'rgba(255,255,240,0.35)'], r, [1, 3]);
+  speckle(ctx, 0, 0, W, Hh, 200, ['rgba(60,60,90,0.18)', 'rgba(255,255,240,0.22)'], r, [1.5, 3]);
   ctx.restore();
   ctx.globalCompositeOperation = 'destination-out';
   const fade = ctx.createLinearGradient(0, Z(-4.5), 0, Z(-7));
@@ -119,13 +119,14 @@ function shellGeo(rad, seg, off, width) {
 }
 
 function observatory(parent, x, y, z, lamps) {
-  const g = G(parent, x, y, z, -0.35, 1.2);
+  const g = G(parent, x, y, z, -0.35, 1.35);
   const wallTT = ['#8a88b8', '#f6f4ff'];
   g.add(P(cylGeo(1.18, 1.24, 0.2, 32), '', { pos: [0, 0.1, 0], fin: 'soft', tt: ['#6a6890', '#c8c4e0'] }));
   g.add(P(cylGeo(1.05, 1.08, 1.15, 32), '', { pos: [0, 0.75, 0], fin: 'soft', tt: wallTT }));
   g.add(P(torusGeo(1.08, 0.06, 8, 36), '#b8b4d4', { pos: [0, 1.33, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
   // 돔 + 열린 틈(안쪽 불빛) + 망원경
   const dome = G(g, 0, 1.35, 0, 0.2);
+  dome.userData.dynamic = true;
   dome.add(P(sphereGeo(1, 36, 18), '', { scale: [1.07, 1.07, 1.07], fin: 'soft', tt: ['#9a98c8', '#ffffff', 0.1] }));
   dome.add(P(shellGeo(1.085, 8, 0, 0.4), '#ffc870', { fin: 'warm' }));
   for (const sx of [-0.21, 0.21]) dome.add(P(shellGeo(1.1, 3, sx, 0.08), '#c8c4dc', { fin: 'soft' }));
@@ -147,8 +148,10 @@ function observatory(parent, x, y, z, lamps) {
   sm.add(P(cylGeo(0.9, 0.95, 0.9, 24), '', { pos: [0, 0.45, 0], fin: 'soft', tt: wallTT }));
   sm.add(P(sphereGeo(1, 24, 12), '', { pos: [0, 0.9, 0], scale: 0.88, fin: 'soft', tt: ['#8a88b8', '#eeeaff'] }));
   sm.add(P(roundBoxGeo(0.3, 0.9, 0.9, 0.04, 1), '#1f2350', { pos: [0, 1.25, 0.35], rot: [-0.5, 0, 0], fin: 'soft' }));
-  lamps.push([x, y + 0.55 * 1.2, z + 1.35 * 1.2, '#ffcf7a', 1.6]);
-  return g;
+  lamps.push([x, y + 0.55 * 1.35, z + 1.35 * 1.35, '#ffcf7a', 1.6]);
+  inkLine(g, 0.06);
+  inkLine(dome, 0.06);
+  return { g, dome };
 }
 
 function dish(parent, x, y, z, s) {
@@ -158,6 +161,7 @@ function dish(parent, x, y, z, s) {
   g.add(P(bowl, '', { pos: [0, 0.95, 0.1], rot: [-0.9, 0, 0], fin: 'soft', tt: ['#8a88b8', '#ffffff'] }));
   g.add(P(cylGeo(0.025, 0.025, 0.6, 5), '#8890b8', { pos: [0, 1.18, 0.3], rot: [-0.9, 0, 0] }));
   g.add(P(sphereGeo(1, 8, 6), '#ff4a5a', { pos: [0, 1.42, 0.5], scale: 0.05, fin: 'neon', cast: false }));
+  inkLine(g, 0.05);
   return g;
 }
 
@@ -197,7 +201,7 @@ export function buildObservatory({ w }) {
   const decal = groundDecal({ key: 'obs', draw: drawDecal, H: (x, z) => Math.max(0, H(x, z)) });
 
   const obsY = H(OBS.x, OBS.z);
-  observatory(props, OBS.x, obsY - 0.05, OBS.z, lamps);
+  const obs = observatory(props, OBS.x, obsY - 0.05, OBS.z, lamps);
   dish(props, OBS.x + 3.6, H(OBS.x + 3.6, OBS.z - 1.5), OBS.z - 1.5, 1.15);
   // 오솔길 등(블룸)
   for (let z = -2.2; z > OBS.z + 1.2; z -= 1.35) {
@@ -209,7 +213,7 @@ export function buildObservatory({ w }) {
   const eL = -halfW(w, -4.5) - 0.2;
   const eR = halfW(w, -5.5) + 0.3;
   for (const [x, z, s] of [[eL, -4.5, 2.2], [eL + 1.1, -7, 1.6], [eR, -5.5, 2.3], [eR - 1.2, -3.6, 1.4], [eR - 0.5, -9, 1.8]]) {
-    pine(props, x, H(x, z), z, s, r, { leaf: ['#0f2a3a', '#3a6e6a'], seg: 12, tiers: 4 });
+    pine(props, x, H(x, z), z, s, r, { leaf: ['#0f2a3a', '#3a6e6a'], seg: 12, tiers: 4, ink: 0.03 });
   }
   for (let i = 0; i < 26; i++) {
     const z = -8 - r() * 16;
@@ -229,8 +233,8 @@ export function buildObservatory({ w }) {
     house(props, x, H(x, z) - 0.05, z, r() * 0.6 - 0.3, 1.1, { w: 1.1, d: 0.9, h: 0.7, wall: '#a8a4d0', roof: '#3a4280', lit: r() < 0.8, detail: 0 });
   }
   // 바위·버섯·덤불
-  for (const [x, z, s] of [[-2.2, -2.5, 0.9], [-1.0, -5.5, 0.7], [3.6, -3.0, 0.8], [eL + 1.4, -1.6, 0.7]]) rock(props, x, H(x, z), z, s, r, '#7a78a8');
-  for (const [x, z, s, c] of [[-2.6, -2.1, 0.9, '#c84a7a'], [-2.35, -2.35, 0.6, '#c84a7a'], [3.9, -2.5, 0.8, '#8a6ad8']]) mushroom(props, x, H(x, z), z, s, r, { cap: c });
+  for (const [x, z, s] of [[-2.2, -2.6, 1.1], [3.6, -3.0, 0.9]]) rock(props, x, H(x, z), z, s, r, '#7a78a8');
+  for (const [x, z, s, c] of [[-2.7, -2.1, 1.1, '#c84a7a'], [3.95, -2.45, 0.9, '#8a6ad8']]) mushroom(props, x, H(x, z), z, s, r, { cap: c });
   bush(props, eL + 1.6, 0, -2.3, 0.9, r, { leaf: ['#122e3a', '#3a7066'] });
   bush(props, eR - 1.8, 0, -1.9, 0.8, r, { leaf: ['#122e3a', '#3a7066'], flowers: 3, flowerColor: '#d8e4ff' });
 
@@ -250,6 +254,7 @@ export function buildObservatory({ w }) {
   });
 
   bake(props, { H, light: [-0.5, 1, 0.6] });
+  bakeV(obs.dome, { ao: 0, light: [-0.5, 1, 0.6] });
   root.add(ground, decal);
 
   // 불빛(블룸): 크기별로 두 묶음
@@ -268,7 +273,7 @@ export function buildObservatory({ w }) {
   root.add(mg);
 
   // 옅은 밤 구름
-  const cm = cloudMat('#9a96d8', '#2e2f70', { light: [-0.6, 0.6, -0.2], mid: '#625ea8', fog: false });
+  const cm = cloudMat('#c0b8f0', '#363a86', { light: [-0.6, 0.6, -0.2], mid: '#7c74c4', fog: false, rim: 0.55 });
   const sky = G(root);
   const drift = cloudLayer(sky, 57, [
     { x: 28, y: 24, z: -140, w: 30, h: 6, n: 14, seg: 10, speed: 0.08, span: 85, flat: 0.15 },
@@ -289,6 +294,8 @@ export function buildObservatory({ w }) {
     group: root,
     env,
     update(t) {
+      // 돔이 천천히 고개를 돌리며 하늘을 훑는다
+      obs.dome.rotation.y = 0.2 + Math.sin(t * 0.13) * 0.45;
       sa.material.opacity = 0.8 + 0.2 * Math.sin(t * 1.7);
       sb.material.opacity = 0.85 + 0.15 * Math.sin(t * 2.3 + 1);
       drift(t);
