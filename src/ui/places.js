@@ -506,12 +506,12 @@ function treasureBG() {
 // 자물쇠가 달아오르고 틈새로 빛이 샘 (점점 빨리) → 뚜껑이 터지듯 열리며 번쩍, 화면이 확 다가섬, 빛살·충격파·엽전·오방색 종이꽃·금빛 구름무늬
 // → 고를 것들이 빛나는 패가 되어 함에서 솟아 제자리로 퍼진다 (귀한 것일수록 더 밝게). 아무 데나 누르면 바로 연다. 고르는 규칙은 전리품과 같다
 const TR_HIT = [1.02, 1.38, 1.66, 1.88, 2.04, 2.16, 2.25, 2.32], TR_BURST = 2.42, TR_LEAD = 1.15;
-const TR_CH0 = [640, 566, 2.05], TR_CH1 = [640, 682, 0.9];   // 함 자리와 크기: 열기 전 (무대 한가운데) → 연 뒤 (무대 앞쪽)
+const TR_CH0 = [640, 566, 2.05], TR_CH1 = [640, 708, 0.64];   // 함 자리와 크기: 열기 전 (무대 한가운데) → 연 뒤 (무대 앞판 바로 위, 단추 줄 아래로 내려앉는다)
 const TR_SEATS = [[58, 1.55, 5, -8], [156, 1.45, 1, -10], [258, 1.5, 3, -8], [1020, 1.5, 2, -8], [1122, 1.45, 4, -10], [1224, 1.55, 0, -8],
   [100, 2.0, 0, 14], [204, 1.9, 3, 18], [314, 1.85, 5, 16], [966, 1.9, 1, 18], [1070, 2.05, 3, 14], [1178, 1.95, 0, 16]];
 // 귀한 정도: 전설 3 · 두목 2 · 축 보물 1.5 · 그 밖 1
 const tierOf = o => { const x = o.kind === 'relic' && RELICS[o.id]; return x ? (x.legend ? 3 : x.boss ? 2 : x.axis ? 1.5 : 1) : 1; };
-const TIER_RGB = { 1: '255,214,140', 1.5: '255,190,90', 2: '255,92,76', 3: '255,240,190' };   // 보물 · 축 보물 · 두목(붉은 빛) · 전설(오방색)
+const TIER_RGB = { 1: '255,214,140', 1.5: '255,196,104', 2: '238,128,74', 3: '255,222,140' };   // 보물 · 축 보물 · 두목(붉은 금빛) · 전설(짙은 금빛 — 오방색은 패 테에만)
 // 오방색을 차례로 물들인다 (청 → 적 → 황 → 백 → 흑 대신 짙은 쪽빛)
 const OB_RGB = [[70, 130, 230], [230, 80, 60], [250, 210, 90], [255, 250, 235], [90, 200, 150]];
 const obangCycle = q => { const n = OB_RGB.length, i = Math.floor(((q % n) + n) % n), f = (((q % n) + n) % n) - i, a = OB_RGB[i], b = OB_RGB[(i + 1) % n]; return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`; };
@@ -555,14 +555,17 @@ export class TreasureScene extends RewardOverlay {
       brushTitle(g, 640, 34, 420, 62, '보물 상자', '#b8862a', 36); text(g, '무엇이 들었을까…', 640, 82, { size: 20, fill: C.cream });
       if (this.ct > 0.9) { g.save(); g.globalAlpha = 0.55 + 0.25 * Math.sin(this.ct * 4); text(g, '눌러서 바로 열기', 640, 664, { size: 17, font: FONT_B, fill: '#f6e8c4', stroke: 'rgba(10,6,4,0.8)', lw: 4 }); g.restore(); }
     } else {
+      // 터진 엽전·종이꽃과 빛 무리는 무대 그림(grove) 안에서 그린다: 솟아오르는 패와 단추·현판·엽전 수가 늘 그 위에 또렷이 남는다
       super.draw(g, dt);
-      // 터지는 순간이 지나면 날리는 종이꽃·엽전은 패와 단추 뒤로 지나간다 (패 설명·단추 글씨를 덮지 않게)
-      g.save(); if (this.bt > 0.7) { g.beginPath(); g.rect(0, 0, W, H); g.rect(250, 104, 780, 400); g.rect(380, 514, 520, 68); g.clip('evenodd'); }
-      this.fx.drawFront(g); g.restore();
-      // 번쩍: 터지는 순간 화면이 하얗게, 다시 뽑을 때는 살짝
-      if (this.bt < 0.42) { const q = this.bt / 0.42; g.fillStyle = `rgba(255,250,232,${0.92 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }
-      if (this.rb >= 0 && this.rb < 0.3) { const q = this.rb / 0.3; g.fillStyle = `rgba(255,246,220,${0.4 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }
     }
+  }
+  // 함 아가리에서 터지는 빛 무리: 가운데는 눈부시게 희고, 둘레로 갈수록 금빛으로 옅어진다. 화면 가장자리와 위의 현판까지는 닿지 않는다
+  bloom(g, x, y, q, k) {
+    const a = (1 - q) ** 2 * k, r = 150 + 230 * Math.sqrt(q); if (a <= 0.01) return;
+    g.save(); g.translate(x, y); g.scale(1.45, 1);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(255,253,244,${0.96 * a})`); gr.addColorStop(0.35, `rgba(255,240,200,${0.7 * a})`); gr.addColorStop(0.7, `rgba(255,214,140,${0.25 * a})`); gr.addColorStop(1, 'rgba(255,214,140,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
+    g.save(); g.globalCompositeOperation = 'lighter'; glow(g, x, y, 120, '255,236,180', 0.6 * a); g.restore();
   }
   grove(g) {
     const t = this.ct, bt = this.bt, c = this.chest(), mouth = c.y - 70 * c.s;
@@ -595,6 +598,10 @@ export class TreasureScene extends RewardOverlay {
     } else if (c.lock > 0) glow(g, c.x, c.y - 40 * c.s, 120 + 90 * c.lock, '255,200,110', 0.25 * c.lock);
     this.fx.drawBack(g);
     drawChest(g, c.x, c.y, c.s, { lid: c.lid, glow: c.glow, lock: c.lock, lockOff: c.lockOff, leak: c.leak, rot: c.rot, sx: c.sx, sy: c.sy, t });
+    // 함 앞으로 쏟아지는 엽전·종이꽃·불티와 떨어져 나간 자물쇠, 그리고 아가리에서 터지는 빛 무리 (다시 뽑을 때는 살짝)
+    this.fx.drawFront(g);
+    if (bt >= 0 && bt < 0.5) this.bloom(g, 640, TR_CH0[1] - 70 * TR_CH0[2], bt / 0.5, 1);
+    if (this.rb >= 0 && this.rb < 0.35) this.bloom(g, c.x, mouth, this.rb / 0.35, 0.45);
     g.restore();
     if (bt >= 0) this.auras(g, c, mouth);
   }
@@ -622,8 +629,8 @@ export class TreasureScene extends RewardOverlay {
         g.beginPath(); rrPath(g, x - 7, y - 7, 238, 330, 14); g.stroke(); g.stroke(); g.restore(); }
       const gr = g.createRadialGradient(cx, cy, 30, cx, cy, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
       if (tier >= 2) {   // 두목·전설: 패 뒤에서 빛살이 돈다 (전설은 오방색)
-        g.save(); g.translate(cx, cy); g.rotate(this.ct * (tier >= 3 ? 0.35 : 0.2) + n); const m = tier >= 3 ? 15 : 10, len = r * (tier >= 3 ? 1.5 : 1.25), tw = tier >= 3 ? 30 : 22, al = tier >= 3 ? 0.55 : 0.4;
-        for (let j = 0; j < m; j++) { g.rotate(TAU / m); const col = tier >= 3 ? ['255,110,90', '110,160,255', '255,220,110', '255,255,240', '120,230,160'][j % 5] : rgb, rg = g.createLinearGradient(0, 0, 0, -len); rg.addColorStop(0, `rgba(${col},${al * in1 * pul})`); rg.addColorStop(0.45, `rgba(${col},${al * 0.6 * in1 * pul})`); rg.addColorStop(1, `rgba(${col},0)`); g.fillStyle = rg; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-tw, -len); g.lineTo(tw, -len); g.lineTo(6, 0); g.closePath(); g.fill(); }
+        g.save(); g.translate(cx, cy); g.rotate(this.ct * (tier >= 3 ? 0.35 : 0.2) + n); const m = tier >= 3 ? 14 : 10, len = r * (tier >= 3 ? 1.3 : 1.2), tw = tier >= 3 ? 26 : 22, al = tier >= 3 ? 0.4 : 0.34;
+        for (let j = 0; j < m; j++) { g.rotate(TAU / m); const col = tier >= 3 ? (j % 2 ? '255,244,214' : '255,206,110') : rgb, rg = g.createLinearGradient(0, 0, 0, -len); rg.addColorStop(0, `rgba(${col},${al * in1 * pul})`); rg.addColorStop(0.45, `rgba(${col},${al * 0.6 * in1 * pul})`); rg.addColorStop(1, `rgba(${col},0)`); g.fillStyle = rg; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-tw, -len); g.lineTo(tw, -len); g.lineTo(6, 0); g.closePath(); g.fill(); }
         g.restore();
       }
       // 반짝이: 패 둘레에서 별빛이 돋았다 진다
