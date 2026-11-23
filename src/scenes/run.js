@@ -6,6 +6,7 @@ import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
 import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
+import { ALT_MARCH } from '../data/bossalt.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
 import { CHAPTERS, ORD, chapterOf } from '../data/stages.js';
@@ -110,7 +111,7 @@ export class RunScene {
   }
   marchLines(st) {
     if (!st) return null; const r = this.r, M = MARCH_TALK[Math.min(MARCH_TALK.length - 1, r.ch)], i = r.road.i;
-    const ls = st.type === 'boss' ? M.boss : [M.seq[0], M.seq[1], [['H', HERO_TALK[Math.min(2, Math.floor(r.ch / 4))][r.hero]]], M.seq[2]][i] || CHATTER[(i + r.ch) % CHATTER.length];
+    const ls = st.type === 'boss' ? ((e => e && e.alt && ALT_MARCH[e.key])(encounterHere()) || M.boss) : [M.seq[0], M.seq[1], [['H', HERO_TALK[Math.min(2, Math.floor(r.ch / 4))][r.hero]]], M.seq[2]][i] || CHATTER[(i + r.ch) % CHATTER.length];
     const heard = (meta.seen.talk || 0) > r.ch, live = (heard && st.type !== 'boss' ? ls.slice(0, 1) : ls).filter(l => this.speaker(l[0])); return live.length ? live : null;
   }
   talkTick(dt) {

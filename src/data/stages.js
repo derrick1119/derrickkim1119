@@ -1,5 +1,6 @@
 // 고개(장) 정의: 고개마다 옛이야기 하나. 열두 고개를 차례로 넘는다
 // pool = 그 고개에 나오는 요괴와 무게 · chase = 싸움을 오래 끌면 따라붙는 본대 · terr = 싸움터 지형 · sky = [낮, 밤] 확률(나머지는 비)
+import { ALT_BY_CH } from './bossalt.js';
 export const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째', '여섯째', '일곱째', '여덟째', '아홉째', '열째', '열한째', '열두째'];
 const C = (id, tale, place, theme, boss, sub, pool, chase, terr, sky, bossSky = 'day') => ({ id, tale, place, theme, boss, sub, pool, chase, terr, sky, bossSky });
 export const CHAPTERS = [
@@ -29,6 +30,6 @@ export const CHAPTERS = [
     { skel: 4, skelarcher: 4, necro: 3, geuseun: 2, dueok: 2, bulga: 1.5, jangsan: 1.5, catapult: 2, rassassin: 2, agwi: 1.5, gangcheol: 1.5, jine: 1.5, dalgyal: 1.5 }, ['skel', 'skelarcher', 'orc'], ['gate', 'bridge', 'palisade', 'rocks', 'open'], [0.1, 0.75], 'night'),
 ];
 export const N_CH = CHAPTERS.length;
-CHAPTERS.forEach((c, i) => { c.n = i; c.short = ORD[i] + ' 고개'; c.name = `${ORD[i]} 고개 · ${c.place}`; });
+CHAPTERS.forEach((c, i) => { c.n = i; c.short = ORD[i] + ' 고개'; c.name = `${ORD[i]} 고개 · ${c.place}`; c.alt = ALT_BY_CH[i] || null; });   // alt = 둘에 하나 꼴로 원래 두목 대신 나오는 또 다른 두목
 // 고개 번호가 범위를 벗어나도(원정을 다 마친 뒤) 마지막 고개를 돌려준다
 export const chapterOf = ch => CHAPTERS[Math.max(0, ch | 0) % N_CH];   // 끝없는 고개에서는 열두 고개가 다시 돈다

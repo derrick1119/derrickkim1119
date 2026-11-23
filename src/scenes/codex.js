@@ -22,13 +22,13 @@ const KIND_ORDER = { unit: 0, attack: 1, tactic: 2, support: 3, hero: 4, lead: 5
 const CARD_IDS = Object.keys(CARDS).filter(id => CARDS[id].kind !== 'curse').sort((a, b) => KIND_ORDER[CARDS[a].kind] - KIND_ORDER[CARDS[b].kind]);
 // 그리드: 열 수, 칸 간격, 칸 크기
 const TABS = [
-  { id: 'foe', name: '요괴', list: FOES, cols: 9, px: 82, py: 140, w: 77, h: 130 },
+  { id: 'foe', name: '요괴', list: FOES, cols: 12, px: 62, py: 140, w: 58, h: 130 },
   { id: 'relic', name: '보물', list: RELIC_IDS, cols: 10, px: 75, py: 86, w: 68, h: 80 },
   { id: 'card', name: '패', list: CARD_IDS, cols: 11, px: 68, py: 90, w: 60, h: 78 },
   { id: 'feat', name: '전공첩', list: FEATS.map(f => f.id), cols: 9, px: 82, py: 140, w: 77, h: 130 },
 ];
 // 요괴 초상의 크기 보정: 거대한 것과 두목은 작게
-const FK = id => UNITS[id].boss ? 0.42 : UNITS[id].large ? 0.62 : 0.82;
+const FK = id => UNITS[id].boss ? 0.36 : UNITS[id].large ? 0.52 : 0.7;
 const seen = (tab, id) => tab === 'feat' ? !!(meta.feats && meta.feats[id]) : !!(meta.codex && meta.codex[tab] && meta.codex[tab][id]);
 const dark = g => { g.filter = 'brightness(0) opacity(0.5)'; };
 
@@ -74,7 +74,7 @@ export class CodexScene {
     } else if (T.id === 'foe') {
       const u = UNITS[id]; rr(g, 850, 124, 380, 220, 8, '#efe2bf', INK, 1.6);
       g.save(); g.beginPath(); g.rect(852, 126, 376, 216); g.clip(); const sk = g.createLinearGradient(0, 126, 0, 342); sk.addColorStop(0, ok ? (u.boss ? '#6a2a2a' : '#3a4a6a') : '#3a3640'); sk.addColorStop(1, '#efe2bf'); g.fillStyle = sk; g.fillRect(852, 126, 376, 216);
-      g.fillStyle = 'rgba(40,50,30,0.3)'; g.fillRect(852, 312, 376, 30); ell(g, cx, 326, 70, 9, 'rgba(20,14,8,0.35)'); if (!ok) dark(g); portrait(g, id, cx, 324, FK(id) * 2.1, this.t, ok); g.filter = 'none'; g.restore();
+      g.fillStyle = 'rgba(40,50,30,0.3)'; g.fillRect(852, 312, 376, 30); ell(g, cx, 326, 70, 9, 'rgba(20,14,8,0.35)'); if (!ok) dark(g); portrait(g, id, cx, 324, FK(id) * 2.45, this.t, ok); g.filter = 'none'; g.restore();
       if (ok) { goldText(g, u.name, cx, 376, { size: 32, glow: false }); text(g, `${u.boss ? '두목' : u.role}`, cx, 408, { size: 16, fill: '#8a2a26', font: FONT_B }); text(g, u.desc || '', cx, 436, { size: 17, fill: '#3a2a1a', maxW: 380 }); textBlock(g, u.tip || '', cx, 470, 380, 22, { size: 15.5, fill: '#4a4034', weight: 400 }); rr(g, 870, 540, 340, 34, 8, 'rgba(60,40,20,0.08)', 'rgba(60,40,20,0.25)', 1); text(g, `체력 ${Math.round(u.hp * 2.2)}  ·  ${u.heal ? '치유' : '공격'} ${Math.round(u.atk || u.heal || 0)}  ·  ${u.range > 0 ? '원거리' : '근접'}${u.n > 1 ? `  ·  무리 ${u.n}` : ''}`, cx, 557, { size: 15.5, fill: '#5a4030', maxW: 320 }); }
       else unknown(g, cx, '아직 물리치지 못한 요괴입니다');
     } else if (T.id === 'relic') {

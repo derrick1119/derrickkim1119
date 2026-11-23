@@ -1140,6 +1140,10 @@ export class Battle {
       } else if (z.kind === 'grail') {
         z.acc += dt; if (z.acc >= 0.5 && z.t < z.dur) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 0 || hyp(u.x - z.x, u.y - z.y) > z.r + u.r) return; const a = u.maxHp * z.heal; if (u.hp < u.maxHp) this.ev('heal', { x: u.x, y: u.y, amt: Math.min(a, u.maxHp - u.hp), team: 0, quiet: true }); u.hp = Math.min(u.maxHp, u.hp + a); u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; }); }
         if (z.t >= z.dur) z.done = true;
+      } else if (z.kind === 'hazard') {
+        // 두목이 땅에 남긴 해 (돌무더기·불 자국): 그 위에 선 우리 인형을 늦추거나 태운다 (sim/bossalt.js)
+        z.acc += dt; if (z.acc >= 0.5 && z.t < z.dur) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 0 || u.jump || u.def.structure || u.def.banner || hyp(u.x - z.x, u.y - z.y) > z.r + u.r * 0.5) return; if (z.slow) { u.slow = Math.max(u.slow, 0.8); u.slowAmt = Math.max(u.slow > 0.8 ? u.slowAmt : 0, z.slow); } if (z.burn && this.sky !== 'rain') { u.burn = Math.max(u.burn, 1.5); u.burnDmg = Math.max(u.burnDmg, z.burn); } }); }
+        if (z.t >= z.dur) z.done = true;
       } else if (z.kind === 'caltrop') {
         z.acc += dt; if (z.acc >= 0.5) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 1 || u.jump || hyp(u.x - z.x, u.y - z.y) > z.r + u.r * 0.5) return; u.slow = Math.max(u.slow, 0.8); u.slowAmt = z.slow * (u.def.boss ? 0.5 : 1); this.damage(u, z.dmg, null, 'aoe'); }); }
         if (z.t >= z.dur) z.done = true;

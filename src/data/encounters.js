@@ -2,6 +2,7 @@
 // enemy 항목: [병종, 열(0~5), 줄(0=전열, 2=후열), 옵션{n, hold, flank:'L'|'R', wait}]
 import { UNITS } from './units.js';
 import { CHAPTERS, N_CH } from './stages.js';
+import { ALT_PACKS } from './bossalt.js';
 
 // 길 위의 변수에만 나오는 것들: 달아나는 보물 짐꾼, 요괴가 끌고 가던 우리에 갇힌 마을 사람
 Object.assign(UNITS, {
@@ -26,8 +27,8 @@ FEATURE.splice(FEATURE.indexOf('catapult'), 0, 'gangcheol', 'jine', 'yeongno', '
 FEATURE.splice(FEATURE.indexOf('wolf'), 0, 'mulgwi', 'foxhag', 'myodusa', 'gamtu', 'bat');
 Object.assign(NAMES, {
   gamtu: ['사라진 발소리', '감투 도깨비 패'], bat: ['밤하늘의 날갯짓', '밤박쥐 떼'], yeongno: ['탈판의 영노', '영노 패'], changgwi: ['범의 앞잡이', '창귀 무리'],
-  foxhag: ['길가의 낯선 할미', '여우 할미 패'], mulgwi: ['물가의 손짓', '물귀신 무리'], myodusa: ['풀숲의 독니', '묘두사 떼'], jine: ['꿈틀대는 마디', '왕지네 무리'],
-  gangcheol: ['타들어 가는 고개', '강철이와 무리'], dalgyal: ['얼굴 없는 귀신', '달걀귀신 무리'], songaksi: ['원통한 혼례', '손각시 무리'], agwi: ['굶주린 넋', '아귀 떼'],
+  foxhag: ['길가의 낯선 할미', '둔갑 여우 패'], mulgwi: ['물가의 손짓', '물귀신 무리'], myodusa: ['풀숲의 독니', '묘두사 떼'], jine: ['꿈틀대는 마디', '왕지네 무리'],
+  gangcheol: ['타들어 가는 고개', '강철이 새끼 무리'], dalgyal: ['얼굴 없는 귀신', '얼굴 없는 각시 무리'], songaksi: ['원통한 혼례', '손각시 무리'], agwi: ['굶주린 넋', '아귀 떼'],
 });
 export const AFFIX = {
   rage: { name: '광분', desc: '공격 속도 +20%', foe: { as: 1.2 } },
@@ -101,6 +102,11 @@ export const BOSSES = {
 // 고개마다의 세기: [첫 싸움 예산, 칸마다 더]. 요괴의 단계는 고개 번호 + 1 (아군 병력도 고개마다 한 단계씩 단련된다).
 // 뒤 고개로 갈수록 머릿수보다는 단계로 세진다. 밸런스는 tools/campaign.mjs 로 맞춘다
 const CURVE = [[13, 1.1], [16, 1.2], [19.5, 1.4], [23, 1.4], [26.5, 1.5], [29, 1.5], [29, 1.5], [32, 1.5], [34, 1.5], [35, 1.5], [36, 1.5], [37.5, 1.5]];
+// 또 다른 두목들의 패거리 (data/bossalt.js)
+for (const [k, v] of Object.entries(ALT_PACKS)) BOSSES[k] = BK(k, ...v);
+// 두목 칸에서 또 다른 두목을 만날지: 둘에 하나 꼴 (개발용으로 forceBossAlt(true/false) 로 정할 수 있다)
+let FORCE_ALT = null;
+export const forceBossAlt = v => { FORCE_ALT = v === null || v === undefined ? null : !!v; };
 export function budgetFor(ch, row, kind, eliteMul = 1) { const c = CURVE[Math.min(N_CH - 1, ch)]; return (c[0] + row * c[1]) * (kind === 'elite' ? 1.16 * eliteMul : 1); }
 
 const sky = (C, R) => { const x = R(); return x < C.sky[0] ? 'day' : x < C.sky[0] + C.sky[1] ? 'night' : 'rain'; };
@@ -108,7 +114,7 @@ export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다
   const C = CHAPTERS[ch % N_CH], lvl = ch + 1, late = Math.min(ch, 4);
   const chase = { at: 0, every: 11, types: C.chase };
-  if (kind === 'boss') { const b = BOSSES[C.boss], pk = b.packs[(R() * b.packs.length) | 0], vk = ch < 2 ? 'plain' : Object.keys(BOSS_VAR)[(R() * Object.keys(BOSS_VAR).length) | 0], V = BOSS_VAR[vk]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: Object.assign({}, V.foe), bossVar: vk, terrain: 'arena', sky: C.bossSky, chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with, lvl }); }
+  if (kind === 'boss') { const alt = !!C.alt && (FORCE_ALT === null ? R() < 0.5 : FORCE_ALT), b = BOSSES[alt ? C.alt : C.boss], pk = b.packs[(R() * b.packs.length) | 0], vk = ch < 2 ? 'plain' : Object.keys(BOSS_VAR)[(R() * Object.keys(BOSS_VAR).length) | 0], V = BOSS_VAR[vk]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, alt, tip: UNITS[b.key].tip, foe: Object.assign({}, V.foe), bossVar: vk, terrain: 'arena', sky: C.bossSky, chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with, lvl }); }
   const pool = { w: C.pool };
   let budget = budgetFor(ch, row, kind, eliteMul);
   const first = ch === 0 && row === 0;

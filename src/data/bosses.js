@@ -1,4 +1,5 @@
 // 새 두목과, 두목 싸움에 쓰이는 소품들 (units.js 의 UNITS 에 합쳐진다). 싸우는 방식은 sim/bossfight.js
+import { ALT_UNITS } from './bossalt.js';
 export const BOSS_UNITS = {
   gumiho: { name: '구미호', role: '보스', side: 1, boss: true, n: 1, hp: 1550, atk: 30, as: 0.95, range: 0, reach: 12, spd: 86, r: 22, large: true, dodge: 0.1,
     desc: '꼬리 아홉 달린 여우', tip: '깎을 때마다 꼬리가 떨어지며 독해집니다. 푸른 원(여우불)은 피하고, 홀린 부대는 끌어 깨우고, 둔갑하면 꼬리 달린 진짜를 치세요.' },
@@ -29,3 +30,5 @@ export const BOSS_UNITS = {
   mirror: { name: '업경대', role: '소품', side: 1, n: 1, hp: 380, atk: 0, as: 9, range: 0, spd: 0, r: 20, structure: true, prop: true,
     desc: '지은 죄를 비추는 거울', tip: '서 있으면 염라대왕을 때린 피해가 되돌아옵니다. 부대로 깨뜨리세요.' },
 };
+// 고개마다의 또 다른 두목과 그 소품 (data/bossalt.js)
+Object.assign(BOSS_UNITS, ALT_UNITS);
