@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, hiddenFight } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
@@ -24,6 +24,7 @@ import { Coach } from '../ui/coach.js';
 import { RewardOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
 import { MarketOverlay, TavernOverlay, ForkScene, TreasureScene, ForgeScene } from '../ui/places.js';
 import { EventScene } from '../ui/roadevent.js';
+import { PLACE_SCENES, PlaceScene } from '../ui/places2.js';
 import { PromoOverlay } from '../ui/promote.js';
 import { FORMS, FORM_DIAG, FORM_ORDER } from '../data/formations.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
@@ -70,7 +71,7 @@ export class RunScene {
   arrive() {
     const r = this.r, b = this.b, rd = r.road, st = curStop(); rd.state = 'at'; this.sync(); this.bossSaid = false; this.storyDone = false;
     const done = () => this.leave();
-    if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkScene({ a: st.a, b: st.b, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
+    if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkScene({ a: st.a, b: st.b, c: st.c, h: st.h, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
@@ -83,6 +84,8 @@ export class RunScene {
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new MarketOverlay({ items, onDone: done }); }
     else if (st.type === 'rest') { this.phase = 'stop'; const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new TavernOverlay({ tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else if (st.type === 'forge') { this.phase = 'stop'; this.over = new ForgeScene({ onDone: done }); }
+    // 새 장소들 (숨은 길에서 도깨비 굴로 들어가면 그 자리가 강적 싸움터가 된다)
+    else if (PLACE_SCENES[st.type]) { this.phase = 'stop'; this.over = new PLACE_SCENES[st.type]({ onDone: done, onFight: () => { hiddenFight(); this.over = null; this.arrive(); } }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
@@ -165,7 +168,7 @@ export class RunScene {
     if (p === 'over') return 'story';
     if (p === 'fight' || p === 'prep') return this.enc && this.enc.boss ? 'boss' : 'battle';
     if (o instanceof Play) return 'story';
-    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof ForgeScene || o instanceof PromoOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
+    if (o && (o instanceof MarketOverlay || o instanceof TavernOverlay || o instanceof ForgeScene || o instanceof PlaceScene || o instanceof PromoOverlay || o instanceof EventScene || o instanceof TreasureScene || o instanceof StoryOverlay)) return 'rest';
     return 'march';
   }
   // 길 위의 변수: 보물 짐꾼을 잡으면 엽전, 우리를 부수면 병력 패
@@ -348,7 +351,8 @@ export class RunScene {
     rd.stops.forEach((s, k) => {
       const x = sx(k), past = k < rd.i || (k === rd.i && rd.state === 'reward'), cur = k === rd.i && this.phase !== 'march';
       g.save(); if (past) g.globalAlpha = 0.4;
-      if (s.type === 'fork') { seal(g, x, cy - 12.5, 24, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x, cy + 12.5, 24, STOP[s.b.type].ch, STOP[s.b.type].col); }
+      if (s.type === 'fork' && s.c) { seal(g, x - 11, cy - 11, 21, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x + 11, cy - 11, 21, STOP[s.c.type].ch, STOP[s.c.type].col); seal(g, x, cy + 12, 21, STOP[s.b.type].ch, STOP[s.b.type].col); }
+      else if (s.type === 'fork') { seal(g, x, cy - 12.5, 24, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x, cy + 12.5, 24, STOP[s.b.type].ch, STOP[s.b.type].col); }
       else { const v = STOP[s.type], sz = cur ? 38 : s.type === 'boss' ? 36 : 31; if (cur) ell(g, x, cy, 22 + Math.sin(T * 5) * 1.5, 22 + Math.sin(T * 5) * 1.5, null, OCHRE, 2.4); seal(g, x, cy, sz, v.ch, v.col); }
       g.restore(); if (past) icon.check(g, x, cy, 0.9, true);
     });

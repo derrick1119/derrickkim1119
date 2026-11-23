@@ -9,7 +9,8 @@ import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
 import { N_CH } from '../src/data/stages.js';
 import { BRANCHES } from '../src/data/branches.js';
-import { pendingPromos, promote, canTemper, temper } from '../src/state.js';
+import { pendingPromos, promote, canTemper, temper, place, PLACE_COST, curseCount, hiddenFight, forkKeys } from '../src/state.js';
+import { MAX_CAP } from '../src/sim/battle.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
@@ -88,7 +89,9 @@ for (let k = 0; k < runs; k++) {
   r.alive = true;   // 한 싸움에서 전군이 무너지면 원정이 끝난다
   for (let guard = 0; r.alive && !r.done && guard < 400; guard++) {
     b.beginMarch(); for (let j = 0; j < 8; j++) { b.march(90, 0.3); tick(9); }
-    let s = curStop(); if (s.type === 'fork') { const a = s.a.type, w = a === 'elite' ? 0.45 : 0.5; chooseFork(Math.random() < w ? 'a' : 'b'); s = curStop(); }
+    let s = curStop(); if (s.type === 'fork') { const ks = forkKeys(s); chooseFork(s.h && Math.random() < 0.3 ? 'h' : ks.length > 2 ? pick(ks) : (Math.random() < (s.a.type === 'elite' ? 0.45 : 0.5) ? 'a' : 'b')); s = curStop(); }
+    // 숨은 길: 반은 금줄 너머 보물(보물 둘 + 부정), 반은 도깨비 굴의 강적과 싸운다
+    if (s.type === 'hidden') { if (Math.random() < 0.5) place.loot(); else { hiddenFight(); s = curStop(); } }
     if (s.type === 'battle' || s.type === 'elite' || s.type === 'boss') {
       const e = encounterHere(); sync(b); const lost0 = b.lost; b.prepWave(waveSetup(e)); tick(105); b.startWave(e.enemy, waveSetup(e));
       let steps = 0, cleared = false, downs = 0;
@@ -112,6 +115,12 @@ for (let k = 0; k < runs; k++) {
     else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
     else if (s.type === 'rest') { const x = Math.random(); if (x < 0.35) act.morale(4); else if (r.gold >= 90 && x < 0.6) { act.gold(-90); act.train(); act.train(); } else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
+    // 새 장소들: 할 수 있는 것 하나를 고른다
+    else if (s.type === 'shaman') { if (curseCount() && r.gold >= PLACE_COST.gut) place.gut(); else if (r.gold >= PLACE_COST.charm && Math.random() < 0.5) place.charm(); else if (r.gold >= PLACE_COST.naerim) place.naerim(); }
+    else if (s.type === 'seodang') { const c = pick(r.deck.filter(c => !isUnit(c) && canUp(c))); if (c && r.gold >= PLACE_COST.study) place.study(c.uid); else { place.quiz(); if (Math.random() < 0.34) place.quizWin(); } }
+    else if (s.type === 'gamble') { if (r.gold >= PLACE_COST.bet) place.bet(); }
+    else if (s.type === 'muster') { place.recruit(pick(place.musterOffer())); if (r.gold >= PLACE_COST.feed && r.cap < MAX_CAP) place.feed(); }
+    else if (s.type === 'hidden') { /* 보물을 챙겼다 */ }
     else if (s.type === 'forge') { const c = pick(r.deck.filter(canTemper)); if (c && r.gold >= 40) { r.gold -= 40; temper(c.uid); } else if (r.gold >= 70) { r.gold -= 70; act.weapon(); } }
     sync(b);
     if (advance()) break;
