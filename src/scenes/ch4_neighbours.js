@@ -125,12 +125,15 @@
           { kind: 'lamp', id: 'lamp', x: -60, at: [383, 380] },
         ],
       });
-      await X.view(lakeB, { color: '#1b2a40' });
+      const help = T.lakeHelp({ level: 1, leoAge: 1 });
+      await X.view(help, { color: '#1b2a40' });
       X.age('릴리, 11');
       T.announce('거울 호수. 비 오는 하굣길, 릴리가 빈의 목걸이를 손에 감고 혼자 걷는다.');
       await TALK.say('leo', '빈이 날마다\n마중 나가던 길이야.');
-      /* SLOT: lake-help puzzle — Lily walking home in the rain; Bean's reflection walks beside her */
+      await help.done();
+      await X.wait(1.2);
       await TALK.say('leo', '…오늘도 데려다주는구나, 빈.', { slow: true });
+      await X.view(lakeB, { color: '#1b2a40', out: 0.9, in: 1 });
       await X.wait(0.8);
       T.announce('집에 온 릴리가 뒷마당 계단에 주저앉아 목걸이를 끌어안는다. 밥그릇은 아직 그대로다.');
       T.announce('물그림자 맞추기. 빈은 릴리 옆에, 공은 풀밭에, 등불은 현관 등에.');
@@ -312,11 +315,9 @@
       bram.pose = wave; wife.pose = (o, a, t) => { o.armF = { a: 2.0 + Math.sin(t * 5) * 0.2, b: 0.3 }; };
       for (let i = 0; i < 4; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); await X.wait(0.5); }
       X.cam(-240, 452, 1, 0.5);
-      await X.wait(3.6);
-      /* SLOT: shooting star — ch4, as Bram and Marta's boat goes beyond the cloud sea, a star falls down through the clouds into the living world */
-      T.announce('배가 구름바다 너머로 사라지고, 별 하나가 구름 아래로 떨어진다.');
-      A.sfx('star', 0.8);
-      await X.wait(2.4);
+      await X.wait(2.6);
+      T.announce('구름바다 끝, 빛의 폭포. 브램과 마르타의 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 구름 아래 산 사람들의 하늘로 떨어진다.');
+      await X.crossing([{ style: F.styles.bram, s: 144 }, { style: F.styles.bramWife, s: 106 }], { leoAge: 1 });
 
       /* ---- Rosa's baby ---- */
       let rosa, son;

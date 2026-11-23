@@ -32,6 +32,21 @@
 
     /* ---------- camera ---------- */
     X.cam = function (x, y, z, k) { const c = S.camT; c.x = x; c.y = y; c.z = z == null ? 1 : z; if (k) S.camK = k; S.follow = null; };
+    /* a shooting star across the sky of the screen: someone has crossed, and the living see it */
+    X.star = function (o = {}) { const W = T.view.W; return T.fx && T.fx.star ? T.fx.star.add(Object.assign({ from: [W * 0.32, 70], to: [-W * 0.22, 380], dur: 1.8 }, o)) : Promise.resolve(); };
+    /* someone has kept every promise: their boat rises up the falls of light, and a star falls to the living world */
+    X.crossing = async function (riders, o = {}) {
+      if (!T.place) return;
+      const V = T.place('falls', { boat: { riders, hull: o.hull || '#e9e2d6' }, leoAge: o.leoAge });
+      await X.view(V, { color: o.color || '#1b2440', out: 1.2, in: 1.4 });
+      const l = V.actor && V.actor('leo');
+      if (l) l.pose = (q, t) => { q.armF = { a: 2.3 + Math.sin(T.time * 4) * 0.2, b: 0.3 }; };
+      if (o.say) await o.say(V);
+      await X.wait(o.before || 1);
+      await V.sail({ waitStar: true });
+      await X.wait(o.after || 1.8);
+      await X.view(null, { color: o.color || '#1b2440', out: 1.2, in: 1.4 });
+    };
     X.camSnap = function () { if (S.follow) aim(); S.cam.x = S.camT.x; S.cam.y = S.camT.y; S.cam.z = S.camT.z; };
     X.follow = function (a, dx, k) { S.follow = { a, dx: dx || 0 }; S.camT.z = 1; if (k) S.camK = k; };
     X.place = {

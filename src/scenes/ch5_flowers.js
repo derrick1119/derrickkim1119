@@ -269,11 +269,9 @@
       X.sail(far, -1500, 34);
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(5);
-      /* SLOT: shooting star — ch5, evening quay: when Mom's white boat has gone beyond, a star falls down through the clouds into the living world */
-      T.announce('배가 보이지 않게 되자, 별 하나가 구름 아래로 떨어진다.');
-      A.sfx('star', 0.7);
-      await X.wait(2.6);
+      await X.wait(3.4);
+      T.announce('빛의 폭포. 엄마의 하얀 배가 빛을 거슬러 저 너머로 오른다. 별 하나가 산 사람들의 하늘로 떨어진다.');
+      await X.crossing([{ style: F.styles.mom, s: C.MOM_S }], { leoAge: 2, color: '#2a2440' });
       leo.pose = null;
 
       /* ---- years on: a magpie with a letter in its beak ---- */
@@ -337,6 +335,12 @@
       /* ---- the lake: the night before ---- */
       X.walk(leo, C.PLOT + 380, 84);
       await X.wait(1.6);
+      const way = T.lakeHelp({ level: 2, who: 31, home: F.anaAt(61), leoAge: 2 });
+      await X.view(way, { color: '#1b2a40' });
+      T.announce('거울 호수. 결혼식 전날 밤, 비 오는 길을 릴리가 혼자 옛집으로 걷는다. 물가의 것들을 옮기면, 그 그림자가 그 길에 닿는다.');
+      await TALK.say('leo', '…옛집으로 가는구나.', { slow: true });
+      await way.done();
+      await X.wait(1.2);
       const eve = T.lake({ paint: T.vig.eve, leo: F.leoAt(2) });
       await X.view(eve, { color: '#1b2a40' });
       X.age('릴리, 31');
@@ -374,7 +378,8 @@
       A.motif({ voice: 'felt', vel: 0.4, beat: 0.8 });
       await X.wait(1.2);
       /* the promise he made her when she was six: in her dream, the swing he built on the hill */
-      /* SLOT: dream swing visuals — the dream room opens onto the hilltop and the apple tree; Lily (as she is now, 31) sits on the swing Leo built, he pushes, it swings higher; the room's dreamy light stays */
+      await X.tween(D.swing, 'k', 1, 2.4, T.ease.io);   /* the dream room opens onto the hill and the apple tree
+      dream swing — the dream room opens onto the hilltop and the apple tree; Lily (as she is now, 31) sits on the swing Leo built, he pushes, it swings higher; the room's dreamy light stays */
       await TALK.say('leo', '그리고… 이거.');
       T.announce('꿈속, 언덕 위 사과나무에 레오가 만든 그네가 걸려 있다.');
       await X.wait(1.2);

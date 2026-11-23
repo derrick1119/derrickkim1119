@@ -100,10 +100,9 @@
       ] }));
       await X.TALK.say('kid', '마지막 건 아저씨 주려고 만든 거야.\n아나 아줌마 스튜 냄비.');
       await X.TALK.say('leo', '…그 냄비 앞에서\n아나가 제일 잘 웃었어.');
-      /* SLOT: shooting star — ch2, the night quay: over the cloud sea a star falls, down through the clouds toward the living world */
       await X.wait(1.2);
       T.announce('구름바다 위로 별 하나가 길게 떨어진다. 구름 아래, 사람 사는 세상 쪽으로.');
-      A.sfx('star', 0.9);
+      await X.star({ dur: 2.2 });
       await X.wait(1.4);
       await X.TALK.say('kid', '별똥별이다.\n누가 건너갔나 봐.');
       await X.TALK.say('kid', '저 아래서 저거 보고 소원 빌면,\n여기 바다에 작은 빛으로 떨어진대.');
@@ -136,7 +135,7 @@
       await X.TALK.say('mom', '나도 여기서, 네가 크는 걸 다 봤지.');
       await X.TALK.say('mom', '손은 못 대도,\n여기서 한 일은 저기 그림자로 떨어진단다.');
       await X.TALK.say('mom', '어두운 창에 불빛 하나,\n비 오는 날 그늘 하나쯤은.');
-      /* SLOT: lake-help puzzle — ch2, Ana's rainy kitchen: his lamp's shadow lights her dark window (the 물그림자 below already does this; a fuller help puzzle can replace or follow it) */
+      /* (the lake-help puzzle appears from chapter 4; here the 물그림자 does the same work) ch2, Ana's rainy kitchen: his lamp's shadow lights her dark window (the 물그림자 below already does this; a fuller help puzzle can replace or follow it) */
       T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');
       await lake.rhyme();
       T.announce('세 그림자가 제자리를 찾는다. 물결이 멎고, 잠깐, 한 부엌에 두 사람이 있다.');

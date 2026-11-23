@@ -125,7 +125,9 @@
       /* what he owed her: the dance at a wedding too poor for music */
       await TALK.say('son', '춤 한 곡 빚졌잖아.\n결혼식 날 못 춘 거.');
       await TALK.say('dil', '…그걸 여태 기억해요?');
-      /* SLOT: dance — Rosa's son and his wife sway slowly in each other's arms on the quay, no music but the sea */
+      son.pose = (o, a2, t) => { T.embrace(o, son, dil, son.hug.k, true); o.x += Math.sin(t * 1.1) * 7; o.lean += Math.sin(t * 1.1) * 0.05; };
+      dil.pose = (o, a2, t) => { T.embrace(o, dil, son, son.hug.k); o.x += Math.sin(t * 1.1) * 7; o.lean -= Math.sin(t * 1.1) * 0.04; };
+      A.motif({ voice: 'felt', vel: 0.26, beat: 1.1 });
       T.announce('둘이 끌어안은 채 천천히 몸을 흔든다. 음악도 없이.');
       await X.wait(3.2);
       await TALK.say('rosa', '이제 다 왔다.\n우리도 건너가자.');
@@ -146,11 +148,9 @@
       X.sail(S.b2, -1500, 34);
       T.announce('하얀 배가 구름바다 너머로 멀어진다.');
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(4.6);
-      /* SLOT: shooting star — ch6, Rosa's family: their white boat goes beyond, and a star falls down through the clouds into the living world */
-      T.announce('별 하나가 구름 아래로 떨어진다.');
-      A.sfx('star', 0.6);
-      await X.wait(2);
+      await X.wait(3);
+      T.announce('빛의 폭포. 로사네 셋의 배가 빛을 거슬러 오른다. 별 하나가 구름 아래로 떨어진다.');
+      await X.crossing([{ style: F.styles.rosa, s: 138 }, { style: F.styles.rosaSon, s: 144 }, { style: Object.assign({}, F.styles.villagerB, { top: '#9a7fb0', hair: '#e8e4dc' }), s: 130 }], { leoAge: 3 });
       await home();
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
@@ -183,6 +183,16 @@
       await TALK.say('kid', '빨개졌다! 진짜 빨개졌어!');
       await TALK.say('kid', '제일 빨간 건 엄마 거야.');
       await X.dip(async () => { S.actors.splice(S.actors.indexOf(pipi0), 1); leo.x = PL.TABLE_X - 66; leo.chair = 1; bean.x = PL.TABLE_X + 118; bean.flip = true; X.cam(px + 60, py, 1); X.camSnap(); });
+
+      /* ---- an evening in the lake: Ana walking home in the rain, and what he can do from the shore ---- */
+      const way = T.lakeHelp({ level: 3, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), leoAge: 3 });
+      await X.view(way, { color: '#1b2a40' });
+      X.age('아나, 73');
+      T.announce('거울 호수. 비 오는 저녁, 장바구니를 든 아나가 혼자 집으로 걷는다. 릴리가 문 앞에서 기다린다.');
+      await TALK.say('leo', '…또 우산 없이 나갔구나.', { slow: true });
+      await way.done();
+      await X.wait(1.2);
+      await X.view(null, { color: '#1b2a40' });
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
       await X.years(35, 40, { age: 76 });
@@ -346,11 +356,9 @@
       qleo2.pose = (o, a2, t) => { o.armF = { a: 2.3 + Math.sin(t * 4) * 0.2, b: 0.3 }; };
       X.sail(S.b2, -1500, 34);
       X.cam(-260, 452, 1, 0.4);
-      await X.wait(4.6);
-      /* SLOT: shooting star — ch6, the night quay: Pipi's family's white boat goes beyond, and a star falls down through the clouds into the living world */
-      T.announce('별 하나가 구름 아래로 길게 떨어진다.');
-      A.sfx('star', 0.9);
-      await X.wait(2);
+      await X.wait(3);
+      T.announce('빛의 폭포. 피피네 셋의 배가 빛을 거슬러 오른다. 피피가 끝까지 손을 흔든다. 별 하나가 구름 아래로 길게 떨어진다.');
+      await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], { leoAge: 3, color: '#141b36' });
       qleo2.pose = null;
       X.cam(...X.place.quay(), 1.05, 0.5);
       await X.wait(1.4);

@@ -160,7 +160,7 @@
   }
 
   T.tiltDream = function () {
-    const D = { dark: true, mood: 'night', chord: 2, fall: { k: 0 }, meet: { k: 0 }, near: { k: 0 }, hold: { k: 0 }, room: { k: 1 }, gq: null };
+    const D = { dark: true, mood: 'night', chord: 2, fall: { k: 0 }, meet: { k: 0 }, near: { k: 0 }, hold: { k: 0 }, room: { k: 1 }, swing: { k: 0 }, gq: null };
     const dreamy = makeDreamy();
     let B = null, round = -1, r = 0, ang = 0, pos = [], anim = null, busy = false, idle = 0, say = '', sayT = 0, outN = 0, sparkle = 0;
     const OX = 0, OY = 430, tw = [];
@@ -304,6 +304,40 @@
         g.restore();
       }
       if (mk < 0.99 && B) paintRoom(g, t);
+      if (D.swing.k > 0.01) swingHill(g, t, T.ease.io(D.swing.k));
+    }
+    /* the promise from when she was six: the room opens onto the hill, the apple tree, and the swing he built */
+    function swingHill(g, t, k) {
+      const W = T.view.W;
+      g.save(); g.globalAlpha = k;
+      const sky = g.createLinearGradient(0, 0, 0, 900);
+      sky.addColorStop(0, '#c8b4ee'); sky.addColorStop(0.55, '#f4cfdc'); sky.addColorStop(1, '#ffe8c6');
+      g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 900);
+      P.glow(g, 380, 520, 420, '#fff2cc', 0.6);
+      P.fill(g, P.soft([[-W / 2, 720], [-360, 660], [-40, 628], [300, 650], [W / 2, 706], [W / 2, 900], [-W / 2, 900]]), '#a7c48c');
+      P.fill(g, P.soft([[-W / 2, 780], [-200, 744], [200, 752], [W / 2, 790], [W / 2, 900], [-W / 2, 900]]), '#93b47c');
+      /* the apple tree */
+      P.fill(g, P.poly([[-262, 650], [-226, 650], [-218, 330], [-252, 330]]), '#7a5a40');
+      P.line(g, -238, 352, 170, 300, 20, '#7a5a40');
+      const r = T.rng(9);
+      for (let i = 0; i < 16; i++) P.fill(g, P.circle(-330 + r() * 470, 170 + r() * 170, 60 + r() * 34), ['#6f9f5e', '#7fb06a', '#5f8f52'][i % 3]);
+      for (let i = 0; i < 12; i++) P.fill(g, P.circle(-310 + r() * 430, 200 + r() * 150, 8), '#d9483a');
+      /* the swing, and Lily on it; he pushes from behind */
+      const a = Math.sin(t * 1.7) * 0.34, piv = [70, 316], L = 300;
+      const seat = [piv[0] + Math.sin(a) * L, piv[1] + Math.cos(a) * L];
+      g.strokeStyle = '#d8c4a0'; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(piv[0] - 34, piv[1] + 4); g.lineTo(seat[0] - 34, seat[1]); g.moveTo(piv[0] + 34, piv[1] - 4); g.lineTo(seat[0] + 34, seat[1]); g.stroke();
+      const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
+      const lily = { x: seat[0] - 4, y: seat[1] - 6, s: 250, style: ls, sit: true, flip: true, lean: -a * 0.6, headTilt: -0.2, legF: { a: Math.PI / 2 - 0.5 - a, b: 0.3 }, legB: { a: Math.PI / 2 - 0.6 - a, b: 0.34 }, face: { eye: 'happy', mouth: 'open', blush: 0.3 } };
+      lily.armF = { hand: F.local(lily, seat[0] - 28, seat[1] - 120) }; lily.armB = { hand: F.local(lily, seat[0] + 30, seat[1] - 116) };
+      F.person(g, lily);
+      P.fill(g, P.rr(seat[0] - 46, seat[1] - 4, 92, 10, 4), '#b98a5a');
+      const back = Math.max(0, a), lx = seat[0] + 150 - back * 60;
+      const leo = { x: lx, y: 712 - F.hipHeight(F.styles.leoHome, 270), s: 270, style: F.styles.leoHome, flip: true, lean: 0.1 + back * 0.2, face: { mouth: 'smile', eye: 'happy' } };
+      leo.armF = { hand: F.local(leo, Math.min(lx - 40, seat[0] + 40), seat[1] - 90) };
+      F.person(g, leo);
+      for (let i = 0; i < 18; i++) { const ph = (t * 0.05 + i * 0.13) % 1; P.fill(g, P.ellipse(-W / 2 + ((i * 197) % W) + Math.sin(t + i) * 30, ph * 900, 5, 3, ph * 6), '#f6b6c2'); }
+      g.restore();
     }
     D.draw = function (g, t) {
       const W = T.view.W, solving = D.gq && !D.gq.done;
