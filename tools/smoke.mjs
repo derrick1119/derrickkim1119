@@ -17,7 +17,7 @@ const force2d = args.includes('--2d');
 const SLOW = force2d ? 1 : 3;
 const root = mode === 'src' ? ROOT : resolve(ROOT, 'dist');
 const entry = mode === 'single' ? '/shh-ufo.html' : '/index.html';
-const PORT = 5186;
+const PORT = Number(process.env.SMOKE_PORT) || 5186; // 여러 작업자가 동시에 돌릴 때는 SMOKE_PORT 로 바꾼다
 
 let chromium;
 try {
