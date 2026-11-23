@@ -195,6 +195,7 @@ export class BattleView {
     }
     if (opt.rings) for (const r of opt.rings) { g.globalAlpha = 0.9; ell(g, r.x, r.y + 1, r.r * 1.35, r.r * 0.72, r.col + '55', r.col, 2.4); g.globalAlpha = 1; }
     if (opt.under) opt.under(g);   // 땅에 그은 것 (붓으로 친 진의 먹 획): 인형들 아래
+    if (b.form) this.drawForm(g, b, T);   // 진형: 땅 위에 옅은 금빛 붓줄과 발밑 테 (인형들 아래)
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
@@ -221,7 +222,6 @@ export class BattleView {
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
-    if (b.form) this.drawForm(g, b, T);   // 진형의 금빛 먹줄은 인형들 위에 옅게 (부대가 가리지 않게)
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
     this.drawAmbient(g, T, opt.dt || 0, opt.march);
@@ -255,10 +255,12 @@ export class BattleView {
     const age = T - (f.t0 === undefined ? (f.t0 = T) : f.t0), flash = Math.max(0, 1 - age / 0.8), pul = 0.55 + 0.25 * Math.sin(T * 4) + flash * 0.4;
     g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
     const trace = () => { g.beginPath(); pts.forEach(([x, y], i) => { if (i) g.lineTo(x, y + 18); else g.moveTo(x, y + 18); }); if (f.id === 'bangwon') g.closePath(); };
-    g.globalAlpha = 0.3 * pul; trace(); st(g, '#fff0b0', 12 + flash * 18);
-    g.globalAlpha = 0.55; trace(); st(g, '#3a2410', 6.5);
-    g.globalAlpha = 0.95; g.setLineDash([18, 9]); g.lineDashOffset = -T * 40; trace(); st(g, '#ffd560', 3.6); g.setLineDash([]);
-    for (const [x, y] of pts) { g.globalAlpha = 0.6; ell(g, x, y + 18, 46 + flash * 30, 14 + flash * 8, null, '#3a2410', 4.5); g.globalAlpha = 0.95 * pul + 0.05; ell(g, x, y + 18, 46 + flash * 30, 14 + flash * 8, null, '#ffd560', 2.4); g.globalAlpha = 0.16 * pul; ell(g, x, y + 18, 44, 13, '#ffe7a0'); }
+    // 땅에 스민 금빛 붓줄: 넓고 옅은 번짐 위에 가는 금줄 (선 순간만 환하게)
+    g.globalAlpha = (0.16 + flash * 0.3) * pul; trace(); st(g, '#ffe6a0', 16 + flash * 20);
+    g.globalAlpha = 0.28; trace(); st(g, '#4a3014', 4.5);
+    g.globalAlpha = 0.55 + flash * 0.4; trace(); st(g, '#f0c860', 2.2);
+    // 발밑: 부대가 선 자리에 옅은 먹 테와 금빛 테
+    for (const [x, y] of pts) { const rx = 40 + flash * 26, ry = 12 + flash * 7; g.globalAlpha = 0.22; ell(g, x, y + 18, rx, ry, 'rgba(255,230,160,0.35)'); g.globalAlpha = 0.3; ell(g, x, y + 18, rx, ry, null, '#4a3014', 2.6); g.globalAlpha = 0.5 * pul + 0.1; ell(g, x, y + 18, rx, ry, null, '#f0c860', 1.4); }
     if (f.id === 'bangwon' && hq) { g.globalAlpha = 0.6 * pul; ell(g, hq.cx, hq.cy + 18, 30, 10, null, '#f3d27c', 2); }
     g.restore();
   }
@@ -332,7 +334,7 @@ export class BattleView {
   drawOrders(g, b, T) {
     for (const sq of b.squads) {
       if (sq.team !== 0 || sq.alive <= 0) continue; const o = sq.order;
-      if (o.kind === 'move') { g.globalAlpha = 0.7; g.setLineDash([8, 8]); g.lineDashOffset = -T * 30; line(g, [sq.cx, sq.cy, o.x, o.y], INK, 2.4); g.setLineDash([]); g.globalAlpha = 1; icon.flag(g, o.x, o.y - 6, 1); }
+      if (o.kind === 'move') { const dx = o.x - sq.cx, dy = o.y - sq.cy, d = Math.hypot(dx, dy) || 1, n = Math.floor(d / 16), ph = (T * 2) % 1; for (let i = 1; i < n; i++) { const f = (i + ph) / n, x = sq.cx + dx * f, y = sq.cy + dy * f + 8; g.globalAlpha = 0.32 * Math.sin(Math.PI * f); g.fillStyle = '#20181c'; g.beginPath(); g.ellipse(x, y, 3.2, 1.8, Math.atan2(dy, dx), 0, TAU); g.fill(); } g.globalAlpha = 1; icon.flag(g, o.x, o.y - 6, 1); }   // 옮겨 가는 길: 먹 발자국이 깃발 쪽으로 흐른다
       else if (o.kind === 'focus' && o.target && o.target.alive > 0) {
         const t = o.target; g.globalAlpha = 0.55; g.setLineDash([6, 8]); g.lineDashOffset = -T * 30; line(g, [sq.cx, sq.cy, t.cx, t.cy], RED, 2.4); g.setLineDash([]);
         g.globalAlpha = 0.9; const r = 22 + Math.sin(T * 6) * 2; g.beginPath(); g.arc(t.cx, t.cy - 14, r, 0, TAU); st(g, RED, 3);

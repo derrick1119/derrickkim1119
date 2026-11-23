@@ -49,7 +49,7 @@ function tile(g, d, x, y, w, h, t) {
   if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') miscIcon(g, 'train', cx, cy + 4, 2.3); else if (d.misc === 'trainOne') trainArt(g, d.unit, d.lv, cx, cy, t); else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }
   if (d.weapon) setTag(g, d.weapon, cx, y + 168);
   text(g, d.name, cx, y + 196, { size: 23, font: FONT_B, maxW: w - 20 });
-  textBlock(g, d.desc, cx, y + 228, w - 26, 22, { size: 15.5, fill: SUB, weight: 400 });
+  textBlock(g, d.desc, cx, y + 228, w - 26, 22, { size: 15.5, fill: '#4a4034', weight: 400, maxH: h - 236 });
 }
 // 무기 세트 딱지: 세트 빛깔의 작은 띠에 '세트 · 이름' (덱에 이미 끼운 같은 세트 수도 함께)
 export function setTag(g, wid, cx, cy) {

@@ -40,7 +40,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   const ah = big ? 120 : h - hh - (mini ? 4 : 24), cy = y + hh + (big ? 66 : ah / 2 + 2), cx = x + w / 2, ss = big ? 82 : Math.min(w * (mini ? 0.56 : 0.46), ah * 0.78);
   const wg = g.createRadialGradient(cx, cy, ss * 0.1, cx, cy, ss * 1.1); wg.addColorStop(0, col + '3c'); wg.addColorStop(1, col + '00'); g.fillStyle = wg; g.fillRect(x, y + hh + 3, w, ah + 24);
   if (unit) {
-    const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7); gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, ah); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
+    const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7), gh = big ? Math.max(0, y + hh + 126 - gy) : ah; gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, gh); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
     const lk = lookOf(d.unit, c.br), L = (CARD_K[d.unit] || 1) * (lk === d.unit ? 1 : 0.88); portrait(g, lk, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn || (branchOf(c.br) && branchOf(c.br).arm) || undefined);
   }
   g.restore();

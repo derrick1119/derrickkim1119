@@ -5,20 +5,21 @@
 // - 획의 끝이 처음 가까이로 돌아오면 둥근 진: 부대가 둘레에 서고 영웅이 가운데로 간다
 // 선 모양은 진형(data/formations.js)이 그대로 읽는다: 세로 한 획이면 일자진, 양 끝을 앞으로 휘면 학익진 …
 import { VIEW } from '../config.js';
-import { TAU, FONT_B, text, clamp } from '../render/draw.js';
+import { TAU, FONT_B, text, rr, clamp, makeCanvas } from '../render/draw.js';
 import { UNITS } from '../data/units.js';
 
 const INKC = '20,18,28';
-export const BRUSH_MIN = 70;   // 이보다 짧은 획은 진을 치지 않는다 (잘못 누른 것)
+export const BRUSH_MIN = 70;
+const GROUND_Y = 178;   // 이보다 짧은 획은 진을 치지 않는다 (잘못 누른 것)
 
 export class Brush {
   constructor(x, y, t) { this.pts = [{ x, y, t, w: 0 }]; this.len = 0; this.done = false; this.fade = 0; this.marks = []; this.seed = (Math.random() * 1e6) | 0; this.add(x, y, t); }
   add(x, y, t) {
-    x = clamp(x, VIEW.x0 + 16, VIEW.x1 - 16); y = clamp(y, VIEW.y0 + 6, VIEW.y1 - 8);
+    x = clamp(x, VIEW.x0 + 16, VIEW.x1 - 16); y = clamp(y, GROUND_Y, VIEW.y1 - 8);   // 땅 위에만 긋는다 (울타리·하늘 위로 올라가지 않게)
     const p = this.pts[this.pts.length - 1], d = Math.hypot(x - p.x, y - p.y); if (d < 5 && this.pts.length > 1) return;
-    const v = d / Math.max(0.008, t - p.t), w = clamp(20 - v * 0.010, 7, 20);
+    const v = d / Math.max(0.008, t - p.t), w = clamp(27 - v * 0.017, 5, 27);
     // 굵기는 부드럽게 따라간다 (붓이 갑자기 굵어지거나 가늘어지지 않게)
-    const pw = this.pts.length > 1 ? p.w : w; this.pts.push({ x, y, t, w: pw + (w - pw) * 0.35 }); this.len += d;
+    const pw = this.pts.length > 1 ? p.w : w; this.pts.push({ x, y, t, w: pw + (w - pw) * 0.28 }); this.len += d;
   }
   center() { const P = this.pts; return P.reduce((a, q) => ({ x: a.x + q.x / P.length, y: a.y + q.y / P.length }), { x: 0, y: 0 }); }
   get closed() { const a = this.pts[0], b = this.pts[this.pts.length - 1]; return this.len > 260 && Math.hypot(a.x - b.x, a.y - b.y) < 70; }
@@ -37,23 +38,22 @@ export class Brush {
     for (let i = 0; i < n; i++) {
       const a = P[Math.max(0, i - 1)], b = P[Math.min(n - 1, i + 1)], ang = Math.atan2(b.y - a.y, b.x - a.x), nx = -Math.sin(ang), ny = Math.cos(ang);
       // 붓을 누르는 힘이 조금씩 흔들린다 · 처음은 눌러 둥글게 · 끝으로 갈수록 가늘게 빠진다
-      const press = 0.84 + 0.14 * Math.sin(i * 0.31 + s1) + 0.07 * Math.sin(i * 0.93 + s2), head = i < 5 ? 1.3 - i * 0.06 : 1, end = i > n - tail ? Math.max(0.12, (n - 1 - i) / tail) ** 0.8 : 1;
+      const press = 0.82 + 0.2 * Math.sin(i * 0.16 + s1) + 0.06 * Math.sin(i * 0.7 + s2), head = i < 5 ? 1.3 - i * 0.06 : 1, end = i > n - tail ? Math.max(0.12, (n - 1 - i) / tail) ** 0.8 : 1;
       side.push({ x: P[i].x, y: P[i].y, nx, ny, ang, w: P[i].w * 0.5 * press * head * end });
     }
-    const body = (kw, off = 0) => { g.beginPath(); side.forEach((q, i) => { const x = q.x + q.nx * (q.w * kw + off), y = q.y + q.ny * (q.w * kw + off); i ? g.lineTo(x, y) : g.moveTo(x, y); }); for (let i = n - 1; i >= 0; i--) { const q = side[i]; g.lineTo(q.x - q.nx * (q.w * kw - off), q.y - q.ny * (q.w * kw - off)); } g.closePath(); };
+    const curve = list => { g.lineTo(list[0][0], list[0][1]); for (let i = 1; i < list.length - 1; i++) { const [x, y] = list[i], [x2, y2] = list[i + 1]; g.quadraticCurveTo(x, y, (x + x2) / 2, (y + y2) / 2); } const L = list[list.length - 1]; g.lineTo(L[0], L[1]); };
+    const body = (kw, off = 0) => { g.beginPath(); const L = side.map(q => [q.x + q.nx * (q.w * kw + off), q.y + q.ny * (q.w * kw + off)]), Rr = side.map(q => [q.x - q.nx * (q.w * kw - off), q.y - q.ny * (q.w * kw - off)]).reverse(); g.moveTo(L[0][0], L[0][1]); curve(L); curve(Rr); g.closePath(); };
     g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; g.fillStyle = `rgb(${INKC})`;
     // 1) 젖은 먹이 흙에 번진 자국: 넓고 옅게 두 번
-    g.globalAlpha = 0.09 * k; body(1.9); g.fill(); g.globalAlpha = 0.12 * k; body(1.35, 0.8); g.fill();
-    // 2) 몸통 · 3) 가운데로 모인 짙은 먹
-    g.globalAlpha = 0.78 * k; body(1); g.fill();
+    // 2) 몸통: 테가 종이에 스며 부드럽게 번진다 (그림자 번짐) · 3) 가운데로 모인 짙은 먹
+    g.save(); g.shadowColor = `rgba(${INKC},${0.55 * k})`; g.shadowBlur = 9; g.globalAlpha = 0.8 * k; body(1); g.fill(); g.restore();
     g.globalAlpha = 0.5 * k; body(0.55); g.fill();
     // 처음 눌린 자리: 둥근 먹 덩이와 살짝 번진 테
     const q0 = side[0]; g.globalAlpha = 0.85 * k; g.beginPath(); g.ellipse(q0.x - Math.cos(q0.ang) * q0.w * 0.2, q0.y - Math.sin(q0.ang) * q0.w * 0.2, q0.w * 1.15, q0.w * 1.0, q0.ang, 0, TAU); g.fill();
     g.globalAlpha = 0.12 * k; g.beginPath(); g.ellipse(q0.x, q0.y, q0.w * 1.8, q0.w * 1.5, q0.ang, 0, TAU); g.fill();
-    // 4) 붓털 결: 몸통 안으로 흰 종이가 비치는 가는 줄 (끝으로 갈수록 많아진다 — 비백)
-    g.strokeStyle = 'rgba(246,238,220,0.9)';
-    for (let q = 0; q < 6; q++) { const off = (R() * 2 - 1) * 0.75, from = (R() * n * 0.5) | 0; g.lineWidth = 0.7 + R() * 1.1; g.globalAlpha = (0.16 + R() * 0.16) * k; g.beginPath(); let on = false;
-      for (let i = from; i < n; i++) { const qq = side[i], late = i > n - tail; if (R() < (late ? 0.06 : 0.14)) { on = false; continue; } if (!late && R() < 0.05) break; const x = qq.x + qq.nx * qq.w * off, y = qq.y + qq.ny * qq.w * off; if (!on) { g.moveTo(x, y); on = true; } else g.lineTo(x, y); } g.stroke(); }
+    // 4) 붓털 결: 먹이 덜 묻은 털 몇 가닥이 길게 이어지다 가늘게 사라진다 (끝으로 갈수록 많아진다 — 비백)
+    for (let q = 0; q < 4; q++) { const off = (R() * 2 - 1) * 0.6, a0 = (R() * n * 0.6) | 0, a1 = Math.min(n - 1, a0 + 8 + ((R() * n * 0.6) | 0)), lw = 0.6 + R() * 0.9;
+      for (let i = a0; i < a1; i++) { const qa = side[i], qb = side[i + 1], f = Math.sin(Math.PI * (i - a0) / Math.max(1, a1 - a0)); g.globalAlpha = 0.16 * f * k; g.strokeStyle = 'rgb(236,228,210)'; g.lineWidth = lw * (0.5 + f); g.beginPath(); g.moveTo(qa.x + qa.nx * qa.w * off, qa.y + qa.ny * qa.w * off); g.lineTo(qb.x + qb.nx * qb.w * off, qb.y + qb.ny * qb.w * off); g.stroke(); } }
     // 5) 꺾인 자리: 붓이 멈칫한 곳에 먹이 고인다
     for (let i = 2; i < n - 2; i++) { const d = Math.abs(((side[i + 2].ang - side[i - 2].ang + Math.PI * 3) % TAU) - Math.PI); if (d > 0.55) { g.globalAlpha = 0.35 * k; g.beginPath(); g.ellipse(side[i].x, side[i].y, side[i].w * 1.05, side[i].w * 0.9, side[i].ang, 0, TAU); g.fill(); i += 3; } }
     // 6) 끝의 마른 붓: 털이 갈라져 가는 줄 여럿으로 흩어진다
@@ -111,8 +111,25 @@ export function drawBrushPreview(g, b, brush, T) {
   const sq = b.formSquads(); if (!sq.length || brush.len < BRUSH_MIN * 0.6) return;
   const plan = planBrush(sq, brush, (x, y) => b.spot(x, y)), ok = brush.len >= BRUSH_MIN;
   g.save();
-  for (const p of plan) { g.globalAlpha = ok ? 0.75 : 0.35; g.strokeStyle = 'rgba(250,244,228,0.95)'; g.lineWidth = 3; g.beginPath(); g.ellipse(p.x, p.y + 4, 15, 7, 0, 0, TAU); g.stroke(); g.strokeStyle = `rgb(${INKC})`; g.lineWidth = 1.4; g.stroke(); }
-  g.globalAlpha = 1; const last = brush.pts[brush.pts.length - 1];
-  text(g, !ok ? '조금 더 길게 그으세요' : brush.closed ? `둥근 진 · 부대 ${sq.length} · 영웅은 가운데` : `이 획을 따라 진을 친다 · 부대 ${sq.length}`, clamp(last.x, 200, 1080), clamp(last.y - 46, 150, 520), { size: 20, font: FONT_B, fill: '#fbf3df', stroke: `rgba(${INKC},0.9)`, lw: 6 });
+  // 부대가 설 자리: 땅에 떨어진 먹방울 (옅은 번짐 + 짙은 가운데)
+  for (const p of plan) { const a = ok ? 1 : 0.45, gr = g.createRadialGradient(p.x, p.y + 10, 1, p.x, p.y + 10, 16); gr.addColorStop(0, `rgba(${INKC},${0.55 * a})`); gr.addColorStop(0.55, `rgba(${INKC},${0.28 * a})`); gr.addColorStop(1, `rgba(${INKC},0)`); g.fillStyle = gr; g.beginPath(); g.ellipse(p.x, p.y + 10, 17, 9, 0, 0, TAU); g.fill(); }
+  // 안내 글: 싸움터 위쪽 가운데 한 자리 (획을 따라다니며 가리지 않게)
+  g.globalAlpha = 1; const msg = !ok ? '조금 더 길게 그으세요' : brush.closed ? `둥근 진 — 둘레에 부대 ${sq.length}, 가운데에 영웅` : `붓 가는 대로 진을 친다 — 부대 ${sq.length}`;
+  rr(g, 640 - 230, VIEW.y0 + 4, 460, 34, 17, `rgba(${INKC},0.72)`); text(g, msg, 640, VIEW.y0 + 21, { size: 19, font: FONT_B, fill: '#fbf3df', maxW: 430 });
   g.restore();
+}
+
+// 낙관 '진': 붉은 인주를 찍은 돌도장 — 테가 거칠고 군데군데 인주가 덜 묻었다 (한 번만 굽는다)
+let SEAL = null;
+export function sealImg() {
+  if (SEAL) return SEAL;
+  const S = 3, c = makeCanvas(40 * S, 40 * S), g = c.getContext('2d'), R = mulberry(77); g.scale(S, S); g.translate(20, 20);
+  g.fillStyle = '#b02a22'; g.beginPath(); const pts = []; for (let i = 0; i < 28; i++) { const a = i / 28 * TAU + Math.PI / 4, k = 1 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))), r = 16 * k + (R() - 0.5) * 1.8; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill();
+  g.strokeStyle = '#f6e6dc'; g.lineWidth = 1.3; g.strokeRect(-12.5, -12.5, 25, 25);
+  text(g, '진', 0, 1, { size: 19, font: FONT_B, fill: '#f6e6dc' });
+  // 인주가 덜 묻은 자국: 작은 점과 긁힘을 지운다
+  g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 46; i++) { g.globalAlpha = 0.3 + R() * 0.6; g.beginPath(); g.arc((R() - 0.5) * 34, (R() - 0.5) * 34, 0.3 + R() * 1.1, 0, TAU); g.fill(); }
+  for (let i = 0; i < 4; i++) { g.globalAlpha = 0.5; g.lineWidth = 0.6; g.beginPath(); const x = (R() - 0.5) * 30, y = (R() - 0.5) * 30; g.moveTo(x, y); g.lineTo(x + (R() - 0.5) * 12, y + (R() - 0.5) * 4); g.stroke(); }
+  SEAL = c; return c;
 }

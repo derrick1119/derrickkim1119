@@ -14,7 +14,7 @@ import { AFFIX, TWIST, BOSS_VAR } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
-import { Brush, BRUSH_MIN, applyBrush, drawBrushPreview } from '../ui/brushform.js';
+import { Brush, BRUSH_MIN, applyBrush, drawBrushPreview, sealImg } from '../ui/brushform.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES, synLv, synDesc } from '../data/units.js';
 import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
@@ -362,7 +362,7 @@ export class RunScene {
   inkGround(g, dt) { const T = this.T; if (this.inked) for (const br of this.inked) { br.fade -= dt / 2.2; br.draw(g, T, Math.min(1, br.fade * 1.6)); } }
   drawBrush(g, dt) {
     const T = this.T;
-    if (this.inked) { for (const br of this.inked) { if (br.seal && br.fade > 0) { br.seal.t += dt; const k = clamp(br.seal.t / 0.18, 0, 1), s = 1.6 - 0.6 * k; g.save(); g.globalAlpha = Math.min(1, br.fade * 1.6) * k; g.translate(br.seal.x + 26, br.seal.y - 26); g.rotate(-0.12); g.scale(s, s); rr(g, -15, -15, 30, 30, 4, '#b8322a', '#7a1c18', 1.2); rr(g, -12, -12, 24, 24, 3, null, 'rgba(255,230,220,0.55)', 1); text(g, '진', 0, 1, { size: 19, font: FONT_B, fill: '#fbeee6' }); g.restore(); } }
+    if (this.inked) { for (const br of this.inked) { if (br.seal && br.fade > 0) { br.seal.t += dt; const k = clamp(br.seal.t / 0.18, 0, 1), s = 1.6 - 0.6 * k; g.save(); g.globalAlpha = Math.min(1, br.fade * 1.6) * k; g.translate(br.seal.x + 26, br.seal.y - 26); g.rotate(-0.12); g.scale(s, s); g.drawImage(sealImg(), -20, -20, 40, 40); g.restore(); } }
       this.inked = this.inked.filter(br => br.fade > 0); }
     // 긋는 중인 획은 인형들 위에 (붓끝이 잘 보이게), 손을 떼면 땅에 스며들어 인형들 아래로
     const br = this.brush; if (!br) return;
