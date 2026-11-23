@@ -556,7 +556,9 @@ export class TreasureScene extends RewardOverlay {
       if (this.ct > 0.9) { g.save(); g.globalAlpha = 0.55 + 0.25 * Math.sin(this.ct * 4); text(g, '눌러서 바로 열기', 640, 664, { size: 17, font: FONT_B, fill: '#f6e8c4', stroke: 'rgba(10,6,4,0.8)', lw: 4 }); g.restore(); }
     } else {
       super.draw(g, dt);
-      this.fx.drawFront(g);
+      // 터지는 순간이 지나면 날리는 종이꽃·엽전은 패와 단추 뒤로 지나간다 (패 설명·단추 글씨를 덮지 않게)
+      g.save(); if (this.bt > 0.7) { g.beginPath(); g.rect(0, 0, W, H); g.rect(250, 104, 780, 400); g.rect(380, 514, 520, 68); g.clip('evenodd'); }
+      this.fx.drawFront(g); g.restore();
       // 번쩍: 터지는 순간 화면이 하얗게, 다시 뽑을 때는 살짝
       if (this.bt < 0.42) { const q = this.bt / 0.42; g.fillStyle = `rgba(255,250,232,${0.92 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }
       if (this.rb >= 0 && this.rb < 0.3) { const q = this.rb / 0.3; g.fillStyle = `rgba(255,246,220,${0.4 * (1 - q) ** 2})`; g.fillRect(0, 0, W, H); }

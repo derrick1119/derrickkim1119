@@ -16,7 +16,13 @@ function pearl(g, x, y, rx, ry, rot, a = 0.95) {
   const gr = g.createLinearGradient(x - rx, y - ry, x + rx, y + ry); gr.addColorStop(0, '#f4fbff'); gr.addColorStop(0.4, '#e6d6ff'); gr.addColorStop(0.7, '#cff5ea'); gr.addColorStop(1, '#fff2d8');
   g.save(); g.globalAlpha *= a; g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); g.restore();
 }
-function plum(g, x, y, r) { for (let k = 0; k < 5; k++) { const a = k / 5 * TAU - Math.PI / 2; pearl(g, x + Math.cos(a) * r, y + Math.sin(a) * r, r * 0.78, r * 0.6, a); } g.fillStyle = '#f0c860'; g.beginPath(); g.arc(x, y, r * 0.42, 0, TAU); g.fill(); }
+// 자개 모란: 겹겹이 핀 탐스러운 꽃(바깥 여덟 잎 · 안쪽 여섯 잎 · 금빛 꽃술)과 양옆의 잎 — 나전칠기의 모란당초 무늬
+function peony(g, x, y, r) {
+  for (const sx of [-1, 1]) pearl(g, x + sx * r * 1.55, y + r * 0.35, r * 0.75, r * 0.32, sx * 0.5, 0.7);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + 0.2; pearl(g, x + Math.cos(a) * r * 0.86, y + Math.sin(a) * r * 0.7, r * 0.58, r * 0.42, a, 0.78); }
+  for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.5; pearl(g, x + Math.cos(a) * r * 0.45, y + Math.sin(a) * r * 0.36 - r * 0.08, r * 0.42, r * 0.33, a, 0.95); }
+  g.fillStyle = '#f0c860'; for (const [dx, dy] of [[0, -0.1], [-0.18, 0.06], [0.18, 0.06]]) { g.beginPath(); g.arc(x + dx * r, y + dy * r, r * 0.13, 0, TAU); g.fill(); }
+}
 function rivet(g, x, y, r = 1.6) { g.fillStyle = BR_EDGE; g.beginPath(); g.arc(x + 0.3, y + 0.4, r, 0, TAU); g.fill(); g.fillStyle = '#fbe7a0'; g.beginPath(); g.arc(x, y, r * 0.8, 0, TAU); g.fill(); }
 // 모서리 장석 (ㄱ 자 놋쇠판)
 function corner(g, x, y, sx, sy) {
@@ -68,7 +74,7 @@ export function drawChest(g, x, y, s, o = {}) {
   if (!o.lockOff && th < 0.5) lock(g, o.lock || 0, t);
   g.restore();
 }
-// 몸통 앞면: 주칠 바탕, 오목한 판에 자개 매화와 넝쿨, 네 모서리 장석, 아래 받침과 발
+// 몸통 앞면: 주칠 바탕, 오목한 판에 자개 모란과 넝쿨, 네 모서리 장석, 아래 받침과 발
 function body(g, t) {
   const gr = g.createLinearGradient(0, -BH, 0, 0); gr.addColorStop(0, LAC[0]); gr.addColorStop(0.5, LAC[1]); gr.addColorStop(1, LAC[2]);
   sharp(g, -BW, -BH, BW, 0, gr, '#1a0604', 1.6);
@@ -77,10 +83,10 @@ function body(g, t) {
   // 오목한 판
   g.strokeStyle = 'rgba(20,4,2,0.7)'; g.lineWidth = 1.6; g.strokeRect(-BW + 9, -BH + 13, BW * 2 - 18, BH - 24);
   g.strokeStyle = 'rgba(255,190,150,0.22)'; g.lineWidth = 1; g.strokeRect(-BW + 10.5, -BH + 14.5, BW * 2 - 21, BH - 27);
-  // 자개: 넝쿨 줄기와 매화
+  // 자개: 넝쿨 줄기와 모란
   g.strokeStyle = 'rgba(232,240,255,0.75)'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(-44, -16); g.quadraticCurveTo(-30, -36, -12, -22); g.quadraticCurveTo(2, -12, 14, -24); g.quadraticCurveTo(28, -38, 44, -20); g.stroke();
   for (const [cx, cy, a] of [[-26, -29, 0.6], [6, -18, -0.4], [32, -31, 0.3], [-40, -19, -0.8]]) pearl(g, cx, cy, 4.2, 1.8, a, 0.85);
-  plum(g, -14, -24, 4.4); plum(g, 24, -22, 5); plum(g, -38, -30, 3.2);
+  peony(g, -14, -24, 5.6); peony(g, 26, -23, 6.2); peony(g, -40, -30, 3.8);
   // 아래 받침과 발
   g.fillStyle = BRASS(g, -6, 0); g.fillRect(-BW, -5, BW * 2, 5); g.strokeStyle = BR_EDGE; g.lineWidth = 1; g.strokeRect(-BW, -5, BW * 2, 5);
   for (let k = -4; k <= 4; k++) rivet(g, k * 13, -2.5, 1);
@@ -114,7 +120,7 @@ function lid(g, th, glow, t) {
       if (hgt > 8) {
         g.fillStyle = BRASS(g, ya, ya + 3); g.fillRect(-BW, ya, BW * 2, 2.6); g.fillRect(-BW, ya + hgt - 2.6, BW * 2, 2.6);
         g.save(); g.translate(0, ya); g.scale(1, hgt / F);
-        for (let k = -2; k <= 2; k++) if (k) plum(g, k * 20, F / 2, 3);
+        for (let k = -2; k <= 2; k++) if (k) peony(g, k * 20, F / 2, 3.2);
         corner(g, -BW, 0, 1, 1); corner(g, BW, 0, -1, 1);
         g.restore();
       }
