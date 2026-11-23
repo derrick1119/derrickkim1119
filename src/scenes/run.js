@@ -362,18 +362,8 @@ export class RunScene {
   }
   // 왼쪽 가장자리: 전장의 영웅(기력과 다음 고유기), 합동기, 진법
   drawSide(g, b) {
-    let y = 110; const heroes = b.units.filter(u => !u.dead && u.team === 0 && u.def.hero);
-    for (const u of heroes) {
-      const sk = HERO_SKILLS[u.type][u.skillI], gz = clamp(u.gauge, 0, 1);
-      g.globalAlpha = 0.95; panel(g, 12, y, 212, 40, 'tag'); g.globalAlpha = 1;
-      ell(g, 34, y + 20, 16, 16, '#efd9a8', INK, 1.4); ell(g, 34, y + 20, 13.4, 13.4, null, 'rgba(201,150,46,0.8)', 1); g.save(); g.beginPath(); g.arc(34, y + 20, 15, 0, TAU); g.clip(); portrait(g, u.type, 34, y + 58, 0.72); g.restore();
-      text(g, u.def.name, 58, y + 12, { size: 14, align: 'left' }); text(g, sk.name, 216, y + 12, { size: 16, align: 'right', fill: gz > 0.9 ? RED : '#4a4034', font: FONT_B, maxW: 112 });
-      bar(g, 58, y + 22, 156, 11, gz, gz > 0.9 ? '#f0d264' : OCHRE, { back: '#d9cdb0' });
-      if (tapped('hc' + u.type, 12, y, 212, 40)) this.toast(u.type === this.r.hero ? `병법 '${HERO_TRAIT[u.type].name}' — ${HERO_TRAIT[u.type].desc}` : `고유기 (기력이 차면 자동): ${HERO_SKILLS[u.type].map(s => s.name).join(' → ')}`, 5);
-      y += 44;
-    }
-    const pair = b.heroPair(), combo = pair && COMBOS[pair.key];
-    if (combo) { g.globalAlpha = 0.93; rr(g, 12, y, 212, 30, 7, '#fbf1cf', '#b8742a', 1.8); g.globalAlpha = 1; text(g, '합동기 · ' + combo.name, 20, y + 10, { size: 13, align: 'left', fill: '#b8742a', font: FONT_B }); bar(g, 20, y + 18, 196, 8, b.combo, '#d9702a', { back: '#d9cdb0' }); if (tapped('combo', 12, y, 212, 30)) this.toast(`합동기 ${combo.name} — ${combo.desc}`, 4); y += 34; }
+    // (영웅의 기력은 영웅 머리 위에 그린다. 여기에는 진법만)
+    const y = 110;
     let k = 0;
     for (const sy of SYNERGIES) {
       const [n, need] = sy.n(b.synN), on = n >= need; if (!n) continue;

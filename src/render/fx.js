@@ -5,6 +5,18 @@ import { inkGlyph, symbol } from './symbols.js';
 
 // 빛: 색마다 한 번 구운 둥근 빛 한 장을 더해 그린다 (매번 그라데이션을 만들지 않아 가볍다)
 const GLOW = new Map();
+// 흙먼지 한 덩이 (가운데가 짙고 가장자리로 스며든다)와 날아가는 화살 뒤의 바람 자국: 매 장면 그라데이션을 새로 만들지 않게 한 번 굽는다
+const PUFF = new Map();
+function puffImg(col) {
+  if (!/^#[0-9a-f]{6}$/i.test(col)) col = '#c8b48a';
+  let c = PUFF.get(col); if (c) return c;
+  c = makeCanvas(64, 64); const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 3, 32, 32, 32); gr.addColorStop(0, col); gr.addColorStop(0.7, col + 'aa'); gr.addColorStop(1, col + '00'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); PUFF.set(col, c); return c;
+}
+let TRAIL = null;
+export function trailImg() {
+  if (TRAIL) return TRAIL;
+  const c = makeCanvas(128, 8), g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 128, 0); gr.addColorStop(0, 'rgba(255,250,236,0)'); gr.addColorStop(1, 'rgba(255,250,236,0.8)'); g.fillStyle = gr; g.beginPath(); g.ellipse(64, 4, 64, 3.4, 0, 0, TAU); g.fill(); TRAIL = c; return c;
+}
 function glowImg(col) {
   if (!/^#[0-9a-f]{6}$/i.test(col)) col = '#ffc870';
   let c = GLOW.get(col); if (c) return c;
@@ -94,7 +106,7 @@ export class Fx {
         // 튀는 알갱이: 움직이는 쪽으로 늘어난 물방울 꼴 (가는 먹선)
         case 'dot': { g.globalAlpha = Math.min(1, a * 2); const sp = Math.hypot(p.vx || 0, p.vy || 0), an = Math.atan2(p.vy || 0, p.vx || 1), r = p.size * (0.5 + a * 0.5), st2 = 1 + Math.min(2.2, sp / 160); g.save(); g.translate(p.x, p.y); g.rotate(an); g.beginPath(); g.ellipse(-r * (st2 - 1) * 0.6, 0, r * st2, r * 0.8, 0, 0, TAU); g.fillStyle = p.col; g.fill(); st(g, 'rgba(38,42,54,0.6)', 0.7); g.restore(); break; }
         // 흙먼지: 테두리 없이 부드럽게 퍼지며 옅어진다
-        case 'puff': { const r = p.size * (0.7 + easeOut(k) * 1.1); g.globalAlpha = Math.min(1, a * 1.4) * 0.8; const gr = g.createRadialGradient(p.x, p.y, r * 0.1, p.x, p.y, r); gr.addColorStop(0, p.col); gr.addColorStop(0.7, p.col + 'aa'); gr.addColorStop(1, p.col + '00'); g.fillStyle = gr; g.beginPath(); g.ellipse(p.x, p.y, r, r * 0.8, 0, 0, TAU); g.fill(); g.globalAlpha *= 0.35; g.beginPath(); g.ellipse(p.x + r * 0.1, p.y + r * 0.2, r * 0.8, r * 0.5, 0, 0, Math.PI); st(g, 'rgba(90,70,40,0.6)', 1); break; }
+        case 'puff': { const r = p.size * (0.7 + easeOut(k) * 1.1); g.globalAlpha = Math.min(1, a * 1.4) * 0.8; g.drawImage(puffImg(p.col), p.x - r, p.y - r * 0.8, r * 2, r * 1.6); g.beginPath(); g.ellipse(p.x + r * 0.1, p.y + r * 0.2, r * 0.8, r * 0.5, 0, 0, Math.PI); st(g, 'rgba(90,70,40,0.6)', 1); break; }
         case 'flare': { const e = easeOut(k * 2.4), al = k < 0.2 ? 1 : 1 - (k - 0.2) / 0.8; glow(g, p.x, p.y, p.size * (0.6 + e * 0.7), p.col, al * 0.4); break; }
         // 붉은 낙관: 큰 타격 자리에 네모난 도장이 탁 찍혔다가 바랜다
         case 'seal': { const q = Math.min(1, k / 0.12), sc = 1.45 - 0.45 * easeOut(q), al = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4, s2 = 12 * sc; g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.globalAlpha = al * 0.9;
@@ -118,7 +130,7 @@ export class Fx {
         case 'beam': { g.globalAlpha = a; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x1, p.y1); st(g, 'rgba(38,42,54,0.7)', p.lw + 2.4); g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x1, p.y1); st(g, p.col, p.lw); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.45; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x1, p.y1); st(g, p.col, p.lw * 3.4); g.globalAlpha = a; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x1, p.y1); st(g, '#fffaf0', Math.max(1, p.lw * 0.35)); g.restore(); break; }
         // 쏟아지는 화살: 깃과 촉이 있는 화살이 바람 자국을 끌며 내리꽂힌다
         case 'arrow': { const e = k * k, yy = p.y - (1 - e) * 260, xx = p.x - (1 - e) * 60, an = Math.atan2(260, 60); g.globalAlpha = Math.min(1, k * 4);
-          const gr = g.createLinearGradient(xx - Math.cos(an) * 70, yy - Math.sin(an) * 70, xx, yy); gr.addColorStop(0, 'rgba(255,250,236,0)'); gr.addColorStop(1, 'rgba(255,250,236,0.8)'); g.strokeStyle = gr; g.lineWidth = 3.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(xx - Math.cos(an) * 70, yy - Math.sin(an) * 70); g.lineTo(xx - Math.cos(an) * 16, yy - Math.sin(an) * 16); g.stroke();
+          g.save(); g.translate(xx, yy); g.rotate(an); g.drawImage(trailImg(), -70, -1.7, 70, 3.4); g.restore();
           g.save(); g.translate(xx, yy); g.rotate(an); line(g, [-22, 0, 0, 0], INK, 2.6); line(g, [-21, 0, -1, 0], '#d9c39a', 1); poly(g, [-24, -2.6, -18, 0, -24, 2.6], '#fbf7ec', INK, 0.7); poly(g, [-1, -2.2, 5, 0, -1, 2.2], '#e4e8ea', INK, 0.7); g.restore(); break; }
         case 'stuck': g.globalAlpha = a; g.beginPath(); g.moveTo(p.x - 4, p.y - 15); g.lineTo(p.x, p.y); st(g, INK, 2.2); poly(g, [p.x - 6, p.y - 18, p.x - 4, p.y - 13, p.x - 1.6, p.y - 17], '#fbf7ec', INK, 0.8); break;
         case 'plus': { g.globalAlpha = Math.min(1, a * 2); const s = p.size; glow(g, p.x, p.y, s * 3.2, p.col || '#5fae6a', a * 0.7); poly(g, [p.x - s * 0.3, p.y - s, p.x + s * 0.3, p.y - s, p.x + s * 0.3, p.y - s * 0.3, p.x + s, p.y - s * 0.3, p.x + s, p.y + s * 0.3, p.x + s * 0.3, p.y + s * 0.3, p.x + s * 0.3, p.y + s, p.x - s * 0.3, p.y + s, p.x - s * 0.3, p.y + s * 0.3, p.x - s, p.y + s * 0.3, p.x - s, p.y - s * 0.3, p.x - s * 0.3, p.y - s * 0.3], p.col || '#5fae6a', INK, 1.1); break; }

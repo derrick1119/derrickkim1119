@@ -119,13 +119,22 @@ export function titleBack() {
   BACK = c; return c;
 }
 
+// ── 한 번만 굽고 다시 쓰는 것들 (매 장면 그라데이션·흐림 필터를 새로 만들지 않는다) ──
+const bake = (w, h, fn) => { const c = makeCanvas(w * 2, h * 2), cg = c.getContext('2d'); cg.scale(2, 2); fn(cg); return c; };
+const GL = new Map();
+// 둥근 빛 한 점 (가운데 col, 가장자리로 사라진다). 'lighter' 로 겹쳐 그린다
+function glowSpr(col, mid = 0.35) { const key = col + mid; let c = GL.get(key); if (c) return c; c = makeCanvas(64, 64); const cg = c.getContext('2d'), gr = cg.createRadialGradient(32, 32, 0.5, 32, 32, 32); gr.addColorStop(0, `rgba(${col},1)`); gr.addColorStop(mid, `rgba(${col},0.32)`); gr.addColorStop(1, `rgba(${col},0)`); cg.fillStyle = gr; cg.fillRect(0, 0, 64, 64); GL.set(key, c); return c; }
+const spot = (g, img, x, y, rx, ry, a) => { if (a <= 0.002) return; g.globalAlpha = a; g.drawImage(img, x - rx, y - ry, rx * 2, ry * 2); };
+let SHADOW = null;
+const shadowSpr = () => SHADOW || (SHADOW = bake(64, 20, cg => { const gr = cg.createRadialGradient(32, 10, 1, 32, 10, 32); gr.addColorStop(0, 'rgba(0,0,8,0.85)'); gr.addColorStop(1, 'rgba(0,0,8,0)'); cg.fillStyle = gr; cg.save(); cg.translate(32, 10); cg.scale(1, 0.3); cg.translate(-32, -10); cg.fillRect(0, -22, 64, 64); cg.restore(); }));
+let WFG = null;
 // 청사초롱: 위는 쪽빛, 아래는 붉은 비단. lit 0→1 로 켜진다. 켜지면 둘레와 길바닥에 따뜻한 빛이 고인다
 function lantern(g, x, y, s, lit, t, i) {
   const fl = lit > 0 ? 0.92 + 0.08 * Math.sin(t * 9 + i * 1.7) * Math.sin(t * 5.3 + i) : 0, lx = x + 8 * s, ly = y - 30 * s, bh = 17 * s, cyy = ly + 3 * s + bh * 0.5;
   if (lit > 0) {
     g.save(); g.globalCompositeOperation = 'lighter';
-    g.save(); g.translate(x + 4 * s, y + 1); g.scale(1, 0.38); const pr = 36 * s * fl, pg = g.createRadialGradient(0, 0, 1, 0, 0, pr); pg.addColorStop(0, `rgba(255,184,92,${0.28 * lit})`); pg.addColorStop(1, 'rgba(255,184,92,0)'); g.fillStyle = pg; g.fillRect(-pr, -pr, pr * 2, pr * 2); g.restore();
-    const r = 34 * s * fl, gr = g.createRadialGradient(lx, cyy, 1, lx, cyy, r); gr.addColorStop(0, `rgba(255,214,140,${0.45 * lit})`); gr.addColorStop(0.45, `rgba(255,160,80,${0.14 * lit})`); gr.addColorStop(1, 'rgba(255,140,40,0)'); g.fillStyle = gr; g.fillRect(lx - r, cyy - r, r * 2, r * 2);
+    spot(g, glowSpr('255,184,92', 0.5), x + 4 * s, y + 1, 36 * s * fl, 13.7 * s * fl, 0.28 * lit);
+    spot(g, glowSpr('255,190,110', 0.4), lx, cyy, 34 * s * fl, 34 * s * fl, 0.45 * lit);
     g.restore();
   }
   line(g, [x, y, x, y - 32 * s], '#140f0c', 3 * s); line(g, [x, y, x, y - 32 * s], '#5a4030', 1.4 * s); line(g, [x - 1 * s, y - 31 * s, x + 9 * s, y - 31 * s], '#140f0c', 2.2 * s);
@@ -134,18 +143,18 @@ function lantern(g, x, y, s, lit, t, i) {
   const on = lit > 0.3, shape = p => { p.moveTo(lx - 6.6 * s, ly + 3 * s); p.quadraticCurveTo(lx - 8.4 * s, cyy, lx - 6.6 * s, ly + 3 * s + bh); p.lineTo(lx + 6.6 * s, ly + 3 * s + bh); p.quadraticCurveTo(lx + 8.4 * s, cyy, lx + 6.6 * s, ly + 3 * s); p.closePath(); };
   path(g, shape, on ? '#e0412f' : '#5a1e1a', 'rgba(10,8,8,0.75)', 0.9 * s);
   g.save(); g.beginPath(); g.rect(lx - 9 * s, ly + 3 * s, 18 * s, bh * 0.42); g.clip(); path(g, shape, on ? '#3d6fd6' : '#1f2e55', 'rgba(10,8,8,0.75)', 0.9 * s); g.restore();
-  if (on) { g.save(); g.globalCompositeOperation = 'lighter'; const k = lit * fl, cg = g.createRadialGradient(lx, cyy + 1 * s, 0.5, lx, cyy + 1 * s, 7 * s); cg.addColorStop(0, `rgba(255,233,176,${0.9 * k})`); cg.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = cg; g.fillRect(lx - 8 * s, cyy - 7 * s, 16 * s, 16 * s); g.restore(); }
+  if (on) { g.save(); g.globalCompositeOperation = 'lighter'; spot(g, glowSpr('255,233,176', 0.5), lx, cyy + 1 * s, 7 * s, 7 * s, 0.9 * lit * fl); g.restore(); }
   rr(g, lx - 5 * s, ly + 3 * s + bh, 10 * s, 2.4 * s, 1 * s, '#2a2024', '#0a0808', 0.6 * s);
   line(g, [lx, ly + 5.4 * s + bh, lx, ly + 12 * s + bh], '#c8402f', 1.6 * s);
-  if (lit > 0 && lit < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const fr = 26 * s * (1.4 - 0.4 * lit), fg = g.createRadialGradient(lx, cyy, 1, lx, cyy, fr); fg.addColorStop(0, `rgba(255,240,200,${0.7 * (1 - lit)})`); fg.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = fg; g.fillRect(lx - fr, cyy - fr, fr * 2, fr * 2); g.restore(); }
+  if (lit > 0 && lit < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const fr = 26 * s * (1.4 - 0.4 * lit); spot(g, glowSpr('255,240,200', 0.3), lx, cyy, fr, fr, 0.7 * (1 - lit)); g.restore(); }
 }
 // 도깨비불: 푸른빛 불꽃이 둥실 떠서 흔들리고 깜빡인다 (끝이 갈라져 너울대는 불혀, 아래로 옅은 꼬리)
 function wisp(g, x, y, s, t, a) {
-  g.save(); g.globalCompositeOperation = 'lighter'; const r = 30 * s, gr = g.createRadialGradient(x, y, 1, x, y, r); gr.addColorStop(0, `rgba(127,243,224,${0.26 * a})`); gr.addColorStop(1, 'rgba(43,179,168,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); g.restore();
+  g.save(); g.globalCompositeOperation = 'lighter'; spot(g, glowSpr('110,230,215', 0.3), x, y, 30 * s, 30 * s, 0.26 * a); g.restore();
   g.save(); g.globalAlpha = a; g.translate(x, y); g.rotate(Math.sin(t * 6) * 0.1); g.scale(s * 1.35, s * 1.35);
   const w1 = Math.sin(t * 9) * 1.6, w2 = Math.sin(t * 7.3 + 1) * 1.4;
   const outer = p => { p.moveTo(0.5, 7); p.quadraticCurveTo(-7.5, 6, -6, -2); p.quadraticCurveTo(-5.4, -6, -3.4, -8 + w2); p.quadraticCurveTo(-2.6, -4, -1, -5); p.quadraticCurveTo(-0.5, -11, 1 + w1, -15); p.quadraticCurveTo(2.6, -9, 4.4, -7); p.quadraticCurveTo(6.6, -4, 6.4, 0); p.quadraticCurveTo(6.4, 6.4, 0.5, 7); p.closePath(); };
-  const fg = g.createLinearGradient(0, -15, 0, 7); fg.addColorStop(0, '#2bb3a8'); fg.addColorStop(0.55, '#7ff3e0'); fg.addColorStop(1, '#c6fbf2');
+  if (!WFG) { WFG = g.createLinearGradient(0, -15, 0, 7); WFG.addColorStop(0, '#2bb3a8'); WFG.addColorStop(0.55, '#7ff3e0'); WFG.addColorStop(1, '#c6fbf2'); } const fg = WFG;
   g.beginPath(); outer(g); g.fillStyle = fg; g.fill(); g.lineWidth = 0.8; g.strokeStyle = 'rgba(220,255,250,0.75)'; g.stroke();
   g.beginPath(); g.moveTo(0.4, 5); g.quadraticCurveTo(-3.4, 4, -2.6, -0.5); g.quadraticCurveTo(-1.4, -3, 0.6 + w1 * 0.5, -7); g.quadraticCurveTo(3.2, -2, 2.8, 1); g.quadraticCurveTo(2.8, 4.6, 0.4, 5); g.closePath(); g.fillStyle = '#effffb'; g.fill();
   g.restore();
@@ -170,6 +179,11 @@ function titleInk() {
 // 현판: 짙은 나무틀, 금테와 모서리 장식, 한지 바탕. 아래 틀에 영문 이름. rev = 글씨가 써지는 정도(0~1), st2 = 낙관
 const PW = 488, PH = 156;
 function plaque(g, cx, cy, rev, sealK) {
+  if (PLQ) { g.drawImage(PLQ, cx - PW / 2 - 44, cy - PH / 2 - 44, PW + 88, PH + 88); return; }
+  if (rev >= 1 && sealK >= 1 && TITLE) { PLQ = bake(PW + 88, PH + 88, cg => plaqueDraw(cg, PW / 2 + 44, PH / 2 + 44, 1, 1)); return plaque(g, cx, cy, rev, sealK); }
+  plaqueDraw(g, cx, cy, rev, sealK);
+}
+function plaqueDraw(g, cx, cy, rev, sealK) {
   const w = PW, h = PH, x = cx - w / 2, y = cy - h / 2;
   g.save(); g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 22; g.shadowOffsetY = 10; rr(g, x, y, w, h, 9, '#3a2114'); g.restore();
   const wg = g.createLinearGradient(0, y, 0, y + h); wg.addColorStop(0, '#6a3c22'); wg.addColorStop(0.5, '#4a2a18'); wg.addColorStop(1, '#2e1a10'); rr(g, x, y, w, h, 9, wg, '#140c08', 2.4);
@@ -193,6 +207,10 @@ function cords(g, cx, cy, t) {
 }
 // 들보: 단청 무늬 띠와 가운데 삼태극
 function lintel(g) {
+  if (!LIN) LIN = bake(W, 92, cg => lintelDraw(cg));
+  g.drawImage(LIN, 0, 0, W, 92);
+}
+function lintelDraw(g) {
   const x = 84, y = 34, w = W - 168, h = 46;
   g.save(); g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 16; g.shadowOffsetY = 6; rr(g, x, y, w, h, 6, '#2c5a4e'); g.restore();
   rr(g, x, y, w, h, 6, '#2c5a4e', '#0e1a16', 2.4);
@@ -204,16 +222,20 @@ function lintel(g) {
   ell(g, 640, y + h / 2, 30, 30, '#3a2114', '#140c08', 2); ell(g, 640, y + h / 2, 25, 25, '#f3ead2', '#d6a640', 2); taegeuk(g, 640, y + h / 2, 20, -0.5, ['#c8402f', '#2f4d7e', '#e0b23c'], 1);
 }
 // 무대 위로 떨어지는 부드러운 빛줄기 (여러 겹을 겹쳐 가장자리를 흐리게, 아래로 갈수록 엷게)
+let BEAMS = null, AUD = null, LIN = null, PLQ = null, TAG = null;
 function beams(g, t, k) {
   if (k <= 0) return;
-  g.save(); g.globalCompositeOperation = 'screen';
-  for (const [x0, x1] of [[330, 470], [950, 820]]) for (const wd of [60, 110, 160, 210]) { const gr = g.createLinearGradient(0, 0, 0, 600); gr.addColorStop(0, `rgba(255,226,170,${0.035 * k})`); gr.addColorStop(1, 'rgba(255,226,170,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x0 - wd * 0.12, 0); g.lineTo(x0 + wd * 0.12, 0); g.lineTo(x1 + wd, 600); g.lineTo(x1 - wd, 600); g.closePath(); g.fill(); }
-  g.restore();
+  if (!BEAMS) BEAMS = bake(W, 610, cg => { const gr = cg.createLinearGradient(0, 0, 0, 600); gr.addColorStop(0, 'rgba(255,226,170,0.035)'); gr.addColorStop(1, 'rgba(255,226,170,0)'); cg.fillStyle = gr; for (const [x0, x1] of [[330, 470], [950, 820]]) for (const wd of [60, 110, 160, 210]) { cg.beginPath(); cg.moveTo(x0 - wd * 0.12, 0); cg.lineTo(x0 + wd * 0.12, 0); cg.lineTo(x1 + wd, 600); cg.lineTo(x1 - wd, 600); cg.closePath(); cg.fill(); } });
+  g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = k; g.drawImage(BEAMS, 0, 0, W, 610); g.restore();
   for (let i = 0; i < 24; i++) { const ph = i * 7.3, x = (i % 2 ? 430 : 870) + Math.sin(t * 0.3 + ph) * 110, y = ((ph * 37 + t * 14) % 520) + 60, a = (0.2 + 0.2 * Math.sin(t * 2 + ph)) * k; g.globalAlpha = a; ell(g, x, y, 1.2, 1.2, '#ffe9bf'); }
   g.globalAlpha = 1;
 }
 // 관객석: 두 줄 사람들의 뒷모습 (어깨·상투·갓). 뒷줄은 작고 옅게, 무대 빛이 윗가장자리에 비친다
 function audience(g) {
+  if (!AUD) AUD = bake(W, 120, cg => { cg.translate(0, -600); audienceDraw(cg); });
+  g.drawImage(AUD, 0, 600, W, 120);
+}
+function audienceDraw(g) {
   const R = rng(9);
   const one = (x, y, s, col, rim) => {
     const hat = R() < 0.55;
@@ -228,13 +250,14 @@ function audience(g) {
 }
 // 막대 인형 하나: 앞판까지 내려가는 막대와 바닥 그림자를 곁들인다
 function stickPuppet(g, type, x, y, s, t, face) {
-  g.save(); g.globalAlpha = 0.4; g.filter = 'blur(3px)'; ell(g, x + 6, y + 4, 24 * s, 5 * s, '#000008'); g.restore();
+  g.globalAlpha = 0.45; g.drawImage(shadowSpr(), x + 6 - 30 * s, y + 4 - 9 * s, 60 * s, 18 * s); g.globalAlpha = 1;
   line(g, [x, y - 6, x + 1, APRON + 30], '#1a0f08', 4.4); line(g, [x, y - 6, x + 1, APRON + 30], '#3a2416', 3);
   g.save(); g.translate(x, y); g.rotate(Math.sin(t * 1.9 + x) * 0.026); g.translate(-x, -y);
   puppet(g, type, x, y, s, t, { act: 'idle', face, noStick: true });
   g.restore();
 }
 
+let FOOT = null;
 export const INTRO_END = 3.5;
 // 한 장면: t = 첫 화면이 뜬 뒤 흐른 초
 export function drawTitleScene(g, t) {
@@ -255,7 +278,8 @@ export function drawTitleScene(g, t) {
   [['goblin', 770, 1.44, -1], ['warchief', 930, 1.26, -1], ['shaman', 1046, 1.3, -1]].forEach(([u, x, s, f], k) => stickPuppet(g, u, x + slide(k + 5, 1), F + Math.sin(t * 2.2 + k * 1.4) * 3, s, t + k * 2, f));
   { const [px, py] = PASS; ['#c8402f', '#2f4d7e', '#e0b23c', '#f3ead2', '#3f6b5c'].forEach((col, k) => { const x = px + 25 + k * 5.6, y = py - 41 - k * 0.6, sw = Math.sin(t * 2.2 + k * 1.3) * 2.4; path(g, p => { p.moveTo(x - 1.5, y); p.lineTo(x + 1.5, y); p.lineTo(x + 1.5 + sw, y + 16); p.lineTo(x - 1.5 + sw, y + 16); p.closePath(); }, col, 'rgba(0,0,0,0.35)', 0.5); }); }
   // 발치 조명 (무대 안에서만)
-  g.save(); g.globalCompositeOperation = 'screen'; const fg = g.createLinearGradient(0, APRON + 4, 0, APRON - 90); fg.addColorStop(0, `rgba(255,190,110,${0.24 * open})`); fg.addColorStop(1, 'rgba(255,190,110,0)'); g.fillStyle = fg; g.fillRect(sx, APRON - 90, STAGE.w, 94); g.restore();
+  if (!FOOT) FOOT = bake(STAGE.w, 94, cg => { const fg = cg.createLinearGradient(0, 94, 0, 0); fg.addColorStop(0, 'rgba(255,190,110,0.24)'); fg.addColorStop(1, 'rgba(255,190,110,0)'); cg.fillStyle = fg; cg.fillRect(0, 0, STAGE.w, 94); });
+  g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = open; g.drawImage(FOOT, sx, APRON - 90, STAGE.w, 94); g.restore();
   g.restore();
   // 현판: 들보 뒤에서 줄에 매달려 내려와 살짝 흔들리다 멎는다 (막보다 먼저 그려 막·들보 뒤에 걸린다)
   const drop = clamp((t - 1.0) / 0.7, 0, 1), cy = -70 + 296 * easeOutBack(drop);
@@ -266,7 +290,7 @@ export function drawTitleScene(g, t) {
     plaque(g, 640, cy, clamp((t - 1.75) / 0.5, 0, 1), clamp((t - 2.3) / 0.2, 0, 1));
     g.restore();
     const k = clamp((t - 2.5) / 0.5, 0, 1);
-    if (k > 0) { g.save(); g.globalAlpha = k; g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = 8; text(g, '긴 밤을 걷으러 가는 열두 옛이야기', 640, cy + PH / 2 + 26, { size: 18, font: FONT_B, fill: '#efe4c8' }); g.restore(); }
+    if (k > 0) { if (!TAG && (typeof document === 'undefined' || !document.fonts || document.fonts.check(`18px 'Yeon Sung'`))) TAG = bake(420, 40, cg => { cg.shadowColor = 'rgba(0,0,0,0.85)'; cg.shadowBlur = 8; text(cg, '긴 밤을 걷으러 가는 열두 옛이야기', 210, 20, { size: 18, font: FONT_B, fill: '#efe4c8' }); }); g.globalAlpha = k; if (TAG) g.drawImage(TAG, 430, cy + PH / 2 + 6, 420, 40); else text(g, '긴 밤을 걷으러 가는 열두 옛이야기', 640, cy + PH / 2 + 26, { size: 18, font: FONT_B, fill: '#efe4c8' }); g.globalAlpha = 1; }
   }
   // 무대 틀과 막, 들보
   drawFrame(g, sx, sy, STAGE.w, STAGE.h, open, t);

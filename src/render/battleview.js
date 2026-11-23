@@ -3,11 +3,11 @@ import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
 import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
-import { HERO_COL, HERO_SEAL } from '../data/units.js';
+import { HERO_COL, HERO_SEAL, HERO_SKILLS } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, makeFrame, makeBackdrop, scenePines, vignette, backlight, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, BW, FAR_H, THEMES } from './terrain.js';
-import { Fx, glow } from './fx.js';
+import { Fx, glow, trailImg } from './fx.js';
 import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
@@ -57,7 +57,6 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
   if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
   if (u.slow > 0) { g.globalAlpha = alpha * 0.8; ell(g, u.x, u.y + 1, u.r * 1.05, u.r * 0.46, 'rgba(143,211,232,0.5)', '#4f8fb8', 1.2); g.globalAlpha = alpha; }
-  if (u.gauge !== undefined && u.def && u.def.hero && u.team === 0) { const gz = clamp(u.gauge, 0, 1), rx = u.r * 1.75, ry = u.r * 0.82; g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, 0, TAU); st(g, 'rgba(38,42,54,0.3)', 4.4); if (gz > 0.01) { g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, -PI / 2, -PI / 2 + TAU * gz); st(g, gz > 0.9 && Math.sin(T * 14) > 0 ? '#fff3b0' : OCHRE, 3.2); } }
   const by = y - hop * k, fl = u.flash > 0 ? (u.def && u.def.boss ? Math.min(0.35, u.flash * 0.45) : u.flash * 0.85) : 0;   // 두목은 쉴 새 없이 맞으므로 옅게만 번쩍인다 (하얗게 바래면 유령처럼 보인다)
   if (u.root > 0) { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + u.id; g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, INK, 4); g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, '#5f9a4a', 2); } }
   const sx = dir * k * flip * sxm;
@@ -121,7 +120,13 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
     const bw = Math.max(18, u.r * 1.9), bx = x - bw / 2, byy = top - 5, fa = hpk < 0.35 || L.hero ? 1 : clamp((2.2 - since) / 0.6, 0, 1); g.save(); g.globalAlpha *= fa;
     rr(g, bx - 1, byy - 1, bw + 2, 4.4, 1.2, PAPER, 'rgba(38,42,54,0.8)', 0.9); g.fillStyle = u.team === 0 ? INDIGO : RED; g.fillRect(bx, byy, bw * clamp(hpk, 0, 1), 2.4); g.restore();
   }
-  if (L.hero && alpha >= 1) icon.flag(g, x - 2, top - 14 + Math.sin(T * 3) * 1.5, 0.75, OCHRE);
+  // 영웅의 기력: 머리 위의 금빛 띠. 거의 차면 다음 고유기 이름이 떠오르고 띠가 반짝인다
+  if (L.hero && u.team === 0 && u.gauge !== undefined && alpha >= 1) {
+    const gz = clamp(u.gauge, 0, 1), bw = 52, bx = x - bw / 2, gy = top - (showHp ? 16 : 10) + Math.sin(T * 3) * 1.2, ready = gz > 0.9;
+    rr(g, bx - 2, gy - 2, bw + 4, 9, 4, 'rgba(24,20,30,0.78)', ready ? '#f0d264' : 'rgba(250,240,215,0.85)', 1.2);
+    if (gz > 0.01) { g.fillStyle = ready && Math.sin(T * 12) > 0 ? '#fff3b0' : '#e2b33a'; g.fillRect(bx, gy, bw * gz, 5); g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(bx, gy, bw * gz, 1.6); }
+    if (gz > 0.8 && u.def && HERO_SKILLS[u.type]) { const sk = HERO_SKILLS[u.type][u.skillI || 0]; if (sk) text(g, sk.name, x, gy - 11, { size: 15, font: FONT_B, fill: ready ? '#fff3b0' : '#f3ead2', stroke: 'rgba(20,16,24,0.9)', lw: 4 }); }
+  }
   g.restore();
 }
 
@@ -131,6 +136,11 @@ const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c2
 const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인' };
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
+// 이어 붙인 긴 그림 한 장(너비 period)을 화면에 보이는 만큼만 그린다. top 위쪽은 투명해서 건너뛴다
+function strip(g, img, period, off, top) {
+  const k = img.width / period, full = img.height / k; let x = -(((off % period) + period) % period);
+  for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(img, a * k, top * k, (b - a) * k, (full - top) * k, x + a, top, b - a, full - top); }
+}
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
@@ -144,18 +154,18 @@ export class BattleView {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
-    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
+    strip(g, this.far, FW, sc * 0.25, 0);
     // 큰 산과 언덕: 먼 산보다 빠르고 바닥보다 느리게 흐른다
-    const back = makeBackdrop(this.theme); for (let x = -((sc * 0.5) % BW); x < W; x += BW) g.drawImage(back, x, 0, BW, 300);
-    for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
+    strip(g, makeBackdrop(this.theme), BW, sc * 0.5, 0);
+    strip(g, this.ground, GW, sc, 200);
     // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
-    g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(backlight(isNight(this.theme)), 0, 0, W, H); g.restore();
+    { const bl = backlight(isNight(this.theme)), k = bl.width / W; g.save(); g.globalCompositeOperation = 'screen'; g.drawImage(bl, 0, 0, bl.width, 610 * k, 0, 0, W, 610); g.restore(); }
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
     if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
-    const frame = makeFrame(this.theme); for (let x = -(sc % GW); x < W; x += GW) g.drawImage(frame, x, 0, GW, H);
+    strip(g, makeFrame(this.theme), GW, sc, 280);
     if (opt.deploy) this.drawDeployZone(g, opt.deploy, T);
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
@@ -295,7 +305,7 @@ export class BattleView {
       if (p.kind === 'spark') { const nx = -Math.sin(a), ny = Math.cos(a), pts = []; for (let i = 0; i <= 4; i++) { const d = i * 9, o = (i % 2 ? 1 : -1) * (i === 0 || i === 4 ? 0 : 5); pts.push(p.x - Math.cos(a) * d + nx * o, p.y - Math.sin(a) * d + ny * o); } line(g, pts, INK, 5); line(g, pts, '#b89cf0', 2.6); ell(g, p.x, p.y, 3.4, 3.4, '#fffbe6', INK, 1); return; }
       if (p.kind === 'firearrow') { glow(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 16, '#ff9a2e', 0.8); g.globalAlpha = 0.75; ell(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 5.5, 5.5, '#ff9a2e'); g.globalAlpha = 1; }
       // 날아가는 화살 뒤로 옅은 바람 자국
-      { const tx = p.x - Math.cos(a) * 46, ty = p.y - Math.sin(a) * 46, gr = g.createLinearGradient(tx, ty, p.x, p.y); gr.addColorStop(0, 'rgba(255,250,236,0)'); gr.addColorStop(1, 'rgba(255,250,236,0.75)'); g.strokeStyle = gr; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(tx, ty); g.lineTo(p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16); g.stroke(); }
+      g.save(); g.translate(p.x, p.y); g.rotate(a); g.drawImage(trailImg(), -46, -1.5, 46, 3); g.restore();
       line(g, [p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, p.x, p.y], INK, 2.6);
       g.save(); g.translate(p.x, p.y); g.rotate(a); poly(g, [-18, -2.6, -12, 0, -18, 2.6], '#fbf7ec', INK, 0.8); poly(g, [0, -2.2, 5, 0, 0, 2.2], '#e4e8ea', INK, 0.8); g.restore();
     }

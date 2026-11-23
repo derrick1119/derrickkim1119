@@ -24,7 +24,14 @@ function bake(g, key, x, y, w, h, pad, draw) {
   if (!c) { if (baked.size > 96) baked.delete(baked.keys().next().value); c = makeCanvas((w + pad * 2) * CS, (h + pad * 2) * CS); const cg = c.getContext('2d'); cg.scale(CS, CS); cg.translate(pad, pad); draw(cg); baked.set(key, c); }
   g.drawImage(c, x - pad, y - pad, c.width / CS, c.height / CS);
 }
-const vgrad = (g, y0, y1, a, b, mid) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, a); if (mid) gr.addColorStop(mid[0], mid[1]); gr.addColorStop(1, b); return gr; };
+// 세로 그라데이션: 같은 자리·같은 색이면 만든 것을 다시 쓴다 (단추·판은 매 장면 같은 곳에 그려진다)
+const GC = new WeakMap();
+const vgrad = (g, y0, y1, a, b, mid) => {
+  let m = GC.get(g); if (!m) { m = new Map(); GC.set(g, m); }
+  const key = `${y0}|${y1}|${a}|${b}|${mid ? mid.join() : ''}`; let gr = m.get(key); if (gr) return gr;
+  gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, a); if (mid) gr.addColorStop(mid[0], mid[1]); gr.addColorStop(1, b);
+  if (m.size > 400) m.clear(); m.set(key, gr); return gr;
+};
 // 칠보문: 쪽빛 바탕에 옅게 깔리는 겹친 고리 무늬
 function chilbo(g, w, h, a = 0.07) { const s = 17, r = s / Math.SQRT2; g.save(); g.beginPath(); g.rect(0, 0, w, h); g.clip(); g.strokeStyle = `rgba(226,184,90,${a})`; g.lineWidth = 0.9; for (let y = 0; y <= h + s; y += s) for (let x = 0; x <= w + s; x += s) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.stroke(); } g.restore(); }
 // 놋쇠 귀장식 (왼쪽 위 귀 기준, 뒤집어 네 귀에 박는다)
@@ -53,7 +60,7 @@ function navyPanel(g, w, h) {
   rr(g, 6, 6, w - 12, h - 12, 5, null, 'rgba(226,184,90,0.8)', 1.2); rr(g, 9, 9, w - 18, h - 18, 3.5, null, 'rgba(226,184,90,0.3)', 0.8);
 }
 // 금박: 빛을 받아 결이 이는 금빛 (띠·단추·패의 테두리)
-export const foil = (g, x0, x1) => { const gr = g.createLinearGradient(x0, 0, x1, 0); [['#a87a24', 0], ['#f6dc8a', 0.18], ['#c9962e', 0.38], ['#fbe9a8', 0.6], ['#b8862a', 0.8], ['#f0d27a', 1]].forEach(([c, t]) => gr.addColorStop(t, c)); return gr; };
+export const foil = (g, x0, x1) => { let m = GC.get(g); if (!m) { m = new Map(); GC.set(g, m); } const key = `foil|${x0}|${x1}`; let gr = m.get(key); if (gr) return gr; gr = g.createLinearGradient(x0, 0, x1, 0); [['#a87a24', 0], ['#f6dc8a', 0.18], ['#c9962e', 0.38], ['#fbe9a8', 0.6], ['#b8862a', 0.8], ['#f0d27a', 1]].forEach(([c, t]) => gr.addColorStop(t, c)); if (m.size > 400) m.clear(); m.set(key, gr); return gr; };
 // 쪽빛 판에 깔린 한지 섬유 (옻칠 위로 비치는 종이 결)
 function fibers(g, w, h, seed, a = 0.06) { let sd = seed | 0 || 7; const R = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; }; g.lineWidth = 0.8; for (let i = 0, n = (w * h / 900) | 0; i < n; i++) { const x = R() * w, y = R() * h, an = R() * TAU, l = 4 + R() * 10; g.strokeStyle = R() < 0.6 ? `rgba(255,240,210,${a})` : `rgba(0,0,0,${a * 0.8})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(an) * l, y + Math.sin(an) * l); g.stroke(); } }
 // 아래쪽 패 받침: 쪽빛 옻칠 판에 한지 결, 금박 띠와 붉은 선을 두른다

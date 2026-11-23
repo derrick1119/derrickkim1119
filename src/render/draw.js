@@ -53,8 +53,12 @@ export function makeCanvas(w, h) { const c = document.createElement('canvas'); c
 // 종이 인형 스프라이트: 크림색 종이 테두리 + 바닥에 떨어지는 그림자
 export const SS = 3;
 export function paperSprite(draw, o = {}) {
-  const w = o.w || 110, h = o.h || 124, ox = o.ox || 55, oy = o.oy || 110;
-  const c = makeCanvas(w * SS, h * SS), g = c.getContext('2d'); g.scale(SS, SS); g.translate(ox, oy); draw(g);
+  let w = o.w || 110, h = o.h || 124, ox = o.ox || 55, oy = o.oy || 110;
+  let c = makeCanvas(w * SS, h * SS); { const g = c.getContext('2d'); g.scale(SS, SS); g.translate(ox, oy); draw(g); }
+  // 먼저 그림이 있는 곳만 남긴다 (테두리와 종이 두께가 들어갈 여유를 두고): 병사 그림은 판의 2할 남짓만 써서,
+  // 자르면 테두리를 굽는 일도, 전장에서 그릴 때 빈 곳까지 섞는 일도 몇 배 가벼워진다
+  const cr = cropBox(c, Math.ceil(((o.bw || 2.4) + 2.6) * SS) + 2);
+  if (cr) { c = cutCanvas(c, cr); ox -= cr.x / SS; oy -= cr.y / SS; w = cr.w / SS; h = cr.h / SS; }
   if (o.grain !== false) paperGrain(c, o.grain || 1);
   let img = c; const border = o.border === undefined ? PAPER : o.border;
   if (border) {
@@ -73,6 +77,21 @@ export function paperSprite(draw, o = {}) {
   if (o.shadow !== false) { sh = makeCanvas(c.width, c.height); const hg = sh.getContext('2d'); hg.drawImage(img, 0, 0); hg.globalCompositeOperation = 'source-in'; hg.fillStyle = o.shadow || 'rgba(50,36,20,0.26)'; hg.fillRect(0, 0, c.width, c.height); }
   return { img, sh, w, h, ox, oy, flash: null };
 }
+// 그림이 있는 곳의 상자 (둘레 pad 여유). 거의 꽉 찼으면 자르지 않는다
+function cropBox(c, pad = 2) {
+  const W0 = c.width, H0 = c.height; let d;
+  try { d = new Uint32Array(c.getContext('2d').getImageData(0, 0, W0, H0).data.buffer); } catch (e) { return null; }
+  const rowHas = y => { for (let x = 0, i = y * W0; x < W0; x++, i++) if (d[i] >>> 24 > 3) return true; return false; };
+  const colHas = (x, y0, y1) => { for (let y = y0, i = y0 * W0 + x; y <= y1; y++, i += W0) if (d[i] >>> 24 > 3) return true; return false; };
+  let y0 = 0; while (y0 < H0 && !rowHas(y0)) y0++; if (y0 >= H0) return null;
+  let y1 = H0 - 1; while (y1 > y0 && !rowHas(y1)) y1--;
+  let x0 = 0; while (x0 < W0 && !colHas(x0, y0, y1)) x0++;
+  let x1 = W0 - 1; while (x1 > x0 && !colHas(x1, y0, y1)) x1--;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(W0 - 1, x1 + pad); y1 = Math.min(H0 - 1, y1 + pad);
+  const w = x1 - x0 + 1, h = y1 - y0 + 1; if (w * h > W0 * H0 * 0.85) return null;
+  return { x: x0, y: y0, w, h };
+}
+function cutCanvas(c, r) { const k = makeCanvas(r.w, r.h); k.getContext('2d').drawImage(c, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); return k; }
 // 색종이 질감: 왼쪽 위는 밝게, 오른쪽 아래는 살짝 어둡게 + 잔 섬유 (그려진 부분에만 입힌다)
 function paperGrain(c, k) {
   const g = c.getContext('2d'), w = c.width, h = c.height, R = rng(w * 31 + h * 7);
