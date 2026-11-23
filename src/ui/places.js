@@ -325,12 +325,8 @@ function tavernBG() {
   });
   return TBG;
 }
-// 고르는 물건들 (원점 = 바닥 가운데)
 // 이름판에 쓰는 짧은 쓰임
 const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전술 강화', feast: '엽전 90 → 병력 패 둘 +1단' };
-// 고를 것은 셋: 평상 위 국밥(쉰다) · 마당의 목인(수련) · 술상(잔치). 보따리와 병법서는 평상 위의 살림살이로만 둔다
-const TAV_SPOT = { rest: [560, 518], train: [870, 592], feast: [1160, 598] };
-const PLAQUE_X = { rest: 560, train: 870, feast: 1160 };
 // 조각보 보따리: 여러 빛깔 천 조각을 이어 붙인 보자기로 싸서, 위에서 두 귀를 묶었다
 export function bojagi(g, x, y, s = 1, R = rng(31), peek = null) {
   const cols = ['#b8322a', '#2f4d7e', '#e0b23c', '#3f6b5c', '#f3e6c4', '#c8587a', '#5a3a6a'];
@@ -350,44 +346,15 @@ export function bojagi(g, x, y, s = 1, R = rng(31), peek = null) {
   DAB(g, x, y - 53 * s, 9 * s, 7 * s, '#e0b23c', 1); g.beginPath(); g.ellipse(x, y - 53 * s, 9 * s, 7 * s, 0, 0, TAU); g.stroke(); PSTROKE(g, [x - 5 * s, y - 55 * s, x + 4 * s, y - 51 * s], '#8a6a1c', 1.2 * s);
   g.globalAlpha = 1;
 }
-// 고르는 물건들 (원점 = 바닥 가운데). 붓으로 칠한 결과 윤기
+// 평상 위 살림살이 (원점 = 바닥 가운데): 조각보 보따리 · 실로 맨 병법서와 등잔
 function tavernThing(g, id, x, y, t, on) {
   const S2 = PSTROKE;
-  if (id === 'rest') { // 개다리소반 위 국밥 한 상: 백자 대접, 김치·나물 종지, 놋숟가락
-    DAB(g, x + 4, y - 1, 54, 7, '#0a0610', 0.4);
-    for (const dx of [-30, 30]) { g.globalAlpha = 1; g.strokeStyle = '#4a2a16'; g.lineWidth = 5; g.beginPath(); g.moveTo(x + dx * 0.8, y - 20); g.quadraticCurveTo(x + dx * 1.25, y - 12, x + dx * 1.05, y); g.stroke(); }
-    g.fillStyle = VG(g, y - 30, y - 18, [[0, '#8a3a22'], [1, '#4a1a10']]); g.beginPath(); g.ellipse(x, y - 24, 52, 12, 0, 0, TAU); g.fill(); g.strokeStyle = '#d8a944'; g.lineWidth = 1.6; g.stroke(); DAB(g, x - 18, y - 28, 20, 3, '#e8a080', 0.35);
-    // 종지 둘
-    for (const [dx, c] of [[-34, '#c8402a'], [34, '#5a8a3a']]) { DAB(g, x + dx, y - 27, 10, 4, '#f6f2e6', 1); DAB(g, x + dx, y - 29, 7, 2.6, c, 1); }
-    // 백자 대접과 국밥
-    g.fillStyle = VG(g, y - 46, y - 24, [[0, '#ffffff'], [1, '#d8dcd4']]); g.beginPath(); g.moveTo(x - 22, y - 44); g.quadraticCurveTo(x - 20, y - 24, x, y - 24); g.quadraticCurveTo(x + 20, y - 24, x + 22, y - 44); g.closePath(); g.fill(); g.strokeStyle = '#7a8a9a'; g.lineWidth = 1; g.stroke();
-    S2(g, [x - 19, y - 38, x + 19, y - 38], '#3a5aa8', 1.4, 0.8); DAB(g, x, y - 44, 22, 5, '#b8783a', 1); DAB(g, x - 4, y - 45, 12, 2.6, '#f4ecd8', 0.9); for (let k = 0; k < 6; k++) DAB(g, x - 12 + k * 5, y - 45 + (k % 2), 1.6, 1, '#5a9a3a', 1);
-    S2(g, [x + 26, y - 30, x + 46, y - 36], '#d8a944', 2.4); DAB(g, x + 26, y - 30, 4, 2.4, '#d8a944', 1); S2(g, [x + 20, y - 26, x + 48, y - 30], '#6a4a2a', 1.4); S2(g, [x + 22, y - 24, x + 50, y - 27], '#6a4a2a', 1.4);
-    for (let k = 0; k < 3; k++) { const ph = t * 1.4 + k * 2.1, a = 0.35 * (0.5 + 0.5 * Math.sin(ph)); g.globalAlpha = a; curve(g, p => { const sx = x - 10 + k * 10; p.moveTo(sx, y - 52); p.quadraticCurveTo(sx - 8 + Math.sin(ph) * 4, y - 70, sx + 2, y - 88 - k * 4); }, '#e8e4f0', 2.4); } g.globalAlpha = 1;
-  } else if (id === 'supply') bojagi(g, x, y, 0.9);
+  if (id === 'supply') bojagi(g, x, y, 0.9);
   else if (id === 'study') { // 실로 맨 병법서 묶음과 등잔
     for (let k = 0; k < 3; k++) { const by = y - 10 - k * 11, c = ['#2f4d7e', '#8a2a26', '#3f6b5c'][k]; g.globalAlpha = 1; g.fillStyle = '#efe6cf'; g.fillRect(x - 32 + k * 2, by - 1, 52, 11); g.fillStyle = c; g.fillRect(x - 34 + k * 2, by, 52, 9); for (let q = 0; q < 4; q++) S2(g, [x - 30 + k * 2 + q * 4, by, x - 30 + k * 2 + q * 4, by + 9], '#f3e6c4', 0.8); }
     g.fillStyle = '#efe6cf'; g.fillRect(x - 26, y - 44, 40, 5); S2(g, [x - 20, y - 42, x + 8, y - 42], '#2a2a30', 0.8, 0.6);
     g.fillStyle = '#5a3820'; g.fillRect(x + 28, y - 8, 20, 8); S2(g, [x + 38, y - 8, x + 38, y - 46], '#5a3820', 3); DAB(g, x + 38, y - 48, 9, 3.4, '#8a6a4a', 1);
     const f = 1 + Math.sin(t * 11) * 0.08; glow(g, x + 38, y - 58, 28, '255,200,110', 0.5); DAB(g, x + 38, y - 56 * f, 3.4, 7 * f, '#ffb040', 1); DAB(g, x + 38, y - 54, 1.6, 3.6, '#fff4c0', 1);
-  } else if (id === 'train') { // 짚을 감은 목인: 팔 둘, 가슴에 붉은 과녁, 기대 놓은 목검
-    DAB(g, x + 4, y + 2, 38, 8, '#0a0610', 0.45);
-    for (const s2 of [-1, 1]) S2(g, [x, y - 6, x + s2 * 24, y + 2], '#4a2c18', 6);
-    g.globalAlpha = 1; g.fillStyle = VG(g, y - 124, y, [[0, '#8a5a34'], [1, '#4a2c18']]); g.fillRect(x - 10, y - 124, 20, 124); S2(g, [x - 4, y - 120, x - 4, y - 4], '#b88a5a', 1.6, 0.6);
-    for (const [yy, w] of [[y - 98, 86], [y - 66, 72]]) { g.fillStyle = VG(g, yy, yy + 10, [[0, '#7a4c2c'], [1, '#3e2414']]); g.fillRect(x - w / 2, yy, w, 10); DAB(g, x - w / 2, yy + 5, 4, 6, '#3e2414', 1); DAB(g, x + w / 2, yy + 5, 4, 6, '#3e2414', 1); }
-    for (const yy of [y - 116, y - 84, y - 44]) { g.fillStyle = VG(g, yy, yy + 16, [[0, '#e8c868'], [1, '#a8842e']]); g.fillRect(x - 13, yy, 26, 16); for (let q = 0; q < 6; q++) S2(g, [x - 12 + q * 4.6, yy + 1, x - 10 + q * 4.6, yy + 15], '#7a5a1e', 0.9, 0.7); }
-    DAB(g, x, y - 58, 9, 9, '#f3e6c4', 1); DAB(g, x, y - 58, 6, 6, '#c8302a', 1); DAB(g, x, y - 58, 2.4, 2.4, '#f3e6c4', 1);
-    g.save(); g.translate(x + 32, y - 6); g.rotate(-0.38); g.fillStyle = VG(g, -74, 0, [[0, '#e6c890'], [1, '#a07a48']]); g.fillRect(-3, -74, 6, 70); g.fillStyle = '#4a2c18'; g.fillRect(-8, -6, 16, 4); g.fillRect(-2.6, -4, 5.2, 12); g.restore();
-  } else if (id === 'feast') { // 붉은 옻칠 술상: 청화 백자 호리병, 잔 둘, 전 한 접시, 떡
-    DAB(g, x + 4, y + 2, 70, 10, '#0a0610', 0.45);
-    for (const dx of [-50, 50]) { g.globalAlpha = 1; g.fillStyle = '#4a1a10'; g.fillRect(x + dx - 5, y - 30, 10, 30); }
-    g.fillStyle = VG(g, y - 42, y - 28, [[0, '#b83a28'], [1, '#6a1a10']]); g.fillRect(x - 66, y - 42, 132, 12); g.fillStyle = '#d8a944'; g.fillRect(x - 66, y - 30, 132, 2); S2(g, [x - 64, y - 41, x + 64, y - 41], '#ff9a80', 1, 0.5);
-    // 호리병
-    g.fillStyle = VG(g, y - 96, y - 42, [[0, '#ffffff'], [1, '#d6dad4']]); g.beginPath(); g.moveTo(x - 32, y - 42); g.quadraticCurveTo(x - 50, y - 58, x - 36, y - 72); g.quadraticCurveTo(x - 42, y - 84, x - 34, y - 94); g.lineTo(x - 26, y - 94); g.quadraticCurveTo(x - 18, y - 84, x - 24, y - 72); g.quadraticCurveTo(x - 10, y - 58, x - 28, y - 42); g.closePath(); g.fill(); g.strokeStyle = '#7a8a9a'; g.lineWidth = 1; g.stroke();
-    for (const [dx, dy] of [[-34, -58], [-30, -64], [-36, -64]]) DAB(g, x + dx, y + dy, 3, 2, '#2f5aa8', 0.85); S2(g, [x - 40, y - 52, x - 22, y - 52], '#2f5aa8', 1, 0.7); DAB(g, x - 30, y - 96, 5, 2, '#8a2a26', 1); DAB(g, x - 38, y - 66, 2, 6, '#ffffff', 0.8);
-    for (const dx of [-4, 12]) { DAB(g, x + dx, y - 44, 6, 2, '#d6dad4', 1); g.fillStyle = '#f6f6f0'; g.beginPath(); g.moveTo(x + dx - 6, y - 52); g.lineTo(x + dx + 6, y - 52); g.lineTo(x + dx + 4, y - 44); g.lineTo(x + dx - 4, y - 44); g.closePath(); g.fill(); DAB(g, x + dx, y - 52, 6, 1.6, '#e8c890', 1); }
-    DAB(g, x + 38, y - 46, 22, 6, '#f6f2e6', 1); for (const [dx, dy] of [[-10, -2], [2, -4], [12, -1]]) { DAB(g, x + 38 + dx, y - 48 + dy, 7, 3.4, '#d89a3a', 1); DAB(g, x + 37 + dx, y - 49 + dy, 3, 1.2, '#ffe0a0', 0.8); DAB(g, x + 39 + dx, y - 48 + dy, 1.2, 1, '#3a7a2a', 1); }
-    for (let k = 0; k < 3; k++) DAB(g, x + 18 + k * 7, y - 58 - (k % 2) * 4, 4, 3, k % 2 ? '#f0c0c8' : '#f6f2e6', 1);
   }
   if (!on) { g.save(); g.globalAlpha = 0.5; ell(g, x, y - 40, 50, 46, 'rgba(20,16,24,0.5)'); g.restore(); }
 }
@@ -417,34 +384,30 @@ export class TavernOverlay extends Overlay {
     puppet(g, r.hero, 852, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1, noStick: true });
     // 반딧불
     for (let i = 0; i < 12; i++) { const ph = i * 2.3, x = 60 + ((i * 113) % 1160) + Math.sin(t * 0.6 + ph) * 26, y = 330 + ((i * 47) % 160) + Math.sin(t * 1.1 + ph) * 12, a = clamp(Math.sin(t * 1.6 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.6, 1.6, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 8, '255,230,140', a * 0.35); }
-    // 고르는 것들과 이름판
     // 평상 위 살림살이 (고르지 않는다)
     tavernThing(g, 'supply', 190, 518, t, true); tavernThing(g, 'study', 360, 518, t, true);
-    const order = ['rest', 'train', 'feast'];
-    for (const id of order) {
-      const c = by[id], [x, y] = TAV_SPOT[id], lack = c && c.cost && r.gold < c.cost, on = !!c && !lack, sel = this.hover === id;
-      const hitY = id === 'train' ? y - 130 : y - 90, qx = PLAQUE_X[id], hx = Math.min(x, qx) - 98, hw = 196 + Math.abs(x - qx);
-      if (!this.result && !this.left && on && tapped('tv' + id, hx, hitY, hw, 690 - hitY)) { this.hover = id; sfx('card'); this.pick(c); }
-      const dn = on && !this.result && isDown('tv' + id, hx, hitY, hw, 690 - hitY);
-      if (on && !this.result) glow(g, x, y - 46, 80, '255,220,150', 0.16 + 0.1 * Math.sin(t * 3 + x));
-      g.save(); if (dn) g.translate(0, -5); tavernThing(g, id, x, y, t, on && !this.result); g.restore();
-      // 나무 이름판
-      const px = qx - 110, py = 608, pw = 220, ph = 80;
+    // 고를 것: 오른쪽 아래에 옻칠 이름판 셋을 세로로 가지런히
+    const order = ['rest', 'train', 'feast'], pw = 340, ph = 76, px = W - pw - 26;
+    order.forEach((id, n) => {
+      const c = by[id], lack = c && c.cost && r.gold < c.cost, on = !!c && !lack, py = 452 + n * (ph + 10);
+      if (!this.result && !this.left && on && tapped('tv' + id, px, py, pw, ph)) { this.hover = id; sfx('card'); this.pick(c); }
+      const dn = on && !this.result && isDown('tv' + id, px, py, pw, ph);
       g.save(); if (!on || this.result) g.globalAlpha = 0.6;
-      plaque(g, px, py, pw, ph, { down: dn, glow: on && !this.result && !this.left });
+      const yy = plaque(g, px, py, pw, ph, { down: dn, glow: on && !this.result && !this.left });
       const lab = c ? c.label : ({ rest: '푹 쉰다', train: '수련한다', feast: '잔치를 벌인다' })[id];
-      text(g, lab, qx, py + 33 + (dn ? 3 : 0), { size: 22, font: FONT_B, maxW: pw - 40 });
-      text(g, !c ? '고를 패가 없다' : lack ? `엽전 ${c.cost} 부족` : SHORT[id], qx, py + 56 + (dn ? 3 : 0), { size: 16, fill: lack || !c ? RED : '#4a3a2a', maxW: pw - 34, weight: 400 });
+      text(g, lab, px + 30, yy + 31, { size: 23, font: FONT_B, align: 'left', maxW: pw - 60 });
+      text(g, !c ? '고를 패가 없다' : lack ? `엽전 ${c.cost} 부족` : SHORT[id], px + 31, yy + 55, { size: 16, align: 'left', fill: lack || !c ? RED : '#4a3a2a', maxW: pw - 60, weight: 400 });
+      if (on && !this.result) text(g, '▶', px + pw - 30, yy + ph / 2 + 1, { size: 16, fill: '#8a5a2c' });
       g.restore();
-    }
+    });
     // 주모의 옛이야기: 말풍선 한 마디씩
     if (tl && !this.result) {
-      // 주모 머리 바로 위에 뜨는 말풍선 (꼬리가 주모를 가리킨다)
-      const x = 120, y = 250, w = 500, h = 112;
-      rr(g, x + 3, y + 5, w, h, 16, 'rgba(10,6,16,0.45)'); poly(g, [x + w - 70, y + h - 2, x + w - 36, y + h - 2, 656, 352], '#fffaf0'); line(g, [x + w - 70, y + h - 1, 656, 352, x + w - 36, y + h - 1], INK, 2.2); rr(g, x, y, w, h, 16, '#fffaf0', INK, 2.2); rr(g, x + 4, y + 4, w - 8, h - 8, 13, null, 'rgba(201,150,46,0.6)', 1.2); g.fillStyle = '#fffaf0'; g.fillRect(x + w - 68, y + h - 4, 30, 5);
+      // 주모 머리 바로 위에 뜨는 말풍선 (꼬리가 아래로 주모를 가리킨다)
+      const x = 410, y = 190, w = 560, h = 124, tx = 690;
+      rr(g, x + 3, y + 5, w, h, 16, 'rgba(10,6,16,0.45)'); poly(g, [tx - 16, y + h - 2, tx + 16, y + h - 2, tx, y + h + 24], '#fffaf0'); line(g, [tx - 16, y + h - 1, tx, y + h + 24, tx + 16, y + h - 1], INK, 2.2); rr(g, x, y, w, h, 16, '#fffaf0', INK, 2.2); rr(g, x + 4, y + 4, w - 8, h - 8, 13, null, 'rgba(201,150,46,0.6)', 1.2); g.fillStyle = '#fffaf0'; g.fillRect(tx - 14, y + h - 4, 28, 5);
       rr(g, x + 18, y + 14, 210, 26, 6, '#2f6f5c'); text(g, `옛이야기 〈${tl.title}〉`, x + 123, y + 27.5, { size: 15, fill: C.cream, maxW: 200 });
       if (this.tale.fresh) { rr(g, x + w - 148, y + 14, 130, 26, 6, '#b8742a'); text(g, `이야기책 ${this.tale.n}/${this.tale.of}`, x + w - 83, y + 27.5, { size: 13.5, fill: C.cream }); }
-      g.globalAlpha = clamp((t % 3.6) / 0.3, 0, 1); textBlock(g, tl.lines[li], x + w / 2, y + 60, w - 50, 26, { size: 19, font: FONT_B }); g.globalAlpha = 1;
+      { g.font = `400 19px ${FONT_B}`; const two = g.measureText(tl.lines[li]).width > w - 50; g.globalAlpha = clamp((t % 3.6) / 0.3, 0, 1); textBlock(g, tl.lines[li], x + w / 2, y + (two ? 60 : 72), w - 50, 25, { size: 19, font: FONT_B }); g.globalAlpha = 1; }   // 한 줄이면 가운데, 두 줄이면 조금 위에서
       for (let m = 0; m < tl.lines.length; m++) ell(g, x + w / 2 + (m - (tl.lines.length - 1) / 2) * 16, y + h - 12, 4, 4, m === li ? '#2f6f5c' : 'rgba(38,42,54,0.22)');
     }
     // 고른 뒤: 한지 두루마리에 결과
