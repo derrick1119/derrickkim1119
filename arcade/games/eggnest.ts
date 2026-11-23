@@ -532,7 +532,7 @@ function refill(s: NestState) {
   if (t === 'giant' && o.r < 0.15) t = 'spot';
   const rr = t === 'giant' ? 0.16 : o.r >= 0.15 ? 0.115 : o.r, hp = t === 'giant' ? 2 : rr > 0.09 && t !== 'gold' ? 2 : 1;
   s.eggs.push({ x: o.x, z: o.z, r: rr, t, sp: pickSp(s, t), hp, hp0: hp, st: 4, tc: -99, th: s.lt + DROP_T, ch: 0, dx: 0, dz: 0, tap: false, h: r(), fr: 1e9 });
-  s.dropT = s.lt + (s.free.length > 5 ? 9 + Math.floor(r() * 8) : 18 + Math.floor(r() * 18));
+  s.dropT = s.lt + (s.free.length > 3 ? 5 + Math.floor(r() * 4) : 18 + Math.floor(r() * 18));
   see(s, 'et:' + t);
   ev(s, 'drop', o.x, o.z, s.eggs.length - 1);
 }
@@ -791,13 +791,6 @@ function starPath(g: C2, x: number, y: number, r: number, k = 0.47, rot = -Math.
     if (i) g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
     else g.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
   }
-  g.closePath();
-}
-function heartPath(g: C2, x: number, y: number, r: number) {
-  g.beginPath();
-  g.moveTo(x, y + r * 0.9);
-  g.bezierCurveTo(x - r * 1.5, y - r * 0.1, x - r * 0.9, y - r * 1.25, x, y - r * 0.45);
-  g.bezierCurveTo(x + r * 0.9, y - r * 1.25, x + r * 1.5, y - r * 0.1, x, y + r * 0.9);
   g.closePath();
 }
 function layer(w: number, h: number, paint: (c: C2) => void) {
@@ -2525,17 +2518,14 @@ function drawHud(ctx: C2, s: NestState, w: number, h: number) {
   fx.memo.disp = nd;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // ── 위 띠: 하트 · 점수 · 둥지 ──
+  // ── 위 띠: 최고 · 점수 · 둥지 ──
   rr(ctx, X(0.025), Y(0.016), X(0.95), Y(0.088), Y(0.044));
   ctx.fillStyle = 'rgba(255,250,236,.92)';
   ctx.fill();
   ctx.strokeStyle = '#e2b46a';
   ctx.lineWidth = 2;
   ctx.stroke();
-  for (let j = 0; j < HEARTS; j++) {
-    heartPath(ctx, X(0.075 + j * 0.056), Y(0.062), R(0.017));
-    ink(ctx, j < s.hearts ? lin(ctx, 0, Y(0.04), 0, Y(0.08), [0, '#ff8a95'], [1, '#e2334a']) : 'rgba(120,70,30,.16)', 1.6, j < s.hearts ? '#8a1a2a' : 'rgba(120,70,30,.3)');
-  }
+  gtext(ctx, `최고 ${s.best}`, X(0.06), Y(0.061), R(0.036), 800, '#a8875f', '', 0, 'left');
   const bump = clamp(1 - (t - (fx.memo.bumpT ?? -99)) / 12, 0, 1);
   ctx.font = `900 ${Math.round(R(0.066) * (1 + bump * 0.16))}px system-ui, sans-serif`;
   ctx.lineJoin = 'round';
@@ -2547,77 +2537,88 @@ function drawHud(ctx: C2, s: NestState, w: number, h: number) {
   ctx.fillText(str, X(0.5), Y(0.062));
   gtext(ctx, `둥지 ${s.nest + 1}/${NESTS}`, X(0.855), Y(0.061), R(0.04), 800, '#7a4214', '', 0);
   if (s.phase === 'play') {
-    // ── 진행 막대: 반 ★ · 다 ★ · 한 번에 N ★ ──
-    const N = s.eggs.length, x0 = X(0.06), x1 = X(0.52), by = Y(0.135), bh = R(0.03), f = s.hatched / N;
-    rr(ctx, x0, by - bh / 2, x1 - x0, bh, bh / 2);
-    ctx.fillStyle = 'rgba(255,250,236,.9)';
-    ctx.fill();
-    ctx.strokeStyle = '#d8a860';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    if (f > 0) {
-      rr(ctx, x0 + 2, by - bh / 2 + 2, (x1 - x0 - 4) * f, bh - 4, bh / 2);
-      ctx.fillStyle = lin(ctx, 0, by - bh / 2, 0, by + bh / 2, [0, '#fff09a'], [1, '#ffb52a']);
+    // ── 별 셋 (쉬운 말): 아기 N마리 · 새 친구 · 한 번에 N마리 ──
+    const by = Y(0.137), ch = R(0.042), goals = [`아기 ${Math.min(s.hatched, HATCH_GOAL[s.nest])}/${HATCH_GOAL[s.nest]}`, '새 친구', `한 번에 ${CHAIN_GOAL[s.nest]}`];
+    const ok = [s.hatched >= HATCH_GOAL[s.nest], s.nestNew.length > 0 || s.newHit, s.maxChain >= CHAIN_GOAL[s.nest]];
+    const xs = [0.04, 0.37, 0.64], ws = [0.3, 0.24, 0.32];
+    for (let j = 0; j < 3; j++) {
+      rr(ctx, X(xs[j]), by - ch / 2, X(ws[j]), ch, ch / 2);
+      ctx.fillStyle = ok[j] ? 'rgba(255,238,160,.96)' : 'rgba(255,250,236,.9)';
       ctx.fill();
+      ctx.strokeStyle = ok[j] ? '#e0a020' : '#d8a860';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      if (j === 0 && !ok[0]) {
+        rr(ctx, X(xs[0]) + 2, by - ch / 2 + 2, (X(ws[0]) - 4) * clamp(s.hatched / HATCH_GOAL[s.nest], 0, 1), ch - 4, ch / 2);
+        ctx.fillStyle = 'rgba(255,214,90,.55)';
+        ctx.fill();
+      }
+      starIcon(ctx, X(xs[j]) + ch * 0.55, by, R(0.018), ok[j]);
+      gtext(ctx, goals[j], X(xs[j] + ws[j] / 2) + ch * 0.3, by + 0.5, R(0.034), 800, '#7a4214', '', 0);
     }
-    starIcon(ctx, x0 + (x1 - x0) * 0.5, by, R(0.026), f >= 0.5);
-    starIcon(ctx, x1, by, R(0.026), f >= 1);
-    const goal = CHAIN_GOAL[s.nest], ok = s.maxChain >= goal;
-    rr(ctx, X(0.575), by - bh * 0.62, X(0.33), bh * 1.24, bh * 0.62);
-    ctx.fillStyle = ok ? 'rgba(255,240,170,.95)' : 'rgba(255,250,236,.9)';
-    ctx.fill();
-    ctx.strokeStyle = '#d8a860';
-    ctx.stroke();
-    starIcon(ctx, X(0.607), by, R(0.022), ok);
-    gtext(ctx, `한 번에 ${goal}`, X(0.745), by + 0.5, R(0.036), 800, '#7a4214', '', 0);
-    // ── 이어지는 연쇄 수 ──
-    const ck = fx.memo.chainK ?? 0, age = t - (fx.memo.chainT ?? -999);
-    if (ck >= 2 && age < 70) {
-      const a = clamp((70 - age) / 20, 0, 1), pop = clamp(1 - age / 10, 0, 1), sz = R(0.06) + Math.min(R(0.06), ck * R(0.0025));
-      ctx.globalAlpha = a;
-      const cx = X(0.22), cy = Y(0.3);
-      const u = R(0.03);
+    // ── ×N (엄마 새 옆): 꺼지기 전 남은 시간 고리 · 꺼지면 합계 하나 ──
+    const k = s.combo, live = alive(s), cx = X(0.34), cy = Y(0.265);
+    if (live && k >= 1) {
+      const pop = clamp(1 - (t - (fx.memo.bumpT ?? -99)) / 10, 0, 1), sz = R(0.06) + Math.min(R(0.05), k * R(0.0012));
+      if (s.pend === 0) {
+        const left = clamp(1 - (s.lt - s.lastEv) / GRACE, 0, 1);
+        ctx.beginPath();
+        ctx.arc(cx - sz * 0.55, cy, sz * 0.62, -Math.PI / 2, -Math.PI / 2 + TAU * left);
+        ctx.strokeStyle = left < 0.35 && t % 10 < 5 ? '#ff4f7a' : '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
       ctx.save();
-      ctx.translate(cx - sz * 0.9, cy + u * 1.1);
-      stamp(ctx, babySpr(0, P_CHEER, u * 2.3), F_BABY, u);
+      ctx.translate(cx - sz * 0.55, cy + sz * 0.42);
+      stamp(ctx, babySpr(0, P_CHEER, sz * 0.5 * 2.3), F_BABY, sz * 0.4);
       ctx.restore();
       ctx.font = `900 ${Math.round(sz * (1 + pop * 0.3))}px system-ui, sans-serif`;
       ctx.textAlign = 'left';
       ctx.lineWidth = 6;
       ctx.strokeStyle = '#7a3a10';
-      ctx.strokeText(`×${ck}`, cx - sz * 0.35, cy);
-      ctx.fillStyle = kcol(ck);
-      ctx.fillText(`×${ck}`, cx - sz * 0.35, cy);
+      ctx.strokeText(`×${k}`, cx, cy);
+      ctx.fillStyle = kcol(k);
+      ctx.fillText(`×${k}`, cx, cy);
       ctx.textAlign = 'center';
+    }
+    const ea = t - (fx.memo.endT ?? -999);
+    if (!live && ea < 80 && (fx.memo.endK ?? 0) >= 2) {
+      const f = ea / 80, p = easeBack(clamp(ea / 10, 0, 1));
+      ctx.globalAlpha = clamp((1 - f) * 3, 0, 1);
+      ctx.save();
+      ctx.translate(X(0.42), Y(0.265) - f * R(0.03));
+      ctx.scale(p, p);
+      gtext(ctx, `+${fx.memo.endPts ?? 0}`, 0, 0, R(0.075) + Math.min(R(0.04), (fx.memo.endK ?? 0) * R(0.0008)), 900, '#ffd84a', '#7a3a10', 6);
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
-    // ── 둥지 시작: 둥지 이름 · 새 알 ──
-    // 둥지 이름·새 알 띠: 2.5초, 또는 첫 톡에서 0.15초 만에 걷힌다
+    // ── 둥지 시작: 둥지 이름 · 새 알 (첫 톡에서 걷힌다) ──
     const bl = s.taps === TAPS ? 150 : s.taps === TAPS - 1 ? Math.min(150, s.lastTap + 10) : 0;
-    if (s.lt < bl && (s.nest > 0 || s.hearts < HEARTS)) {
+    if (s.lt < bl && s.nest > 0) {
       ctx.globalAlpha = clamp((bl - s.lt) / 10, 0, 1) * clamp(s.lt / 6, 0, 1);
-      gtext(ctx, `둥지 ${s.nest + 1}`, X(0.3), Y(0.255), R(0.062), 900, '#ffffff', '#7a4214', 6);
+      gtext(ctx, `둥지 ${s.nest + 1}`, X(0.62), Y(0.215), R(0.06), 900, '#ffffff', '#7a4214', 6);
       if (s.newT) {
-        const u = R(0.03);
+        const u = R(0.026);
         ctx.save();
-        ctx.translate(X(0.1), Y(0.37));
+        ctx.translate(X(0.4), Y(0.33));
         stamp(ctx, eggSpr(s.newT, 0, 0, u * 2.3), F_EGG, u);
         ctx.restore();
-        gtext(ctx, 'NEW', X(0.1), Y(0.395), R(0.03), 900, '#ffffff', '#ff4f7a', 4);
-        gtext(ctx, ET_NAME[s.newT], X(0.17), Y(0.315), R(0.04), 900, '#7a4214', '#ffffff', 4, 'left');
-        gtext(ctx, ET_LINE[s.newT], X(0.17), Y(0.36), R(0.036), 800, '#e0641a', '#ffffff', 4, 'left');
+        gtext(ctx, 'NEW', X(0.4), Y(0.35), R(0.028), 900, '#ffffff', '#ff4f7a', 4);
+        gtext(ctx, `${ET_NAME[s.newT]} · ${ET_LINE[s.newT]}`, X(0.46), Y(0.29), R(0.036), 900, '#7a4214', '#ffffff', 4, 'left');
       }
       ctx.globalAlpha = 1;
     }
     if (s.firstTap < 0 && s.nest === 0) {
-      const p = 0.5 + 0.5 * Math.sin(t * 0.1);
-      rr(ctx, X(0.04), Y(0.205), X(0.56), Y(0.06), Y(0.03));
-      ctx.fillStyle = `rgba(255,255,255,${0.85 + p * 0.1})`;
+      rr(ctx, X(0.25), Y(0.215), X(0.71), Y(0.06), Y(0.03));
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
       ctx.fill();
       ctx.strokeStyle = '#e2b46a';
       ctx.lineWidth = 2;
       ctx.stroke();
-      gtext(ctx, '알을 톡! 아기가 옆 알을 깨요', X(0.32), Y(0.236), R(0.038), 800, '#7a4214', '', 0);
+      gtext(ctx, '알을 톡! 아기가 옆 알을 깨요', X(0.605), Y(0.246), R(0.038), 800, '#7a4214', '', 0);
+    } else if (s.nest === 0 && s.taps >= TAPS - 2 && alive(s) && s.pend === 0) {
+      // 처음 연쇄가 꺼지려 할 때 한 번 알려 준다
+      gtext(ctx, '꺼지기 전에 또 톡!', X(0.68), Y(0.33), R(0.04), 900, '#ffffff', '#e0641a', 5);
     }
   }
   // ── 아래: 남은 톡 (알 8개) ──
@@ -2625,7 +2626,7 @@ function drawHud(ctx: C2, s: NestState, w: number, h: number) {
     const gap = X(0.085), cx0 = X(0.5) - (gap * (TAPS - 1)) / 2, y = Y(1.455), u = R(0.021);
     const sh = t - (fx.memo.emptyT ?? -99) < 16 ? Math.sin(t * 2.4) * R(0.01) : 0;
     rr(ctx, cx0 - gap * 0.65 + sh, y - u * 3.0, gap * (TAPS - 1) + gap * 1.3, u * 3.6, u * 1.8);
-    ctx.fillStyle = 'rgba(255,248,230,.86)';
+    ctx.fillStyle = 'rgba(255,248,230,.9)';
     ctx.fill();
     ctx.strokeStyle = '#e2b46a';
     ctx.lineWidth = 1.5;
@@ -2634,7 +2635,7 @@ function drawHud(ctx: C2, s: NestState, w: number, h: number) {
       const on = j < s.taps, nx = on && j === s.taps - 1 && s.phase === 'play';
       ctx.save();
       ctx.translate(cx0 + gap * j + sh, y - (nx ? Math.abs(Math.sin(t * 0.12)) * R(0.008) : 0));
-      stamp(ctx, eggSpr(on ? 'spot' : 'spot', 0, on ? 0 : 1, u * 2.3), F_EGG, u);
+      stamp(ctx, eggSpr('spot', 0, on ? 0 : 1, u * 2.3), F_EGG, u);
       ctx.restore();
     }
   }
@@ -2649,11 +2650,11 @@ function drawCard(ctx: C2, s: NestState, w: number, h: number) {
   ctx.save();
   ctx.translate(0, (1 - e) * Y(0.4));
   ctx.globalAlpha = ap;
-  const cx = X(0.5), top = Y(0.33), bot = Y(1.25);
+  const cx = X(0.5), top = Y(0.2), bot = Y(1.36);
   ctx.shadowColor = 'rgba(80,40,10,.35)';
   ctx.shadowBlur = 14;
   ctx.shadowOffsetY = 4;
-  rr(ctx, X(0.06), top, X(0.88), bot - top, R(0.06));
+  rr(ctx, X(0.04), top, X(0.92), bot - top, R(0.06));
   ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#fffaf0'], [1, '#ffeccb']);
   ctx.fill();
   ctx.shadowColor = 'transparent';
@@ -2661,90 +2662,84 @@ function drawCard(ctx: C2, s: NestState, w: number, h: number) {
   ctx.lineWidth = 3;
   ctx.stroke();
   const sndOnce = (key: string, n: Parameters<typeof fx.sound>[0], p: number) => {
-    const k = `${key}:${s.nest}:${s.hearts}:${s.phase}`;
+    const k = `${key}:${s.nest}:${s.phase}`;
     if (fx.memo[k]) return;
     fx.memo[k] = 1;
     fx.sound(n, p, 0.9);
   };
   if (s.phase === 'result') {
-    gtext(ctx, `둥지 ${s.nest + 1} 부화!`, cx, Y(0.39), R(0.058), 900, '#7a4214', '', 0);
-    const labels = ['반 깨우기', '다 깨우기', `한 번에 ${CHAIN_GOAL[s.nest]}`];
+    gtext(ctx, `둥지 ${s.nest + 1} 부화!`, cx, Y(0.26), R(0.058), 900, '#7a4214', '', 0);
+    const labels = [`아기 ${HATCH_GOAL[s.nest]}마리`, '새 친구 만나기', `한 번에 ${CHAIN_GOAL[s.nest]}마리`];
     for (let j = 0; j < 3; j++) {
       const at0 = 14 + j * 10, f = clamp((pt - at0) / 8, 0, 1), on = s.starOk[j] && f > 0;
       if (on && f > 0) sndOnce('star' + j, 'coin', 1 + j * 0.12);
-      const x = X(0.3 + j * 0.2), y = Y(0.48);
-      const sz = R(0.055) * (on ? 0.6 + 0.4 * easeBack(f) : 1);
+      const x = X(0.2 + j * 0.3), y = Y(0.35);
+      const sz = R(0.05) * (on ? 0.6 + 0.4 * easeBack(f) : 1);
       starIcon(ctx, x, y, sz, on);
-      gtext(ctx, labels[j], x, Y(0.545), R(0.034), 800, on ? '#a86a00' : '#a8875f', '', 0);
+      gtext(ctx, labels[j], x, Y(0.41), R(0.033), 800, on ? '#a86a00' : '#a8875f', '', 0);
     }
     const cnt = Math.round(s.nestPts * clamp((pt - 10) / 30, 0, 1));
-    gtext(ctx, `+${cnt}`, cx, Y(0.625), R(0.08), 900, '#e0641a', '#ffffff', 5);
+    gtext(ctx, `+${cnt}`, cx, Y(0.49), R(0.08), 900, '#e0641a', '#ffffff', 5);
     if (s.newBest && s.nest > 0 && pt > 40) {
       const p = easeBack(clamp((pt - 40) / 10, 0, 1));
       sndOnce('best', 'chime', 1.4);
       ctx.save();
-      ctx.translate(X(0.79), Y(0.6));
+      ctx.translate(X(0.79), Y(0.47));
       ctx.rotate(0.18);
       ctx.scale(p, p);
       gtext(ctx, '최고 기록!', 0, 0, R(0.046), 900, '#ffffff', '#ff4f7a', 5);
       ctx.restore();
-    } else gtext(ctx, `최고 ${s.best}`, cx, Y(0.69), R(0.036), 800, '#a8875f', '', 0);
+    } else gtext(ctx, `최고 ${s.best} · 한 번에 최고 ${s.maxChain}마리`, cx, Y(0.555), R(0.034), 800, '#a8875f', '', 0);
     if (s.unlockT) {
       const f = clamp((pt - 44) / 10, 0, 1);
       if (f > 0) sndOnce('unlock', 'swell', 1.2);
-      const u = R(0.042) * (0.4 + 0.6 * easeBack(f));
-      rr(ctx, X(0.12), Y(0.725), X(0.76), Y(0.14), R(0.03));
+      const u = R(0.04) * (0.4 + 0.6 * easeBack(f));
+      rr(ctx, X(0.1), Y(0.595), X(0.8), Y(0.13), R(0.03));
       ctx.fillStyle = 'rgba(255,236,180,.8)';
       ctx.fill();
       ctx.save();
-      ctx.translate(X(0.22), Y(0.845));
+      ctx.translate(X(0.2), Y(0.705));
       ctx.rotate(Math.sin(t * 0.1) * 0.08);
       stamp(ctx, eggSpr(s.unlockT, 0, 0, u * 2.3), F_EGG, u);
       ctx.restore();
-      gtext(ctx, 'NEW', X(0.22), Y(0.745), R(0.032), 900, '#ffffff', '#ff4f7a', 4);
-      gtext(ctx, `다음 둥지에 ${ET_NAME[s.unlockT]}`, X(0.32), Y(0.77), R(0.04), 900, '#7a4214', '', 0, 'left');
-      gtext(ctx, ET_LINE[s.unlockT], X(0.32), Y(0.82), R(0.038), 800, '#e0641a', '', 0, 'left');
-    } else if (s.nest + 1 >= NESTS) gtext(ctx, '마지막 둥지까지 다 깨웠어요!', cx, Y(0.79), R(0.042), 900, '#e0641a', '', 0);
-    else gtext(ctx, '다음은 마지막 큰 둥지!', cx, Y(0.79), R(0.042), 900, '#e0641a', '', 0);
-    dexRow(ctx, s, w, Y(0.95));
-  } else if (s.phase === 'fail') {
-    gtext(ctx, '앗, 반도 못 깨웠어요', cx, Y(0.4), R(0.054), 900, '#7a4214', '', 0);
-    heartPath(ctx, cx, Y(0.56), R(0.08));
-    ink(ctx, lin(ctx, 0, Y(0.5), 0, Y(0.62), [0, '#ff8a95'], [1, '#e2334a']), 3, '#8a1a2a');
-    line(ctx, [cx - R(0.01), Y(0.5), cx + R(0.02), Y(0.54), cx - R(0.015), Y(0.57), cx + R(0.01), Y(0.62)], '#5a0a1a', 3);
-    gtext(ctx, s.hearts > 0 ? `하트 ${s.hearts}개 남음 · 같은 둥지 다시` : '하트가 다 깨졌어요', cx, Y(0.71), R(0.04), 800, '#a8875f', '', 0);
-    gtext(ctx, `큰 알부터 톡 하면 오래 이어져요`, cx, Y(0.8), R(0.036), 800, '#e0641a', '', 0);
-    dexRow(ctx, s, w, Y(0.95));
+      gtext(ctx, 'NEW', X(0.2), Y(0.612), R(0.03), 900, '#ffffff', '#ff4f7a', 4);
+      gtext(ctx, `다음 둥지에 ${ET_NAME[s.unlockT]}`, X(0.3), Y(0.636), R(0.04), 900, '#7a4214', '', 0, 'left');
+      gtext(ctx, ET_LINE[s.unlockT], X(0.3), Y(0.685), R(0.038), 800, '#e0641a', '', 0, 'left');
+    } else gtext(ctx, '마지막 둥지까지 다 깨웠어요!', cx, Y(0.66), R(0.042), 900, '#e0641a', '', 0);
+    dexRow(ctx, s, w, Y(0.8));
   } else {
-    gtext(ctx, s.won ? '둥지 7개 다 깨웠어요!' : '하트가 다 깨졌어요', cx, Y(0.4), R(0.054), 900, '#7a4214', '', 0);
-    gtext(ctx, String(s.pts), cx, Y(0.56), R(0.1), 900, '#e0641a', '#ffffff', 6);
-    gtext(ctx, `도감 ${s.dex.filter(Boolean).length}/${SPN}`, cx, Y(0.68), R(0.042), 800, '#7a4214', '', 0);
-    dexRow(ctx, s, w, Y(0.86));
+    gtext(ctx, '둥지 6개 다 깨웠어요!', cx, Y(0.27), R(0.054), 900, '#7a4214', '', 0);
+    gtext(ctx, String(s.pts), cx, Y(0.41), R(0.1), 900, '#e0641a', '#ffffff', 6);
+    gtext(ctx, `최고 둥지 ${s.best}점`, cx, Y(0.52), R(0.04), 800, '#a8875f', '', 0);
+    dexRow(ctx, s, w, Y(0.68));
   }
   if (pt >= RES_MIN) {
     const p = Math.max(0, Math.sin(t * 0.13));
-    gtext(ctx, s.phase === 'result' ? '톡 — 다음 둥지' : s.phase === 'fail' ? '톡 — 다시' : '톡 — 처음부터', cx, Y(1.185), R(0.042), 900, '#ffffff', '#e0641a', 5);
-    drawHand(ctx, cx + R(0.2), Y(1.21) + p * R(0.01), R(0.08));
+    gtext(ctx, s.phase === 'result' ? '톡 — 다음 둥지' : '톡 — 처음부터', cx, Y(1.27), R(0.046), 900, '#ffffff', '#e0641a', 5);
+    drawHand(ctx, cx + R(0.22), Y(1.3) + p * R(0.01), R(0.08));
   }
   ctx.restore();
 }
-/** 도감 한 줄: 16칸 (8 × 2), 처음 본 아기는 반짝 */
+/** 도감: 16칸 (4 × 4, 크게) — 처음 본 아기는 분홍 테두리로 콩콩 */
 function dexRow(ctx: C2, s: NestState, w: number, y0: number) {
-  const R = (r: number) => r * w, gap = R(0.095), x0 = w / 2 - gap * 3.5, u = R(0.022), t = s.t;
+  const R = (r: number) => r * w, gx = R(0.2), gy = R(0.105), x0 = w / 2 - gx * 1.5, u = R(0.03), t = s.t;
+  gtext(ctx, `도감 ${s.dex.filter(Boolean).length}/${SPN}`, w / 2, y0 - R(0.055), R(0.04), 900, '#7a4214', '', 0);
   for (let i = 0; i < SPN; i++) {
-    const x = x0 + (i % 8) * gap, y = y0 + Math.floor(i / 8) * R(0.105), has = s.dex[i], nw = s.nestNew.includes(i);
-    ell(ctx, x, y - u * 1.0, R(0.04), R(0.04));
-    ctx.fillStyle = has ? (SP[i].rare ? 'rgba(255,226,120,.9)' : 'rgba(255,255,255,.95)') : 'rgba(160,120,80,.18)';
+    const x = x0 + (i % 4) * gx, y = y0 + R(0.04) + Math.floor(i / 4) * gy, has = s.dex[i], nw = s.nestNew.includes(i);
+    rr(ctx, x - R(0.085), y - R(0.045), R(0.17), R(0.09), R(0.035));
+    ctx.fillStyle = has ? (SP[i].rare ? 'rgba(255,226,120,.95)' : 'rgba(255,255,255,.96)') : 'rgba(160,120,80,.16)';
     ctx.fill();
     ctx.strokeStyle = nw ? '#ff4f7a' : 'rgba(170,120,60,.5)';
-    ctx.lineWidth = nw ? 2.5 : 1.2;
+    ctx.lineWidth = nw ? 3 : 1.2;
     ctx.stroke();
     if (has) {
       ctx.save();
-      ctx.translate(x, y + u * 0.6 - (nw ? Math.abs(Math.sin(t * 0.2 + i)) * R(0.008) : 0));
-      stamp(ctx, babySpr(i, nw ? P_CHEER : P_SIT, u * 2.3), F_BABY, u * 0.8);
+      ctx.translate(x - R(0.035), y + R(0.035) - (nw ? Math.abs(Math.sin(t * 0.2 + i)) * R(0.01) : 0));
+      stamp(ctx, babySpr(i, nw ? P_CHEER : P_SIT, u * 2.3), F_BABY, u);
       ctx.restore();
-    } else gtext(ctx, '?', x, y - u, R(0.04), 900, 'rgba(140,100,60,.55)', '', 0);
+      gtext(ctx, SP[i].name.replace('아기 ', ''), x + R(0.035), y, R(0.03), 800, '#7a4214', '', 0);
+    } else gtext(ctx, '?', x, y, R(0.045), 900, 'rgba(140,100,60,.55)', '', 0);
+    if (nw) gtext(ctx, 'NEW', x + R(0.06), y - R(0.045), R(0.026), 900, '#ffffff', '#ff4f7a', 3);
   }
 }
 export const __clone = (s: NestState) => clone(s), __tap = (s: NestState, i: number) => tapEgg(s, i), __ff = (s: NestState) => ff(s);
