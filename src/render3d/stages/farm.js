@@ -2,7 +2,7 @@
 //    값 구조: 앞(통로 앞 풀밭·양옆 큰 나무)은 짙고 진하게, 가운데 들판은 볕이 들어 밝게, 먼 바다·마을은 푸른 안개 속으로.
 import {
   THREE, P, G, bake, bakeV, terrain, cloudLayer, cloudMat, roundTree, bush, rock, mushroom, fence, hayBale, house,
-  groundBlob, waterMat, mesa, halfW, smooth, fbm, noise2, rgb, mixv, mix, rng, TAU, sphereGeo, roundBoxGeo, cylGeo,
+  groundBlob, waterMat, mesa, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU, sphereGeo, roundBoxGeo, cylGeo,
   coneGeo, torusGeo, latheGeo, extrudeGeo, capsuleGeo, LEAF, lanePlants, flowerGeo, tulipGeo, groundDecal, grassStrokes,
   speckle, glowS, sharedMat,
 } from './common.js';
@@ -364,12 +364,12 @@ function pond(parent, r) {
     g.add(water);
   }
   // 물가 돌(굵직하게)
-  for (let i = 0; i < 24; i++) {
-    const a = (i / 24) * TAU + r() * 0.15;
+  for (let i = 0; i < 30; i++) {
+    const a = (i / 30) * TAU + r() * 0.15;
     if (a > 0.3 && a < 1.2) continue;
     const x = cx + Math.cos(a) * rx * 1.03;
     const z = cz + Math.sin(a) * rz * 1.03;
-    rock(g, x, -0.06, z, 0.45 + r() * 0.3, r, r() < 0.5 ? '#c9c3d8' : '#b5aec6');
+    rock(g, x, -0.08, z, 0.32 + r() * 0.2, r, r() < 0.5 ? '#c9c3d8' : '#b5aec6');
   }
   // 연잎과 연꽃
   for (const [px, pz, k] of [[-0.7, -0.4, 1], [-0.45, -0.7, 0.8], [0.65, -0.5, 0.9], [0.2, -0.9, 0.7], [-0.1, 0.5, 0.8]]) {

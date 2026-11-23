@@ -94,7 +94,8 @@ export function palUV(hex) {
   return [((i % PN) + 0.5) / PN, (Math.floor(i / PN) + 0.5) / PN];
 }
 
-// 마감별 거칠기 등. glow 류는 방출 세기(블룸 문턱 1.25 를 넘도록 노란빛 2.6, 채도 높은 빛 5)
+// 마감별 거칠기 등. glow 류는 방출 세기: 블룸 문턱(밝기 1.25)을 넘도록 노란빛 glow 2.2, 채도 높은 빛 neon 3.4,
+// 창문처럼 넓은 빛은 warm 1.65(살짝만 번짐), lit 0.85(밝기만, 번짐 없음)
 const FIN_OPT = {
   matte: { rough: 0.9 },
   soft: { rough: 0.62 },
@@ -102,13 +103,13 @@ const FIN_OPT = {
   metal: { rough: 0.4, metal: 0.5, env: 1 },
   flat: { rough: 0.85, flat: true },
 };
-const GLOW_K = { glow: 2.6, neon: 5.0, lit: 0.85 };
+const GLOW_K = { glow: 2.2, neon: 3.4, warm: 1.65, lit: 0.85 };
 const finishCache = new Map();
 const palFin = new Map(); // 팔레트 재질 → 마감 이름(굽기 때 꼭짓점 색 판으로 바꾼다)
 
 /**
  * 팔레트 마감 재질. matte(풀·나무), soft(칠한 나무·벽), gloss(유리·물), metal, flat(각진 바위),
- * glow(스스로 빛남·블룸), neon(채도 높은 빛·블룸), lit(은은히 밝음·블룸 없음), unlit.
+ * glow(스스로 빛남·블룸), neon(채도 높은 빛·블룸), warm(넓은 창빛·약한 블룸), lit(은은히 밝음·블룸 없음), unlit.
  * vc = 꼭짓점 색을 곱하는 판(bake 가 쓴다).
  */
 export function finish(name = 'matte', vc = false) {
@@ -650,20 +651,26 @@ export function groundDecal({ key, x0 = -6.6, x1 = 6.6, zNear = 9, zFar = -7, px
   return m;
 }
 
-/** 칠한 풀 결(작은 초승달·붓 자국)을 뿌린다. 색은 반투명 rgba 를 권한다. */
+/** 칠한 풀 결(가는 풀잎 두세 가닥씩, 붓으로 톡톡 찍은 느낌)을 뿌린다. 색은 반투명 rgba 를 권한다. */
 export function grassStrokes(ctx, x0, y0, w, h, n, cols, r, size = [3, 7]) {
+  ctx.save();
+  ctx.lineCap = 'round';
   for (let i = 0; i < n; i++) {
     const x = x0 + r() * w;
     const y = y0 + r() * h;
     const s = size[0] + r() * (size[1] - size[0]);
-    ctx.fillStyle = cols[(r() * cols.length) | 0];
+    ctx.strokeStyle = cols[(r() * cols.length) | 0];
+    ctx.lineWidth = Math.max(1.2, s * 0.28);
     ctx.beginPath();
-    ctx.moveTo(x - s, y);
-    ctx.quadraticCurveTo(x - s * 0.2, y - s * 0.9, x + s * 0.15, y - s * 1.1);
-    ctx.quadraticCurveTo(x + s * 0.1, y - s * 0.4, x + s, y);
-    ctx.quadraticCurveTo(x, y + s * 0.25, x - s, y);
-    ctx.fill();
+    const k = 2 + ((r() * 2) | 0);
+    for (let j = 0; j < k; j++) {
+      const dx = (j - (k - 1) / 2) * s * 0.45;
+      ctx.moveTo(x + dx * 0.3, y);
+      ctx.quadraticCurveTo(x + dx * 0.8, y - s * 0.5, x + dx * 1.3, y - s * (0.8 + 0.3 * r()));
+    }
+    ctx.stroke();
   }
+  ctx.restore();
 }
 
 /** 캔버스에 잡티(작은 점·얼룩)를 뿌린다. */
@@ -1012,7 +1019,7 @@ export const LEAF = {
   pineDark: ['#173f3f', '#4f8f5a'],
   night: ['#173a44', '#3f7f6a'],
   dusk: ['#2a4f4c', '#c7b25a'],
-  city: ['#2e6448', '#9ccf58'],
+  city: ['#235a48', '#6fbf6a'],
 };
 const TRUNK = ['#5a3420', '#a36d3c'];
 
@@ -1038,7 +1045,8 @@ export function roundTree(parent, x, y, z, s = 1, r = Math.random, o = {}) {
   if (o.roots !== false) g.add(P(sphereGeo(1, 9, 5), '', { pos: [0, 0.03, 0], scale: [0.24, 0.1, 0.24], tt: trunk }));
   const sg = sphereGeo(1, seg, Math.max(6, Math.round(seg * 0.7)));
   const cy = th + 0.42;
-  for (const [px, py, pz, pr] of o.puffs || DEF_PUFFS) {
+  // 먼 나무(거친 분할)는 위 작은 혹을 빼고 덩이 다섯 개만
+  for (const [px, py, pz, pr] of o.puffs || (seg <= 7 ? DEF_PUFFS.slice(0, 5) : DEF_PUFFS)) {
     const j = 0.9 + r() * 0.2;
     g.add(P(sg, '', { pos: [px, cy + py, pz], scale: [pr * j, pr * j * 0.88, pr * j], tt: [leaf[0], leaf[1], 0.04 + py * 0.25] }));
   }
@@ -1462,12 +1470,12 @@ export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
     const cy = h + rh - (len / 2 - 0.05) * Math.sin(ang) + (th / 2) * Math.cos(ang);
     inner.add(P(rg, roof, { pos: [cx, cy, 0], rot: [0, 0, -sgn * ang], fin: 'soft', tt: detail > 0 ? roofTT : null }));
   }
-  inner.add(P(detail > 0 ? cylGeo(0.08, 0.08, rd + 0.04, 8) : boxGeo(0.12, 0.12, rd), o.ridge || mix(roof, '#3a2030', 0.25), { pos: [0, h + rh + th * 0.8, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
+  inner.add(P(detail > 0 ? cylGeo(0.08, 0.08, rd + 0.04, 8) : boxGeo(0.12, rd, 0.12), o.ridge || mix(roof, '#3a2030', 0.25), { pos: [0, h + rh + th * 0.8, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
   if (o.chimney !== false && detail > 0) {
     const cx = (o.chimneyX ?? 0.25) * w;
     const cy = h + rh * (1 - Math.abs(cx) / (w / 2)) + 0.12;
-    inner.add(P(boxGeo(0.18, 0.46, 0.18), o.chimneyCol || '#c7745a', { pos: [cx, cy, -d * 0.18], fin: 'soft' }));
-    inner.add(P(boxGeo(0.23, 0.07, 0.23), '#8a4f3e', { pos: [cx, cy + 0.25, -d * 0.18], fin: 'soft' }));
+    inner.add(P(roundBoxGeo(0.2, 0.44, 0.2, 0.03, 1), o.chimneyCol || '#c7745a', { pos: [cx, cy, -d * 0.18], fin: 'soft' }));
+    inner.add(P(roundBoxGeo(0.26, 0.08, 0.26, 0.03, 1), '#8a4f3e', { pos: [cx, cy + 0.24, -d * 0.18], fin: 'soft' }));
   }
   const winCol = o.lit ? '#ffd98a' : o.win || (detail > 0 ? '#9fd3ff' : '#86aede');
   const fin = o.lit ? 'glow' : detail > 0 ? 'gloss' : 'soft';
