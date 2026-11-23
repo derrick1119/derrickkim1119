@@ -3,7 +3,7 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, line, poly, st, clamp } from '../render/draw.js';
 import { ui, tapped, button, panel, brushTitle, seal, icon, C } from './ui.js';
 import { CARDS, KIND, cardVals, cardCost, cardName, isUnit } from '../data/cards.js';
-import { WEAPONS, ARMS, CLS_NAME, canEquip } from '../data/weapons.js';
+import { WEAPONS, ARMS, CLS_NAME, canEquip, setOf, setProgress } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { branchOf, AXES } from '../data/branches.js';
@@ -79,9 +79,12 @@ export function weaponTile(g, id, wid, x, y, w, h, o = {}) {
   g.save(); g.beginPath(); g.rect(x + 2, y + 2, w - 4, h - 24); g.clip(); g.globalAlpha *= 0.5; ell(g, x + w / 2, y + (h - 22) / 2, w * 0.36, (h - 22) * 0.36, '#e9dec4'); g.globalAlpha /= 0.5; weaponIcon(g, wid, x + w / 2, y + (h - 22) / 2 + 2, Math.min(0.9, w / 100)); g.restore();
   text(g, d.name, x + w / 2, y + h - 12, { size: 14, maxW: w - 6, fill: d.base ? SUB : INK });
   if (o.tag) { rr(g, x + 4, y + 4, 36, 17, 4, o.on ? RED : NAVY); text(g, o.tag, x + 22, y + 13, { size: 11.5, fill: C.cream }); }
+  const S = setOf(wid); if (S) { g.save(); g.translate(x + w - 11, y + 11); g.rotate(Math.PI / 4); rr(g, -4.6, -4.6, 9.2, 9.2, 1.6, S.col, INK, 1.1); g.restore(); }   // 세트에 드는 무기: 세트 빛깔 마름모
   g.restore();
   return hit;
 }
+// 덱에 끼운 무기로 켜진 세트 효과 (덱 살피기 머리에 한 줄로)
+export const activeSetText = deck => setProgress(deck).flatMap(p => p.set.tiers.filter((t, i) => p.on[i]).map(t => t.desc)).join(' · ');
 
 // ───────── 덱 살피기 ─────────
 // mode: view(구경·무기 끼우기) / up(강화·조련할 패 고르기) / burn(없앨 패 고르기).  filter 로 고를 수 있는 패를 좁힌다
@@ -96,6 +99,7 @@ export class DeckView {
     panel(g, 30, 24, 1220, 672);
     brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'temper' ? '무기 벼리기' : mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
     text(g, mode === 'temper' ? '무기를 벼릴 병력 패를 고르세요' : mode === 'up' ? '강화할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
+    if (mode === 'view') { const st2 = activeSetText(deck); if (st2) text(g, `세트 효과 · ${st2}`, 1226, 62, { size: 15, font: FONT_B, fill: '#8a5a10', align: 'right', maxW: 380 }); }
     // 같은 전술 패는 한 칸에 모은다 (병력·영웅 패는 한 장씩)
     const count = new Map(), list = [];
     for (const c of deck.slice().sort((a, b) => ORDER[CARDS[a.id].kind] - ORDER[CARDS[b.id].kind] || cardCost(a) - cardCost(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || a.uid - b.uid)) { const key = isUnit(c) ? 'u' + c.uid : c.id + (c.up ? '+' : ''); if (count.has(key)) { count.set(key, count.get(key) + 1); if (c.uid === this.sel) this.sel = list.find(q => q.key === key).c.uid; } else { count.set(key, 1); list.push({ key, c }); } }
@@ -129,10 +133,12 @@ export class DeckView {
     const type = CARDS[c.id].unit, arm = ARMS[type], cur = weaponOf(c);
     if (!arm) { text(g, '무기를 바꿀 수 없는 병종입니다', px + 182, 470, { size: 17, fill: SUB, weight: 400 }); return; }
     text(g, `${CLS_NAME[WEAPONS[cur].cls]} · ${WEAPONS[cur].name}`, px + 16, 432, { size: 18, font: FONT_B, align: 'left', fill: INDIGO }); text(g, WEAPONS[cur].desc, px + 16, 454, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 334 }); if (c.wpn) text(g, '부대가 전멸하면 이 무기도 잃습니다', px + 350, 432, { size: 13, align: 'right', fill: RED, weight: 400 });
+    // 끼운 무기의 세트: 덱에 몇 개 모였는지와 다음 세트 효과
+    const S = setOf(cur); if (S) { const n = (setProgress(r.deck).find(q => q.set === S) || { n: 0 }).n, nx = S.tiers.find(t => n < t.n); rr(g, px + 14, 466, 8, 8, 1.5, S.col, INK, 0.8); text(g, `세트 · ${S.name} ${n}/3  ${nx ? `— ${nx.n}개: ${nx.desc}` : '— 세트 효과 모두 켜짐'}`, px + 28, 471, { size: 13.5, align: 'left', fill: S.col, maxW: 326 }); }
     const slots = [{ wid: cur, on: true }]; if (c.wpn) slots.push({ wid: arm.base, base: true });
     r.items.forEach(wid => { if (canEquip(type, wid)) slots.push({ wid }); }); r.items.forEach(wid => { if (!canEquip(type, wid)) slots.push({ wid, dim: true }); });
     slots.slice(0, 8).forEach((o, k) => {
-      if (weaponTile(g, 'wt' + k, o.wid, px + 14 + (k % 4) * 85, 470 + Math.floor(k / 4) * 76, 80, 70, { on: o.on, dim: o.dim, tag: o.on ? '장착' : o.base ? '기본' : o.wid === this.hint ? '새것' : '' }) && !o.on) { equip(c.uid, o.base ? null : o.wid); sfx('place'); if (this.onChange) this.onChange(); }
+      if (weaponTile(g, 'wt' + k, o.wid, px + 14 + (k % 4) * 85, 484 + Math.floor(k / 4) * 71, 80, 66, { on: o.on, dim: o.dim, tag: o.on ? '장착' : o.base ? '기본' : o.wid === this.hint ? '새것' : '' }) && !o.on) { equip(c.uid, o.base ? null : o.wid); sfx('place'); if (this.onChange) this.onChange(); }
     });
     if (slots.length > 8) text(g, `+${slots.length - 8}`, px + 350, 432, { size: 14, fill: SUB, align: 'right' });
   }

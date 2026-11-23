@@ -4,7 +4,7 @@ import { RELICS, CURSES } from './data/relics.js';
 import { genEncounter, AFFIX } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
 import { CARDS, MAX_LV, starterDeck, cardName, isUnit, packN } from './data/cards.js';
-import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
+import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip, applySets } from './data/weapons.js';
 import { branchOf, canBranch } from './data/branches.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
@@ -173,6 +173,7 @@ const DAILY_MOD = {
 export function mods() {
   const r = G.run, m = Object.assign({}, DEFAULT_MODS), h = hardOf(r.hard || 0); m.unit = {}; m.forms = m.forms.slice(); m.curses = r.relics.filter(id => RELICS[id] && RELICS[id].curse).length + r.deck.filter(c => c.id === 'doubt').length;
   for (const id of r.relics) RELICS[id].mod(m);
+  applySets(m, r.deck);
   const tr = r.alt ? TRAIT2 : TRAIT; if (tr[r.hero]) tr[r.hero](m);
   if (r.daily) for (const k of r.daily.rules) if (DAILY_MOD[k]) DAILY_MOD[k](m);
   if ((r.lv || 1) >= 5) { m.heroHp *= 1.1; m.heroAtk *= 1.1; }   // 명장

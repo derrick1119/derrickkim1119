@@ -155,6 +155,123 @@ const WEAPONS = {
   staff(g) { shaft(g, 20.4, -33, '#8a6a3c', 1.9); band(g, -33.6, 4.6, 2.4, BRASS); const ring = (x, y, r, lw) => { curve(g, p => p.arc(x, y, r, 0, TAU), INK, lw + 1.5); curve(g, p => p.arc(x, y, r, 0, TAU), '#e6b93e', lw); curve(g, p => p.arc(x, y, r, 3.6, 5), '#fff3c0', lw * 0.5); }; ring(0.4, -38.6, 4.8, 1.7); for (const s of [-1, 1]) { ring(0.4 + s * 4.8, -34.4, 2, 1); ring(0.4 + s * 3.2, -31, 1.6, 0.9); } },
   bells(g) { shaft(g, 5, -12, WOODD, 1.7); line(g, [0, -4, -5, 4.4], RED, 1.3); line(g, [0, -4, 4.6, 5.2], INDIGO, 1.3); line(g, [0, -4, -1, 7.4], OCHRE, 1.3); for (const [x, y] of [[-4.6, -13], [4.6, -13], [0, -11.4], [-3.2, -20.6], [3.4, -20.4], [0, -17.8]]) { part(g, E(x, y, 2.7, 2.7), '#e6b93e', E(x + 0.9, y + 0.9, 2.1, 2.1), { hi: E(x - 0.9, y - 1, 0.8, 0.5), hic: '#fff3c0', lw: 0.9 }); line(g, [x - 1.4, y + 1, x + 1.4, y + 1], INK, 0.6); } },
   bowl(g) { for (const [a, l] of [[-0.5, 15], [0.1, 18], [0.6, 14]]) { g.save(); g.translate(0, -7); g.rotate(a); line(g, [0, 0, 0, -l], '#3f6b5c', 1.2); for (let y = -4; y > -l; y -= 3.6) { ell(g, -1.8, y, 1.9, 0.9, '#5f9a6a', INK, 0.5, 0.6); ell(g, 1.8, y - 1.6, 1.9, 0.9, '#5f9a6a', INK, 0.5, -0.6); } g.restore(); } part(g, p => { p.moveTo(-7.6, -7.4); p.quadraticCurveTo(-6.8, 1.4, 0, 1.4); p.quadraticCurveTo(6.8, 1.4, 7.6, -7.4); p.closePath(); }, WHITE, P(1.6, -8, 8, -8, 8, 2, 2.6, 2), { k: 0.12, lw: 1.1 }); part(g, E(0, -7.4, 7.6, 2.3), '#bfe3ee', E(1.6, -6.8, 5.6, 1.5), { k: 0.14, lw: 1 }); line(g, [-5.2, -2.6, 5.2, -2.6], INDIGO, 0.9); rr(g, -3, 1.2, 6, 1.9, 0.6, WHITE, INK, 0.8); },
+  // ── 더한 무기 열여섯: 조선의 칼·창·둔기·총통·부적·무구 ──
+  // 쌍수도: 두 손으로 쥐는 긴 칼, 긴 손잡이와 넓은 코등이
+  ssangsudo(g) {
+    blade(g, p => { p.moveTo(-1.9, -4.6); p.quadraticCurveTo(-1.2, -26, 4.2, -49.4); p.quadraticCurveTo(4, -26, 2.2, -4.6); p.closePath(); }, p => { p.moveTo(-2.3, -4.2); p.quadraticCurveTo(-1.6, -26, 4.2, -50); p.quadraticCurveTo(0.6, -27, 0.1, -4.2); p.closePath(); }, p => { p.moveTo(1.7, -5.4); p.quadraticCurveTo(3.4, -26, 4, -47.6); p.quadraticCurveTo(2.6, -26, 1.1, -5.4); p.closePath(); });
+    curve(g, p => { p.moveTo(0.2, -7); p.quadraticCurveTo(0.8, -24, 2.8, -38); }, '#8a959c', 0.6);
+    guard(g, -4.9, 9.6); hilt(g, -3.6, 11.4, '#2b2a30'); band(g, 3.4, 3.8, 1.4, OCHRE); ell(g, 0, 12.4, 1.9, 1.5, OCHRE, INK, 0.7); tassel(g, 0.4, 13.4, 6, RED, 0.25);
+  },
+  // 운검: 임금을 지키던 칼 — 붉은 칠 손잡이, 금빛 코등이와 고리, 노란 술
+  ungeom(g) {
+    WEAPONS.hwando(g, { wrap: '#a8322a', tas: '#e0b23c' });
+    for (const y of [-1.6, 1.8]) band(g, y, 3.8, 1.2, '#e6b93e');
+    part(g, E(0, -4.7, 4.8, 2), '#e6b93e', E(1, -4.1, 3.8, 1.3), { hi: E(-1.7, -5.3, 1.5, 0.5), hic: '#fff3c0', lw: 0.9 });
+    for (const s of [-1, 1]) ell(g, s * 3.2, -4.7, 0.8, 0.8, '#b8322a', INK, 0.4);
+  },
+  // 부적검: 칼날에 노란 부적을 감고 붉은 실로 묶었다
+  bujeokgeom(g) {
+    WEAPONS.hwando(g, { wrap: '#3a2a26', tas: '#e0b23c' });
+    g.save(); g.translate(2.4, -13.4); g.rotate(0.16);
+    part(g, P(-2.6, -6.4, 2.6, -6.4, 2.6, 6, 1.3, 7.4, 0, 6.2, -1.3, 7.4, -2.6, 6), '#f0d264', P(0.6, -6.4, 2.6, -6.4, 2.6, 6, 1.3, 7.4), { k: 0.12, lw: 0.8 });
+    rr(g, -1.8, -5, 3.6, 10, 0.3, null, '#b8342a', 0.45); g.beginPath(); g.moveTo(-1.1, -3.4); g.lineTo(1.1, -2); g.lineTo(-1.1, -0.2); g.lineTo(1.1, 1.6); g.lineTo(-0.8, 3.2); st(g, '#b8342a', 0.8);
+    g.restore(); line(g, [-0.6, -8.8, 4.4, -7.6], '#b8342a', 1); line(g, [-0.2, -18.6, 4, -18.8], '#b8342a', 0.9);
+  },
+  // 낭선: 가지를 남겨 둔 대나무 끝에 쇠 날, 가지 끝마다 댓잎
+  bamboo(g) {
+    const BAM = '#6f8f3a', BAMD = '#4f6a2a';
+    line(g, [0, 12, 0, -40], INK, 4); line(g, [0, 12, 0, -40], BAM, 2.4); line(g, [-0.6, 10, -0.6, -38], lt(BAM, 0.35), 0.6);
+    for (const y of [6, -4, -14, -24, -34]) line(g, [-1.9, y, 1.9, y], BAMD, 1.2);
+    for (const [y, sg, l] of [[-11, 1, 7], [-16, -1, 9], [-22, 1, 10], [-28, -1, 9], [-33, 1, 8]]) { const c = p => { p.moveTo(0, y); p.quadraticCurveTo(sg * l * 0.6, y - 2, sg * l, y - 6); }; curve(g, c, INK, 2.2); curve(g, c, BAMD, 1.1); part(g, E(sg * (l + 1.4), y - 7.2, 2.4, 0.9, sg * -0.6), '#7aa04a', E(sg * (l + 1.8), y - 6.8, 1.6, 0.5, sg * -0.6), { lw: 0.5 }); }
+    band(g, -40.6, 4, 2.2, IRON);
+    blade(g, P(-2.2, -41, 0, -51, 2.2, -41), P(-2.4, -41, 0, -51.4, 0, -41), P(1, -41.6, 0.4, -48, 0.4, -41.6));
+  },
+  // 죽장창: 아주 긴 대나무 자루, 작은 잎사귀 날과 붉은 삭모
+  jukjang(g) {
+    const BAM = '#c9b06a';
+    line(g, [0, 16, 0, -50], INK, 3.6); line(g, [0, 16, 0, -50], BAM, 2); line(g, [-0.5, 14, -0.5, -48], lt(BAM, 0.35), 0.5);
+    for (const y of [8, -4, -16, -28, -40]) line(g, [-1.6, y, 1.6, y], dk(BAM, 0.3), 1.1);
+    band(g, -50.4, 3.8, 2.2, IRON); blade(g, P(-2.2, -50.6, 0, -61, 2.2, -50.6, 0, -49.6), P(-2.3, -50.6, 0, -61.4, 0, -49.6), P(1, -51, 0.4, -58, 0.4, -50.6));
+    tassel(g, -0.4, -48.4, 6.4, RED, 0.45); band(g, 13.6, 3.8, 2.2, IRON);
+  },
+  // 갈고리창: 창날 아래 한쪽으로 휘어 내린 쇠 갈고리
+  galgori(g) {
+    shaft(g, 12, -34, '#7a4a2c', 1.9); band(g, -35, 4.6, 2.4, IRON);
+    const hk = p => { p.moveTo(0.6, -37.6); p.quadraticCurveTo(9.6, -38.6, 9.2, -31.2); p.quadraticCurveTo(8.8, -28, 6, -29.2); };
+    curve(g, hk, INK, 3.8); curve(g, hk, '#c9cdd2', 2.1); curve(g, p => { p.moveTo(2.4, -38.4); p.quadraticCurveTo(8.2, -38.6, 8.6, -33); }, '#ffffff', 0.6);
+    blade(g, P(-2.6, -35.4, 0, -48.6, 2.6, -35.4, 0, -33.6), P(-2.7, -35.4, 0, -49, 0, -33.6), P(1.3, -36, 0.4, -45, 0.4, -35)); line(g, [0, -46, 0, -36], '#8a959c', 0.5);
+    tassel(g, -0.6, -31.6, 6.6, RED, 0.5); band(g, 9.6, 4.4, 2.4, IRON);
+  },
+  // 곤봉: 두 끝에 쇠를 씌운 긴 박달나무 몽둥이, 끝에는 쇠못을 박았다
+  gombong(g) {
+    shaft(g, 12, -38, '#6a4428', 2.5);
+    for (const y of [-39, 9.6]) part(g, R(-2.5, y, 5, 3.8), IRON, R(0.4, y, 2.2, 3.8), { hi: R(-2, y + 0.4, 0.8, 3), hic: '#8a8a98', lw: 0.9 });
+    for (let y = -35; y < -22; y += 3.2) { ell(g, -1.2, y, 0.7, 0.7, '#9a9aa6', INK, 0.4); ell(g, 1.2, y + 1.6, 0.7, 0.7, '#9a9aa6', INK, 0.4); }
+    part(g, E(0, -40, 2.7, 1.5), '#9a9aa6', null, { lw: 0.7 }); for (const y of [-2, 1.4]) line(g, [-2, y, 2, y + 0.6], '#d9c39a', 1.1);
+  },
+  // 홍두깨: 다듬이질하던 굵은 박달나무 방망이
+  hongdukkae(g) {
+    part(g, p => { p.moveTo(-1.7, 5); p.lineTo(-1.7, -4); p.quadraticCurveTo(-4.8, -6, -4.8, -12); p.lineTo(-4.5, -32); p.quadraticCurveTo(-4.4, -36.4, 0, -36.4); p.quadraticCurveTo(4.4, -36.4, 4.5, -32); p.lineTo(4.8, -12); p.quadraticCurveTo(4.8, -6, 1.7, -4); p.lineTo(1.7, 5); p.closePath(); }, '#b07a44', P(1.2, -37, 6, -37, 6, -6, 2, 5, 1.2, 5), { hi: R(-3.6, -32, 1.3, 22), hk: 0.26, lw: 1.1 });
+    for (const dx of [-1.6, 1.4]) curve(g, p => { p.moveTo(dx, -34.6); p.quadraticCurveTo(dx + 0.7, -22, dx, -8); }, '#8a5a30', 0.6);
+    part(g, E(0, -35.4, 4.3, 1.3), '#c99a5e', null, { lw: 0.7 }); ell(g, 0.6, -35.4, 1.4, 0.4, null, '#8a5a30', 0.5);
+    for (const y of [0, 3]) line(g, [-1.7, y, 1.7, y + 0.5], '#e8d4a8', 1);
+  },
+  // 승자총통: 마디 진 청동 총신을 나무 자루에 꽂았다, 심지 구멍에 불씨
+  seungja(g) {
+    const BR = '#8a6a2e';
+    shaft(g, 14, -4, '#7a4a2c', 2.1);
+    part(g, P(-2.5, -6, -1.9, -34, 1.9, -34, 2.5, -6), BR, R(0.3, -34, 2.4, 28), { hi: R(-1.5, -33, 0.7, 26), hic: '#d9b46a', lw: 1 });
+    for (const y of [-34.6, -27.4, -20.6, -13.8]) part(g, R(-2.8, y, 5.6, 2), '#a8843e', R(0.6, y, 2.2, 2), { hi: R(-2.4, y + 0.3, 1, 1.2), hic: '#e6c47a', lw: 0.7 });
+    part(g, E(0, -5.2, 3.6, 2.6), BR, E(1, -4.6, 2.7, 1.9), { lw: 0.9 }); ell(g, 0, -35.2, 1.6, 0.7, '#2b2a30');
+    ell(g, 1.5, -9.4, 0.8, 0.8, '#2b2a30'); rope(g, p => { p.moveTo(1.8, -9.2); p.quadraticCurveTo(6, -6, 4.2, -1.4); }, '#d9c39a', 0.8); ell(g, 4.2, -1.2, 1.1, 1.1, '#ff9a2e', INK, 0.4); ell(g, 4.2, -1.2, 0.5, 0.5, '#ffe9a0');
+  },
+  // 소신기전: 활에 화약통을 단 불화살을 먹였다
+  sosingijeon(g) {
+    WEAPONS.bow(g, { wood: '#6a3a2a', wrap: OCHRE, tip: BRASS, extra: gg => {
+      line(gg, [7.4, 0, -19, 0], INK, 2.3); line(gg, [7.4, 0, -19, 0], '#e9d9b0', 1.1);
+      part(gg, P(-19, -1.7, -23.6, 0, -19, 1.7), '#dfe5e8', null, { lw: 0.7 });
+      part(gg, R(-17.4, -2.5, 8, 5), '#b8322a', R(-17.4, 0.2, 8, 2.3), { hi: R(-16.8, -2.1, 6.8, 0.8), lw: 0.9 }); line(gg, [-13.4, -2.5, -13.4, 2.5], OCHRE, 0.8);
+      line(gg, [-9.4, 0.4, -6.8, 2.6], '#2b2a30', 0.6); ell(gg, -6.6, 2.8, 1, 1, '#ff9a2e'); ell(gg, -6.6, 2.8, 0.45, 0.45, '#ffe9a0');
+      for (const sg of [-1, 1]) part(gg, P(4.6, 0, 8.6, sg * 2.8, 6.8, 0), WHITE, null, { lw: 0.5 });
+    } });
+  },
+  // 바람 부적: 연둣빛 종이에 회오리 무늬
+  baramtal(g) {
+    WEAPONS.firetal(g, { paper: '#dff0d0', inkc: '#3f6b5c' });
+    for (const [x, y, r] of [[-6.6, -17, 2.6], [6.4, -9.6, 2.2]]) { curve(g, p => p.arc(x, y, r, 0.3, 4.9), '#5f9a7a', 0.9); curve(g, p => p.arc(x + 0.4, y + 0.2, r * 0.45, 0.6, 4.4), '#5f9a7a', 0.7); }
+  },
+  // 도깨비불 부적: 부적 끝에 푸른 도깨비불이 붙었다
+  dokkaebital(g) {
+    WEAPONS.firetal(g, { paper: '#e8e2f6', inkc: '#2f4d7e' });
+    part(g, p => { p.moveTo(0.4, -32); p.quadraticCurveTo(4, -28, 2.6, -24.2); p.quadraticCurveTo(0.2, -22.2, -2.4, -24.2); p.quadraticCurveTo(-3.6, -27.4, -0.6, -29.6); p.quadraticCurveTo(-0.4, -27.6, 0.4, -32); p.closePath(); }, '#6fc8ee', null, { lw: 0.7 });
+    ell(g, 0, -25.4, 1.2, 1.6, '#e8fbff');
+  },
+  // 신칼: 짧은 칼날, 붉은 손잡이 끝에 흰 종이 술을 길게 늘어뜨렸다
+  sinkal(g) {
+    for (const [dx, l, a] of [[-2.4, 16, 0.26], [-0.8, 18.4, 0.1], [0.8, 17, -0.06], [2.4, 15, -0.22]]) { g.save(); g.translate(dx * 0.4, 4.2); g.rotate(a); part(g, p => { p.moveTo(-1.1, 0); p.quadraticCurveTo(-1.7, l * 0.5, -0.6, l); p.lineTo(1.1, l); p.quadraticCurveTo(0.4, l * 0.5, 1.1, 0); p.closePath(); }, WHITE, P(0.2, 0, 1.2, 0, 1.2, l, 0.4, l), { k: 0.1, lw: 0.6 }); for (let y = 3; y < l; y += 3.4) line(g, [-0.9, y, 0.9, y + 0.4], 'rgba(60,50,40,0.25)', 0.4); g.restore(); }
+    blade(g, P(-1.9, -4, -1.6, -18, 0, -23, 1.6, -18, 1.9, -4), P(-2.1, -4, -1.8, -18.4, 0, -23.4, 0, -4), P(0.9, -5, 0.9, -17.4, 0.3, -20.6, 0.3, -5));
+    line(g, [0, -6, 0, -18], '#8a959c', 0.5); guard(g, -4.4, 6.2, '#e6b93e'); hilt(g, -3.2, 4.2, '#a8322a');
+  },
+  // 염주: 손에 건 백팔 알 염주 한 줄, 아래 큰 알과 붉은 술
+  yeomju(g) {
+    const n = 22; for (let i = 0; i < n; i++) { const a = i / n * TAU, x = Math.sin(a) * 8.4, y = -12.6 - Math.cos(a) * 11; part(g, E(x, y, 1.85, 1.85), '#6a3a22', E(x + 0.5, y + 0.5, 1.3, 1.3), { hi: E(x - 0.6, y - 0.6, 0.6, 0.4), hic: '#c98a5a', lw: 0.6 }); }
+    part(g, E(0, -0.8, 2.7, 2.7), '#3a2a26', E(0.8, 0, 1.9, 1.9), { hi: E(-0.9, -1.6, 0.8, 0.5), hic: '#8a6a5a', lw: 0.8 }); tassel(g, 0, 1.6, 7.6, RED, 0);
+  },
+  // 징: 붉은 끈에 매단 놋쇠 징과 헝겊을 감은 징채
+  jing(g) {
+    rope(g, p => { p.moveTo(0, 1); p.quadraticCurveTo(-2.4, -2.6, -1, -5.4); }, RED, 1.1);
+    part(g, E(0, -16.6, 11.6, 11.6), '#c9962e', E(2.4, -14.4, 10, 10), { hi: E(-4.2, -21.2, 4, 2.2), hic: '#f8e3a0', lw: 1.3 });
+    curve(g, p => p.arc(0, -16.6, 9.2, 0, TAU), '#8a6a1e', 0.9); part(g, E(0, -16.6, 3.7, 3.7), '#b8862a', E(0.8, -15.8, 2.9, 2.9), { hi: E(-1, -17.8, 1.2, 0.7), hic: '#f8e3a0', lw: 0.9 });
+    g.save(); g.translate(9.4, -1.6); g.rotate(-0.62); shaft(g, 6, -12, '#d9b77a', 1.4); part(g, E(0, -14.4, 3.3, 3.7), '#f3ecdc', E(0.8, -13.8, 2.5, 2.9), { lw: 0.9 }); line(g, [-3, -14, 3, -14.6], RED, 0.7); g.restore();
+  },
+  // 소고: 붉은 테 두른 작은 손북, 가운데 삼태극, 자루 끝에 오색 천
+  sogo(g) {
+    for (const [c, dx] of [[RED, -2.2], [OCHRE, 0], [INDIGO, 2.2]]) line(g, [0, 7, dx * 2.2, 14], c, 1.2);
+    shaft(g, 7, -6, '#8a5a30', 1.6); band(g, -6.8, 3.6, 1.6, OCHRE);
+    part(g, E(0, -16, 10.2, 10.2), '#b8322a', E(2, -14.4, 8.6, 8.6), { lw: 1.2 }); part(g, E(0, -16, 8, 8), '#f3ead2', E(1.4, -15, 6.6, 6.6), { k: 0.12, lw: 0.9 });
+    for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; ell(g, Math.cos(a) * 9.1, -16 + Math.sin(a) * 9.1, 0.7, 0.7, '#e6b93e'); }
+    for (const [c, a] of [[RED, -1.57], [INDIGO, -1.57 + TAU / 3], ['#e0b23c', -1.57 + TAU * 2 / 3]]) part(g, p => { p.moveTo(0, -16); p.arc(0, -16, 4.8, a, a + TAU / 3); p.quadraticCurveTo(Math.cos(a + TAU / 3) * 1.6, -16 + Math.sin(a + TAU / 3) * 1.6, 0, -16); p.closePath(); }, c, null, { lw: 0.5 });
+  },
 };
 
 // ───────────── 병종별 외형 ─────────────
@@ -306,7 +423,8 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false
   } else if (L.weapon && wpn !== 'none') drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a);
 }
 // 무기 그림만 (보관함·전리품용). [그림 중심까지의 거리, 길이] 로 칸 가운데에 비슷한 크기로 맞춘다
-const ICON = { chae: [6, 26], hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28] };
+const ICON = { chae: [6, 26], hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28],
+  ssangsudo: [15, 68], ungeom: [12, 34], bujeokgeom: [12, 34], bamboo: [19, 64], jukjang: [22, 77], galgori: [18, 61], gombong: [14, 55], hongdukkae: [15, 42], seungja: [10.5, 49], baramtal: [12.5, 22], dokkaebital: [14, 26], sinkal: [1, 44], yeomju: [8, 35], jing: [13, 34], sogo: [6, 40] };
 export function weaponIcon(g, wid, x, y, s = 1) {
   const W = getWeapon(wid), d = WDATA[wid]; if (!W) return;
   if (W.hand === 'L') { drawSprite(g, W.spr, x + 2 * s, y, s * 1.6, s * 1.6, 0.5); return; }
