@@ -4,13 +4,14 @@ import { RELICS, CURSES } from './data/relics.js';
 import { genEncounter, AFFIX } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
 import { CARDS, MAX_LV, starterDeck, cardName, isUnit, packN } from './data/cards.js';
-import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip, applySets } from './data/weapons.js';
+import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip, applySets, setProgress } from './data/weapons.js';
 import { branchOf, canBranch } from './data/branches.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
 import { N_CH } from './data/stages.js';
 import { masteryLv, paceAt, UNLOCK_PACE, DAILY_RULES, dayRng, today, VOWS, vowBonus } from './data/progress.js';
 import { FORM_ORDER } from './data/formations.js';
+import { FEATS } from './data/feats.js';
 
 const KEY = 'gogae.save.v4';
 export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [], deeds: {}, heroXp: {}, alt: {}, daily: {}, codex: { foe: {}, relic: {}, card: {} } };
@@ -419,12 +420,25 @@ export const act = {
 // 끝없는 고개: 평정한 원정을 그대로 이어 열두 고개를 다시 돈다 (고개마다 요괴가 더 세진다)
 export function goEndless() { const r = G.run; if (!r || !r.done || r.daily || r.endless) return false; r.done = false; r.endless = true; r.gainPrev = r.gain || 0; r.settled = false; r.cap = Math.min(MAX_CAP, r.cap + 1); for (const c of r.deck) if (isUnit(c) && (c.lv || 1) < MAX_LV) c.lv = (c.lv || 1) + 1; r.road = genRoad(r.ch); r.pending = null; save(); return true; }
 export const chName = r => r.ch >= N_CH ? `끝없는 고개 ${r.ch - N_CH + 1}` : null;
+// 전공첩: 원정을 마칠 때 새로 이룬 일을 찾아 도장을 찍고 공적을 준다
+export function checkFeats(r, win) {
+  const fe = meta.feats || (meta.feats = {}), hb = Object.values(meta.heroBest || {}), cx = meta.codex || { foe: {}, relic: {}, card: {} };
+  const foeIds = Object.keys(UNITS).filter(k => UNITS[k].side === 1 && !UNITS[k].prop && UNITS[k].role !== '소품' && UNITS[k].name);
+  const units = r.deck.filter(c => CARDS[c.id].kind === 'unit');
+  const n = { heroWins: hb.filter(v => v >= 0).length, hardWin: hb.length ? Math.max(...hb) : -1, master5: Object.values(meta.heroXp || {}).some(x => masteryLv(x) >= 5), beasts: BEASTS.filter(b => has(b.id)).length,
+    foes: foeIds.filter(k => cx.foe[k]).length, foeAll: foeIds.length, relics: Object.keys(cx.relic).length, cards: Object.keys(cx.card).length,
+    legend: r.relics.filter(id => RELICS[id] && RELICS[id].legend).length, curses: r.relics.filter(id => RELICS[id] && RELICS[id].curse).length + r.deck.filter(c => c.id === 'doubt').length,
+    branches: units.filter(c => c.br).length, unitMax: Math.max(0, ...units.map(c => c.lv || 1)), bossRelics: r.relics.filter(id => RELICS[id] && RELICS[id].boss).length, sets: setProgress(r.deck).filter(p => p.on[p.on.length - 1]).length };
+  const got = FEATS.filter(f => !fe[f.id] && (() => { try { return f.ok({ r, win, meta, n }); } catch (e) { return false; } })());
+  for (const f of got) fe[f.id] = Date.now(); const bonus = got.reduce((a, f) => a + f.merit, 0); meta.merit += bonus;
+  r.newFeats = (r.newFeats || []).concat(got.map(f => f.id)); r.featMerit = (r.featMerit || 0) + bonus; return got;
+}
 export function settleRun(win) {
   const r = G.run; if (!r || r.settled) return r ? r.gain || 0 : 0;
   // 서약을 지면 공적을 더 받는다. 끝없는 고개는 평정 때 받은 몫을 빼고 더 넘은 만큼만 받는다
   const total = Math.round((r.merit * 0.6 + r.bosses * 4 + (win || r.endless ? 40 : 0)) * (1 + 0.2 * r.hard) * (1 + vowBonus(r.vows) / 100)), gain = Math.max(0, total - (r.gainPrev || 0));
   meta.merit += gain; r.settled = true; r.gain = gain;
-  if (r.endless) { const n = r.ch - N_CH; r.endlessN = n; r.endlessBest = meta.endlessBest || 0; meta.endlessBest = Math.max(meta.endlessBest || 0, n); save(); return gain; }
+  if (r.endless) { const n = r.ch - N_CH; r.endlessN = n; r.endlessBest = meta.endlessBest || 0; meta.endlessBest = Math.max(meta.endlessBest || 0, n); checkFeats(r, false); save(); return gain; }
   // 평정하면 다음 험로가 열리고, 그 영웅이 넘은 가장 험한 길이 기록된다
   if (win) { meta.clears++; const was = meta.hardMax || 0; meta.hardMax = Math.min(HARD_MAX, Math.max(was, r.hard + 1)); r.newHard = meta.hardMax > was ? meta.hardMax : 0; if (!meta.heroBest) meta.heroBest = {}; meta.heroBest[r.hero] = Math.max(meta.heroBest[r.hero] === undefined ? -1 : meta.heroBest[r.hero], r.hard); }
   // 끝낸 원정 수 → 새 것이 열린다 / 영웅 숙련이 쌓인다 / 오늘의 원정 점수
@@ -433,5 +447,6 @@ export function settleRun(win) {
   if (r.daily) { const sc = dailyScore(r, win), d = meta.daily || (meta.daily = {}); r.score = sc; r.bestBefore = d[r.daily.date] || 0; d[r.daily.date] = Math.max(r.bestBefore, sc); }
   // 이야기 열둘을 모두 듣고 평정하면, 숨은 열세 번째 고개가 열린다
   if (win && (meta.tales || []).length >= TALES.length && !meta.trueEnd) { meta.trueEnd = 1; r.trueEnd = true; }
+  checkFeats(r, win);
   save(); return gain;
 }

@@ -4,7 +4,9 @@ import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, 
 import { button, iconBtn, icon, panel, seal, C, ui } from '../ui/ui.js';
 import { drawKeyArt, drawVista, KEY_INTRO } from '../render/keyart.js';
 import { nav } from '../nav.js';
-import { G, meta, save, dailyOf } from '../state.js';
+import { G, meta, save, dailyOf, BEASTS, has, deedCount } from '../state.js';
+import { FEATS } from '../data/feats.js';
+import { UNLOCK_PACE, MASTERY_XP, MASTERY_GIFT, masteryLv } from '../data/progress.js';
 import { DAILY_RULES } from '../data/progress.js';
 import { UNITS, HERO_COL } from '../data/units.js';
 import { goldText, foil } from '../ui/ui.js';
@@ -117,8 +119,23 @@ export class TitleScene {
         const dd = dailyOf(); if (!(meta.daily || {})[dd.date]) { ell(g, 1014, 634, 15, 15, '#c8402f', INK, 1.6); text(g, '새', 1014, 635, { size: 14, font: FONT_B, fill: C.cream }); } text(g, `${dd.date.slice(5, 7) | 0}월 ${dd.date.slice(8, 10) | 0}일 · ${UNITS[dd.hero].name}`, 930, 702, { size: 13.5, fill: '#cbb894' }); }
       else if (button(g, 'book', 840, 630, 180, 58, '이야기책', { style: 'wood', size: 24 })) nav.go('meta', { book: true });
     }
+    // 목표판: 가장 가까운 목표 셋 (원정을 한 번 마친 뒤부터)
+    if ((meta.ended || 0) >= 1 && !r) { const goals = goalList().slice(0, 3); if (goals.length) { const x = 936, y = 440, h = 34 + goals.length * 34;
+      rr(g, x + 2, y + 4, 310, h, 9, 'rgba(0,0,0,0.35)'); rr(g, x, y, 310, h, 9, 'rgba(22,14,18,0.78)', '#000', 1.2); rr(g, x + 3, y + 3, 304, h - 6, 7, null, 'rgba(226,184,90,0.55)', 1);
+      text(g, '다음 목표', x + 16, y + 18, { size: 15, font: FONT_B, align: 'left', fill: '#f0d99a' });
+      goals.forEach((q, n) => { const yy = y + 44 + n * 34; ell(g, x + 22, yy, 4, 4, '#e2b85a'); text(g, q[0], x + 34, yy - 6, { size: 14.5, font: FONT_B, align: 'left', fill: '#f3e6c4', maxW: 262 }); text(g, q[1], x + 34, yy + 10, { size: 12, align: 'left', fill: '#cbb894', maxW: 262 }); }); } }
     if (iconBtn(g, 'snd', 1204, 20, 56, 52, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
     if (meta.best > 0) text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 1262, 704, { size: 15, fill: '#cbb894', align: 'right', maxW: 240 });
     g.restore();
   }
+}
+// 가장 가까운 목표: 새로 열릴 것 · 전공첩 · 영물의 인연 · 영웅 숙련 ([제목, 한 줄])
+function goalList() {
+  const out = [], ended = meta.ended || 0, nx = UNLOCK_PACE.find(p => p.at > ended);
+  if (nx) out.push([`원정 ${nx.at - ended}번 더 마치기`, '새 패와 보물이 열린다']);
+  const f = FEATS.find(q => !(meta.feats || {})[q.id]); if (f) out.push([`전공첩 · ${f.name}`, `${f.how} (공적 +${f.merit})`]);
+  const b = BEASTS.filter(q => !has(q.id)).sort((a, c) => deedCount(c) / c.need - deedCount(a) / a.need)[0]; if (b) out.push([`영물의 인연 · ${Math.min(b.need, deedCount(b))}/${b.need}`, b.how]);
+  const hx = Object.entries(meta.heroXp || {}).filter(([, x]) => masteryLv(x) < 5).sort((a, c) => c[1] - a[1])[0];
+  if (hx) { const lv = masteryLv(hx[1]); out.push([`${UNITS[hx[0]].name} 숙련 ${lv + 1}까지 ${MASTERY_XP[lv] - hx[1]}`, MASTERY_GIFT[lv + 1]]); }
+  return out;
 }

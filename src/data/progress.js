@@ -16,13 +16,20 @@ export const HERO_TRAIT2 = {
   chief: { name: '의적', desc: '의병 봉기 세 장으로 시작하고, 불려 온 아군이 8초 더 싸운다.', play: '의병을 불러 물량으로 민다' },
 };
 // ── 새 것이 열리는 순서: 끝낸 원정 수(meta.ended)가 at 에 닿으면 전리품·장터·갈림길에 나온다 ──
+// 처음 열두 판 남짓은 판마다 무언가 열린다 (전설 보물은 맨 끝에, 그 축을 키울 때만 나온다)
 export const UNLOCK_PACE = [
-  { at: 1, cards: ['salvo', 'counter'], relics: ['gwanhyeok', 'cheolgap'] },
-  { at: 2, cards: ['masangjae', 'uibyeong'], relics: ['madeung', 'f_jangsa'], stops: ['forge'] },
-  { at: 3, cards: ['jincheon', 'reload'], relics: ['hwayakgo', 'f_eorin'] },
-  { at: 4, cards: ['bujeok', 'daedong'], relics: ['bujeokjip', 'gutbang'] },
-  { at: 5, cards: ['gyeokmun'], relics: ['uibyeongjang', 'f_bangwon'] },
-  { at: 6, relics: ['f_hakik'] },
+  { at: 1, cards: ['salvo', 'counter', 'pyeonjeon', 'deungpae'], relics: ['gwanhyeok', 'cheolgap', 'gakgung', 'seongdol'] },
+  { at: 2, cards: ['masangjae', 'uibyeong', 'nabal', 'jukchang'], relics: ['madeung', 'f_jangsa', 'chungjang', 'daesup'], stops: ['forge'] },
+  { at: 3, cards: ['jincheon', 'reload', 'hwajeon', 'eoreum'], relics: ['hwayakgo', 'f_eorin', 'yeomcho', 'meokbyeoru'] },
+  { at: 4, cards: ['bujeok', 'daedong', 'ssitgim', 'jangdan'], relics: ['bujeokjip', 'gutbang', 'janggu', 'obanggi'] },
+  { at: 5, cards: ['gyeokmun', 'hwasal', 'malbal'], relics: ['uibyeongjang', 'f_bangwon', 'pyeonjeontong', 'malgap'] },
+  { at: 6, cards: ['nokgak', 'yeonmak'], relics: ['f_hakik', 'sanseong', 'posu'] },
+  { at: 7, cards: ['byeorak', 'gyeorui', 'dokkaebibul'], relics: ['obangbuchae', 'hyangyak', 'beopgo', 'norigae'] },
+  { at: 8, cards: ['sadae', 'gimamb', 'aekmagi'], relics: ['hangari', 'heuksal', 'bokjori', 'jeoul'] },
+  { at: 9, cards: ['sasu', 'chongtong', 'holim'], relics: ['yakjo', 'sansin', 'pungdeung'] },
+  { at: 10, cards: ['hamjeong', 'dungap', 'ogu', 'bangmang'], relics: ['daejanggi'] },
+  { at: 11, cards: ['cheonbo', 'seonbong', 'ttukttak', 'gwolgi'], relics: ['singung', 'cheollima', 'cheorong'] },
+  { at: 12, cards: ['bujeokbi', 'jakdu'], relics: ['singijeon', 'horibyeong', 'singal', 'hongui', 'dokkaebiwang'] },
 ];
 export const paceAt = (kind, id) => { for (const p of UNLOCK_PACE) if ((p[kind] || []).includes(id)) return p.at; return 0; };
 // ── 서약(변칙 원정): 떠나기 전에 스스로 짐을 지면 공적을 더 받는다 (평정을 한 번 하면 열린다) ──

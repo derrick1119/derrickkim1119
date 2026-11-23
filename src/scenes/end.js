@@ -18,6 +18,7 @@ import { relicIcon } from '../render/icons.js';
 import { cardFace } from '../ui/cards.js';
 import { inkMark } from '../render/symbols.js';
 import { saveScroll } from '../ui/scroll.js';
+import { FEAT_BY_ID } from '../data/feats.js';
 
 export class EndScene {
   constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed();
@@ -45,6 +46,7 @@ export class EndScene {
       if (up) rows.push([`숙련 ${r.lvTo} 달성 · ${MASTERY_GIFT[r.lvTo]}`, '#f6d27a']); else if (r.lvTo < 5) rows.push([`다음 숙련까지 ${MASTERY_XP[r.lvTo] - xp}`, '#d9c9a0']);
       if (r.opened && r.opened.length) rows.push([`새로 열림: ${r.opened.map(o => o.name.replace(' · ', ' ')).join(', ')}`, '#9fe0c8']);
       if (r.newFoes) rows.push([`도감에 새로 적힌 요괴 ${r.newFoes}`, '#e6d2a6']);
+      if (r.newFeats && r.newFeats.length) rows.push([`전공첩: ${r.newFeats.slice(0, 3).map(k => FEAT_BY_ID[k].name).join(', ')}${r.newFeats.length > 3 ? ` 외 ${r.newFeats.length - 3}` : ''} (공적 +${r.featMerit})`, '#f0d264']);
       if (r.daily) rows.push([`오늘의 원정 ${r.score}점${r.score > r.bestBefore ? ' · 오늘 최고!' : ` (최고 ${r.bestBefore})`}`, '#f3c0a0']);
       const bh = 50 + rows.length * 26; g.save(); g.globalAlpha = k; g.translate(0, win ? -40 : -10);
       rr(g, 44, 204, 448, bh, 10, 'rgba(26,14,18,0.86)', INK, 2); rr(g, 48, 208, 440, bh - 8, 8, null, foil(g, 44, 492), 1.3);
