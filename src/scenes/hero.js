@@ -23,7 +23,8 @@ export class HeroScene {
     this.t += dt; dimBackdrop(g); ui.top = this.vowOpen ? 1 : 0;   // 서약 판이 떠 있으면 아래 단추는 눌리지 않는다
     brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
     // 씨앗: 두루마리에 적힌 글자를 넣으면 그 원정과 같은 길을 걷는다
-    if (button(g, 'seed', 1096, 16, 150, 44, this.seed != null ? `씨앗 ${seedCode(this.seed)}` : '씨앗 넣기', { style: this.seed != null ? 'red' : 'wood', size: this.seed != null ? 15 : 18 })) {
+    text(g, this.seed != null ? '누르면 씨앗을 뺀다' : '같은 길 다시 걷기', 1171, 70, { size: 12.5, fill: '#cbb894' });
+    if (button(g, 'seed', 1096, 16, 150, 44, this.seed != null ? `씨앗 ${seedCode(this.seed)} ✕` : '씨앗 넣기', { style: this.seed != null ? 'red' : 'wood', size: this.seed != null ? 14 : 18 })) {
       if (this.seed != null) this.seed = null; else { const s = typeof prompt === 'function' ? prompt('두루마리에 적힌 씨앗 글자를 넣으세요 (예: 222-2E3T)') : null, n = parseSeed(s); if (n != null) { this.seed = n; sfx('star'); } else if (s) sfx('deny'); } }
     // 영웅 일곱
     HEROES.forEach((id, i) => {
@@ -89,9 +90,9 @@ export class HeroScene {
       else if (need) { rr(g, cx + 150, 312, 62, 22, 11, '#2f6f5c', INK, 1.2); text(g, `숙련 ${need}`, cx + 181, 323.5, { size: 13, font: FONT_B, fill: C.cream }); } });
     if (pages > 1) {
       for (const [dir, x] of [[-1, 742], [1, 1220]]) { const off = dir < 0 ? pg <= 0 : pg >= pages - 1; g.save(); if (off) g.globalAlpha = 0.35;
-        rr(g, x, 362, 18, 74, 7, foil(g, x, x + 18), INK, 1.6); rr(g, x + 3, 365, 12, 68, 5, '#2a1418'); poly(g, dir < 0 ? [x + 12, 388, x + 6, 399, x + 12, 410] : [x + 6, 388, x + 12, 399, x + 6, 410], '#f0d264', INK, 0.8); g.restore();
-        if (!off && tapped('cpg' + dir, x - 6, 352, 30, 94)) { this.cpg = pg + dir; sfx('card'); } }
-      for (let q = 0; q < pages; q++) { const px = 985 + (q - (pages - 1) / 2) * 20, on = q === pg; g.save(); g.translate(px, 562); g.rotate(Math.PI / 4); rr(g, -4, -4, 8, 8, 1.4, on ? '#f0c85a' : 'rgba(60,40,20,0.25)', on ? '#5a3a10' : 'rgba(60,40,20,0.45)', 1); g.restore(); if (tapped('cpd' + q, px - 9, 553, 18, 18)) { this.cpg = q; sfx('card'); } }
+        const bx = dir < 0 ? 752 : 1214, by = 399; ell(g, bx + 1, by + 3, 17, 17, 'rgba(0,0,0,0.3)'); ell(g, bx, by, 17, 17, foil(g, bx - 17, bx + 17), INK, 1.6); ell(g, bx, by, 13, 13, '#2a1418'); poly(g, dir < 0 ? [bx + 3, by - 7, bx - 5, by, bx + 3, by + 7] : [bx - 3, by - 7, bx + 5, by, bx - 3, by + 7], '#f0d264', INK, 0.8); g.restore();
+        if (!off && tapped('cpg' + dir, bx - 22, by - 22, 44, 44)) { this.cpg = pg + dir; sfx('card'); } }
+      for (let q = 0; q < pages; q++) { const px = 985 + (q - (pages - 1) / 2) * 24, on = q === pg; g.save(); g.translate(px, 556); g.rotate(Math.PI / 4); rr(g, -5, -5, 10, 10, 1.6, on ? '#f0c85a' : 'rgba(60,40,20,0.25)', on ? '#5a3a10' : 'rgba(60,40,20,0.45)', 1); g.restore(); if (tapped('cpd' + q, px - 9, 553, 18, 18)) { this.cpg = q; sfx('card'); } }
     }
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
     else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52, style: 'red' })) nav.go('prologue', { hero: id, seed: this.seed });
@@ -103,7 +104,7 @@ export class HeroScene {
       rr(g, 262, 600, pw, 78, 9, '#d9cdb0', INK, 2); rr(g, 262, 596, pw, 78, 9, '#fbf3df', INK, 2); rr(g, 262, 596, 8, 78, 4, lv ? RED : '#3f6b5c');
       if (button(g, 'h-', 280, 608, 50, 52, '◀', { style: 'paper', size: 22, disabled: lv <= 0 })) { meta.hard = Math.max(0, lv - 1); save(); sfx('card'); }
       if (button(g, 'h+', 262 + pw - 68, 608, 50, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
-      if (vw) { const sel = Object.keys(meta.vowSel || {}).filter(k => meta.vowSel[k] && VOWS[k]), b = vowBonus(sel); if (button(g, 'vow', 704, 596, 124, 78, sel.length ? `서약 ${sel.length}` : '서약', { style: sel.length ? 'red' : 'wood', size: 22 })) { this.vowOpen = true; sfx('card'); } if (b) text(g, `공적 +${b}%`, 766, 688, { size: 13, fill: '#f0d99a' }); }
+      if (vw) { const sel = Object.keys(meta.vowSel || {}).filter(k => meta.vowSel[k] && VOWS[k]), b = vowBonus(sel); if (button(g, 'vow', 704, 596, 124, 78, b ? `서약 +${b}%` : '서약', { style: 'wood', size: b ? 19 : 22 })) { this.vowOpen = true; sfx('card'); } if (sel.length) { ell(g, 820, 600, 13, 13, '#b8322a', INK, 1.4); text(g, String(sel.length), 820, 601, { size: 14, font: FONT_B, fill: C.cream }); } }
       text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', cx, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: pw - 160 });
       text(g, lv ? `${hd.desc}${lv > 1 && !vw ? ' (이전 단계 규칙 포함)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, cx, 652, { size: 14.5, fill: SUB, weight: 400, maxW: pw - 150 });
     } else {
@@ -117,7 +118,7 @@ export class HeroScene {
     const sel = meta.vowSel || (meta.vowSel = {}), keys = Object.keys(VOWS);
     g.fillStyle = 'rgba(8,6,14,0.82)'; g.fillRect(0, 0, W, H);
     panel(g, 200, 70, 880, 580); goldText(g, '서약', 640, 116, { size: 40 });
-    text(g, '스스로 짐을 지고 떠나면 공적을 더 받습니다. 여러 개를 함께 걸 수 있습니다', 640, 154, { size: 16, fill: SUB, weight: 400 });
+    text(g, '스스로 짐을 지고 떠나면 공적을 더 받습니다. 여러 개를 함께 걸 수 있습니다.', 640, 154, { size: 16, fill: SUB, weight: 400 });
     keys.forEach((k, n) => {
       const V = VOWS[k], x = 236 + (n % 2) * 410, y = 182 + Math.floor(n / 2) * 92, on = !!sel[k];
       if (tapped('vw' + k, x, y, 396, 80)) { sel[k] = !on; save(); sfx(on ? 'card' : 'star'); }
@@ -129,6 +130,6 @@ export class HeroScene {
     const b = vowBonus(keys.filter(k => sel[k]));
     text(g, b ? `서약으로 공적 +${b}%` : '서약 없이 떠납니다', 640, 610, { size: 22, font: FONT_B, fill: b ? '#8a2a26' : SUB });
     if (button(g, 'vwclear', 236, 584, 170, 54, '모두 풀기', { style: 'paper', size: 20, disabled: !b })) { meta.vowSel = {}; save(); }
-    if (button(g, 'vwok', 846, 580, 200, 60, '정했다', { style: 'red', size: 28 })) { this.vowOpen = false; sfx('card'); }
+    if (button(g, 'vwok', 846, 580, 200, 60, '이대로 걸기', { style: 'red', size: 28 })) { this.vowOpen = false; sfx('card'); }
   }
 }

@@ -15,7 +15,7 @@ export const FEATS = [
   { id: 'daily', name: '오늘의 손님', how: '오늘의 원정을 마친다', merit: 5, ok: c => !!c.r.daily },
   { id: 'dailywin', name: '오늘의 장수', how: '오늘의 원정을 평정한다', merit: 25, ok: c => c.win && !!c.r.daily },
   { id: 'vow3', name: '무거운 짐', how: '서약 셋 이상을 지고 평정한다', merit: 25, ok: c => c.win && (c.r.vows || []).length >= 3 },
-  { id: 'bare', name: '맨손의 장수', how: "서약 '맨손'을 지고 평정한다", merit: 25, ok: c => c.win && (c.r.vows || []).includes('norelic') },
+  { id: 'bare', name: '빈 보따리 장수', how: "서약 '보물 없이'를 지고 평정한다", merit: 25, ok: c => c.win && (c.r.vows || []).includes('norelic') },
   { id: 'endless5', name: '끝없는 길', how: '끝없는 고개를 다섯 넘는다', merit: 20, ok: c => (c.r.endlessN || 0) >= 5 },
   { id: 'endless12', name: '두 바퀴', how: '끝없는 고개를 열둘 넘는다', merit: 40, ok: c => (c.r.endlessN || 0) >= 12 },
   { id: 'trueend', name: '열세 번째 고개', how: '숨은 열세 번째 고개에 오른다', merit: 30, ok: c => !!c.meta.trueEnd },

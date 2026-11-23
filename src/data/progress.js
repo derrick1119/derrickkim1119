@@ -37,9 +37,9 @@ export const VOWS = {
   bare: { name: '빈손 출정', desc: '전술 패 없이 떠난다', bonus: 15 },
   pouch: { name: '좁은 주머니', desc: '전술 패 주머니 -3', bonus: 10 },
   norest: { name: '쉬지 않는 길', desc: '주막 대신 싸움이 기다린다', bonus: 20 },
-  noshop: { name: '장 없는 길', desc: '장터 대신 사건이 기다린다', bonus: 10 },
+  noshop: { name: '장터 없는 길', desc: '장터 대신 사건이 기다린다', bonus: 10 },
   elite: { name: '강적의 길', desc: '모든 요괴 무리에 강적의 특성이 붙는다', bonus: 25 },
-  norelic: { name: '맨손', desc: '보물을 얻지 못한다 (엽전으로 받는다)', bonus: 30 },
+  norelic: { name: '보물 없이', desc: '보물을 얻지 못한다 (엽전으로 받는다)', bonus: 30 },
   onearm: { name: '한 병종', desc: '새 병력 패를 얻지 못한다', bonus: 20 },
   chase: { name: '짧은 밤', desc: '본대가 20초 일찍 따라붙는다', bonus: 15 },
 };

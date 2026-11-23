@@ -25,7 +25,7 @@ const TABS = [
   { id: 'foe', name: '요괴', list: FOES, cols: 9, px: 82, py: 140, w: 77, h: 130 },
   { id: 'relic', name: '보물', list: RELIC_IDS, cols: 10, px: 75, py: 86, w: 68, h: 80 },
   { id: 'card', name: '패', list: CARD_IDS, cols: 11, px: 68, py: 90, w: 60, h: 78 },
-  { id: 'feat', name: '전공', list: FEATS.map(f => f.id), cols: 9, px: 82, py: 140, w: 77, h: 130 },
+  { id: 'feat', name: '전공첩', list: FEATS.map(f => f.id), cols: 9, px: 82, py: 140, w: 77, h: 130 },
 ];
 // 요괴 초상의 크기 보정: 거대한 것과 두목은 작게
 const FK = id => UNITS[id].boss ? 0.42 : UNITS[id].large ? 0.62 : 0.82;
@@ -40,7 +40,7 @@ export class CodexScene {
     brushTitle(g, 210, 48, 300, 66, '도감', '#6a3a2a', 40);
     goldText(g, `모은 것 ${gotAll} / ${all}`, 390, 44, { size: 30, align: 'left', glow: false });
     text(g, T.id === 'feat' ? '원정을 마칠 때 이룬 일에 도장이 찍히고 공적을 받습니다' : '요괴는 처음 물리칠 때, 보물과 패는 처음 얻을 때 적힙니다', 390, 78, { size: 15.5, fill: '#d9ccae', weight: 400, align: 'left', maxW: 400 });
-    TABS.forEach((q, n) => { const n2 = q.list.filter(id => seen(q.id, id)).length; if (button(g, 'tab' + n, 810 + n * 112, 22, 106, 62, `${q.name} ${n2}/${q.list.length}`, { style: n === this.tab ? 'red' : 'wood', size: 16 }) && n !== this.tab) { this.tab = n; this.sel = 0; sfx('card'); } });
+    TABS.forEach((q, n) => { const n2 = q.list.filter(id => seen(q.id, id)).length; if (button(g, 'tab' + n, 800 + n * 115, 22, 110, 62, `${q.name} ${n2}/${q.list.length}`, { style: n === this.tab ? 'red' : 'wood', size: 15.5 }) && n !== this.tab) { this.tab = n; this.sel = 0; sfx('card'); } });
     // 왼쪽: 그리드
     panel(g, 26, 100, 780, 590);
     // 칸이 넘치면 쪽을 넘긴다 (패가 많다)
@@ -53,11 +53,11 @@ export class CodexScene {
       else {
         rr(g, x + 1, y + 3, T.w, T.h, 7, 'rgba(0,0,0,0.3)'); rr(g, x, y, T.w, T.h, 7, ok ? '#f6ecd2' : '#d9d0bc', INK, 1.4);
         g.save(); g.beginPath(); g.rect(x + 2, y + 2, T.w - 4, T.h - 4); g.clip();
-        if (T.id === 'feat') { if (ok) stamp(g, x + T.w / 2, y + 48, 30, 'win', '#b8322a', -0.12); else { ell(g, x + T.w / 2, y + 48, 28, 28, 'rgba(60,40,20,0.08)', 'rgba(60,40,20,0.35)', 1.4); text(g, '?', x + T.w / 2, y + 49, { size: 24, font: FONT_B, fill: 'rgba(60,40,20,0.35)' }); } }
+        if (T.id === 'feat') { if (ok) stamp(g, x + T.w / 2, y + 48, 30, 'win', '#b8322a', -0.12); else { g.save(); g.globalAlpha = 0.22; stamp(g, x + T.w / 2, y + 48, 30, 'win', '#4a3a2a', -0.12); g.restore(); } }
         else if (T.id === 'foe') { const u = UNITS[id]; if (u.boss && ok) { g.fillStyle = 'rgba(138,42,38,0.18)'; g.fillRect(x, y, T.w, T.h); } if (!ok) dark(g); portrait(g, id, x + T.w / 2, y + T.h - 26, FK(id), 0); g.filter = 'none'; }
         else { const R = RELICS[id]; if (R.curse && ok) { g.fillStyle = 'rgba(90,40,90,0.16)'; g.fillRect(x, y, T.w, T.h); } if (!ok) dark(g); relicIcon(g, id, x + T.w / 2, y + T.h / 2 - (ok ? 6 : 0), 0.95); g.filter = 'none'; }
         g.restore();
-        if (T.id === 'feat') textBlock(g, FEAT_BY_ID[id].name, x + T.w / 2, y + T.h - 30, T.w - 6, 16, { size: 13, font: FONT_B, fill: ok ? '#8a2a26' : '#5a4a3a' });
+        if (T.id === 'feat') textBlock(g, FEAT_BY_ID[id].name, x + T.w / 2, y + T.h - 32, T.w - 4, 16, { size: 13.5, font: FONT_B, fill: ok ? '#8a2a26' : '#5a4a3a' });
         else if (T.id === 'foe') text(g, ok ? UNITS[id].name : '· · ·', x + T.w / 2, y + T.h - 12, { size: 13, font: FONT_B, fill: ok ? INK : '#8a8274', maxW: T.w - 6 });
         else if (ok) text(g, RELICS[id].name, x + T.w / 2, y + T.h - 11, { size: 12.5, font: FONT_B, fill: INK, maxW: T.w - 4 });
       }
@@ -68,7 +68,7 @@ export class CodexScene {
     const id = T.list[this.sel], ok = seen(T.id, id), cx = 1040;
     if (T.id === 'feat') {
       const F = FEAT_BY_ID[id]; ell(g, cx, 230, 92, 92, '#f6ecd2', INK, 2); ell(g, cx, 230, 86, 86, null, foil(g, cx - 90, cx + 90), 2);
-      if (ok) stamp(g, cx, 230, 64, 'win', '#b8322a', -0.12); else text(g, '?', cx, 232, { size: 60, font: FONT_B, fill: 'rgba(60,40,20,0.3)' });
+      if (ok) stamp(g, cx, 230, 64, 'win', '#b8322a', -0.12); else { g.save(); g.globalAlpha = 0.2; stamp(g, cx, 230, 64, 'win', '#4a3a2a', -0.12); g.restore(); }
       goldText(g, F.name, cx, 362, { size: 30, glow: false }); textBlock(g, F.how, cx, 404, 380, 24, { size: 18, fill: '#3a2a1a' });
       text(g, ok ? `${new Date(meta.feats[id]).getFullYear()}년 ${new Date(meta.feats[id]).getMonth() + 1}월 ${new Date(meta.feats[id]).getDate()}일에 이룸 · 공적 +${F.merit}` : `이루면 공적 +${F.merit}`, cx, 470, { size: 16, fill: ok ? '#8a2a26' : SUB, font: FONT_B });
     } else if (T.id === 'foe') {

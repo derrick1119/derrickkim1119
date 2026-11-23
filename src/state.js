@@ -8,7 +8,7 @@ import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip, applySets, setProgress
 import { branchOf, canBranch } from './data/branches.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
-import { N_CH } from './data/stages.js';
+import { N_CH, chapterOf } from './data/stages.js';
 import { masteryLv, paceAt, UNLOCK_PACE, DAILY_RULES, dayRng, today, VOWS, vowBonus } from './data/progress.js';
 import { FORM_ORDER } from './data/formations.js';
 import { FEATS } from './data/feats.js';
@@ -420,6 +420,7 @@ export const act = {
 // 끝없는 고개: 평정한 원정을 그대로 이어 열두 고개를 다시 돈다 (고개마다 요괴가 더 세진다)
 export function goEndless() { const r = G.run; if (!r || !r.done || r.daily || r.endless) return false; r.done = false; r.endless = true; r.gainPrev = r.gain || 0; r.settled = false; r.cap = Math.min(MAX_CAP, r.cap + 1); for (const c of r.deck) if (isUnit(c) && (c.lv || 1) < MAX_LV) c.lv = (c.lv || 1) + 1; r.road = genRoad(r.ch); r.pending = null; save(); return true; }
 export const chName = r => r.ch >= N_CH ? `끝없는 고개 ${r.ch - N_CH + 1}` : null;
+export const chFull = r => r.ch >= N_CH ? `끝없는 고개 ${r.ch - N_CH + 1} · ${chapterOf(r.ch).name.split(' · ').pop()}` : chapterOf(r.ch).name;
 // 전공첩: 원정을 마칠 때 새로 이룬 일을 찾아 도장을 찍고 공적을 준다
 export function checkFeats(r, win) {
   const fe = meta.feats || (meta.feats = {}), hb = Object.values(meta.heroBest || {}), cx = meta.codex || { foe: {}, relic: {}, card: {} };

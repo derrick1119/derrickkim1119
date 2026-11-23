@@ -237,8 +237,10 @@ export function mulgwisin(g) {
   // 발밑의 물결
   g.globalAlpha = 0.55; ell(g, 0, -1, 18, 4.8, '#5f8296'); g.globalAlpha = 1;
   for (const [r, a] of [[17, 0.8], [12.6, 0.6]]) { g.globalAlpha = a; curve(g, p => p.ellipse(0, -1.2, r, r * 0.27, 0, 0, TAU), '#d6e8ee', 1); g.globalAlpha = 1; }
-  // 등 뒤로 늘어진 젖은 머리
-  part(g, p => { p.moveTo(-8.6, -47); p.quadraticCurveTo(-12.4, -33, -10.6, -19); p.lineTo(-7, -21); p.lineTo(-4, -18); p.lineTo(4, -18); p.lineTo(7, -21); p.lineTo(10.6, -19); p.quadraticCurveTo(12.4, -33, 8.6, -47); p.closePath(); }, H, null, { lw: 1 });
+  // 젖은 머리: 뒤로 빗어 넘기고 한 가닥으로 땋아 어깨 앞으로 늘어뜨렸다 (끝에 붉은 댕기)
+  part(g, p => { p.moveTo(-8.4, -46); p.quadraticCurveTo(-10.4, -40, -8.8, -35.6); p.lineTo(8.8, -35.6); p.quadraticCurveTo(10.4, -40, 8.4, -46); p.closePath(); }, H, null, { lw: 1 });
+  for (let k = 0; k < 6; k++) { const by = -36 + k * 2.6, bx = -7.6 - Math.sin(k * 0.6) * 0.8; part(g, p => p.ellipse(bx, by, 2.1, 1.7, 0.5 * (k % 2 ? 1 : -1), 0, TAU), H, null, { lw: 0.8 }); }
+  path(g, P(-9.4, -21.6, -5.8, -21.6, -6.4, -16.4, -8.2, -18.6, -9.8, -16.2), '#b8322a', INK, 0.7);
   // 물에 잠긴 치마: 아랫자락이 물결에 풀려 너덜너덜하다
   part(g, p => { p.moveTo(-10, -25); p.quadraticCurveTo(-13.6, -14, -14.4, -3); for (let x = -14.4, i = 0; x < 14.4; x += 3.6, i++) p.lineTo(x + 1.8, -3 + (i % 2 ? 2.6 : -1.4)); p.lineTo(14.4, -3); p.quadraticCurveTo(13.6, -14, 10, -25); p.closePath(); }, robe, P(3, -26, 16, -26, 16, 0, 5, 0), { hi: P(-9, -24, -6, -24, -9, -6, -12.6, -6), hk: 0.2 });
   for (const x of [-7, -2.4, 3, 7.4]) curve(g, p => { p.moveTo(x * 0.9, -23); p.quadraticCurveTo(x - 0.6, -14, x * 1.1, -5); }, dk(robe, 0.3), 0.8);
@@ -259,10 +261,10 @@ export function mulgwisin(g) {
   part(g, p => { p.moveTo(-7.6, -44.6); p.bezierCurveTo(-7.6, -53, 7.6, -53, 7.6, -44.6); p.bezierCurveTo(7.6, -39, 4.4, -35.4, 0, -35.2); p.bezierCurveTo(-4.4, -35.4, -7.6, -39, -7.6, -44.6); p.closePath(); }, SK, P(2.6, -54, 9, -54, 9, -34, 0, -34), { shc: '#a8bac0', lw: 1.2 });
   for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 1.2, -43.6); p.quadraticCurveTo(s * 3.6, -45.6, s * 5.8, -43.4); p.quadraticCurveTo(s * 3.6, -41.8, s * 1.2, -43.6); p.closePath(); }, '#262d48', null); ell(g, s * 3.5, -43.6, 0.5, 0.5, '#d6e8ee'); g.globalAlpha = 0.35; ell(g, s * 3.6, -41.2, 2.6, 1.1, '#5a6a8a'); g.globalAlpha = 1; }
   ell(g, 0, -38.2, 1.5, 0.9, '#4a5868', INK, 0.5);
-  // 가르마를 탄 젖은 앞머리가 양 볼을 타고 흘러내린다
-  for (const s of [-1, 1]) part(g, p => { p.moveTo(0, -52.6); p.quadraticCurveTo(s * 9.4, -52.6, s * 9, -43); p.lineTo(s * 9.6, -30.6); p.lineTo(s * 7.6, -32.6); p.lineTo(s * 7.4, -29.4); p.quadraticCurveTo(s * 6, -38, s * 6.6, -44); p.quadraticCurveTo(s * 5, -49, 0, -50.4); p.closePath(); }, H, null, { hi: P(s * 2, -51.6, s * 5, -51.4, s * 3, -49.6), hic: '#3a3f52', lw: 1 });
+  // 가르마를 타고 귀 뒤로 넘긴 젖은 머리 (얼굴을 가리지 않는다)
+  for (const s of [-1, 1]) part(g, p => { p.moveTo(0, -52.6); p.quadraticCurveTo(s * 9.4, -52.6, s * 8.8, -44); p.lineTo(s * 7.4, -41.2); p.quadraticCurveTo(s * 6.6, -47.4, 0, -49.8); p.closePath(); }, H, null, { hi: P(s * 2, -51.6, s * 5, -51.4, s * 3, -49.6), hic: '#3a3f52', lw: 1 });
   // 머리에 감긴 물풀
-  rope(g, p => { p.moveTo(-7.6, -50); p.quadraticCurveTo(-11, -44, -9, -38); p.quadraticCurveTo(-12, -33, -10.4, -27); }, '#5a6a3a', 1.1);
+  rope(g, p => { p.moveTo(-7.6, -50); p.quadraticCurveTo(-10.6, -46, -9.2, -41); }, '#5a6a3a', 1.1);
   rope(g, p => { p.moveTo(5.6, -51.6); p.quadraticCurveTo(9.6, -50, 9.8, -46); }, '#6a7a44', 0.9);
   for (const [x, y] of [[-9.6, -29], [9.4, -29.6], [-1, -15.6], [6, -17]]) drop(g, x, y, 0.8);
 }
@@ -270,8 +272,8 @@ export function mulgwisin(g) {
 // ───────── 달걀귀신: 눈도 코도 입도 없는 하얀 달걀 얼굴 ─────────
 export function dalgyal(g) {
   g.globalAlpha = 0.28; ell(g, 0, -1.6, 12, 3.6, '#7a86a8'); g.globalAlpha = 1;
-  // 등 뒤로 늘어진 검은 머리
-  part(g, p => { p.moveTo(-8.4, -48); p.quadraticCurveTo(-12.6, -34, -10.4, -22); p.lineTo(10.4, -22); p.quadraticCurveTo(12.6, -34, 8.4, -48); p.closePath(); }, '#1d1d26', null, { lw: 1 });
+  // 뒤로 빗어 쪽 찐 머리와 비녀 (풀어 헤친 머리가 아니다 — 우리 옛이야기의 달걀귀신)
+  part(g, p => p.ellipse(0, -35.4, 6.6, 3.6, 0, 0, TAU), '#1d1d26', null, { lw: 1 }); line(g, [-10.4, -36.2, 10.4, -34.8], INK, 2.4); line(g, [-10.4, -36.2, 10.4, -34.8], '#d8c27a', 1.2); ell(g, 10.6, -34.8, 1.4, 1.4, '#c8402f', INK, 0.6);
   // 소복: 발끝이 땅에 닿지 않고 연기처럼 흩어진다
   const W2 = '#f4f1ea';
   part(g, p => { p.moveTo(-9.4, -32.6); p.quadraticCurveTo(-13.6, -18, -12.4, -5); p.quadraticCurveTo(-9, -2.4, -6, -5.6); p.quadraticCurveTo(-3, -1.6, 0, -5.4); p.quadraticCurveTo(3, -1.6, 6, -5.6); p.quadraticCurveTo(9, -2.4, 12.4, -5); p.quadraticCurveTo(13.6, -18, 9.4, -32.6); p.quadraticCurveTo(0, -35, -9.4, -32.6); p.closePath(); }, W2, P(3, -36, 15, -36, 15, -1, 4, -1), { shc: '#cfd2dc', hi: P(-8.6, -32, -6, -32, -10, -7, -12, -7), hk: 0.3 });

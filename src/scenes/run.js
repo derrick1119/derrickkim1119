@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName } from '../state.js';
+import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
@@ -50,7 +50,7 @@ export class RunScene {
     this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.coach = new Coach(); this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     juice.clear();
-    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chapterOf(r.ch).name, sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
+    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chFull(r), sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
     else if (rd.state === 'at') { this.phase = 'march'; this.arrive(); }
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
@@ -128,7 +128,7 @@ export class RunScene {
   leave() {
     const r = this.r; this.over = null; this.sync();
     if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
-    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; this.sync(); this.note = { s: chapterOf(r.ch).name, sub: '부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
+    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; this.sync(); this.note = { s: chFull(r), sub: '부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
     // 4단에 오른 병력이 있으면 길을 떠나기 전에 승급할 갈래를 고른다
     if (pendingPromos().length) { this.phase = 'stop'; this.over = new PromoOverlay({ onDone: () => { this.over = null; this.sync(); this.march(); } }); return; }
     this.march();

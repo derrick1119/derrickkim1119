@@ -4,7 +4,7 @@ import { W, H } from '../config.js';
 import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr, ell } from '../render/draw.js';
 import { button, panel, brushTitle, C, foil } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD, goEndless, seedCode } from '../state.js';
+import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD, goEndless, seedCode, chFull } from '../state.js';
 import { UNITS } from '../data/units.js';
 import { chapterOf } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
@@ -35,16 +35,16 @@ export class EndScene {
     const te = win && r && r.trueEnd, en = r && r.endless; brushTitle(g, 640, 54, te ? 600 : 520, 76, en ? '끝없는 고개' : te ? '열세 번째 고개를 넘었다' : win ? '고개를 넘었다' : '도깨비에 홀린 밤', en ? '#6a2a4a' : te ? '#8a5a10' : win ? INDIGO : '#5a5346', te ? 40 : 44);
     // 원정의 끝을 알리는 그림: 이기면 높이 세운 깃발, 지면 부러진 깃발
     // 금테 두른 옻칠 메달 위에 원정의 끝 그림
-    { const mk = Math.min(1, Math.max(0, (t - 0.15) / 0.4)); g.save(); g.globalAlpha = mk; ell(g, 312, 68, 58, 58, 'rgba(0,0,0,0.4)'); ell(g, 310, 64, 56, 56, foil(g, 254, 366), INK, 2); ell(g, 310, 64, 49, 49, win ? '#2b3b60' : '#3a2a30', 'rgba(40,20,8,0.8)', 1.2); ell(g, 310, 64, 44, 44, null, 'rgba(243,210,124,0.5)', 1); g.restore(); }
-    inkMark(g, win ? 'win' : 'lose', 310, 64, 70, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
+    { const mk = Math.min(1, Math.max(0, (t - 0.15) / 0.4)); g.save(); g.globalAlpha = mk; ell(g, 312, 68, 58, 58, 'rgba(0,0,0,0.4)'); ell(g, 310, 64, 56, 56, foil(g, 254, 366), INK, 2); ell(g, 310, 64, 49, 49, win || (r && r.endless) ? '#2b3b60' : '#3a2a30', 'rgba(40,20,8,0.8)', 1.2); ell(g, 310, 64, 44, 44, null, 'rgba(243,210,124,0.5)', 1); g.restore(); }
+    inkMark(g, win || en ? 'win' : 'lose', 310, 64, 70, { k: (t - 0.25) / 0.5, col: win || (r && r.endless) ? '#f6efdc' : '#f3b9a6', v: win || (r && r.endless) ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
-    const tale = en ? `열두 고개 너머로 고개 ${r.endlessN || 0}개를 더 넘었습니다.${(r.endlessN || 0) > (r.endlessBest || 0) ? ' 가장 멀리 갔습니다!' : ` (가장 멀리 ${r.endlessBest || 0})`}\n${chapterOf(r.ch).name}에서 긴 밤이 다시 내려앉았습니다.` : te ? '주막의 여우가 건넨 등불을 들고 내려왔습니다.\n이제 마을에서는 밤마다 열두 고개 이야기를 들려줍니다.' : win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
+    const tale = en ? `열두 고개 너머로 고개 ${r.endlessN || 0}개를 더 넘었습니다.${(r.endlessN || 0) > (r.endlessBest || 0) ? ' 지금까지 가장 먼 길입니다!' : ` (가장 멀리 ${r.endlessBest || 0})`}\n${chFull(r)}에서 긴 밤이 다시 내려앉았습니다.` : te ? '주막의 여우가 건넨 등불을 들고 내려왔습니다.\n이제 마을에서는 밤마다 열두 고개 이야기를 들려줍니다.' : win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: 'rgba(8,8,20,0.75)', lw: 5, fill: '#f3e6c4' });
     if (r) { portrait(g, r.hero, 250, 596 - (win ? Math.abs(Math.sin(t * 4)) * 10 : 0), 3.0, t); if (win) { portrait(g, 'sword', 110, 620, 1.9, t, true); portrait(g, 'priest', 410, 620, 1.9, t, true); } else portrait(g, 'treant', 420, 620, 1.5, 0); }
     // 왼쪽 위: 영웅 숙련, 새로 열린 것, 오늘의 원정 점수
     if (r && r.xp) { const rows = [], k = Math.min(1, Math.max(0, (t - 0.5) / 0.4)), up = r.lvTo > r.lvFrom, xp = (meta.heroXp || {})[r.hero] || 0;
       if (up) rows.push([`숙련 ${r.lvTo} 달성 · ${MASTERY_GIFT[r.lvTo]}`, '#f6d27a']); else if (r.lvTo < 5) rows.push([`다음 숙련까지 ${MASTERY_XP[r.lvTo] - xp}`, '#d9c9a0']);
-      if (r.opened && r.opened.length) rows.push([`새로 열림: ${r.opened.map(o => o.name.replace(' · ', ' ')).join(', ')}`, '#9fe0c8']);
+      if (r.opened && r.opened.length) rows.push([`새로 열림: ${r.opened.slice(0, 4).map(o => o.name.replace('진법서 · ', '')).join(', ')}${r.opened.length > 4 ? ` 외 ${r.opened.length - 4}` : ''}`, '#9fe0c8']);
       if (r.newFoes) rows.push([`도감에 새로 적힌 요괴 ${r.newFoes}`, '#e6d2a6']);
       if (r.newFeats && r.newFeats.length) rows.push([`전공첩: ${r.newFeats.slice(0, 3).map(k => FEAT_BY_ID[k].name).join(', ')}${r.newFeats.length > 3 ? ` 외 ${r.newFeats.length - 3}` : ''} (공적 +${r.featMerit})`, '#f0d264']);
       if (r.daily) rows.push([`오늘의 원정 ${r.score}점${r.score > r.bestBefore ? ' · 오늘 최고!' : ` (최고 ${r.bestBefore})`}`, '#f3c0a0']);
@@ -56,7 +56,7 @@ export class EndScene {
       rows.forEach(([s2, col], n) => text(g, s2, 66, 258 + n * 26, { size: 16, align: 'left', fill: col, maxW: 410 }));
       g.restore(); }
     // 원정 두루마리: 이번 원정을 그림 한 장으로 내려받는다 (씨앗 글자가 함께 적힌다)
-    if (r && t > 0.8) { if (button(g, 'scroll', 1060, 150, 176, 42, '두루마리 저장', { style: 'wood', size: 17 })) { this.saved = saveScroll(r, win) ? 2.4 : -2.4; } if (r.seed != null) text(g, `씨앗 ${seedCode(r.seed)}`, 1050, 171, { size: 14, align: 'right', fill: '#e6d2a6' }); if (this.saved) { this.saved += this.saved > 0 ? -1 / 60 : 1 / 60; text(g, this.saved > 0 ? '내려받았습니다' : '저장하지 못했습니다', 1148, 206, { size: 13, fill: this.saved > 0 ? '#9fe0c8' : '#f3b9a6' }); if (Math.abs(this.saved) < 0.05) this.saved = 0; } }
+    if (r && t > 0.8) { if (button(g, 'scroll', 1062, 146, 176, 40, '두루마리 저장', { style: 'wood', size: 17 })) { this.saved = saveScroll(r, win) ? 2.4 : -2.4; } if (r.seed != null) { rr(g, 896, 150, 156, 32, 16, 'rgba(20,12,16,0.85)', 'rgba(226,184,90,0.6)', 1.2); text(g, `씨앗 ${seedCode(r.seed)}`, 974, 166.5, { size: 15, font: FONT_B, fill: '#f0d99a' }); } if (this.saved) { this.saved += this.saved > 0 ? -1 / 60 : 1 / 60; text(g, this.saved > 0 ? '내려받았습니다' : '저장하지 못했습니다', 1148, 206, { size: 13, fill: this.saved > 0 ? '#9fe0c8' : '#f3b9a6' }); if (Math.abs(this.saved) < 0.05) this.saved = 0; } }
     panel(g, 520, 198, 720, 364);
     panel(g, 540, 214, 250, 46, 'navy'); text(g, `공적 +${this.gain} · 쌓인 공적 ${meta.merit}`, 665, 238, { size: 19, fill: '#f0d99a', maxW: 226 });
     if (r) {
