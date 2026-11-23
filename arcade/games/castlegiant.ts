@@ -48,6 +48,8 @@ const WORK_R = 0.26, THUD_R = 0.15;
 const RES_MIN = 90, RES_AUTO = 60 * 9, PICK_MIN = 40, PICK_AUTO = 60 * 20, PICK_AFTER = 64, END_T = 210;
 /** 도착 잔치 틱 · 판 점수 */
 const ARRIVE_T = 84, CLEAR_PTS = 30, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 150;
+/** 폭풍 앞자락 앞으로 바람이 미치는 거리 */
+const REACH = 0.1;
 /** 큰 띠: 한 번 쿵에 이만큼 떨어지면 */
 const WOW_N = 7;
 
@@ -997,8 +999,9 @@ function stormStep(s: GiantState) {
   const body = s.cdown ? s.cx - HALF : s.gx - 0.05, gap = body - s.sx;
   // 멀리 처지면 서둘러 따라온다(늘 뒤에 보이게)
   s.sx += stormV(s) * (gap > 0.95 ? 2 : gap > 0.7 ? 1.4 : 1);
+  // 앞자락 앞으로 거센 바람(REACH): 그 안에서 일하던 사람은 빙글빙글 날아간다
   for (const p of s.people)
-    if (outside(p) && p.st !== P_BLOWN && p.x < s.sx + 0.01 && pop(s) - countBlown(s) > 4) {
+    if (outside(p) && p.st !== P_BLOWN && p.st !== P_HOP && p.x < s.sx + REACH && pop(s) - countBlown(s) > 4) {
       release(s, p);
       p.st = P_BLOWN;
       p.tm = 0;
@@ -1234,7 +1237,9 @@ export const castlegiantSmart: Bot<GiantState> = {
     if (s.gst !== G_DOWN && s.gst !== G_STAND) return NO;
     if (s.gst === G_DOWN) {
       if (s.gt < 30 || s.t % 6) return NO;
-      const danger = s.awake && s.sx + stormV(s) * 150 > s.cx - HALF - 0.1;
+      let left = s.cx - HALF;
+      for (const p of s.people) if (outside(p) && p.x < left) left = p.x;
+      const danger = s.awake && s.swait <= 0 && s.sx + REACH + stormV(s) * 2 * 60 > left - 0.03;
       const idle = s.people.filter((p) => p.st === P_IDLE).length / Math.max(1, pop(s));
       const rem = spotValue(s, s.cx, s.cy, true);
       const b = bossOf(s);
@@ -3671,7 +3676,7 @@ function drawPerson(ctx: C2, s: GiantState, p: Per, sc2: number, X: XF, Y: XF, R
       ctx.fill();
     }
   // 폭풍이 코앞: 머리 위에 '!'
-  if (s.awake && (p.st === P_WORK || p.st === P_OUT) && p.x < s.sx + 0.22 && (t >> 3) % 2) {
+  if (s.awake && (p.st === P_WORK || p.st === P_OUT) && p.x < s.sx + REACH + 0.12 && (t >> 3) % 2) {
     ctx.font = `900 ${Math.max(12, Math.round(R(0.034)))}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;

@@ -39,7 +39,7 @@ const FLY_T0 = 7, FLY_T1 = 12, G_REST = 28, OBJ_REST = 78, PICK_R = 0.16;
 /** 비명이 옆방에 닿는 틱 · 와장창(쏟음) 틱 · 멍멍 틱 */
 const SCREAM_D = 20, CRASH_D = 14, BARK_D = 12;
 /** 처음 10초는 겁이 식지 않는다 · 겁이 식는 빠르기(틱당) · 놀란 뒤 이만큼은 안 식음 · 놀란 뒤 상자를 못 푸는 틱 */
-const SAFE_T = 600, DECAY = 0.045, DECAY_WAIT = 180, SHAKE_T = 240, TEETH_T = 420;
+const SAFE_T = 600, DECAY = 0.045, DECAY_WAIT = 180, SHAKE_T = 240, TEETH_T = 420, SNIFF_T = 48;
 /** 결과 화면: 톡 받기 시작 · (손을 안 대면 기다린다) / 둘 중 하나: 톡 받기 · 고른 뒤 · 끝 화면 · 눌러앉음 연출 */
 const RES_MIN = 90, RES_AUTO = 60 * 60 * 30, PICK_MIN = 40, PICK_AUTO = 60 * 60 * 30, PICK_AFTER = 64, END_T = 210, SETTLE_T = 150;
 const CLEAR_PTS = 40, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 200;
@@ -236,6 +236,8 @@ interface Pend { t: number; room: number; fear: Fear; fear2: number; all: boolea
 interface Ev { t: number; k: string; x: number; y: number; n: number; x2: number; y2: number; text: string }
 /** 비명 줄(그림): 소리가 벽을 넘어 옆방으로 */
 interface Wave { t: number; x0: number; y0: number; x1: number; y1: number; depth: number }
+/** 나른 것 → 크게 놀란 사람 (그림: 점선 화살) */
+interface Link { t: number; x0: number; y0: number; x1: number; y1: number; fear: Fear }
 
 export interface HauntState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result' | 'pick' | 'end' | 'settle'; pt: number;
@@ -244,7 +246,7 @@ export interface HauntState {
   rooms: Room[]; objs: Obj[]; boxes: Box[]; people: Person[]; nid: number; seats: number;
   /** 유령: 자리 · 날아가는 중 · 다음 톡을 받는 틱 · 기억해 둔 톡 · 물건이 쉬길 기다림 · 소금 맞아 어질 · 바라보는 쪽 */
   gx: number; gy: number; fly: { x0: number; y0: number; obj: number; t: number; T: number } | null; gReady: number; queue: number; gWait: number; gStun: number; gFace: number; gLast: number;
-  pend: Pend[]; chains: Chain[]; cid: number; waves: Wave[]; events: Ev[];
+  pend: Pend[]; chains: Chain[]; cid: number; waves: Wave[]; links: Link[]; events: Ev[];
   started: boolean; boxLeft: number; best: number; bestPack: number; slips: number; salted: number; filmed: number; clearT: number;
   clockT: number; freeze: number; down: boolean; wowN: number; firstTap: number; firstBig: number; taps: number; stTaps: number;
   seen: Set<string>;
@@ -306,8 +308,23 @@ function addObj(s: HauntState, k: OK, room: number, x: number, place: Place) {
   s.objs.push(o);
   return o;
 }
+const SPOTS = new Map<number, [number, number, Act][]>();
+/** 자리: 설계한 자리 + 방마다 고르게 '둘러보기' 자리 (북적이는 판에서도 흩어 서게) */
 function spotsOf(s: HauntState) {
-  return layoutOf(s).spots;
+  const ch = STAGES[s.stage].ch;
+  let sp = SPOTS.get(ch);
+  if (!sp) {
+    const L = LAYOUTS[ch];
+    sp = [...L.spots];
+    L.rooms.forEach((r, i) => {
+      for (const f of [0.18, 0.42, 0.66]) {
+        const x = r.x0 + (r.x1 - r.x0) * f + (r.x0 > 0.4 ? -0.02 : 0.03);
+        if (!sp!.some((q) => q[0] === i && Math.abs(q[1] - x) < 0.07)) sp!.push([i, x, 'look']);
+      }
+    });
+    SPOTS.set(ch, sp);
+  }
+  return sp;
 }
 function addPerson(s: HauntState, m: Mem | null, k: MK | 'dog' | 'cat', room: number, x: number): Person {
   const r = s.rooms[room];
@@ -365,6 +382,7 @@ function newStage(s: HauntState) {
   s.pend = [];
   s.chains = [];
   s.waves = [];
+  s.links = [];
   s.fly = null;
   s.queue = -1;
   s.gWait = -1;
@@ -372,7 +390,7 @@ function newStage(s: HauntState) {
   s.gReady = 0;
   const frame = s.objs.find((o) => o.k === d.key) ?? s.objs[0];
   s.gx = s.stage === 0 ? 0.64 : 0.5;
-  s.gy = ROOF - 0.03;
+  s.gy = ROOF + 0.06;
   s.gFace = 1;
   s.gLast = -1;
   s.started = false;
@@ -472,12 +490,16 @@ function walkStep(s: HauntState, p: Person, spd: number): boolean {
 }
 function freeSpot(s: HauntState, p: Person, prefer: number): number {
   const sp = spotsOf(s);
-  const taken = new Set(s.people.filter((q) => q !== p && q.spot >= 0 && inHouse(q)).map((q) => q.spot));
-  const cand = sp.map((_, i) => i).filter((i) => !taken.has(i) && i !== p.spot);
+  const others = s.people.filter((q) => q !== p && inHouse(q) && q.k !== 'dog' && q.k !== 'cat');
+  const taken = new Set(others.filter((q) => q.spot >= 0).map((q) => q.spot));
+  // 다른 사람이 서 있거나 가는 자리 바로 옆은 피한다 (겹치지 않게)
+  const crowded = (i: number) => others.some((q) => (q.room === sp[i][0] && Math.abs(q.x - sp[i][1]) < 0.085) || (q.spot >= 0 && sp[q.spot][0] === sp[i][0] && Math.abs(sp[q.spot][1] - sp[i][1]) < 0.085));
+  let cand = sp.map((_, i) => i).filter((i) => !taken.has(i) && i !== p.spot && !crowded(i));
+  if (!cand.length) cand = sp.map((_, i) => i).filter((i) => !taken.has(i) && i !== p.spot);
   if (!cand.length) return -1;
-  // 가족은 모여 지낸다: 반쯤은 누가 있는 방으로, 나머지는 지금 방·옆방이나 아무 데나
-  const busy = new Set(s.people.filter((q) => q !== p && human(q) && awake(q)).map((q) => q.room));
-  const withFam = cand.filter((i) => busy.has(sp[i][0]));
+  // 가족은 모여 지낸다(큰 판은 흩어진다): 반쯤은 누가 있는 방으로, 나머지는 지금 방·옆방이나 아무 데나
+  const busy = new Set(others.filter((q) => human(q) && awake(q)).map((q) => q.room));
+  const withFam = STAGES[s.stage].big ? [] : cand.filter((i) => busy.has(sp[i][0]));
   const near = cand.filter((i) => sp[i][0] === prefer || s.rooms[p.room].walk.includes(sp[i][0]));
   const r = s.rng(), pool = withFam.length && r < 0.45 ? withFam : near.length && r < 0.75 ? near : cand;
   return pool[Math.floor(s.rng() * pool.length)];
@@ -551,6 +573,14 @@ function flee(s: HauntState, p: Person) {
 }
 function personStep(s: HauntState, p: Person) {
   p.stT++;
+  if ((p.st === 'act' || p.st === 'idle') && human(p) && !(p.act === 'nap' || p.act === 'bath')) {
+    const r = s.rooms[p.room];
+    for (const q of s.people) {
+      if (q === p || q.room !== p.room || !human(q) || !inHouse(q) || q.climb || Math.abs(q.x - p.x) > 0.075) continue;
+      const push = (q.x > p.x || (q.x === p.x && q.id > p.id) ? -1 : 1) * 0.0012;
+      p.x = clamp(p.x + push, r.x0 + 0.04, r.x1 - (r.x0 > 0.4 ? 0.12 : 0.04));
+    }
+  }
   if (p.shakeT > 0) p.shakeT--;
   // 겁이 아주 천천히 식는다 (처음 10초·안개 장난감은 안 식음)
   if (human(p) && awake(p) && s.t > SAFE_T && s.t - p.lastScare > DECAY_WAIT && s.perk[1] !== 2 && p.fv > 0 && !STAGES[s.stage].safe) p.fv = Math.max(0, p.fv - DECAY);
@@ -595,7 +625,14 @@ function personStep(s: HauntState, p: Person) {
         else {
           // 놀라서 옆방으로 후다닥
           const nb = s.rooms[p.room].walk, r = s.rooms[nb[Math.floor(s.rng() * nb.length)] ?? p.room];
-          planTo(s, p, r.i, r.x0 + 0.08 + s.rng() * (r.x1 - r.x0 - 0.24));
+          let bx = r.x0 + 0.08 + s.rng() * (r.x1 - r.x0 - 0.24), bd = -1;
+          for (let k = 0; k < 5; k++) {
+            const x = r.x0 + 0.08 + s.rng() * (r.x1 - r.x0 - 0.24);
+            let dmin = 1;
+            for (const q of s.people) if (q !== p && q.room === r.i && inHouse(q)) dmin = Math.min(dmin, Math.abs(q.x - x));
+            if (dmin > bd) (bd = dmin), (bx = x);
+          }
+          planTo(s, p, r.i, bx);
           setState(p, 'panic', 9999);
         }
       }
@@ -640,6 +677,8 @@ function newChain(s: HauntState, x: number, y: number): Chain {
   return c;
 }
 const chainOf = (s: HauntState, id: number) => s.chains.find((c) => c.id === id);
+/** 반응이 나른 겁 (점선 화살로 이어 보이는 것) */
+const CARRY: EK[] = ['spill', 'bugs', 'crash', 'teeth', 'wig', 'drip'];
 function push(s: HauntState, e: Omit<Pend, 'fear2' | 'all'> & { fear2?: number; all?: boolean }) {
   s.pend.push({ fear2: -1, all: false, ...e });
 }
@@ -756,7 +795,6 @@ function bigScare(s: HauntState, p: Person, e: Pend, c: Chain, damp: number) {
     push(s, { t: s.t + RX_T[rx] + 6, room: p.room, fear: LOUD, depth: e.depth + 1, chain: c.id, kind: 'yell', x: p.x, y: p.y - 0.1, src: p.id });
   }
   starCheck(s, c);
-  if (c.big >= 3 && c.big > s.best && !c.star) wow(s, `${c.big}명 비명!`, c.big);
   s.best = Math.max(s.best, c.big);
 }
 function smallScare(s: HauntState, p: Person, c: Chain, amt: number) {
@@ -823,6 +861,10 @@ function land(s: HauntState, e: Pend) {
     // 겁이 반 넘게 찬 사람은 조마조마 — 무엇에든 크게 놀란다 (조금 덜)
     const match = e.all || p.fear === e.fear || p.fear === e.fear2, jumpy = p.fv >= p.max * JUMPY;
     if ((match || jumpy) && e.kind !== 'leak') {
+      if (CARRY.includes(e.kind)) {
+        s.links.push({ t: s.t, x0: e.x, y0: e.y, x1: p.x, y1: p.y - personH(r) * 0.55, fear: e.fear });
+        if (s.links.length > 8) s.links.shift();
+      }
       bigScare(s, p, e, c, damp * (match ? 1 : JUMPY_MUL));
     } else if (!p.hs.includes(c.id)) smallScare(s, p, c, (e.kind === 'leak' ? LEAK : SMALL) * damp);
   }
@@ -840,20 +882,13 @@ function prank(s: HauntState, o: Obj) {
   if (o.k === 'lamp' || o.k === 'curtain') r.dark = 170;
   if (o.k === 'sink' || o.k === 'tub' || o.k === 'fishbowl') r.wet = 420;
   // 퇴마사 할머니: 그 방에서 장난치면 소금을 뿌린다 → 유령 어질, 하트 -1
+  //   (0.8초 동안 '킁킁' 냄새를 맡는다 — 그 사이 유령이 다른 방으로 가면 피한다)
   const ex = s.people.find((p) => p.k === 'exorcist' && p.room === o.room && awake(p) && p.st !== 'react');
-  if (ex) {
-    ex.saltT = s.t;
+  if (ex && ex.saltT < s.t - SNIFF_T) {
+    ex.saltT = s.t + SNIFF_T;
     ex.face = o.x > ex.x ? 1 : -1;
-    s.gStun = 80;
-    s.queue = -1;
-    s.salted++;
-    ev(s, 'salt', ex.x, ex.y - 0.1, ex.id, o.x, o.cy);
-    see(s, 'salt');
-    if (s.stage > 0) {
-      s.hearts--;
-      ev(s, 'heart', s.gx, s.gy);
-      if (s.hearts <= 0) return void ((s.phase = 'end'), (s.pt = 0), ev(s, 'end', 0.5, 0.7, 0));
-    }
+    ev(s, 'sniff', ex.x, ex.y - 0.1, ex.id);
+    see(s, 'sniff');
   }
   const base = { depth: 1, chain: c.id, x: o.x, y: o.cy, src: -1 };
   if (d.mode === 'floor') {
@@ -902,6 +937,31 @@ function onTap(s: HauntState, x: number, y: number) {
   if (s.spot && s.spot.id === o.id) s.spot = null;
   if (s.gStun > 0 || s.fly || s.t < s.gReady || s.gWait >= 0) s.queue = o.id;
   else startFly(s, o);
+}
+/** 퇴마사 할머니가 킁킁 다 맡았을 때 유령이 그 방에 있으면 소금 */
+function saltStep(s: HauntState) {
+  for (const ex of s.people) {
+    if (ex.k !== 'exorcist' || ex.saltT !== s.t) continue;
+    if (!awake(ex) || ex.st === 'react') continue;
+    const gr = roomAt(s, s.gx, s.gy + 0.03);
+    if (gr !== ex.room) {
+      ev(s, 'miss', ex.x, ex.y - 0.1, ex.id);
+      continue;
+    }
+    ex.face = s.gx > ex.x ? 1 : -1;
+    s.gStun = 80;
+    s.queue = -1;
+    s.fly = null;
+    s.gWait = -1;
+    s.salted++;
+    ev(s, 'salt', ex.x, ex.y - 0.1, ex.id, s.gx, s.gy);
+    see(s, 'salt');
+    if (s.stage > 0) {
+      s.hearts--;
+      ev(s, 'heart', s.gx, s.gy);
+      if (s.hearts <= 0) return void ((s.phase = 'end'), (s.pt = 0), ev(s, 'end', 0.5, 0.7, 0));
+    }
+  }
 }
 function ghostStep(s: HauntState) {
   if (s.gStun > 0) {
@@ -977,6 +1037,7 @@ function playStep(s: HauntState) {
     if (r.wet > 0) r.wet--;
   }
   ghostStep(s);
+  saltStep(s);
   if (s.phase !== 'play') return;
   // 소리·장난이 닿는다 (먼저 일어난 것부터)
   if (s.pend.length) {
@@ -1035,7 +1096,7 @@ const game: GameDef<HauntState> & { wows(s: HauntState): number } = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, gain: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, rdex: [], newRx: [], fams: [], rooms: [], objs: [], boxes: [], people: [], nid: 0, seats: 0,
       gx: 0.5, gy: 0.3, fly: null, gReady: 0, queue: -1, gWait: -1, gStun: 0, gFace: 1, gLast: -1,
-      pend: [], chains: [], cid: 0, waves: [], events: [], started: false, boxLeft: 0, best: 0, bestPack: 0, slips: 0, salted: 0, filmed: 0, clearT: 0,
+      pend: [], chains: [], cid: 0, waves: [], links: [], events: [], started: false, boxLeft: 0, best: 0, bestPack: 0, slips: 0, salted: 0, filmed: 0, clearT: 0,
       clockT: 0, freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, taps: 0, stTaps: 0, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as HauntState;
     newStage(s);
@@ -1076,6 +1137,7 @@ const game: GameDef<HauntState> & { wows(s: HauntState): number } = {
     if (s.events.length > 120) s.events.splice(0, s.events.length - 120);
     while (s.events.length && s.t - s.events[0].t > 150) s.events.shift();
     if (s.waves.length) s.waves = s.waves.filter((w) => s.t - w.t < 40);
+    if (s.links.length) s.links = s.links.filter((w) => s.t - w.t < 50);
     if (s.spot && s.t - s.spot.t > 420) s.spot = null;
   },
   over: (s) => s.dead,
@@ -3220,7 +3282,8 @@ function bakeBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement
 // ───────────────────────────── 그리기: 장면 ─────────────────────────────
 const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const LV_GIFT: Record<number, string> = { 3: '나비넥타이를 맸어요', 5: '마녀 고깔을 썼어요', 7: '망토가 생겼어요', 9: '왕관을 썼어요', 11: '금빛으로 빛나요' };
-const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+interface Tag { x: number; y: number; text: string; t: number; col: string; size: number; pri: number; life: number }
+const TAGS = new WeakMap<object, Tag[]>();
 const PART_MAX = 110;
 /** 반응마다 비명 글자 */
 const YELL: Record<RX, string> = { jump: '꺄악!', spill: '으악!', teeth: '어머나!', wig: '내 가발!', slip: '미끄덩!', bump: '쿵!', blanket: '히익!', splash: '풍덩!', faint: '꼴까닥', bark: '멍멍!', pack: '이사 갈래!', laugh: '까르르!' };
@@ -3292,15 +3355,29 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
     if (fx.particles.length < PART_MAX) fx.burst(x, y, col, Math.min(n, PART_MAX - fx.particles.length), spd, size);
   };
-  const say = (x: number, y: number, str: string, col: string, size: number) => {
-    let rec = recent.get(s);
-    if (!rec) recent.set(s, (rec = []));
+  /** 짧은 글자: 사람 머리 위로 0.5초 떠올랐다 사라진다 — 화면에 셋까지 (더 많으면 덜 중요한 것은 생략, 소리로 충분) */
+  let tags = TAGS.get(s);
+  if (!tags) TAGS.set(s, (tags = []));
+  const say = (x: number, y: number, str: string, col: string, pri: number, size = 15, life = 32) => {
+    const list = tags!;
+    for (let i = list.length - 1; i >= 0; i--) if (t - list[i].t >= list[i].life) list.splice(i, 1);
+    if (list.length >= 3) {
+      let lo = 0;
+      for (let i = 1; i < list.length; i++) if (list[i].pri < list[lo].pri || (list[i].pri === list[lo].pri && list[i].t < list[lo].t)) lo = i;
+      if (list[lo].pri >= pri) return;
+      list.splice(lo, 1);
+    }
     x = clamp(x, w * 0.12, w * 0.88);
-    y = Math.max(Y(0.14), y);
-    for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y -= size * 0.9;
-    rec.push({ x, y, t, size });
-    if (rec.length > 14) rec.shift();
-    fx.pop(x, y, str, col, size);
+    y = Math.max(Y(0.135), y);
+    for (let k = 0; k < 3 && list.some((q) => Math.abs(q.x - x) < w * 0.17 && Math.abs(q.y - (t - q.t) * 0.6 - y) < (size + q.size) * 0.62); k++) y -= size * 1.15;
+    list.push({ x, y, text: str, t, col, size, pri, life });
+  };
+  /** 사람 머리 위 말풍선보다 위 (글자가 얼굴·몸을 가리지 않게) */
+  const above = (id: number, size = 15) => {
+    const p = s.people.find((q) => q.id === id);
+    if (!p) return null;
+    const r = s.rooms[p.room], ph = p.k === 'dog' || p.k === 'cat' ? 0.06 : personH(r), br = R(0.026) * Math.sqrt(objK(r));
+    return { x: X(p.x), y: Y(p.y - ph * (p.k === 'dog' || p.k === 'cat' ? 1.2 : 1.13)) - br * 1.7 - size * 0.6 };
   };
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   ctx.textAlign = 'center';
@@ -3362,8 +3439,14 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
         ctx.scale(pop, pop);
         ctx.drawImage(decoSpr(b.deco, u * sc2), -0.6 * u, -1.2 * u, 1.2 * u, 1.4 * u);
       } else {
-        const opening = b.claim && s.people.some((p) => p.id === b.claim && p.st === 'act' && p.act === 'unpack');
-        if (opening) ctx.rotate(Math.sin(t * 0.5) * 0.06);
+        const who = b.claim ? s.people.find((p) => p.id === b.claim && p.st === 'act' && p.act === 'unpack') : undefined;
+        if (who) {
+          const prog = Math.min(1, who.stT / Math.max(1, who.stLen));
+          ctx.rotate(Math.sin(t * 0.5) * 0.07);
+          ctx.scale(1 - prog * 0.45, 1 - prog * 0.45);
+          if ((t + who.id * 13) % 40 === 0) snd('crack', 2.3, 0.25);
+          if ((t >> 3) % 3 === 0) (ell(ctx, u * 0.05, -u * 0.75, u * 0.08, u * 0.06), (ctx.fillStyle = ['#ff9fb2', '#7fc8ff', '#ffd166'][(t >> 4) % 3]), ctx.fill());
+        }
         ctx.drawImage(boxSpr(u * sc2), -0.5 * u, -0.9 * u, 1.2 * u, 1.2 * u);
       }
       ctx.restore();
@@ -3397,11 +3480,11 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   // ── 퇴마사 할머니 방: 보랏빛 (그 방에서 장난치면 소금) ──
   for (const p of s.people) {
     if (p.k !== 'exorcist' || !awake(p)) continue;
-    const r = s.rooms[p.room], pul = 0.5 + 0.5 * Math.sin(t * 0.12);
+    const sniff = t < p.saltT, r = s.rooms[p.room], pul = 0.5 + 0.5 * Math.sin(t * (sniff ? 0.6 : 0.12));
     ctx.fillStyle = `rgba(170,110,255,${0.13 + 0.07 * pul})`;
     ctx.fillRect(X(r.x0), Y(r.y0), R(r.x1 - r.x0), R(r.H));
-    ctx.strokeStyle = `rgba(200,150,255,${0.6 + 0.3 * pul})`;
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = sniff ? `rgba(255,90,120,${0.6 + 0.4 * pul})` : `rgba(200,150,255,${0.6 + 0.3 * pul})`;
+    ctx.lineWidth = sniff ? 5 : 3;
     ctx.setLineDash([8, 6]);
     ctx.lineDashOffset = t * 0.4;
     ctx.strokeRect(X(r.x0) + 2, Y(r.y0) + 2, R(r.x1 - r.x0) - 4, R(r.H) - 4);
@@ -3448,21 +3531,74 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   }
   ctx.globalAlpha = 1;
   // ── 연쇄 숫자: 연쇄마다 하나 — 마지막으로 놀란 사람 위에 'N명!'이 쿵 커진다 ──
-  let top: Chain | null = null;
-  for (const c of s.chains) if (c.big >= 2 && t - c.lastT <= 70 && (!top || c.lastT > top.lastT)) top = c;
-  for (const c of top ? [top] : []) {
-    const age = t - c.lastT;
-    const pop = age < 8 ? 1 + 0.5 * Math.sin((age / 8) * Math.PI) : 1, a = Math.min(1, (70 - age) / 15), sz = Math.min(0.075, 0.042 + c.big * 0.005);
+  //    (연쇄 숫자는 연쇄가 끝났을 때 한 번만 — 아래 글자 줄에서)
+  for (const c of s.chains) {
+    if (c.big < 2 || t - c.lastT < 22 || t - c.lastT > 60 || fx.memo['cn' + c.id] || s.pend.some((e) => e.chain === c.id)) continue;
+    fx.memo['cn' + c.id] = 1;
+    say(X(c.lx), Y(c.ly) - R(0.03), `${c.big}명 비명!`, c.big >= 4 ? '#ff9a5a' : '#ffd84a', 6, 18, 50);
+    snd('ding', 1 + Math.min(8, c.big) * 0.08, 0.6);
+  }
+  // ── 겁을 나르는 것 위에 그 겁 그림 (우유 웅덩이 = 물 · 틀니 = 인형 · 가발·책 = 거미 · 물방울 = 물) ──
+  const carryIcon = (x: number, y: number, f: Fear, a: number) => {
+    const br = R(0.024);
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(clamp(X(c.lx), w * 0.1, w * 0.9), Math.max(Y(0.15), Y(c.ly) - age * 0.25));
-    ctx.scale(pop, pop);
-    font(sz, 900);
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = OUT;
-    ctx.strokeText(`${c.big}명!`, 0, 0);
-    ctx.fillStyle = c.big >= 4 ? '#ff7a3a' : '#ffd84a';
-    ctx.fillText(`${c.big}명!`, 0, 0);
+    ell(ctx, x, y, br * 1.15, br * 1.15);
+    ctx.fillStyle = 'rgba(255,255,255,.95)';
+    ctx.fill();
+    ctx.strokeStyle = '#ff7a3a';
+    ctx.lineWidth = br * 0.28;
+    ctx.stroke();
+    ctx.drawImage(iconSpr(f, br * 1.1 * sc2), x - br * 0.99, y - br * 0.99, br * 1.98, br * 1.98);
+    ctx.restore();
+  };
+  for (const e of s.events) {
+    const age = t - e.t;
+    if (age > 54) continue;
+    const a = Math.min(1, age / 4, (54 - age) / 10);
+    if (e.k === 'spill') {
+      const p = s.people.find((q) => q.id === e.n), r = p ? s.rooms[p.room] : null;
+      if (r) carryIcon(X(e.x), Y(r.fl) - R(0.05), e.text === 'milk' ? WATER : e.text === 'book' ? SPIDER : LOUD, a);
+    } else if (e.k === 'teethfly' || e.k === 'wigfly') {
+      const q = Math.min(1, age / 26), x = e.x + (e.x2 - e.x) * q, y = e.y + (e.y2 - e.y) * q - Math.sin(q * Math.PI) * 0.12;
+      carryIcon(X(x), Y(y + (e.k === 'teethfly' && q >= 1 ? 0.07 : 0)) - R(0.055), e.k === 'teethfly' ? DOLL : SPIDER, a);
+    } else if (e.k === 'drip') {
+      carryIcon(X(e.x), Y(e.y) + R(0.045), WATER, a);
+    }
+  }
+  // ── 나른 겁이 다음 사람에게 닿았다: 점선 화살 ──
+  for (const lk of s.links) {
+    const age = t - lk.t;
+    if (age > 45) continue;
+    const x0 = X(lk.x0), y0 = Y(lk.y0) - R(0.03), x1 = X(lk.x1), y1 = Y(lk.y1), d = Math.max(1, Math.hypot(x1 - x0, y1 - y0)), ux = (x1 - x0) / d, uy = (y1 - y0) / d, grow = Math.min(1, age / 8);
+    const ex2 = x0 + (x1 - x0) * grow, ey2 = y0 + (y1 - y0) * grow;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (45 - age) / 12);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = R(0.009);
+    ctx.lineCap = 'round';
+    ctx.setLineDash([R(0.016), R(0.012)]);
+    ctx.lineDashOffset = -age * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(ex2, ey2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#ff7a3a';
+    ctx.lineWidth = R(0.005);
+    ctx.stroke();
+    if (grow >= 1) {
+      ctx.fillStyle = '#ff7a3a';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - ux * R(0.025) - uy * R(0.014), y1 - uy * R(0.025) + ux * R(0.014));
+      ctx.lineTo(x1 - ux * R(0.025) + uy * R(0.014), y1 - uy * R(0.025) - ux * R(0.014));
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
     ctx.restore();
   }
   // ── 날아가는 것: 틀니 · 가발 · 책 ──
@@ -3511,6 +3647,24 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
   // ── 유령 ──
   drawGhostNow(ctx, s, X, Y, R, t);
   ctx.restore();
+  // ── 짧은 글자 (최대 셋) ──
+  for (const q of tags) {
+    const age = t - q.t;
+    if (age < 0 || age >= q.life) continue;
+    const a = Math.min(1, age / 4, (q.life - age) / 8), pop = age < 6 ? 0.7 + 0.3 * (age / 6) + 0.15 * Math.sin((age / 6) * Math.PI) : 1;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(q.x, q.y - age * 0.6);
+    ctx.scale(pop, pop);
+    ctx.font = `900 ${Math.round(q.size)}px system-ui, sans-serif`;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(40,24,16,.92)';
+    ctx.strokeText(q.text, 0, 0);
+    ctx.fillStyle = q.col;
+    ctx.fillText(q.text, 0, 0);
+    ctx.restore();
+  }
 
   // ── 집 밖: 차 · 차로 뛰어가는 사람 · 지붕 위 짐 ──
   ctx.save();
@@ -3595,7 +3749,10 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
         puff(ex, ey, k === 'sink' || k === 'tub' || k === 'fishbowl' ? '#8fd8ff' : k === 'lamp' || k === 'curtain' || k === 'tv' ? '#3a3f8a' : k === 'web' || k === 'wardrobe' ? '#2a2230' : '#fff3c4', 10, 3.6, 2.6);
         fx.kick(k === 'frame' || k === 'pot' || k === 'chair' ? 6 : 3);
         const o = s.objs.find((q) => q.id === e.n);
-        say(ex, o && o.place === 'ceil' ? ey + R(0.09) : ey - R(0.055), OD[k].verb, '#ffffff', 19);
+        if (o) {
+          const [ax, ay] = objAnchor(s, o), kk = objK(s.rooms[o.room]);
+          say(X(ax), o.place === 'ceil' ? Y(ay) + R(0.075) * kk : o.place === 'wall' ? Y(ay) - R(0.055) * kk : Y(ay) - R(o.k === 'wardrobe' ? 0.17 : 0.12) * kk, OD[k].verb, '#ffffff', 3, 16);
+        }
         break;
       }
       case 'big': {
@@ -3604,7 +3761,8 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
         if (n >= 2) snd('ding', 1 + Math.min(8, n) * 0.1, 0.5);
         puff(ex, ey, '#bfe8ff', 6 + n * 2, 3.2, 2.4);
         fx.kick(Math.min(14, 3 + n * 2));
-        if (n === 1) say(ex, ey - R(0.03), YELL[rx], '#ffffff', 17);
+        const at = above(e.x2);
+        if (at && rx !== 'spill') say(at.x, at.y, YELL[rx], rx === 'teeth' || rx === 'wig' ? '#ffd0e0' : '#ffffff', rx === 'teeth' || rx === 'wig' ? 4 : 2);
         if (n >= 2) fx.ring(ex, ey, n >= 3 ? '#ffd84a' : '#ffffff', R(0.05 + n * 0.015), 3);
         break;
       }
@@ -3612,13 +3770,14 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
         const it = e.text as Item;
         snd(it === 'milk' ? 'splash' : 'crack', it === 'milk' ? 1.3 : 1.1, 0.9);
         puff(ex, ey, it === 'milk' ? '#ffffff' : it === 'book' ? '#e85d5d' : '#f3efe6', 14, 4.2, 3);
-        if (it === 'milk') say(ex, ey + R(0.02), '철퍽!', '#e8f6ff', 16);
+        const at = above(e.n);
+        if (at) say(at.x, at.y, it === 'milk' ? '철퍽!' : it === 'book' ? '와르르!' : '쨍그랑!', '#e8f6ff', 4);
         break;
       }
       case 'crash': snd('crack', 1.2, 0.7); fx.kick(4); break;
-      case 'bark': snd('boing', 0.75, 0.9); snd('thud', 1.6, 0.4); say(ex, ey - R(0.03), '멍멍!', '#ffe8a0', 17); fx.ring(ex, ey, '#ffe8a0', R(0.08), 3); break;
+      case 'bark': { snd('boing', 0.75, 0.9); snd('thud', 1.6, 0.4); const dg = s.people.find((q) => q.k === 'dog'); if (dg) say(X(dg.x), Y(dg.y - 0.1), '멍멍!', '#ffe8a0', 2); fx.ring(ex, ey, '#ffe8a0', R(0.08), 3); break; }
       case 'hiss': snd('zap', 1.8, 0.6); fx.ring(ex, ey, '#e0c8ff', R(0.07), 3); break;
-      case 'teethfly': snd('whoosh', 1.8, 0.7); snd('tick', 2.2, 0.6); say(ex, ey - R(0.05), '틀니가!', '#ffd0e0', 17); break;
+      case 'teethfly': snd('whoosh', 1.8, 0.7); snd('tick', 2.2, 0.6); break;
       case 'wigfly': snd('whoosh', 1.3, 0.7); break;
       case 'drip': snd('splash', 1.6, 0.5); break;
       case 'throw': snd('whoosh', 0.9, 0.8); break;
@@ -3626,14 +3785,16 @@ function drawAll(ctx: C2, s: HauntState, w: number, h: number, _th: Theme) {
       case 'flee': snd('whoosh', 0.8, 0.6); break;
       case 'door': snd('thud', 1.4, 0.5); snd('tick', 0.7, 0.5); break;
       case 'seat': snd('pop', 0.8, 0.9); snd('coin', 1.1, 0.6); puff(X(CAR_X), Y(CAR_Y - 0.06), '#ffe36b', 8, 3, 2.4); break;
-      case 'unpack': snd('pop', 1.4, 0.6); puff(ex, ey, '#f3d49a', 8, 2.6, 2.4); break;
-      case 'laugh': snd('chime', 1.8, 0.6); say(ex, ey - R(0.03), '까르르!', '#ffd0e0', 15); break;
-      case 'film': snd('tick', 2.4, 0.8); fx.blink('#ffffff', 0.25); say(ex, ey - R(0.04), '찰칵! 찍었다', '#ffe0e0', 15); break;
-      case 'salt': snd('crack', 1.7, 0.9); snd('fail', 1.2, 0.7); puff(X(e.x2), Y(e.y2), '#ffffff', 18, 4.5, 2.6); say(X(e.x2), Y(e.y2) - R(0.05), '소금!', '#ffffff', 19); break;
-      case 'heart': snd('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey, '하트 -1', '#ff8a7a', 18); break;
+      case 'unpack': snd('pop', 1.4, 0.6); snd('crack', 2.4, 0.3); puff(ex, ey, '#f3d49a', 8, 2.6, 2.4); break;
+      case 'laugh': { snd('chime', 1.8, 0.6); const at = above(e.n); if (at) say(at.x, at.y, '까르르', '#ffd0e0', 1); break; }
+      case 'film': { snd('tick', 2.4, 0.8); fx.blink('#ffffff', 0.25); const at = above(e.n); if (at) say(at.x, at.y, '찰칵!', '#ffe0e0', 4); break; }
+      case 'sniff': { snd('swell', 1.8, 0.5); snd('tick', 0.6, 0.6); const at = above(e.n); if (at) say(at.x, at.y, '킁킁…', '#e8d0ff', 5, 16, 48); break; }
+      case 'miss': snd('whoosh', 1.4, 0.4); break;
+      case 'salt': snd('crack', 1.7, 0.9); snd('fail', 1.2, 0.7); puff(X(e.x2), Y(e.y2), '#ffffff', 18, 4.5, 2.6); say(X(e.x2), Y(e.y2) - R(0.08), '소금!', '#ffffff', 5, 17); break;
+      case 'heart': snd('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.08), '하트 -1', '#ff8a7a', 5, 17); break;
       case 'star3': snd('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5, 3); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
       case 'newrx': snd('ding', 1.4, 0.5); break;
-      case 'clock': snd('thud', 0.5, 1.2); snd('chime', 0.6, 0.9); fx.kick(9); fx.blink('#fff3c4', 0.15); say(X(0.5), Y(0.62), '댕— 댕—', '#fff3c4', 20); break;
+      case 'clock': snd('thud', 0.5, 1.2); snd('chime', 0.6, 0.9); fx.kick(9); fx.blink('#fff3c4', 0.15); say(X(0.6), Y(GY - 0.04), '댕—', '#fff3c4', 3, 17); break;
       case 'stage': snd('ding', 1, 0.6); break;
       case 'clear': snd('clear', 1, 1); puff(X(CAR_X), Y(CAR_Y - 0.08), '#ffd84a', 18, 6, 3.2); puff(X(0.5), Y(0.7), '#9ff0ff', 14, 6, 3); break;
       case 'settle': snd('fail', 0.9, 1); fx.kick(6); break;
@@ -4072,7 +4233,7 @@ function drawPerson(ctx: C2, s: HauntState, p: Person, X: (x: number) => number,
   }
   // 퇴마사 할머니: 소금 그릇 (소금 뿌리는 중이면 휙)
   if (p.k === 'exorcist' && p.st !== 'react' && p.st !== 'flee') {
-    const throwing = t - p.saltT < 20;
+    const throwing = t >= p.saltT && t - p.saltT < 20 && s.events.some((e) => e.k === 'salt' && e.n === p.id && t - e.t < 20);
     ctx.save();
     ctx.translate(u * 0.24, -u * (throwing ? 0.72 : 0.36));
     if (throwing) ctx.rotate(-0.8);
@@ -4193,11 +4354,13 @@ function drawGhostNow(ctx: C2, s: HauntState, X: (x: number) => number, Y: (y: n
 }
 
 // ───────────────────────────── 그리기: 띠 · 결과 · 선물 ─────────────────────────────
+/** 위 띠 상자 막대: 시작 x · 폭 */
+const BOXBAR: [number, number] = [0.37, 0.21];
 const starWord = (s: HauntState) => {
   const d = STAGES[s.stage];
   return [
     '가족 쫓아내기',
-    d.star2 === 'box' ? '상자 반 남기기' : d.star2 === 'salt' ? '소금 안 맞기' : '카메라에 안 찍히기',
+    d.star2 === 'box' ? '짐 반도 못 풀게' : d.star2 === 'salt' ? '소금 안 맞기' : '카메라에 안 찍히기',
     d.star.k === 'chain' ? `한 번에 ${d.star.n}명 비명` : d.star.k === 'pack' ? `한 번에 ${d.star.n}명 이사` : d.star.k === 'fast' ? `${d.star.n}초 안에 쫓아내기` : `미끄러뜨리기 ${d.star.n}번`,
   ];
 };
@@ -4280,16 +4443,25 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
     font(0.046, 900);
     text(String(s.stage + 1), X(0.062), Y(0.052), '#ffffff');
     ctx.textAlign = 'left';
-    font(0.042, 900);
-    text(d.fam, X(0.115), Y(0.052), INK);
-    // 남은 상자
-    const bxX = X(0.43);
-    ctx.save();
-    ctx.translate(bxX, Y(0.068));
-    ctx.drawImage(boxSpr(R(0.04) * scD), -0.5 * R(0.04), -0.9 * R(0.04), 1.2 * R(0.04), 1.2 * R(0.04));
-    ctx.restore();
     font(0.04, 900);
-    text(`${s.boxLeft}`, bxX + R(0.032), Y(0.053), s.boxLeft <= 3 && !d.safe ? '#e03a2a' : INK);
+    let nm = d.fam;
+    while (ctx.measureText(nm).width > X(BOXBAR[0] - 0.13) && nm.length > 3) nm = nm.slice(0, -1);
+    text(nm, X(0.112), Y(0.052), INK);
+    // 남은 짐: 상자가 하나씩 사라지는 막대 (반 표시 = 별 둘째)
+    const [bx0, bw] = BOXBAR, cell = bw / d.boxes, bu = Math.min(R(0.032), R(cell) * 1.05);
+    rr(ctx, X(bx0) - 3, Y(0.024), R(bw) + 6, Y(0.054), R(0.012));
+    ctx.fillStyle = '#f1e2c2';
+    ctx.fill();
+    for (let i = 0; i < d.boxes; i++) {
+      const cx = X(bx0) + R(cell) * (i + 0.5);
+      ctx.save();
+      ctx.translate(cx, Y(0.068));
+      if (i >= s.boxLeft) ctx.globalAlpha = 0.18;
+      ctx.drawImage(boxSpr(bu * scD), -0.5 * bu, -0.9 * bu, 1.2 * bu, 1.2 * bu);
+      ctx.restore();
+    }
+    const half = X(bx0) + R(cell) * (d.boxes - Math.ceil(d.boxes / 2));
+    seg(ctx, half, Y(0.02), half, Y(0.082), 2, '#e03a2a');
     for (let i = 0; i < 3; i++) {
       heartPath(ctx, X(0.62 + i * 0.05), Y(0.05), R(0.017));
       ctx.fillStyle = i < s.hearts ? '#ff4d5e' : '#e6d6bc';
@@ -4312,8 +4484,20 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
   if (s.boxLeft <= 3 && !d.safe && s.phase === 'play' && (t >> 4) % 2) {
     ctx.strokeStyle = '#ff3b30';
     ctx.lineWidth = 2.5;
-    rr(ctx, X(0.405), Y(0.018), R(0.1), R(0.065), R(0.015));
+    rr(ctx, X(BOXBAR[0]) - 4, Y(0.02), R(BOXBAR[1]) + 8, Y(0.062), R(0.015));
     ctx.stroke();
+  }
+  // 방금 풀린 상자가 위 막대로 휙 (짐이 줄어드는 게 보이게)
+  for (const e of s.events) {
+    const age = t - e.t;
+    if (e.k !== 'unpack' || age > 30) continue;
+    const q = age / 30, cell = BOXBAR[1] / d.boxes, tx = X(BOXBAR[0]) + R(cell) * (e.n + 0.5), ty = Y(0.068), x = X(e.x) + (tx - X(e.x)) * q, y = Y(e.y) + (ty - Y(e.y)) * q - Math.sin(q * Math.PI) * R(0.1), bu = R(0.04) * (1 - q * 0.3);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(q * 6);
+    ctx.globalAlpha = 1 - q * 0.3;
+    ctx.drawImage(boxSpr(bu * scD), -0.5 * bu, -0.9 * bu, 1.2 * bu, 1.2 * bu);
+    ctx.restore();
   }
 
   // ── 아래 띠: 별 셋 · 한 줄 도움말 · 레벨/도감 ──
@@ -4336,7 +4520,8 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
   else if (exIn) tip = '보랏빛 방에서 장난치면 소금! 옆방 비명으로 놀래요';
   else if (ytIn) tip = '유튜버 방에선 불 끄기만 — 다른 장난은 찍혀요';
   else if (kidIn) tip = '꼬마 옆에선 까르르 — 덜 무서워해요';
-  else if (s.boxLeft <= 3 && !d.safe) tip = '상자가 거의 다 풀렸어요! 서둘러요';
+  else if (s.boxLeft <= 3 && !d.safe) tip = '짐이 거의 다 풀렸어요! 다 풀면 눌러앉아요';
+  else if (s.started && s.stage < 3 && s.boxLeft < d.boxes) tip = '놀라지 않은 사람은 짐을 풀어요 — 위 상자 막대';
   else if (jumpy) tip = '겁이 반 넘게 찬 사람은 무엇에든 펄쩍!';
   else if (s.stage === 2) tip = '쏟은 우유도 물! 물을 무서워하는 사람 옆에서';
   else if (s.stage === 1) tip = '할아버지 가발이 옆방으로 — 거미인 줄 알아요';
@@ -4417,8 +4602,8 @@ function drawHud(ctx: C2, s: HauntState, w: number, h: number, sc2: number) {
     const age = t - s.big.t, k = age < 8 ? 0.6 + (age / 8) * 0.55 : age < 14 ? 1.15 - ((age - 8) / 6) * 0.15 : 1, a = Math.min(1, (64 - age) / 12);
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(w / 2, Y(0.28));
-    ctx.scale(k, k);
+    ctx.translate(w / 2, Y(0.215));
+    ctx.scale(k * 0.85, k * 0.85);
     ctx.fillStyle = s.big.star ? '#ffd23f' : '#ff7a3a';
     burstPath(ctx, 0, 0, R(0.2), 14, 0.8, t * 0.01);
     ctx.fill();
