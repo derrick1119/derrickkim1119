@@ -9,8 +9,8 @@ import { gzipSync } from 'node:zlib';
 
 const here = import.meta.dirname, out = join(here, '../../web/public/studio/bodyhop');
 mkdirSync(out, { recursive: true });
-// M0′: 주소 첫 화면(index.html) = 새 3D(look) · 옛 2D 프로토타입은 2d.html(비교·기록용)
-for (const [entry, page, file] of [['look.ts', 'look.html', 'index.html'], ['main.ts', 'index.html', '2d.html']]) {
+// 1기 기록: 3D(look) = v1-3d.html · 옛 2D = 2d.html. 2기(2026-11-23~)의 주소 첫 화면 index.html은 그림 컨셉 시안(v2/concepts)
+for (const [entry, page, file] of [['look.ts', 'look.html', 'v1-3d.html'], ['main.ts', 'index.html', '2d.html']]) {
   const js = (await build({ entryPoints: [join(here, entry)], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022', legalComments: 'none' })).outputFiles[0].text;
   const html = readFileSync(join(here, page), 'utf8').replace('/*BUNDLE*/', () => js.replace(/<\/script/g, '<\\/script'));
   writeFileSync(join(out, file), html);

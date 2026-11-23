@@ -44,9 +44,9 @@ describe('studio bodyhop M0', () => {
     expect(() => run(bodyhopRandom, 11, 60 * 60)).not.toThrow();
   });
 
-  it('플레이 빌드: 3D(index) · 옛 2D(2d) 한 장씩 · 외부 스크립트 없음 · 3D는 gzip 150KB 이하(M1 한도)', async () => {
+  it('1기 기록 빌드: 3D(v1-3d) · 옛 2D(2d) 한 장씩 · 외부 스크립트 없음 · 3D는 gzip 150KB 이하(M1 한도)', async () => {
     const { gzipSync } = await import('node:zlib');
-    for (const [name, lim] of [['index.html', 150], ['2d.html', 400]] as const) {
+    for (const [name, lim] of [['v1-3d.html', 150], ['2d.html', 400]] as const) {
       const f = join(import.meta.dirname, '../web/public/studio/bodyhop/' + name);
       expect(existsSync(f)).toBe(true);
       const html = readFileSync(f, 'utf8');
@@ -54,7 +54,7 @@ describe('studio bodyhop M0', () => {
       expect(html).not.toMatch(/<script[^>]+src=/);
       expect(gzipSync(html).length).toBeLessThan(lim * 1024);
     }
-    expect(readFileSync(join(import.meta.dirname, '../web/public/studio/bodyhop/index.html'), 'utf8')).toContain('webgl2');
+    expect(readFileSync(join(import.meta.dirname, '../web/public/studio/bodyhop/v1-3d.html'), 'utf8')).toContain('webgl2');
   });
 
   it('SDF 굽기: 구는 닫힌 겉면 · 꼭짓점이 반지름 위 · 법선이 바깥 · AO 0~1', () => {
