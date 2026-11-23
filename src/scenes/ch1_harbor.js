@@ -35,7 +35,7 @@
     leo: {}, mom: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
     home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
-    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, touch: 0, rise: 0, orb: 0 }, momTo: null, momGone: false,
+    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, touch: 0, rise: 0, orb: 0 }, momTo: null, momGone: false, dusk: 0,
     title: { a: 0 }, place: { a: 0 }, end: { a: 0 }, canLeave: false, hintA: { a: 0 },
     bram: { wave: 0, near: false }, post: { x: 2000, on: false, rang: false }, rosa: { k: 0, done: false }, kidWave: { k: 0 },
     things: { 1: [], 2: [], 3: [] }, banks: null,
@@ -206,7 +206,7 @@
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
     s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0;
-    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.touch = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false;
+    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.touch = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false; s.dusk = 0;
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
@@ -561,6 +561,7 @@
     await k.wait(0.6);
     T.announce('엄마의 몸에서 빛이 번지기 시작한다. 지킨 약속이 건너갈 길이 된다.');
     A.promise();
+    k.tween(S, 'dusk', 0.85, 4.5, T.ease.io);
     k.tween(S.fare, 'k', 1, 2.6, T.ease.io);
     await k.wait(1.4);
     k.tween(S.rest, 'k', 0, 1.1, T.ease.io);
@@ -588,6 +589,7 @@
     await star;
     await k.wait(1.4);
     await TALK.say('leo', '…잘 가, 엄마.', { slow: true });
+    k.tween(S, 'dusk', 0.7, 3, T.ease.io);
     await k.wait(0.8);
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.2);
@@ -696,12 +698,44 @@
     gr.addColorStop(0, top); gr.addColorStop(1, bot);
     g.fillStyle = gr; g.fill(K.bankPath(list, ox, bob, xa, xb, 1600));
   }
+  /* while his mother goes, the sunset goes too: the sky deepens to violet and the first stars come out,
+     so that her light, and the star she becomes, are the brightest things in it */
+  function duskSky(g) {
+    const W = T.view.W, t = T.time, d = T.ease.io(S.dusk);
+    const sk = g.createLinearGradient(0, 0, 0, 900);
+    sk.addColorStop(0, '#1c2150'); sk.addColorStop(0.45, '#4a3f78'); sk.addColorStop(0.75, '#9c6f8e'); sk.addColorStop(1, '#d8a49a');
+    g.save(); g.globalAlpha = 0.88 * d; g.fillStyle = sk; g.fillRect(-W / 2, 0, W, 900); g.restore();
+    const r = T.rng(808);
+    for (let i = 0; i < 70; i++) {
+      const x = -W / 2 + r() * W, y = r() * 460, tw = 0.55 + 0.45 * Math.sin(t * (1 + r() * 2) + i);
+      const a = d * tw * T.clamp((S.dusk - 0.2 - (i % 7) * 0.06) * 3) * (1 - y / 620);
+      if (a > 0.01) { g.globalAlpha = a; P.fill(g, P.circle(x, y, 1.1 + (i % 5 === 0 ? 1 : 0)), '#fff6e0'); }
+    }
+    g.globalAlpha = 1;
+  }
+  function duskLand(g) {
+    const W = T.view.W, d = T.ease.io(S.dusk);
+    g.save(); g.globalCompositeOperation = 'multiply';
+    g.fillStyle = T.rgba('#5c5a92', 0.55 * d); g.fillRect(-W / 2, 0, W, 900);
+    g.restore();
+    /* lights stay lights: his lantern on the plot, and her */
+    layer(g, 1);
+    const lx = PLOT + 44, ly = y3(lx) - 86;
+    if (S.lamp.planted > 0.5) { P.glow(g, lx, ly, 170, '#ffd98a', 0.55 * d); P.glow(g, lx, ly, 26, '#fff6dc', 0.7 * d); }
+    if (!S.momGone && S.fare.k > 0.01) {
+      const gy = groundAt(S.nx), rise = T.ease.io(S.fare.rise), orb = T.ease.in(S.fare.orb);
+      P.glow(g, S.nx, gy - 80, 120 + S.fare.k * 70, '#fff2c4', 0.5 * S.fare.k * d * (1 - rise));
+      if (rise > 0.01) { const oy = gy - 110 - orb * 560, oa = 1 - T.smooth(T.clamp((orb - 0.85) / 0.15)); P.glow(g, S.nx, oy, 110, '#fff0c0', 0.75 * rise * oa * d); P.glow(g, S.nx, oy, 24, '#ffffff', 0.9 * rise * oa); }
+    }
+    g.restore();
+  }
   function backdrop(g) {
     const V = T.view, W = V.W, t = T.time;
     const sky = g.createLinearGradient(0, 0, 0, 900);
     sky.addColorStop(0, '#8496cc'); sky.addColorStop(0.38, '#e9b9a4'); sky.addColorStop(0.7, '#ffdba6'); sky.addColorStop(1, '#fff0cc');
     g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 900);
     if (S.hook && S.hook.sky) S.hook.sky(g);
+    if (!S.hook && S.dusk > 0.003) duskSky(g);
     let r = layer(g, 0.05);
     P.glow(g, 430, 560, 620, '#fff2c4', 0.9); P.glow(g, 430, 560, 170, '#ffffff', 0.75);
     g.restore();
@@ -1336,6 +1370,7 @@
     warm.addColorStop(0, 'rgba(120,110,200,0.22)'); warm.addColorStop(0.5, 'rgba(255,200,130,0.1)'); warm.addColorStop(1, 'rgba(255,196,110,0.4)');
     g.fillStyle = warm; g.fillRect(-W / 2, 0, W, 900);
     g.restore();
+    if (!S.hook && S.dusk > 0.003) duskLand(g);
 
     if (P.cray) {   /* everything sits on the same sheet */
       P.cray = false;
@@ -1359,8 +1394,9 @@
     }
     if (S.end.a > 0.01) {
       const a = S.end.a;
-      P.text(g, '1장 끝', 0, 150, { font: 'serif', size: 22, track: 10, color: '#4a4468', alpha: 0.75 * a });
-      P.text(g, '2장 「약속 목록」', 0, 222, { font: 'serif', size: 46, track: 4, color: '#3a3f5c', alpha: a });
+      const night = S.dusk > 0.3;   /* she went at dusk: the card is written on the evening sky */
+      P.text(g, '1장 끝', 0, 150, { font: 'serif', size: 22, track: 10, color: night ? '#e9e2f2' : '#4a4468', alpha: 0.8 * a });
+      P.text(g, '2장 「약속 목록」', 0, 222, { font: 'serif', size: 46, track: 4, color: night ? '#fff4e2' : '#3a3f5c', alpha: a, glow: night ? 'rgba(20,20,60,0.6)' : null });
       g.save(); g.globalAlpha = a; P.fill(g, P.rr(-150, 774, 300, 62, 31), 'rgba(58,63,92,0.78)'); g.restore();
       P.text(g, '이어서 보기', 0, 814, { font: 'serif', size: 26, color: '#fff6e4', alpha: a });
     }

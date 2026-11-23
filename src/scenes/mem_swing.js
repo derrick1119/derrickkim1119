@@ -59,7 +59,7 @@
     cl(wob([[-486, 520], [-438, 520], [-438, 566], [-486, 566], [-486, 520]], sd(79), 1.2), C.blue, 6, 79);
     cl([[-462, 520], [-462, 566]], C.blue, 4, 80); cl([[-486, 543], [-438, 543]], C.blue, 4, 81);
     /* flowers */
-    [[-250, C.pink], [-40, C.red], [14, C.yel], [446, C.pink], [668, C.red], [-560, C.pink], [612, C.yel]].forEach((f, i) => {
+    [[-250, C.pink], [-40, C.red], [14, C.yel], [446, C.pink], [520, C.red], [-560, C.pink], [588, C.yel]].forEach((f, i) => {
       const x = f[0], y = GROUND - 2;
       cl([[x, y + 20], [x + 2, y - 26]], C.grn, 5, 90 + i);
       cl(circ(x + 2, y - 36, 11, 10, sd(92 + i)), f[1], 8, 92 + i);
@@ -218,22 +218,6 @@
     const mum = [-212, GROUND];
     const wv = S.wave.k, wa = -0.9 - wv * 0.9 + Math.sin(t * 9) * 0.3 * wv;
     cl([[mum[0] + 22, mum[1] - 104], [mum[0] + 22 + Math.cos(wa) * 44, mum[1] - 104 + Math.sin(wa) * 44]], C.ink, 6, 230);
-    /* by the tree, a smaller girl in a pink hat, waiting her turn; she has no name written under her */
-    const fr = [540, GROUND], fh = Math.abs(Math.sin(t * 7 + 1)) * 12 * S.wave.k;
-    cl([[fr[0] - 9, fr[1] - 40 - fh], [fr[0] - 11, fr[1] - fh]], C.ink, 6, 280); cl([[fr[0] + 9, fr[1] - 40 - fh], [fr[0] + 11, fr[1] - fh]], C.ink, 6, 281);
-    cl([[fr[0] - 18, fr[1] - fh], [fr[0] - 6, fr[1] - fh]], C.pink, 8, 282); cl([[fr[0] + 4, fr[1] - fh], [fr[0] + 16, fr[1] - fh]], C.pink, 8, 283);
-    P.scribble(g, P.poly([[fr[0], fr[1] - 110 - fh], [fr[0] - 32, fr[1] - 38 - fh], [fr[0] + 32, fr[1] - 38 - fh]]), [fr[0] - 32, fr[1] - 110 - fh, 64, 72], '#a98fd6', { gap: 8, w: 9, seed: sd(284), ang: -0.5 });
-    cl(circ(fr[0], fr[1] - 132 - fh, 22, 14, sd(285)), C.ink, 6, 285);
-    cl([[fr[0] - 22, fr[1] - 134 - fh], [fr[0] - 26, fr[1] - 112 - fh]], C.brown, 7, 286); cl([[fr[0] + 22, fr[1] - 134 - fh], [fr[0] + 26, fr[1] - 112 - fh]], C.brown, 7, 287);
-    const cap = P.poly([[fr[0] - 27, fr[1] - 138 - fh], [fr[0] - 22, fr[1] - 160 - fh], [fr[0], fr[1] - 170 - fh], [fr[0] + 22, fr[1] - 160 - fh], [fr[0] + 27, fr[1] - 138 - fh]]);
-    P.scribble(g, cap, [fr[0] - 27, fr[1] - 172 - fh, 54, 36], C.pink, { gap: 6, w: 8, seed: sd(288), ang: 0.4 });
-    cl([[fr[0] - 28, fr[1] - 138 - fh], [fr[0] + 28, fr[1] - 138 - fh]], '#d9667f', 7, 289);
-    cl(circ(fr[0], fr[1] - 178 - fh, 7, 8, sd(290)), '#f3d9a6', 7, 290);
-    cl([[fr[0] - 8, fr[1] - 132 - fh], [fr[0] - 7, fr[1] - 129 - fh]], C.ink, 5, 291); cl([[fr[0] + 8, fr[1] - 132 - fh], [fr[0] + 9, fr[1] - 129 - fh]], C.ink, 5, 292);
-    cl(circ(0, 0, 8, 8, sd(293), 0.25, Math.PI - 0.25).map((q) => [fr[0] + q[0], fr[1] - 124 - fh + q[1]]), C.red, 4, 293);
-    const fa = -2.3 - S.wave.k * 0.5 + Math.sin(t * 8) * 0.25 * S.wave.k;   /* an arm out toward the swing, up when it flies */
-    cl([[fr[0] - 12, fr[1] - 92 - fh], [fr[0] - 12 + Math.cos(fa) * 40, fr[1] - 92 - fh + Math.sin(fa) * 40]], C.ink, 6, 294);
-    cl([[fr[0] + 12, fr[1] - 92 - fh], [fr[0] + 34, fr[1] - 70 - fh]], C.ink, 6, 295);
 
     /* dad's arms follow the swing */
     const dad = [346, GROUND];
