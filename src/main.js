@@ -1,5 +1,6 @@
 import { W, H } from './config.js';
 import { nav } from './nav.js';
+import { stageWipe } from './render/stagewipe.js';
 import { ui } from './ui/ui.js';
 import { sfx, unlockAudio } from './audio.js';
 import { load, G } from './state.js';
@@ -73,12 +74,13 @@ function frame(ts) {
   ui.top = 0; ui.layer = 0;
   if (nav.cur) nav.cur.frame(g, dt, inp);
   if (nav.dir) {
-    nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * 3.2));
-    if (nav.dir > 0 && nav.fade >= 1) { const n = nav.next; nav.next = null; nav.cur = new nav.scenes[n.name](n.args); nav.dir = -1; ui.active = null; }
+    nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * (nav.dir > 0 ? 2.6 : 2.2)));
+    if (nav.dir > 0 && nav.fade >= 1) nav.hold = (nav.hold || 0) + dt;   // 다 닫힌 막을 잠깐 보여 준다
+    if (nav.dir > 0 && nav.fade >= 1 && nav.hold > 0.12) { nav.hold = 0; const n = nav.next; nav.next = null; nav.cur = new nav.scenes[n.name](n.args); nav.dir = -1; ui.active = null; }
     else if (nav.dir < 0 && nav.fade <= 0) nav.dir = 0;
   }
-  // 장면이 바뀔 때: 큰 붓이 화면을 덮고, 새 장면 위에서 걷힌다
-  if (nav.fade > 0) inkWipe(g, nav.fade, nav.dir < 0 ? -1 : 1, W, H);
+  // 장면이 바뀔 때: 인형극 무대의 막이 양옆에서 닫혔다가, 새 마당 위에서 다시 열린다
+  if (nav.fade > 0) stageWipe(g, nav.fade, W, H, ts / 1000);
   if (inp.released) ui.active = null;
   inp.pressed = false; inp.released = false;
   requestAnimationFrame(frame);

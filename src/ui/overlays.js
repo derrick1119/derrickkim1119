@@ -20,7 +20,9 @@ export const COL = { blue: INDIGO, green: TEAL, purple: '#5a4a8a', gold: '#b8742
 // 몇 장 묶음인지 알리는 딱지
 const packTag = (g, x, y, n, s = 1) => { if (!(n > 1)) return; rr(g, x - 25 * s, y - 14 * s, 50 * s, 28 * s, 7 * s, RED, INK, 1.8); text(g, '×' + n, x, y + 1, { size: 20 * s, font: FONT_B, fill: C.cream }); };
 // 보급 꾸러미: 든 패의 그림을 부채처럼 펼친다
-export const supplyArt = (g, ids, x, y, s) => ids.forEach((id, k) => { const sx = k % 2 ? 1 : -1, sy = k > 1 ? 1 : -1; cardIcon(g, id, x + sx * 23 * s, y + sy * 26 * s, 0.7 * s, sx * 0.07); });
+// 보급 꾸러미의 패 그림: 셋이면 가운데를 맞춘 삼각(위 둘 · 아래 하나), 둘이면 나란히, 넷이면 네모로
+const SUPPLY_AT = { 1: [[0, 0]], 2: [[-1, 0], [1, 0]], 3: [[-1, -1], [1, -1], [0, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]] };
+export const supplyArt = (g, ids, x, y, s) => { const at = SUPPLY_AT[Math.min(4, ids.length)] || SUPPLY_AT[4]; ids.slice(0, 4).forEach((id, k) => { const [ax, ay] = at[k]; cardIcon(g, id, x + ax * 24 * s, y + ay * 22 * s, 0.7 * s, ax * 0.08); }); };
 const dim = (g, a = 0.55) => { g.fillStyle = `rgba(31,42,68,${a})`; g.fillRect(0, 0, W, H); };
 // 겹침 화면의 뼈대: 그 위에 덱 살피기 같은 화면(sub)이 한 겹 더 뜰 수 있다
 export class Overlay {
