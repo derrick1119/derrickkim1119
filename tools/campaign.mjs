@@ -126,7 +126,7 @@ for (let k = 0; k < runs; k++) {
     else if (s.type === 'shaman') { if (curseCount() && r.gold >= PLACE_COST.gut) place.gut(); else if (r.gold >= PLACE_COST.charm && Math.random() < 0.5) place.charm(); else if (r.gold >= PLACE_COST.naerim) place.naerim(); }
     else if (s.type === 'seodang') { const c = pick(r.deck.filter(c => !isUnit(c) && canUp(c))); if (c && r.gold >= PLACE_COST.study) place.study(c.uid); else { place.quiz(); if (Math.random() < 0.34) place.quizWin(); } }
     else if (s.type === 'gamble') { if (r.gold >= PLACE_COST.bet) place.bet(); }
-    else if (s.type === 'muster') { place.recruit(pick(place.musterOffer())); if (r.gold >= PLACE_COST.feed && r.cap < MAX_CAP) place.feed(); }
+    else if (s.type === 'muster') { place.recruit(pick(place.musterOffer())); if (r.gold >= PLACE_COST.feed && r.cap < MAX_CAP && !r.fed) place.feed(); }
     else if (s.type === 'hidden') { /* 보물을 챙겼다 */ }
     else if (s.type === 'forge') { const c = pick(r.deck.filter(canTemper)); if (c && r.gold >= 40) { r.gold -= 40; temper(c.uid); } else if (r.gold >= 70) { r.gold -= 70; act.weapon(); } }
     sync(b);

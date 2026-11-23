@@ -311,7 +311,7 @@ class ShamanScene extends PlaceScene {
     const r = G.run, gold = c => r.gold < c ? `엽전 ${c} 부족` : null, d = id => this.done[id] ? '이번에는 했습니다' : null;
     return [
       { id: 'gut', label: '굿을 한다', cost: PLACE_COST.gut, sub: '부정과 잡념을 모두 씻는다', why: () => d('gut') || (curseCount() ? null : '씻을 부정이 없다') || gold(PLACE_COST.gut), go: () => { const out = place.gut(); this.done.gut = 1; this.spin = 2.4; sfx('bless'); this.say('훠어이, 물러가라! 묵은 액은 다 씻겼소.'); this.show('무녀가 굿을 해 부정을 씻었습니다', out); } },
-      { id: 'naerim', label: '신내림을 받는다', cost: PLACE_COST.naerim, sub: '다음 싸움을 사기 +5 로 시작', why: () => d('naerim') || gold(PLACE_COST.naerim), go: () => { const out = place.naerim(); this.done.naerim = 1; this.spin = 2.4; sfx('magic'); this.say('신이 내려 기운을 실어 주시오. 다음 싸움은 든든할 게요.'); this.show('신내림으로 기운이 솟습니다', out); } },
+      { id: 'naerim', label: '축원을 받는다', cost: PLACE_COST.naerim, sub: '다음 싸움을 사기 +4 로 시작', why: () => d('naerim') || gold(PLACE_COST.naerim), go: () => { const out = place.naerim(); this.done.naerim = 1; this.spin = 2.4; sfx('magic'); this.say('신이 내려 기운을 실어 주시오. 다음 싸움은 든든할 게요.'); this.show('신내림으로 기운이 솟습니다', out); } },
       { id: 'charm', label: '부적을 받는다', cost: PLACE_COST.charm, sub: '수호·흑요 부적 중 없는 것 하나', why: () => d('charm') || gold(PLACE_COST.charm), go: () => { const out = place.charm(); this.done.charm = 1; sfx('star'); juice.burst(640, 320, '#e0b23c', 14); this.say('이 부적을 몸에 지니시오. 나쁜 것이 못 다가온다오.'); this.show('무녀가 부적을 써 주었습니다', out); } },
     ];
   }
@@ -366,7 +366,7 @@ function seodangBG() {
     for (const [ax, aw] of [[x0 + 26, 160], [x1 - 186, 160]]) { g.fillStyle = '#efe4c8'; g.fillRect(ax, 198, aw, 134); g.strokeStyle = '#6a4428'; g.lineWidth = 1.3; for (let xx = ax + 11; xx < ax + aw; xx += 11) { g.beginPath(); g.moveTo(xx, 198); g.lineTo(xx, 332); g.stroke(); } for (let yy = 210; yy < 332; yy += 13) { g.beginPath(); g.moveTo(ax, yy); g.lineTo(ax + aw, yy); g.stroke(); } g.globalAlpha = 0.2; g.fillStyle = '#fff6d0'; g.fillRect(ax, 198, aw, 134); g.globalAlpha = 1; rr(g, ax, 198, aw, 134, 1, null, '#4a2c1a', 2.4); }
     { const sx = 760, sy = 190; rr(g, sx - 7, sy - 7, 134, 134, 3, '#7a5a3a', '#3a2414', 1.6); g.fillStyle = '#f3ead2'; g.fillRect(sx, sy, 120, 120);
       for (let i = 0; i < 3; i++) { const cx = sx + 30 + i * 32, h = 50 + (i % 2) * 22; g.fillStyle = `rgba(60,70,80,${0.3 + i * 0.12})`; g.beginPath(); g.moveTo(cx - 34, sy + 100); g.quadraticCurveTo(cx - 8, sy + 100 - h, cx, sy + 100 - h); g.quadraticCurveTo(cx + 8, sy + 100 - h, cx + 34, sy + 100); g.closePath(); g.fill(); }
-      g.fillStyle = 'rgba(90,110,120,0.4)'; g.fillRect(sx, sy + 98, 120, 22); DAB(g, sx + 92, sy + 26, 9, 9, '#c8402f', 0.75); S2(g, [sx + 20, sy + 108, sx + 56, sy + 106], '#2a2a30', 1.2, 0.6); S2(g, [sx + 70, sy + 104, sx + 74, sy + 112, sx + 82, sy + 108], '#2a2a30', 1, 0.5); }
+      g.fillStyle = 'rgba(90,110,120,0.4)'; g.fillRect(sx, sy + 98, 120, 22); S2(g, [sx + 84, sy + 30, sx + 92, sy + 24, sx + 100, sy + 28], '#2a2a30', 1, 0.55); S2(g, [sx + 92, sy + 22, sx + 98, sy + 17, sx + 104, sy + 20], '#2a2a30', 0.9, 0.5); S2(g, [sx + 20, sy + 108, sx + 56, sy + 106], '#2a2a30', 1.2, 0.6); S2(g, [sx + 70, sy + 104, sx + 74, sy + 112, sx + 82, sy + 108], '#2a2a30', 1, 0.5); }
     // 대청마루와 기둥
     g.fillStyle = VG(g, floor - 4, floor + 18, [[0, '#cfa068'], [1, '#7a5634']]); g.fillRect(x0 - 10, floor - 4, x1 - x0 + 20, 22);
     for (let x = x0; x < x1; x += 46) S2(g, [x, floor - 2, x, floor + 16], '#6a4a2c', 1, 0.5);
@@ -411,7 +411,7 @@ function hen(g, x, y, t, ph, face) {
   g.restore();
 }
 class SeodangScene extends PlaceScene {
-  constructor(o) { super(o, { bg: seodangBG, title: '서당', hello: '어허, 글 읽는 소리가 좋구먼. 무얼 배우러 왔는가?', bub: [636, 192, 636], leave: '서당을 떠난다' }); }
+  constructor(o) { super(o, { bg: seodangBG, title: '서당', hello: '어허, 글 읽는 소리가 좋구먼. 무얼 배우러 왔는가?', bub: [636, 160, 636], leave: '서당을 떠난다' }); }
   acts() {
     const r = G.run, gold = c => r.gold < c ? `엽전 ${c} 부족` : null, d = id => this.done[id] ? '이번에는 했습니다' : null;
     return [
@@ -464,7 +464,7 @@ function gambleBG() {
     // 병풍 (도깨비 뒤): 검은 테 안에 매화 가지
     { const bx = 420, by = 150, pw = 120, ph = 300; for (let k = 0; k < 4; k++) { const x = bx + k * pw; g.fillStyle = '#1e1410'; g.fillRect(x, by, pw, ph); g.fillStyle = VG(g, by, by + ph, [[0, '#e6d6b4'], [1, '#c8b48c']]); g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 0.25; g.fillStyle = '#ffb070'; g.fillRect(x + 8, by + 8, pw - 16, ph - 16); g.globalAlpha = 1; }
       S2(g, [bx + 30, by + 270, bx + 120, by + 180, bx + 210, by + 160, bx + 330, by + 90, bx + 430, by + 70], '#3a2a22', 6, 0.75); S2(g, [bx + 210, by + 160, bx + 250, by + 210], '#3a2a22', 3.6, 0.75); S2(g, [bx + 330, by + 90, bx + 350, by + 40], '#3a2a22', 3.6, 0.75);
-      for (let i = 0; i < 36; i++) { const q = R(), x = bx + 60 + q * 380, y = by + 250 - q * 190 + (R() - 0.5) * 50; for (let p2 = 0; p2 < 5; p2++) DAB(g, x + Math.cos(p2 * 1.26) * 4, y + Math.sin(p2 * 1.26) * 4, 3.2, 3.2, '#e88a9a', 0.85); DAB(g, x, y, 1.4, 1.4, '#f0c040', 1); }
+      for (let i = 0; i < 36; i++) { const q = R(), x = bx + 60 + q * 380, y = by + 250 - q * 190 + (R() - 0.5) * 50; for (let p2 = 0; p2 < 5; p2++) DAB(g, x + Math.cos(p2 * 1.26) * 4, y + Math.sin(p2 * 1.26) * 4, 3.2, 3.2, i % 3 ? '#f6f2ea' : '#c8402f', 0.9); DAB(g, x, y, 1.6, 1.6, '#8a2a26', 1); }
       for (let k = 1; k < 4; k++) S2(g, [bx + k * pw, by, bx + k * pw, by + ph], '#0e0806', 2.4, 0.9); }
     // 장판 바닥: 기름 먹인 누런 종이, 이음매
     g.fillStyle = VG(g, 460, H, [[0, '#9a7a44'], [1, '#4a3420']]); g.fillRect(0, 456, W, H - 456);
@@ -552,12 +552,12 @@ function musterBG() {
       part(g, p => { p.moveTo(-10, 262); p.quadraticCurveTo(240, 238, 490, 262); p.lineTo(490, 276); p.quadraticCurveTo(240, 252, -10, 276); p.closePath(); }, '#c8a060', null, { lw: 1.6 }); for (let k = 0; k < 42; k++) S2(g, [k * 12, 252 - Math.sin(k / 42 * Math.PI) * 14, k * 12 + 4, 274], '#8a6a3a', 0.9, 0.6);
       // 격문: 세로로 늘어선 붓글씨 줄, 끝에 붉은 도장
       const fx = 110, fy = 292, fw = 250, fh = 136; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(fx + 6, fy + 6, fw, fh); g.fillStyle = VG(g, fy, fy + fh, [[0, '#fbf6e6'], [1, '#e8dcbc']]); g.fillRect(fx, fy, fw, fh);
-      // 언문 격문: 세로줄마다 닿소리 하나와 홀소리 하나를 붓으로 흘려 쓴 글자꼴 (읽히지 않을 만큼 작게)
-      const ink = '#1e1a1c';
-      S2(g, [fx + fw - 22, fy + 16, fx + fw - 22, fy + 92], ink, 4.2, 0.9); S2(g, [fx + fw - 32, fy + 30, fx + fw - 14, fy + 30], ink, 2.6, 0.9);   // 첫 줄은 굵게
-      // 흘려 쓴 잔글씨: 획 두셋을 제멋대로 이어 붓 결만 남긴다 (읽히는 글자는 없다)
-      for (let k = 0; k < 13; k++) { const x = fx + fw - 44 - k * 15, n = 6 + ((k * 5) % 3); for (let j = 0; j < n; j++) { const y = fy + 16 + j * 14; let px = x + (R() - 0.5) * 3, py = y - 4; const pts = [px, py]; for (let q = 0; q < 3 + ((R() * 2) | 0); q++) { px = x + (R() - 0.5) * 6; py += 1.6 + R() * 2.4; pts.push(px, py); } S2(g, pts, ink, 1 + R() * 0.6, 0.78); if (R() < 0.4) S2(g, [x - 3, y + R() * 4, x + 3, y + R() * 4], ink, 1, 0.7); } }
-      DAB(g, fx + 34, fy + fh - 26, 12, 12, '#b8322a', 0.9); rr(g, fx + 24, fy + fh - 36, 20, 20, 2, null, '#fbe8d8', 1.2);
+      // 한글 격문: 붓글씨로 큼직하게 '의병 모집', 아래에 두 줄
+      text(g, '의병 모집', fx + 92, fy + 34, { size: 30, font: FONT_B, fill: '#1e1a1c', maxW: 160 });
+      S2(g, [fx + 22, fy + 58, fx + 166, fy + 58], '#1e1a1c', 1.4, 0.6);
+      text(g, '고을을 지킬 장정은', fx + 92, fy + 80, { size: 15, font: FONT_B, fill: '#2a2224', maxW: 160 });
+      text(g, '이 마당으로 모이시오', fx + 92, fy + 102, { size: 15, font: FONT_B, fill: '#2a2224', maxW: 160 });
+      DAB(g, fx + 176, fy + fh - 18, 9, 9, '#b8322a', 0.9); rr(g, fx + 168, fy + fh - 26, 16, 16, 2, null, '#fbe8d8', 1.1);
       for (const [x, y] of [[fx + 4, fy + 4], [fx + fw - 4, fy + 4], [fx + 4, fy + fh - 4], [fx + fw - 4, fy + fh - 4]]) DAB(g, x, y, 4, 4, '#3a2a20', 0.9); }
     // 느티나무 (가운데 뒤)
     { g.fillStyle = VG(g, 200, 470, [[0, '#5a4a3a'], [1, '#2e241c']]); g.beginPath(); g.moveTo(600, 476); g.quadraticCurveTo(630, 380, 620, 300); g.quadraticCurveTo(612, 220, 590, 160); g.lineTo(650, 156); g.quadraticCurveTo(668, 250, 668, 310); g.quadraticCurveTo(676, 400, 712, 476); g.closePath(); g.fill();
@@ -585,7 +585,7 @@ class MusterScene extends PlaceScene {
       { id: 'recruit', label: '장정을 고른다', sub: '병력 패 셋 중 하나를 데려간다', why: () => d('recruit'),
         go: () => { const opts = place.musterOffer(); this.pick = { kind: 'cards', title: '함께 갈 장정', sub: '셋 중 하나를 골라 병력 패로 데려갑니다', opts, cancel: true, onPick: i => { const s = place.recruit(opts[i]); this.done.recruit = 1; sfx('place'); this.say('잘 부탁하오. 저들은 물러서지 않을 게요.'); this.show('장정이 군대에 들어왔습니다', [s]); } }; } },
       { id: 'call', label: '격문을 붙인다', cost: PLACE_COST.call, sub: '의병 봉기 패 두 장', why: () => d('call') || gold(PLACE_COST.call), go: () => { const out = place.call(); this.done.call = 1; sfx('star'); this.say('격문을 보고 고을마다 장정들이 일어설 게요.'); this.show('고을에 격문을 붙였습니다', out); } },
-      { id: 'feed', label: '군량을 댄다', cost: PLACE_COST.feed, sub: `부대 한도 +1 (지금 ${r.cap})`, why: () => d('feed') || (r.cap >= MAX_CAP ? '부대 한도가 가득 찼다' : null) || gold(PLACE_COST.feed), go: () => { const out = place.feed(); this.done.feed = 1; sfx('coin'); this.say('배가 든든해야 싸우지요. 고맙소!'); this.show('의병들에게 군량을 댔습니다', out); } },
+      { id: 'feed', label: '군량을 댄다', cost: PLACE_COST.feed, sub: `부대 한도 +1 (지금 ${r.cap})`, why: () => d('feed') || (r.fed ? '이번 원정에는 이미 군량을 댔다' : null) || (r.cap >= MAX_CAP ? '부대 한도가 가득 찼다' : null) || gold(PLACE_COST.feed), go: () => { const out = place.feed(); this.done.feed = 1; sfx('coin'); this.say('배가 든든해야 싸우지요. 고맙소!'); this.show('의병들에게 군량을 댔습니다', out); } },
     ];
   }
   scene(g, t) {

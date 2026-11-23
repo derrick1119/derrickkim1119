@@ -396,13 +396,13 @@ export function genShop() {
 export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it.price) return false; r.gold -= it.price; it.sold = true; applyReward(it); return true; }
 
 // ───────── 길 위의 새 장소: 무당집 · 서당 · 투전판 · 의병 모집소 · 숨은 길 (그림은 ui/places2.js) ─────────
-export const PLACE_COST = { gut: 40, naerim: 20, charm: 45, study: 25, call: 25, feed: 90, bet: 30 };
+export const PLACE_COST = { gut: 40, naerim: 30, charm: 45, study: 25, call: 25, feed: 150, bet: 30 };   // 군량(부대 한도)은 원정에 한 번만
 export const BET_WIN = 0.45;   // 투전 한 판에 이길 확률: 화면에 그대로 적는다 (이기면 건 돈의 두 배를 받는다)
 export const curseCount = () => { const r = G.run; return r.relics.filter(id => RELICS[id] && RELICS[id].curse).length + r.deck.filter(c => c.id === 'doubt').length; };
 export const place = {
   // 무당집: 굿으로 부정을 씻고, 신내림으로 기세를 올리고, 부적을 받는다
   gut() { const r = G.run; r.gold -= PLACE_COST.gut; const out = []; for (let k = 0; k < 4; k++) { const a = act.cleanse(); if (!a) break; out.push(a); } for (let k = 0; k < 4; k++) { const b = act.clearDoubt(); if (!b) break; out.push(b); } save(); return out; },
-  naerim() { G.run.gold -= PLACE_COST.naerim; const s = act.morale(5); save(); return [s]; },
+  naerim() { G.run.gold -= PLACE_COST.naerim; const s = act.morale(4); save(); return [s]; },
   charm() { const r = G.run; r.gold -= PLACE_COST.charm; const pool = ['amulet', 'obsidian'].filter(id => RELICS[id] && !r.relics.includes(id)), s = pool.length ? act.relic(pick(pool)) : act.card('bujeok', true, 2); save(); return [s]; },
   // 서당: 전술 하나를 익히고, 병법서로 패를 바꾸고, 훈장의 시험을 본다
   study(uid) { const c = cardOf(uid); if (!c || isUnit(c) || !canUp(c)) return null; G.run.gold -= PLACE_COST.study; master(c.id); save(); return `전술을 익혔습니다: [${CARDS[c.id].name}] → [${CARDS[c.id].name}+]`; },
@@ -417,7 +417,7 @@ export const place = {
   musterOffer() { const r = G.run, types = unitPool(), owned = ownedTypes(), out = []; for (let g = 0; out.length < 3 && g < 60; g++) { const fresh = types.filter(t => !owned.includes(t) && !out.includes(t)), t = fresh.length && rnd() < 0.55 ? pick(fresh) : pick(types); if (!out.includes(t)) out.push(t); } return out.map(t => ({ id: 'u_' + t, lv: 1 + Math.floor(r.ch * 0.8) })); },
   recruit(o) { addCard(o.id, { lv: o.lv }); save(); return `병력 패 [${CARDS[o.id].name}]${o.lv > 1 ? ` ${o.lv}단` : ''}`; },
   call() { G.run.gold -= PLACE_COST.call; const s = act.card('uibyeong', false, 2); save(); return [s]; },
-  feed() { G.run.gold -= PLACE_COST.feed; const s = act.cap(1); save(); return [s]; },
+  feed() { G.run.gold -= PLACE_COST.feed; G.run.fed = true; const s = act.cap(1); save(); return [s]; },
   // 숨은 길: 금줄 너머의 보물 둘을 챙기면 부정도 함께 따라온다
   loot() { const a = act.relic(), b = act.relic(), c = act.curse(); save(); return [a, b, c]; },
 };

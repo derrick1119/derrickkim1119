@@ -242,7 +242,7 @@ export function mulgwisin(g) {
   for (let k = 0; k < 6; k++) { const by = -36 + k * 2.6, bx = -7.6 - Math.sin(k * 0.6) * 0.8; part(g, p => p.ellipse(bx, by, 2.1, 1.7, 0.5 * (k % 2 ? 1 : -1), 0, TAU), H, null, { lw: 0.8 }); }
   path(g, P(-9.4, -21.6, -5.8, -21.6, -6.4, -16.4, -8.2, -18.6, -9.8, -16.2), '#b8322a', INK, 0.7);
   // 물에 잠긴 치마: 아랫자락이 물결에 풀려 너덜너덜하다
-  part(g, p => { p.moveTo(-10, -25); p.quadraticCurveTo(-13.6, -14, -14.4, -3); for (let x = -14.4, i = 0; x < 14.4; x += 3.6, i++) p.lineTo(x + 1.8, -3 + (i % 2 ? 2.6 : -1.4)); p.lineTo(14.4, -3); p.quadraticCurveTo(13.6, -14, 10, -25); p.closePath(); }, robe, P(3, -26, 16, -26, 16, 0, 5, 0), { hi: P(-9, -24, -6, -24, -9, -6, -12.6, -6), hk: 0.2 });
+  part(g, p => { p.moveTo(-10, -25); p.quadraticCurveTo(-13.6, -14, -14.4, -3); for (let x = -14.4; x < 14.4; x += 4.8) p.quadraticCurveTo(x + 2.4, -1.6, x + 4.8, -3); p.lineTo(14.4, -3); p.quadraticCurveTo(13.6, -14, 10, -25); p.closePath(); }, robe, P(3, -26, 16, -26, 16, 0, 5, 0), { hi: P(-9, -24, -6, -24, -9, -6, -12.6, -6), hk: 0.2 });
   for (const x of [-7, -2.4, 3, 7.4]) curve(g, p => { p.moveTo(x * 0.9, -23); p.quadraticCurveTo(x - 0.6, -14, x * 1.1, -5); }, dk(robe, 0.3), 0.8);
   // 빛바랜 쪽빛 저고리와 흰 동정, 늘어진 고름
   part(g, p => { p.moveTo(-8.6, -33.6); p.quadraticCurveTo(-11, -28, -10.6, -24); p.quadraticCurveTo(0, -22.4, 10.6, -24); p.quadraticCurveTo(11, -28, 8.6, -33.6); p.quadraticCurveTo(0, -35.4, -8.6, -33.6); p.closePath(); }, J, P(3, -36, 12, -36, 12, -22, 4, -22), { hi: P(-8, -33, -5.6, -33.6, -8.6, -25, -10, -25), hk: 0.2 });
@@ -250,11 +250,11 @@ export function mulgwisin(g) {
   path(g, P(1.6, -26.6, 4.4, -27, 3.4, -18.6, 1.8, -19.2), '#8a4a4a', INK, 0.6); path(g, P(1.4, -26.6, -0.8, -25.6, -0.6, -20.6, 1.2, -21), '#8a4a4a', INK, 0.6);
   // 앞으로 뻗은 두 팔과 앙상한 손가락
   for (const s of [-1, 1]) {
-    part(g, p => { p.moveTo(s * 7.6, -32.4); p.quadraticCurveTo(s * 17, -31, s * 21.4, -24.6); p.lineTo(s * 19.6, -21.4); p.quadraticCurveTo(s * 14.6, -26, s * 8.6, -26.4); p.closePath(); }, J, s > 0 ? R(15, -33, 8, 12) : null, { lw: 1.1 });
-    path(g, P(s * 21.4, -24.6, s * 19.6, -21.4, s * 18.4, -22.4, s * 20.2, -25.4), '#eef4f4', INK, 0.6);
-    part(g, E(s * 22.2, -22.6, 2.6, 2.3), SK, E(s * 23.2, -21.6, 2.2, 1.7), { lw: 0.9 });
-    for (const [dx, dy] of [[2.6, 1.6], [3.4, -0.4], [2.6, -2.4]]) line(g, [s * 23, -22.6, s * (23 + dx), -22.6 + dy + 1.2], INK, 1.2);
-    drop(g, s * 22.2, -16.8, 0.9);
+    part(g, p => { p.moveTo(s * 7.6, -32.4); p.quadraticCurveTo(s * 13.4, -29, s * 13.6, -18.6); p.lineTo(s * 10.6, -18.2); p.quadraticCurveTo(s * 10.4, -25, s * 8.6, -26.4); p.closePath(); }, J, s > 0 ? R(15, -33, 8, 12) : null, { lw: 1.1 });
+    path(g, P(s * 13.6, -18.6, s * 10.6, -18.2, s * 10.6, -19.8, s * 13.6, -20.2), '#eef4f4', INK, 0.6);
+    part(g, E(s * 12.2, -16.2, 2.4, 2.4), SK, E(s * 13, -15.4, 2, 1.8), { lw: 0.9 });
+    
+    drop(g, s * 12.4, -11.6, 0.9);
   }
   // 목과 얼굴: 물에 불은 푸르스름한 얼굴, 퀭한 눈, 파리한 입술
   path(g, P(-2.4, -35.4, 2.4, -35.4, 2.8, -32.6, -2.8, -32.6), dk(SK, 0.16), INK, 0.8);
