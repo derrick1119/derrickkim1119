@@ -32,3 +32,8 @@ export const ICONS = {
   globe: '<circle cx="12" cy="12" r="8.500"/><path d="M3.500 12h17M12 3.500c2.500 2.500 3.500 5.500 3.500 8.500s-1 6-3.500 8.500c-2.500-2.500-3.500-5.500-3.500-8.500s1-6 3.500-8.500z"/>',
   help: '<circle cx="12" cy="12" r="8.500"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.500 2.300c-.700.400-1 .900-1 1.700"/><circle cx="12" cy="16.700" r=".600"/>',
 };
+
+/** 기능 모듈이 자기 아이콘을 더한다(같은 24×24 선 아이콘 규칙). 고정 문자열만 넣을 것. */
+export function addIcons(map) {
+  for (const [k, v] of Object.entries(map)) if (!(k in ICONS)) ICONS[k] = v;
+}

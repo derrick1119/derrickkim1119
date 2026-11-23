@@ -1,6 +1,7 @@
 // 게임 규칙. 화면·소리·시간과 분리되어 있어 node 에서 그대로 돌릴 수 있다.
 // 상태를 바꾸는 모든 길은 이 클래스의 메서드를 지난다.
 import {
+  CAUSE_BY_ID as CAUSE_BY_ID_LOCAL,
   FORMS,
   GOAL_SIZE,
   SPECIMENS,
@@ -36,8 +37,14 @@ import {
 } from './balance.js';
 import { Emitter } from './emitter.js';
 import { defaultRun, defaultState } from './state.js';
+import { features } from './features.js';
+import './featureList.js';
 
 const POKE_WINDOW = 2.5; // 이 시간 동안 안 건드리면 간지럼 횟수가 풀린다
+const COMBO_WINDOW = 2.6; // 이 시간 안에 다음 표본을 모아야 콤보가 이어진다
+const COMBO_STEP = 0.04; // 콤보 하나당 성장 배율
+const COMBO_MAX_STEPS = 20; // 최대 1.8배
+const EXCUSE_BASE = 0.35; // 변명이 통할 기본 확률
 
 export class Game extends Emitter {
   /**
@@ -54,6 +61,35 @@ export class Game extends Emitter {
     this._pokes = 0;
     this._pokeT = 0;
     this._achT = 0;
+    this._lastDiscovery = null;
+    /** 기능 모듈이 돌려준 API(game.fx.traits 등). 기능은 상태를 항상 game.state.ext[id] 에서 새로 읽는다. */
+    this.fx = {};
+    for (const f of features()) {
+      if (!f.install) continue;
+      try {
+        this.fx[f.id] = f.install(this) || {};
+      } catch (err) {
+        if (typeof console !== 'undefined') console.warn(`기능 ${f.id} 을(를) 켜지 못했습니다`, err);
+        this.fx[f.id] = {};
+      }
+    }
+  }
+
+  /** 능력치 보정: 등록된 모든 기능의 modify 를 차례로 거친다(features.js 의 키 목록 참고). */
+  mod(key, value, ctx = {}) {
+    let v = value;
+    for (const f of features()) {
+      if (!f.modify) continue;
+      const out = f.modify(key, v, ctx, this);
+      if (typeof out === 'number' && Number.isFinite(out)) v = out;
+    }
+    return v;
+  }
+
+  /** 기능 모듈의 저장 슬롯. */
+  ext(id) {
+    if (!this.state.ext) this.state.ext = {};
+    return this.state.ext[id];
   }
 
   // ───────── 읽기 ─────────
@@ -92,7 +128,14 @@ export class Game extends Emitter {
   }
   get gainMult() {
     const s = this.state;
-    return gainMultiplier({ gen: s.gen, clears: s.clears, beamLevel: s.gadgets.beam });
+    return this.mod('gainMult', gainMultiplier({ gen: s.gen, clears: s.clears, beamLevel: s.gadgets.beam }));
+  }
+  /** 지금 콤보 수와 그에 따른 성장 배율. */
+  get combo() {
+    return this.state.run.combo || 0;
+  }
+  get comboMult() {
+    return 1 + Math.min(Math.max(this.combo - 1, 0), COMBO_MAX_STEPS) * COMBO_STEP;
   }
   get cloaked() {
     return this.state.run.cloakT > 0;
@@ -101,13 +144,13 @@ export class Game extends Emitter {
     return this.state.run.cloakT <= 0 && this.state.run.cloakCd <= 0;
   }
   get cloakDuration() {
-    return cloakDuration(this.state.gadgets.cloak);
+    return this.mod('cloakDuration', cloakDuration(this.state.gadgets.cloak));
   }
   get cloakCooldown() {
-    return cloakCooldown(this.state.gadgets.cooler);
+    return Math.max(4, this.mod('cloakCooldown', cloakCooldown(this.state.gadgets.cooler)));
   }
   get noticeTime() {
-    return noticeTime(this.state.gadgets.radar);
+    return Math.max(0.15, this.mod('noticeTime', noticeTime(this.state.gadgets.radar)));
   }
   get droneInterval() {
     return droneInterval(this.state.gadgets.drone);
@@ -116,20 +159,28 @@ export class Game extends Emitter {
     return specimensPerMission(this.state.gadgets.tank);
   }
   get nextStartSize() {
-    return startSizeFor(this.uniqueCauses);
+    return Math.max(BAL.startSize, Math.min(this.mod('startSize', startSizeFor(this.uniqueCauses)), FORMS[6].min * 0.9));
+  }
+  /** 표본 하나가 채우는 연료(%). */
+  get fuelPerSpecimen() {
+    return Math.max(1, this.mod('fuelPerSpecimen', 100 / this.specimensPerMission));
   }
 
   chance(causeId) {
-    return detectChance(causeId, this.state.resist[causeId] || 0);
+    return Math.min(1, Math.max(0, this.mod('detect', detectChance(causeId, this.state.resist[causeId] || 0), { cause: causeId })));
   }
   missionRisk(id) {
-    return missionRisk(id, this.state.resist);
+    return Math.min(1, Math.max(0, this.mod('missionRisk', missionRisk(id, this.state.resist), { id })));
   }
   specimenGain(id, auto = false) {
-    return SPECIMEN_BY_ID[id].gain * this.gainMult * (auto ? BAL.droneYield : 1);
+    return this.mod('specimenGain', SPECIMEN_BY_ID[id].gain * this.gainMult * (auto ? BAL.droneYield : 1), { id, auto });
   }
   missionGain(id) {
-    return MISSION_BY_ID[id].gain * this.gainMult;
+    return this.mod('missionGain', MISSION_BY_ID[id].gain * this.gainMult, { id });
+  }
+  /** 받을 연구비에 기능 보정을 적용한다. */
+  grantFor(amount, source) {
+    return Math.max(0, Math.round(this.mod('grant', amount, { source })));
   }
   isSpecimenUnlocked(id) {
     return !!this.state.unlocked.specimens[id];
@@ -179,10 +230,11 @@ export class Game extends Emitter {
   /**
    * 표본 하나를 모은다.
    * @param {string} id
-   * @param {{watchers?: string[], auto?: boolean}} [ctx] watchers = 지금 하늘을 보고 있는 지구인들
+   * @param {{watchers?: string[], auto?: boolean, bonus?: number, perfect?: boolean}} [ctx]
+   *   watchers = 지금 이쪽을 보고 있는 지구인들(시선 범위 안), bonus = 성장 배율(아슬아슬·완벽 등)
    * @returns {{ok: boolean, gain: number, formUps: object[], report: object|null, ending: object|null}}
    */
-  collect(id, { watchers = [], auto = false } = {}) {
+  collect(id, { watchers = [], auto = false, bonus = 1, perfect = false } = {}) {
     const none = { ok: false, gain: 0, formUps: [], report: null, ending: null };
     const spec = SPECIMEN_BY_ID[id];
     if (!this.playing || !spec || !this.state.unlocked.specimens[id]) return none;
@@ -201,18 +253,87 @@ export class Game extends Emitter {
       }
     }
 
-    const gain = this.specimenGain(id, auto);
+    let gain = this.specimenGain(id, auto) * bonus;
     s.stats.specimens++;
     s.stats.bySpecimen[id] = (s.stats.bySpecimen[id] || 0) + 1;
     if (!auto) {
       s.run.specimens++;
-      s.run.fuel = Math.min(100, s.run.fuel + 100 / this.specimensPerMission);
+      s.run.fuel = Math.min(100, s.run.fuel + this.fuelPerSpecimen);
       if (s.run.fuel > 100 - 1e-6) s.run.fuel = 100; // 100/14 를 14번 더하면 99.999… 가 된다
+      // 콤보: 제때 이어 모으면 성장 배율이 오른다
+      s.run.combo = (s.run.combo || 0) + 1;
+      s.run.comboT = this.mod('comboWindow', COMBO_WINDOW);
+      s.stats.bestCombo = Math.max(s.stats.bestCombo || 0, s.run.combo);
+      gain *= this.comboMult;
     }
+    this.emit('collected', { id, gain, auto, combo: s.run.combo || 0, bonus, perfect });
     // 구름 은폐 중이거나 드론이 모은 것은 승급 셀카로도 들키지 않는다
     const grown = this._addSize(gain, !auto && !this.cloaked);
     this.emit('change');
     return { ok: true, gain, ...grown };
+  }
+
+  /**
+   * 아슬아슬: 지구인이 이쪽을 보기 직전에 표본을 낚아챘다. 방금 얻은 만큼을 한 번 더 주고 콤보를 2 올린다.
+   * @param {number} lastGain 직전 수집의 성장량
+   */
+  nearMiss(lastGain) {
+    if (!this.playing || !(lastGain > 0)) return null;
+    const s = this.state;
+    s.stats.nearMisses = (s.stats.nearMisses || 0) + 1;
+    s.run.combo = (s.run.combo || 0) + 2;
+    s.run.comboT = this.mod('comboWindow', COMBO_WINDOW);
+    const grown = this._addSize(lastGain, false);
+    this.emit('nearMiss', { gain: lastGain, combo: s.run.combo });
+    this.emit('change');
+    return { gain: lastGain, ...grown };
+  }
+
+  /** 기능 모듈·세계가 일으키는 사건(조건부 숨은 사건, 번개, 사진 플래시 등). */
+  incident(causeId, ctx = {}) {
+    if (!this.playing || !CAUSE_BY_ID_LOCAL[causeId]) return null;
+    return this._discover(causeId, ctx);
+  }
+
+  /** 이번 대원이 변명을 쓸 수 있는지(대원마다 한 번). */
+  get canExcuse() {
+    return this.state.phase === 'discovered' && !!this._lastDiscovery && !this.state.run.excuseUsed;
+  }
+
+  /** 변명이 통할 확률. */
+  excuseChance(excuseId) {
+    const d = this._lastDiscovery;
+    return Math.min(0.95, Math.max(0.05, this.mod('excuseChance', EXCUSE_BASE, { cause: d?.cause, excuse: excuseId })));
+  }
+
+  /**
+   * 변명한다. 통하면 이번 발각을 없던 일로 하고 관측을 이어 간다(대원마다 한 번).
+   * @returns {{ok: boolean, success: boolean}}
+   */
+  excuse(excuseId) {
+    if (!this.canExcuse) return { ok: false, success: false };
+    const s = this.state;
+    const d = this._lastDiscovery;
+    s.run.excuseUsed = true;
+    const success = this.rng() < this.excuseChance(excuseId);
+    if (!success) {
+      this.emit('excuseFailed', { cause: d.cause, excuse: excuseId });
+      this.emit('change');
+      return { ok: true, success: false };
+    }
+    if (d.isNew) delete s.seen[d.cause];
+    if (d.resist > 0) s.resist[d.cause] = d.resist;
+    else delete s.resist[d.cause];
+    s.grant = Math.max(0, s.grant - d.grant);
+    s.stats.discoveries = Math.max(0, s.stats.discoveries - 1);
+    s.stats.excuses = (s.stats.excuses || 0) + 1;
+    s.phase = 'play';
+    s.lastReport = null;
+    s.run.combo = 0;
+    this._lastDiscovery = null;
+    this.emit('excused', { cause: d.cause, excuse: excuseId });
+    this.emit('change');
+    return { ok: true, success: true };
   }
 
   /** 기체를 건드린다. 너무 자주 건드리면 간지럼 사건. */
@@ -251,8 +372,11 @@ export class Game extends Emitter {
     return { ok: true, reason: null };
   }
 
-  /** 임무 결과를 정한다(연료는 여기서 쓴다). 연출은 호출하는 쪽이 맡는다. */
-  resolveMission(id) {
+  /**
+   * 임무 결과를 정한다(연료는 여기서 쓴다). 연출은 호출하는 쪽이 맡는다.
+   * @param {{score?: number}} [o] 미니게임 점수 0..1(0.5 = 보통). 높을수록 덜 들키고 더 크게 자란다.
+   */
+  resolveMission(id, { score = 0.5 } = {}) {
     if (!this.canMission(id).ok) return { ok: false };
     const s = this.state;
     const m = MISSION_BY_ID[id];
@@ -260,12 +384,14 @@ export class Game extends Emitter {
     const shownRisk = this.missionRisk(id);
     s.run.fuel = 0;
     const cause = m.causes[Math.min(m.causes.length - 1, Math.floor(this.rng() * m.causes.length))];
-    if (this.rng() < this.chance(cause)) {
+    const sc = Math.min(1, Math.max(0, score));
+    const risk = this.mod('missionRisk', this.chance(cause), { id }) * (1.35 - 0.7 * sc);
+    if (this.rng() < Math.min(0.98, risk)) {
       s.stats.missionsFail++;
       return { ok: true, success: false, cause, report: this._discover(cause, { mission: id }) };
     }
-    const gain = this.missionGain(id);
-    const grant = missionGrant(index, s.gadgets.ai);
+    const gain = this.missionGain(id) * (0.7 + 0.6 * sc);
+    const grant = this.grantFor(missionGrant(index, s.gadgets.ai) * (0.75 + 0.5 * sc), 'mission');
     s.run.missions++;
     s.stats.missionsOk++;
     if (shownRisk >= 0.6) s.stats.daredevil = 1;
@@ -273,7 +399,8 @@ export class Game extends Emitter {
     const grown = this._addSize(gain, true);
     this._checkAchievements();
     this.emit('change');
-    return { ok: true, success: true, gain, grant, ...grown };
+    this.emit('missionOk', { id, score: sc, gain, grant });
+    return { ok: true, success: true, gain, grant, score: sc, ...grown };
   }
 
   // ───────── 구매 ─────────
@@ -328,6 +455,7 @@ export class Game extends Emitter {
     const s = this.state;
     s.gen++;
     s.run = defaultRun(this.nextStartSize);
+    this._lastDiscovery = null;
     s.phase = 'play';
     s.lastReport = null;
     s.stats.bestForm = Math.max(s.stats.bestForm, s.run.form);
@@ -357,6 +485,15 @@ export class Game extends Emitter {
       this._pokeT -= dt;
       if (this._pokeT <= 0) this._pokes = 0;
     }
+    if (s.run.comboT > 0) {
+      s.run.comboT = Math.max(0, s.run.comboT - dt);
+      if (s.run.comboT === 0 && s.run.combo > 0) {
+        const combo = s.run.combo;
+        s.run.combo = 0;
+        this.emit('comboEnd', { combo });
+      }
+    }
+    this.emit('tick', dt);
     this._achT += dt;
     if (this._achT >= 1) {
       this._achT = 0;
@@ -391,8 +528,9 @@ export class Game extends Emitter {
     }
     s.daily.streak = consecutive ? s.daily.streak + 1 : 1;
     s.daily.last = day;
-    const reward = Math.round(
+    const reward = this.grantFor(
       BAL.dailyBase * Math.min(s.daily.streak, BAL.dailyStreakCap) * (1 + s.stats.bestForm) * grantMultiplier(s.gadgets.ai),
+      'daily',
     );
     s.grant += reward;
     this.emit('change');
@@ -450,7 +588,7 @@ export class Game extends Emitter {
     s.stats.bestSize = Math.max(s.stats.bestSize, run.size);
     while (run.form < FORMS.length - 1 && run.size >= FORMS[run.form + 1].min) {
       run.form++;
-      const grant = formGrant(run.form, s.gadgets.ai);
+      const grant = this.grantFor(formGrant(run.form, s.gadgets.ai), 'form');
       s.grant += grant;
       s.stats.bestForm = Math.max(s.stats.bestForm, run.form);
       out.formUps.push({ form: run.form, grant });
@@ -474,11 +612,14 @@ export class Game extends Emitter {
     const prevStart = this.nextStartSize;
     if (isNew) s.seen[causeId] = s.gen;
     s.resist[causeId] = (s.resist[causeId] || 0) + 1;
-    const grant = reportGrant({ formIndex: run.form, progress: this.progress, isNew, aiLevel: s.gadgets.ai });
+    const grant = this.grantFor(reportGrant({ formIndex: run.form, progress: this.progress, isNew, aiLevel: s.gadgets.ai }), 'report');
+    // 변명이 통하면 되돌릴 수 있도록 바뀌기 전 값을 남긴다
+    this._lastDiscovery = { cause: causeId, isNew, resist: (s.resist[causeId] || 1) - 1, grant };
     s.grant += grant;
     s.stats.discoveries++;
     s.stats.bestRunSpecimens = Math.max(s.stats.bestRunSpecimens, run.specimens);
     run.cloakT = 0;
+    run.combo = 0;
     const report = {
       cause: causeId,
       isNew,
@@ -511,7 +652,7 @@ export class Game extends Emitter {
     s.flags.ending = true;
     if (isTrue) s.flags.trueEnding = true;
     s.stats.bestRunSpecimens = Math.max(s.stats.bestRunSpecimens, s.run.specimens);
-    const grant = Math.round(BAL.clearGrant * (first ? 2 : 1) * grantMultiplier(s.gadgets.ai));
+    const grant = this.grantFor(BAL.clearGrant * (first ? 2 : 1) * grantMultiplier(s.gadgets.ai), 'ending');
     s.grant += grant;
     const ending = { first, isTrue, newTrue, grant, clears: s.clears, gen: s.gen };
     this._checkAchievements();

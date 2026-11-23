@@ -2,6 +2,8 @@
 // 불러올 때는 항상 sanitize() 를 거쳐 알 수 없는 값·깨진 값을 걸러 낸다.
 import { CAUSE_BY_ID, SPECIMEN_BY_ID, MISSION_BY_ID, GADGETS, ACHIEVEMENTS, GOAL_SIZE } from '../data/content.js';
 import { BAL, formIndexForSize } from './balance.js';
+import { initialExt, sanitizeExt } from './features.js';
+import './featureList.js';
 
 export const SAVE_VERSION = 1;
 
@@ -15,6 +17,9 @@ export function defaultRun(size = BAL.startSize) {
     time: 0,
     cloakT: 0,
     cloakCd: 0,
+    combo: 0,
+    comboT: 0,
+    excuseUsed: false,
   };
 }
 
@@ -43,6 +48,9 @@ export function defaultState() {
       bestForm: 0,
       bestRunSpecimens: 0,
       daredevil: 0,
+      bestCombo: 0,
+      nearMisses: 0,
+      excuses: 0,
       playTime: 0,
       bySpecimen: {},
     },
@@ -51,6 +59,7 @@ export function defaultState() {
     flags: { intro: false, ending: false, trueEnding: false },
     lastReport: null, // 발각 직후 앱을 닫았을 때 보고서를 다시 보여 주기 위한 값
     lastSeen: 0,
+    ext: initialExt(), // 기능 모듈별 저장 슬롯(features.js)
   };
 }
 
@@ -85,6 +94,9 @@ export function sanitize(raw) {
     time: num(run.time, 0),
     cloakT: num(run.cloakT, 0, 0, 60),
     cloakCd: num(run.cloakCd, 0, 0, 120),
+    combo: 0,
+    comboT: 0,
+    excuseUsed: bool(run.excuseUsed, false),
   };
 
   for (const [id, n] of Object.entries(obj(r.resist))) {
@@ -118,6 +130,9 @@ export function sanitize(raw) {
     bestForm: int(rs.bestForm, 0, 0, 7),
     bestRunSpecimens: int(rs.bestRunSpecimens, 0),
     daredevil: int(rs.daredevil, 0),
+    bestCombo: int(rs.bestCombo, 0),
+    nearMisses: int(rs.nearMisses, 0),
+    excuses: int(rs.excuses, 0),
     playTime: num(rs.playTime, 0),
     bySpecimen: {},
   };
@@ -157,6 +172,7 @@ export function sanitize(raw) {
     s.phase = 'play';
   }
   s.lastSeen = num(r.lastSeen, 0);
+  s.ext = sanitizeExt(r.ext);
   return s;
 }
 

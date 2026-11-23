@@ -38,7 +38,10 @@ async function main() {
   const inlineJs = inline.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 
   // 2) 스타일
-  const cssSource = await read('styles/main.css');
+  // main.css 뒤에 기능 모듈 스타일(styles/ext.css 가 @import 로 부르는 파일들)을 이어 붙인다
+  const extList = [...(await read('styles/ext.css')).matchAll(/@import url\('\.\/([^']+)'\);/g)].map((m) => m[1]);
+  let cssSource = await read('styles/main.css');
+  for (const f of extList) cssSource += `\n${await read(join('styles', f))}`;
   const css = (await transform(cssSource, { loader: 'css', minify: true })).code;
   await writeFile(join(DIST, 'styles/main.css'), css);
 
@@ -48,7 +51,9 @@ async function main() {
 
   // 4) index.html: 개발용 모듈 진입점을 묶음으로 바꾼다
   // 개발용 import map(three.js 위치)은 묶음에는 필요 없다
-  const html = (await read('index.html')).replace(/<!-- 개발용: 묶지 않은 모듈이[^\n]*\n<script type="importmap">[^\n]*<\/script>\n/, '');
+  const EXT_CSS = '<link rel="stylesheet" href="./styles/ext.css">\n';
+  must(await read('index.html'), EXT_CSS, 'index.html');
+  const html = (await read('index.html')).replace(EXT_CSS, '').replace(/<!-- 개발용: 묶지 않은 모듈이[^\n]*\n<script type="importmap">[^\n]*<\/script>\n/, '');
   must(html, '<script type="module" src="./src/main.js"></script>', 'index.html');
   if (html.includes('importmap')) throw new Error('빌드 실패: index.html 의 import map 을 지우지 못했습니다');
   const devScript = '<script type="module" src="./src/main.js"></script>';

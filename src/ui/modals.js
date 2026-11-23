@@ -6,6 +6,7 @@ import { t, tList, tPick, formatDuration, LANGS, getLang } from '../i18n/index.j
 import { copyText, shareText } from '../platform/device.js';
 import { iconURL, causeIconURL } from '../render/iconcache.js';
 import { h, clear, icon, img, grantTag } from './dom.js';
+import { hooks } from './hooks.js';
 
 export const APP_VERSION = '1.0.0';
 
@@ -194,6 +195,14 @@ export function showReport(ui, report, onNext) {
       grantTag(`+${formatInt(report.grant)}`, 'big'),
       report.isNew && h('span', { class: 'chip gain', text: t('report.grantNew') }),
     ),
+    ...hooks.reportExtras.map((x) => {
+      try {
+        return x.render(ui, report);
+      } catch (err) {
+        console.warn(`보고서 ${x.id}`, err);
+        return null;
+      }
+    }),
     h('p', { class: 'report-tip' }, h('b', { text: t('report.tip') }), h('span', { text: tPick('tips') })),
     h(
       'div',

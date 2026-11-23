@@ -5,6 +5,9 @@ import { t, tList, tPick, setLang, getLang, detectLang, LANGS } from '../i18n/in
 import { h, clear, icon, grantTag } from './dom.js';
 import { Modals, showIntro, showReport, showMission, showEnding, showSettings } from './modals.js';
 import { PANELS, renderPanel, panelSignature } from './panels.js';
+import { hooks } from './hooks.js';
+import { playMinigame } from './minigames/index.js';
+import './ext/index.js';
 
 const MISSION_SUSPENSE_MS = 2100;
 const REPORT_DELAY_MS = 1250;
@@ -65,6 +68,13 @@ export class UI {
 
     this._build();
     this._bindGame();
+    for (const b of hooks.binds) {
+      try {
+        b.bind(this);
+      } catch (err) {
+        console.warn(`확장 ${b.id}`, err);
+      }
+    }
     this.scene.canvas.addEventListener('pointerdown', (e) => this._onPointer(e));
     // 휴대폰이 소리를 멈췄다가(전화·잠금 등) 돌아왔을 때 다음 터치에서 다시 깨운다
     for (const type of ['pointerdown', 'click']) this.stage.addEventListener(type, () => this.audio.unlock(), { capture: true, passive: true });
@@ -117,6 +127,16 @@ export class UI {
       h('div', { class: 'hud-size', 'aria-label': t('hud.size') }, this.sizeNum, this.sizeUnit),
       h('div', { class: 'hud-progress' }, this.formLabel, h('div', { class: 'bar' }, this.barFill), this.nextLabel),
     );
+    // 기능 모듈의 작은 계기(콤보·목표 등)
+    this.hudExtra = h('div', { class: 'hud-extra' });
+    this.hud.append(this.hudExtra);
+    for (const w of hooks.hud) {
+      try {
+        w.mount(this, this.hudExtra);
+      } catch (err) {
+        console.warn(`HUD ${w.id}`, err);
+      }
+    }
 
     this.gazeText = h('span');
     this.gaze = h('div', { class: 'gaze', role: 'status', hidden: '' }, icon('eye', 18), this.gazeText);
@@ -141,16 +161,18 @@ export class UI {
     );
     this.tabButtons = {};
     this.tabDots = {};
+    const tabNames = [...PANELS, ...hooks.panels.map((p) => p.id)];
     const tabs = h(
       'nav',
-      { class: 'tabs', 'aria-label': t('meta.title') },
-      PANELS.map((name) => {
+      { class: 'tabs', 'aria-label': t('meta.title'), style: { '--tabs': tabNames.length } },
+      tabNames.map((name) => {
+        const ext = this._extPanel(name);
         const dot = h('i', { class: 'dot', hidden: '' });
         const b = h(
           'button',
-          { class: 'tab', type: 'button', 'aria-pressed': 'false', onClick: () => this.togglePanel(name) },
-          icon(name, 22),
-          h('span', { text: t(`tabs.${name}`) }),
+          { class: 'tab', type: 'button', 'aria-pressed': 'false', 'data-tab': name, onClick: () => this.togglePanel(name) },
+          icon(ext ? ext.icon : name, 22),
+          h('span', { text: ext ? ext.label(this) : t(`tabs.${name}`) }),
           dot,
         );
         this.tabButtons[name] = b;
@@ -366,6 +388,7 @@ export class UI {
     if (this.cloakBtn.dataset.state !== cloakState) this.cloakBtn.dataset.state = cloakState;
 
     this._updateGaze();
+    for (const w of hooks.hud) w.update?.(this, dt);
 
     // 말풍선과 혼잣말
     if (this.bubbleT > 0) {
@@ -393,6 +416,7 @@ export class UI {
       this.tabDots.specimens.hidden = !can.specimens;
       this.tabDots.missions.hidden = !can.missions;
       this.tabDots.gadgets.hidden = !can.gadgets;
+      for (const p of hooks.panels) if (p.dot && this.tabDots[p.id]) this.tabDots[p.id].hidden = !p.dot(this);
       if (can.specimens && this.started && game.playing && !this.modals.active) this.showCoach('shop');
     }
   }
@@ -557,7 +581,8 @@ export class UI {
     this.sheet.setAttribute('aria-hidden', 'false');
     this.stage.classList.add('sheet-open');
     for (const [k, b] of Object.entries(this.tabButtons)) b.setAttribute('aria-pressed', String(k === name));
-    this.sheetTitle.textContent = t(`panel.${name}.title`);
+    const ext = this._extPanel(name);
+    this.sheetTitle.textContent = ext ? ext.title(this) : t(`panel.${name}.title`);
     this.sheetBody.scrollTop = 0;
     this.refreshPanel(true);
     this.hideCoach(name === 'specimens' ? 'shop' : name === 'missions' ? 'fuel' : undefined);
@@ -575,12 +600,17 @@ export class UI {
 
   refreshPanel(force = false) {
     if (!this.panel) return;
-    const sig = panelSignature(this, this.panel);
+    const ext = this._extPanel(this.panel);
+    const sig = ext ? `${ext.id}|${ext.signature(this)}` : panelSignature(this, this.panel);
     if (!force && sig === this.panelSig) return;
     this.panelSig = sig;
     const top = this.sheetBody.scrollTop;
-    clear(this.sheetBody).append(...renderPanel(this, this.panel));
+    clear(this.sheetBody).append(...(ext ? ext.render(this) : renderPanel(this, this.panel)).filter(Boolean));
     this.sheetBody.scrollTop = top;
+  }
+
+  _extPanel(name) {
+    return hooks.panels.find((p) => p.id === name) || null;
   }
 
   onPurchase(kind, id, name, level) {
@@ -647,10 +677,25 @@ export class UI {
     scene.ufoDepart();
     audio.sfx('launch');
     audio.setTension(0);
-    const view = showMission(this, id);
-    this._later(380, () => audio.sfx('suspense'));
-    this._later(MISSION_SUSPENSE_MS, () => {
-      const res = game.resolveMission(id);
+    const run = async () => {
+      let score = 0.5;
+      try {
+        score = await playMinigame(this, id);
+      } catch (err) {
+        console.warn('미니게임', err);
+      }
+      if (!Number.isFinite(score)) score = 0.5;
+      const view = showMission(this, id, score);
+      this._later(380, () => audio.sfx('suspense'));
+      this._later(MISSION_SUSPENSE_MS, () => this._finishMission(id, score, view));
+    };
+    run();
+  }
+
+  _finishMission(id, score, view) {
+    const { game, scene, audio } = this;
+    {
+      const res = game.resolveMission(id, { score });
       const flush = () => {
         this.holdReport = false;
         const p = this.pending;
@@ -681,7 +726,7 @@ export class UI {
         else game.busy = false;
         this.save();
       });
-    });
+    }
   }
 
   // ───────── 게임 이벤트 ─────────
@@ -776,11 +821,43 @@ export class UI {
     audio.sfx('spotted');
     this.haptics.fire('spotted');
     this.save();
-    this._later(REPORT_DELAY_MS, () => {
+    this._later(REPORT_DELAY_MS, async () => {
+      // 보고서 앞 단계(변명 등). 변명이 통하면 보고서 없이 관측을 이어 간다.
+      for (const step of hooks.reportBefore) {
+        let out;
+        try {
+          out = await step.run(this, report);
+        } catch (err) {
+          console.warn(`보고서 앞 단계 ${step.id}`, err);
+        }
+        if (out?.excused) {
+          this._resumeAfterExcuse();
+          return;
+        }
+      }
       audio.sfx('stamp');
       this.haptics.fire('stamp');
-      showReport(this, report, () => this._nextGeneration());
+      showReport(this, report, async () => {
+        for (const step of hooks.reportAfter) {
+          try {
+            await step.run(this, report);
+          } catch (err) {
+            console.warn(`보고서 뒤 단계 ${step.id}`, err);
+          }
+        }
+        this._nextGeneration();
+      });
     });
+  }
+
+  /** 변명이 통했다: 들킨 일을 없던 일로 하고 그 자리에서 이어 간다. */
+  _resumeAfterExcuse() {
+    this.transitioning = false;
+    this.scene.ufoRecover?.();
+    this.world.recover?.();
+    this.audio.sfx('safe');
+    this.haptics.fire('good');
+    this.save();
   }
 
   /** 들킨 대원은 올라가고, 다음 대원이 내려온다. */

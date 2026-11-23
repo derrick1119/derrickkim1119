@@ -13,6 +13,7 @@ import { t, formatDuration } from '../i18n/index.js';
 import { iconURL, causeIconURL } from '../render/iconcache.js';
 import { h, icon, img, grantTag } from './dom.js';
 import { showCause } from './modals.js';
+import { hooks } from './hooks.js';
 
 export const PANELS = ['specimens', 'missions', 'gadgets', 'archive', 'records'];
 
@@ -335,7 +336,10 @@ function records(ui) {
       stat('cloaks', formatInt(s.stats.cloaks)),
       stat('clears', formatInt(s.clears)),
       stat('playTime', formatDuration(s.stats.playTime)),
+      stat('bestCombo', formatInt(s.stats.bestCombo || 0)),
+      stat('nearMisses', formatInt(s.stats.nearMisses || 0)),
     ),
+    ...hooks.recordsExtras.map((x) => x.render(ui)),
   ];
 }
 

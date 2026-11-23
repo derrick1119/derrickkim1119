@@ -96,3 +96,19 @@ test('문구 조회와 치환', () => {
   assert.equal(formatDuration(7500), '2h 5m');
   setLang('ko');
 });
+
+test('기능 모듈 문구도 한국어와 영어의 키 구조가 같다', async () => {
+  await import('../src/i18n/packs/index.js');
+  const { EXTRA } = await import('../src/i18n/index.js');
+  for (const [ns, packs] of Object.entries(EXTRA)) {
+    const a = leaves(packs.ko || {});
+    const b = leaves(packs.en || {});
+    assert.deepEqual([...a.keys()].filter((k) => !b.has(k)), [], `${ns}: 영어에 없는 키`);
+    assert.deepEqual([...b.keys()].filter((k) => !a.has(k)), [], `${ns}: 한국어에 없는 키`);
+    for (const [k, v] of a) {
+      if (k.endsWith('.#length')) assert.equal(b.get(k), v, `${ns} 배열 길이 ${k}`);
+      else assert.equal(placeholders(b.get(k)), placeholders(v), `${ns} 자리표시자 ${k}`);
+    }
+    for (const [k, v] of b) if (!k.endsWith('.#length')) assert.ok(!/[가-힣]/.test(v), `${ns} en ${k} 에 한글`);
+  }
+});

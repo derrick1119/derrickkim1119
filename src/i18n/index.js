@@ -3,6 +3,18 @@ import ko from './ko.js';
 import en from './en.js';
 
 const PACKS = { ko, en };
+
+/**
+ * 기능 모듈이 자기 문구를 더한다. registerStrings('goals', { ko: {...}, en: {...} }) → t('goals.xxx')
+ * 두 언어의 키 구조가 같아야 한다(tests/i18n.test.js 가 검사한다).
+ */
+export const EXTRA = {};
+export function registerStrings(ns, packs) {
+  EXTRA[ns] = packs;
+  for (const lang of Object.keys(PACKS)) {
+    if (packs[lang]) PACKS[lang][ns] = { ...(PACKS[lang][ns] || {}), ...packs[lang] };
+  }
+}
 export const LANGS = [
   { id: 'ko', label: '한국어' },
   { id: 'en', label: 'English' },

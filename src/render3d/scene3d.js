@@ -14,6 +14,8 @@ import { createSpecimen } from './specimens3d.js';
 import { buildStage } from './stages.js';
 import { renderIcon3d } from './studio.js';
 import { setIconRenderer } from '../render/iconcache.js';
+import { layers as layerDefs } from './layers.js';
+import './layers/index.js';
 
 /** 형태별 화면상 기체 너비(px). 2D 장면과 같다. */
 const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
@@ -154,6 +156,48 @@ export class Scene3D extends Scene {
     game.on('replaced', () => {
       this.burst = null;
     });
+    // 확장 층(날씨·반짝이·사진기 등)
+    this.layers = [];
+    for (const def of layerDefs()) {
+      try {
+        const layer = def.create(this);
+        if (layer) this.layers.push({ id: def.id, ...layer });
+      } catch (err) {
+        console.warn(`3D 층 ${def.id}`, err);
+      }
+    }
+    if (this.stageId) for (const l of this.layers) l.stage?.(this.stageId);
+  }
+
+  /** 확장 층의 함수를 부른다. 한 층이 실패해도 나머지는 그린다. */
+  _layers(fn, arg) {
+    for (const l of this.layers || []) {
+      if (!l[fn]) continue;
+      try {
+        l[fn](arg);
+      } catch (err) {
+        if (!l._warned) console.warn(`3D 층 ${l.id}.${fn}`, err);
+        l._warned = true;
+      }
+    }
+  }
+
+  /** 지금 화면(3D 그림)을 사진으로 찍는다. 앨범 등이 쓴다. @returns {string|null} JPEG data URL */
+  capture(maxW = 540, quality = 0.86) {
+    try {
+      this._sync3d();
+      this.engine.render();
+      const src = this.glCanvas;
+      const k = Math.min(1, maxW / src.width);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(src.width * k);
+      cv.height = Math.round(src.height * k);
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(src, 0, 0, cv.width, cv.height);
+      return cv.toDataURL('image/jpeg', quality);
+    } catch {
+      return null;
+    }
   }
 
   // ───────── 배치 ─────────
@@ -240,6 +284,7 @@ export class Scene3D extends Scene {
     this.stageFadeColor = st.env?.sky?.horizon || '#9fd0ff';
     this.stageFade = instant ? 0 : 1;
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', this.themeColor);
+    this._layers('stage', stage);
   }
 
   /** 빔이 나오는 자리(화면 좌표). */
@@ -268,6 +313,7 @@ export class Scene3D extends Scene {
     if (this.burst) this.burst.t += dt;
     if (this.stageFade > 0) this.stageFade = Math.max(0, this.stageFade - dt / 0.8);
     this.engine.stage?.update?.(this.t, dt);
+    this._layers('update', dt);
   }
 
   render() {
@@ -477,6 +523,7 @@ export class Scene3D extends Scene {
       }
     }
     for (; si < this.strings.length; si++) this.strings[si].visible = false;
+    this._layers('sync');
   }
 
   /** 피포가 눈으로 따라갈 곳: 하늘을 보는 지구인 → 끌어오는 표본 → 가장 가까운 표본 → 정면. */
@@ -597,6 +644,7 @@ export class Scene3D extends Scene {
       label(ctx, p.text, p.x, p.y, { size: p.size * pop, fill: p.color });
       ctx.globalAlpha = 1;
     }
+    this._layers('overlay', ctx);
     ctx.restore();
     // 화면 전체 효과
     if (this.gazeAmt > 0.01) {
