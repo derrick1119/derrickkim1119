@@ -113,13 +113,21 @@ const WEAPONS = {
   thresher(g) { shaft(g, 9, -24, WOODD, 2.1); band(g, -26.4, 4.6, 3, IRON); for (const [x, y] of [[-1.7, -27.8], [-3.3, -29.6], [-4.9, -31.2]]) { ell(g, x, y, 1.4, 1.2, null, INK, 1.8); ell(g, x, y, 1.4, 1.2, null, '#9a9aa6', 0.8); } g.save(); g.translate(-6, -31.6); g.rotate(-2.3); part(g, R(-2.5, -17.4, 5, 17.4), IRON, R(0.4, -17.4, 2.2, 17.4), { hi: R(-1.9, -16.4, 0.9, 15), hic: '#7a7a88', lw: 1.1 }); for (const [x, y, sg] of [[-2.5, -13, -1], [2.5, -13, 1], [-2.5, -7, -1], [2.5, -7, 1]]) part(g, P(x, y - 1.7, x + sg * 3.8, y, x, y + 1.7), '#c9cdd2', null, { lw: 0.6 }); g.restore(); },
   // 각궁: 뿔과 나무를 겹친 짧은 활
   bow(g, o = {}) {
-    const c = p => { p.moveTo(5.2, -19.4); p.bezierCurveTo(0.6, -18.6, -7, -10, -2.2, 0); p.bezierCurveTo(-7, 10, 0.6, 18.6, 5.2, 19.4); };
-    curve(g, c, INK, 3.9); curve(g, c, o.wood || '#8a4f2c', 2.3); curve(g, p => { p.moveTo(4, -18.6); p.bezierCurveTo(0.4, -17.4, -5.4, -10, -1.4, -1); }, lt(o.wood || '#8a4f2c', 0.4), 0.7);
-    for (const y of [-19.4, 19.4]) part(g, P(4.2, y - (y < 0 ? 0.4 : 2.2), 7.4, y - (y < 0 ? 2.4 : -0.4), 6.4, y + (y < 0 ? 1.8 : -1.8)), o.tip || '#3a2a26', null, { lw: 0.7 });
-    line(g, [6.2, -19.6, 6.2, 19.6], '#fbf7ec', 0.8); for (const y of [-12.6, 12.6]) line(g, [-3.4, y, 0.8, y + (y < 0 ? -1.9 : 1.9)], o.wrap || OCHRE, 1.5);
-    part(g, R(-3.6, -3.2, 3.2, 6.4), o.grip || '#7a1f1c', R(-2, -3.2, 1.6, 6.4), { lw: 0.8 });
+    const wd = o.wood || '#8a4f2c', X = 3.2;   // 활등 전체를 손 쪽으로 옮겨 줌통이 손에 맞게
+    // 활등: 줌통(가운데)에서 위아래로 매끈하게 휘고, 끝의 고자(귀)가 바깥으로 젖혀진다 — 가운데가 잘록하지 않다
+    const c = p => { p.moveTo(X + 0.2, -22.2); p.quadraticCurveTo(X + 3, -20.8, X + 4.6, -18.4); p.bezierCurveTo(X + 1.4, -12.6, X - 4.8, -7.4, X - 4.8, 0); p.bezierCurveTo(X - 4.8, 7.4, X + 1.4, 12.6, X + 4.6, 18.4); p.quadraticCurveTo(X + 3, 20.8, X + 0.2, 22.2); };
+    curve(g, c, INK, 4.2); curve(g, c, wd, 2.6);
+    // 뿔(검은 띠)을 댄 안쪽과 볕 받는 바깥 결
+    curve(g, p => { p.moveTo(X + 3.6, -17.6); p.bezierCurveTo(X + 0.6, -12, X - 3.8, -7, X - 3.9, -1.4); }, '#2b2228', 0.8); curve(g, p => { p.moveTo(X + 3.6, 17.6); p.bezierCurveTo(X + 0.6, 12, X - 3.8, 7, X - 3.9, 1.4); }, '#2b2228', 0.8);
+    curve(g, p => { p.moveTo(X + 3.4, -19.6); p.bezierCurveTo(X - 0.4, -13.4, X - 5.6, -8, X - 5.6, -1); }, lt(wd, 0.45), 0.6);
+    // 고자 끝의 뿔 장식과 시위
+    for (const sg of [-1, 1]) part(g, E(X + 0.4, sg * 22.2, 1.4, 1), o.tip || '#3a2a26', null, { lw: 0.6 });
+    line(g, [X + 4.6, -18.4, X + 4.6, 18.4], '#fbf7ec', 0.8);
+    for (const y of [-11.4, 11.4]) line(g, [X - 2.6, y, X + 0.4, y + (y < 0 ? -2.2 : 2.2)], o.wrap || OCHRE, 1.5);
+    part(g, R(X - 6.4, -3.4, 3.4, 6.8), o.grip || '#7a1f1c', R(X - 4.6, -3.4, 1.6, 6.8), { lw: 0.8 }); for (const y of [-2, 0, 2]) line(g, [X - 6.4, y, X - 3, y], dk(o.grip || '#7a1f1c', 0.3), 0.4);
     if (o.extra) o.extra(g); part(g, E(-0.8, 0, 3.1, 3), SKIN, E(0.4, 1.2, 2.6, 2.2), { lw: 1.1 });
   },
+
   firebow(g) { WEAPONS.bow(g, { wood: '#a8322a', wrap: '#2b2a30', tip: OCHRE, extra: gg => { for (const y of [-19.4, 19.4]) { part(gg, p => { p.moveTo(6, y - 5); p.quadraticCurveTo(10.4, y - 1, 7.6, y + 3); p.quadraticCurveTo(6, y + 4.2, 4.4, y + 3); p.quadraticCurveTo(2, y - 0.4, 6, y - 5); p.closePath(); }, '#ff9a2e', null, { lw: 0.8 }); ell(gg, 6, y + 0.8, 1.2, 1.5, '#ffe9a0'); } } }); },
   pyeonjeon(g) { WEAPONS.bow(g, { wood: '#3a3238', wrap: RED, tip: BRASS, extra: gg => { gg.save(); gg.translate(1.6, 0); gg.rotate(1.5708); part(gg, R(-1.9, -11.6, 3.8, 17), '#d9b77a', R(0.2, -11.6, 1.7, 17), { lw: 0.9 }); for (const y of [-7.6, -2.6, 2.4]) line(gg, [-1.9, y, 1.9, y], '#8a6a3c', 0.8); gg.restore(); } }); },
   greatbow(g) { g.save(); g.scale(1.1, 1.1); WEAPONS.bow(g, { wood: '#5a3a2a', wrap: RED, tip: BRASS, grip: '#2b2a30' }); g.restore(); },
