@@ -34,7 +34,13 @@ export const dab = (g, x, y, rx, ry, col, a, rot = 0) => { g.globalAlpha = a; g.
 export const stroke = (g, pts, col, w, a = 1) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.stroke(); };
 export const vgrad = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); stops.forEach(([t, c]) => gr.addColorStop(t, c)); return gr; };
 // 이어 붙여 흐르는 그림: 가장자리를 넘는 것은 반대편에도 한 번 더 그린다
-const wrapAt = (P, x, r, fn) => { fn(x); if (x - r < 0) fn(x + P); if (x + r > P) fn(x - P); };
+// 이어 붙일 긴 그림의 난수: 상태를 되돌릴 수 있어서, 이음매 너머에 다시 그리는 복사본이 처음 것과 똑같은 붓질이 된다
+let CUR = null;
+const srng = seed => { let s = seed >>> 0 || 1; const f = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; f.get = () => s; f.set = v => { s = v; }; CUR = f; return f; };
+// 이음매 가까이 그린 것은 한 바퀴 너머에도 똑같이 그린다 (그래야 이어 붙인 자리가 티 나지 않는다)
+const wrapAt = (P, x, r, fn) => { const R = CUR, s0 = R ? R.get() : 0; fn(x); const s1 = R ? R.get() : 0; if (x - r < 0) { if (R) R.set(s0); fn(x + P); } if (x + r > P) { if (R) R.set(s0); fn(x - P); } if (R) R.set(s1); };
+// 한 바퀴(P)에 정수 번 도는 물결: 이음매에서 끊기지 않는다 (sin(x·f) 의 f 를 가장 가까운 주기로 맞춘다)
+const wave = (x, f, P, ph = 0) => Math.sin(x * TAU * Math.max(1, Math.round(f * P / TAU)) / P + ph);
 const bumpP = (x, c, w, P) => { const d = ((x - c) % P + P * 1.5) % P - P / 2; return Math.exp(-(d / w) * (d / w)); };
 function ridgeShape(g, f, x0, x1, yb) { g.beginPath(); g.moveTo(x0, yb); for (let x = x0; x <= x1; x += 5) g.lineTo(x, f(x)); g.lineTo(x1, yb); g.closePath(); }
 
@@ -43,8 +49,8 @@ export function mountain(g, f, w, yb, col, haze, R, o = {}) {
   ridgeShape(g, f, -10, w + 10, yb); g.globalAlpha = 1; g.fillStyle = vgrad(g, yb - (o.h || 150), yb, [[0, mix(col, '#2a3440', 0.12)], [0.55, col], [1, mix(col, haze, 0.55)]]); g.fill();
   g.save(); ridgeShape(g, f, -10, w + 10, yb); g.clip();
   // 볕 드는 쪽 (오른 비탈을 밝게)
-  for (let x = 0; x < w; x += 7) { const y = f(x), s = f(x + 6) - y; if (s > 0.6) dab(g, x + 3, y + 22, 7, 26, mix(col, '#fff6e0', 0.35), 0.16); }
-  for (let i = 0; i < (o.n || 260); i++) { const x = R() * w, y0 = f(x) + 4 + R() * 60, l = 8 + R() * 18; stroke(g, [x, y0, x - l * 0.35, y0 + l], mix(col, '#26303c', 0.3), 1.2, 0.12); }
+  for (let x = 0; x < w; x += 7) { const y = f(x), s = f(x + 6) - y; if (s > 0.6) wrapAt(w, x + 3, 8, xx => dab(g, xx, y + 22, 7, 26, mix(col, '#fff6e0', 0.35), 0.16)); }
+  for (let i = 0; i < (o.n || 260); i++) { const x = R() * w, y0 = f(x) + 4 + R() * 60, l = 8 + R() * 18; wrapAt(w, x, l, xx => stroke(g, [xx, y0, xx - l * 0.35, y0 + l], mix(col, '#26303c', 0.3), 1.2, 0.12)); }
   g.restore(); g.globalAlpha = 1;
   // 능선의 옅은 볕 테
   g.beginPath(); for (let x = -10; x <= w + 10; x += 5) { if (x === -10) g.moveTo(x, f(x) + 1); else g.lineTo(x, f(x) + 1); } g.globalAlpha = 0.35; g.strokeStyle = mix(col, '#fffaf0', 0.6); g.lineWidth = 1.4; g.stroke(); g.globalAlpha = 1;
@@ -62,13 +68,13 @@ export function cloud(g, x, y, w, P, R) {
 const CACHE = new Map(), keep = (k, c) => { CACHE.set(k, c); while (CACHE.size > 8) CACHE.delete(CACHE.keys().next().value); return c; };
 export function paintFar(id, seed = 7) {
   const key = 'far:' + id + ':' + seed; let c = CACHE.get(key); if (c) return c;
-  const P = pal(id), S = 1.25, Hh = 240; c = makeCanvas(FW * S, Hh * S); const g = c.getContext('2d'); g.scale(S, S); const R = rng(seed * 71 + 3);
+  const P = pal(id), S = 1.25, Hh = 240; c = makeCanvas(FW * S, Hh * S); const g = c.getContext('2d'); g.scale(S, S); const R = srng(seed * 71 + 3);
   g.fillStyle = vgrad(g, 0, Hh, [[0, P.sky[0]], [0.62, P.sky[1]], [1, mix(P.sky[1], '#ffffff', 0.25)]]); g.fillRect(0, 0, FW, Hh);
   if (P.night) { for (let i = 0; i < 120; i++) dab(g, R() * FW, 62 + R() * 80, 0.6 + R() * 1.1, 0.6 + R() * 1.1, '#f4efdc', 0.3 + R() * 0.5); const mx = 1320, my = 98; const gl = g.createRadialGradient(mx, my, 8, mx, my, 110); gl.addColorStop(0, 'rgba(230,232,255,0.5)'); gl.addColorStop(1, 'rgba(230,232,255,0)'); g.globalAlpha = 1; g.fillStyle = gl; g.fillRect(mx - 110, my - 110, 220, 220); dab(g, mx, my, 22, 22, '#f1eedf', 1); dab(g, mx - 6, my - 5, 6, 5, '#d8d4c4', 0.5); dab(g, mx + 7, my + 6, 4, 3.4, '#d8d4c4', 0.5); }
   else if (P.sun !== false) { const sx = 980, sy = 96, gl = g.createRadialGradient(sx, sy, 10, sx, sy, 300); gl.addColorStop(0, `rgba(${P.light},0.75)`); gl.addColorStop(0.3, `rgba(${P.light},0.25)`); gl.addColorStop(1, `rgba(${P.light},0)`); g.globalAlpha = 1; g.fillStyle = gl; g.fillRect(sx - 300, sy - 300, 600, 600); }
-  for (let i = 0; i < 7; i++) { const x = (i + 0.3 + R() * 0.4) * FW / 7, y = 92 + R() * 34, w = 110 + R() * 120; for (const xx of [x, x - FW, x + FW]) cloud(g, xx, y, w, P, R); }
+  for (let i = 0; i < 7; i++) { const x = (i + 0.3 + R() * 0.4) * FW / 7, y = 92 + R() * 34, w = 110 + R() * 120; wrapAt(FW, x, w * 0.8, xx => cloud(g, xx, y, w, P, R)); }
   const haze = mix(P.sky[1], '#ffffff', P.night ? 0 : 0.2);
-  const range = (yb, list) => x => yb - Math.max(...list.map(([cx, h, w]) => h * bumpP(x, cx, w, FW))) - Math.sin(x * 0.05) * 1.5 - Math.sin(x * 0.013) * 3;
+  const range = (yb, list) => x => yb - Math.max(...list.map(([cx, h, w]) => h * bumpP(x, cx, w, FW))) - wave(x, 0.05, FW) * 1.5 - wave(x, 0.013, FW) * 3;
   // 세 겹: 가장 먼 산은 하늘빛에 거의 녹고, 가운데 겹에 우뚝한 봉우리
   mountain(g, range(176, [[200, 64, 110], [520, 80, 150], [900, 58, 120], [1240, 92, 160], [1600, 70, 130], [1840, 60, 110]]), FW, 200, mix(P.far[2], haze, 0.3), haze, R, { h: 110, n: 120, mist: 60 });
   mountain(g, range(196, [[90, 70, 90], [430, 104, 120], [700, 60, 110], [1030, 120, 110], [1150, 84, 90], [1420, 66, 120], [1760, 96, 120]]), FW, 218, P.far[1], haze, R, { h: 130, n: 220, mist: 56 });
@@ -205,34 +211,38 @@ export function tuft(g, x, y, s, P, R, col) {
   g.globalAlpha = 1;
 }
 // 나무 울타리: 기둥과 두 줄 가로대, 군데군데 끊긴다
-function fence(g, f, x0, x1, P, R) {
+function fence(g, f, x0, x1, P, R, per = 0) {
   const wd = P.wood, top = mix(wd, '#f4dcb0', 0.45), dk2 = mix(wd, '#1e140c', 0.4);
   let px = x0; const posts = []; while (px < x1) { posts.push(px); px += 30 + R() * 8; }
-  for (let i = 0; i < posts.length - 1; i++) { if (R() < 0.08) continue; const a = posts[i], b = posts[i + 1]; for (const [h, sag] of [[20, 1.5], [11, 1]]) { stroke(g, [a, f(a) - h, (a + b) / 2, f((a + b) / 2) - h + sag, b, f(b) - h], dk2, 3.4); stroke(g, [a, f(a) - h - 0.8, (a + b) / 2, f((a + b) / 2) - h + sag - 0.8, b, f(b) - h - 0.8], top, 1.2, 0.8); } }
-  for (const a of posts) { const y = f(a), h = 27 + R() * 4; g.globalAlpha = 1; g.fillStyle = vgrad(g, y - h, y, [[0, top], [0.25, wd], [1, dk2]]); g.fillRect(a - 2.6, y - h, 5.2, h); g.fillStyle = top; g.fillRect(a - 2.6, y - h, 5.2, 1.6); }
+  // 한 바퀴(per)로 이어 붙는 울타리: 마지막 기둥은 한 바퀴 너머의 첫 기둥과 이어지고, 이음매 가까운 것은 너머에도 그린다
+  if (per) { while (posts.length > 1 && posts[0] + per - posts[posts.length - 1] < 26) posts.pop(); posts.push(posts[0] + per); }
+  const rails = (a, b) => { for (const [h, sag] of [[20, 1.5], [11, 1]]) { stroke(g, [a, f(a) - h, (a + b) / 2, f((a + b) / 2) - h + sag, b, f(b) - h], dk2, 3.4); stroke(g, [a, f(a) - h - 0.8, (a + b) / 2, f((a + b) / 2) - h + sag - 0.8, b, f(b) - h - 0.8], top, 1.2, 0.8); } };
+  for (let i = 0; i < posts.length - 1; i++) { if (R() < 0.08 && !(per && i === posts.length - 2)) continue; const a = posts[i], b = posts[i + 1]; rails(a, b); if (per && b > per) rails(a - per, b - per); if (per && a < 40) rails(a + per, b + per); }
+  const post = (a, h) => { const y = f(a); g.globalAlpha = 1; g.fillStyle = vgrad(g, y - h, y, [[0, top], [0.25, wd], [1, dk2]]); g.fillRect(a - 2.6, y - h, 5.2, h); g.fillStyle = top; g.fillRect(a - 2.6, y - h, 5.2, 1.6); };
+  for (const a of (per ? posts.slice(0, -1) : posts)) { const h = 27 + R() * 4; post(a, h); if (per && a < 8) post(a + per, h); if (per && a > per - 8) post(a - per, h); }
   g.globalAlpha = 1;
 }
 
 // ── 언덕과 성곽 (BW 한 장, 바닥의 절반 빠르기) ──
 export function paintBack(id) {
   const key = 'back:' + id; let c = CACHE.get(key); if (c) return c;
-  const P = pal(id), S = 1.25, Hh = 260; c = makeCanvas(BW * S, Hh * S); const g = c.getContext('2d'); g.scale(S, S); const R = rng(907);
+  const P = pal(id), S = 1.25, Hh = 260; c = makeCanvas(BW * S, Hh * S); const g = c.getContext('2d'); g.scale(S, S); const R = srng(907);
   const haze = mix(P.sky[1], '#ffffff', P.night ? 0 : 0.15);
   // 두 무리의 언덕: 뒤 언덕에 성곽과 문루, 앞 언덕에 정자와 반송
-  const hillA = x => 196 - 64 * bumpP(x, 640, 230, BW) - 40 * bumpP(x, 980, 160, BW) - 52 * bumpP(x, 1900, 240, BW) - 26 * bumpP(x, 2250, 150, BW) - Math.sin(x * 0.02) * 2;
+  const hillA = x => 196 - 64 * bumpP(x, 640, 230, BW) - 40 * bumpP(x, 980, 160, BW) - 52 * bumpP(x, 1900, 240, BW) - 26 * bumpP(x, 2250, 150, BW) - wave(x, 0.02, BW) * 2;
   mountain(g, hillA, BW, 232, mix(P.hill[0], haze, 0.42), haze, R, { h: 90, n: 160, mist: 44 });
   wall(g, hillA, 560, 600, P, R); wall(g, hillA, 680, 740, P, R);
   g.globalAlpha = 0.9; gateTower(g, 640, hillA(640) + 2, 0.66, P); village(g, hillA, 1780, 8, P, R); pavilion(g, 1000, hillA(1000) + 1, 0.5, P); pavilion(g, 2260, hillA(2260) + 1, 0.46, P);
   // 안개를 한 겹 덮어 멀어 보이게
   g.globalAlpha = 1; g.fillStyle = vgrad(g, 90, 232, [[0, rgba(haze, 0.1)], [1, rgba(haze, 0.28)]]); g.fillRect(0, 90, BW, 142);
-  for (let i = 0; i < 60; i++) { const x = R() * BW; dab(g, x, 198 + R() * 14, 60 + R() * 90, 7 + R() * 6, haze, 0.18); }   // 안개 띠
-  const hillB = x => 232 - 44 * bumpP(x, 260, 200, BW) - 30 * bumpP(x, 1250, 260, BW) - 38 * bumpP(x, 1530, 170, BW) - 34 * bumpP(x, 2440, 210, BW) - Math.sin(x * 0.03 + 1) * 2;
+  for (let i = 0; i < 60; i++) { const x = R() * BW, y = 198 + R() * 14, rx = 60 + R() * 90, ry = 7 + R() * 6; wrapAt(BW, x, rx, xx => dab(g, xx, y, rx, ry, haze, 0.18)); }   // 안개 띠
+  const hillB = x => 232 - 44 * bumpP(x, 260, 200, BW) - 30 * bumpP(x, 1250, 260, BW) - 38 * bumpP(x, 1530, 170, BW) - 34 * bumpP(x, 2440, 210, BW) - wave(x, 0.03, BW, 1) * 2;
   mountain(g, hillB, BW, 258, mix(P.hill[0], '#1e2a1e', 0.12), haze, R, { h: 70, n: 160, mist: 22 });
   pavilion(g, 260, hillB(260) + 1, 0.7, P); pavilion(g, 1530, hillB(1530) + 1, 0.62, P);
   // 언덕 위의 작은 반송과 덤불 (멀어서 작고 옅다)
   g.globalAlpha = 1;
   for (const [x, s2, fl] of [[200, 0.28, false], [330, 0.24, true], [1180, 0.3, false], [1330, 0.22, true], [1470, 0.26, true], [1600, 0.3, false], [2380, 0.28, false], [2520, 0.24, true], [800, 0.2, false], [2050, 0.22, true]]) wrapAt(BW, x, 60, xx => { g.save(); g.globalAlpha = 0.9; umbrellaPine(g, xx, hillB(xx) + 6, s2, Object.assign({}, P, { leaf: P.leaf.map(q => mix(q, haze, 0.3)), trunk: mix(P.trunk, haze, 0.3) }), R, fl); g.restore(); });
-  for (let i = 0; i < 700; i++) { const x = R() * BW, y = 238 + R() * 20 - 6 * Math.sin(x * 0.01); dab(g, x, y, 6 + R() * 12, 4 + R() * 7, R() < 0.6 ? mix(P.leaf[0], '#0e1a12', 0.15) : P.leaf[1], 0.8); }   // 울타리 뒤로 보이는 짙은 숲 띠
+  for (let i = 0; i < 700; i++) { const x = R() * BW, y = 238 + R() * 20 - 6 * wave(x, 0.01, BW), rx = 6 + R() * 12, ry = 4 + R() * 7, col = R() < 0.6 ? mix(P.leaf[0], '#0e1a12', 0.15) : P.leaf[1]; wrapAt(BW, x, rx, xx => dab(g, xx, y, rx, ry, col, 0.8)); }   // 울타리 뒤로 보이는 짙은 숲 띠
   if (P.smoke) for (const sx of [420, 1180, 1960]) for (let i = 0; i < 26; i++) { const t = i / 25; dab(g, sx + Math.sin(t * 5) * 22 * t + t * 60, 200 - t * 150, 10 + t * 34, 8 + t * 22, mix('#5e5650', P.sky[0], t * 0.45), 0.42 * (1 - t * 0.55)); }
   g.fillStyle = vgrad(g, 222, 258, [[0, rgba(haze, 0)], [1, rgba(haze, 0.5)]]); g.globalAlpha = 1; g.fillRect(0, 222, BW, 38);
   return keep(key, c);
@@ -242,7 +252,7 @@ export function paintBack(id) {
 export const FIELD_TOP = 182;
 export function paintGround(id, seed = 7) {
   const key = 'ground:' + id + ':' + seed; let c = CACHE.get(key); if (c) return c;
-  const P = pal(id), S = 1.25; c = makeCanvas(GW * S, H * S); const g = c.getContext('2d'); g.scale(S, S); const R = rng(seed * 977 + 41), k = TAU / GW;
+  const P = pal(id), S = 1.25; c = makeCanvas(GW * S, H * S); const g = c.getContext('2d'); g.scale(S, S); const R = srng(seed * 977 + 41), k = TAU / GW;
   const top = x => FIELD_TOP + Math.sin(x * k * 4 + 0.6) * 4 + Math.sin(x * k * 11) * 2;
   // 들판 뒤 둔덕: 풀빛 띠 위로 덤불과 작은 꽃나무, 그 앞에 울타리
   const bank = x => top(x) - 14 - 6 * Math.sin(x * k * 6 + 1.2);
@@ -284,7 +294,7 @@ export function paintGround(id, seed = 7) {
   // 들판 끝 가장자리의 부드러운 그늘
   g.globalAlpha = 1; g.fillStyle = vgrad(g, FIELD_TOP, FIELD_TOP + 40, [[0, 'rgba(60,50,30,0.22)'], [1, 'rgba(60,50,30,0)']]); g.fillRect(0, FIELD_TOP, GW, 40);
   // 울타리 (들판 뒤 둔덕을 따라)
-  fence(g, x => top(x) - 2, 10, GW - 10, P, R);
+  fence(g, x => top(x) - 2, 10, GW + 10, P, R, GW);
   // 빛: 위는 따뜻하고 밝게, 앞쪽은 조금 눌러 깊이를 준다
   g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = vgrad(g, FIELD_TOP - 30, H, P.night ? [[0, 'rgba(180,190,255,0.12)'], [1, 'rgba(20,24,60,0.3)']] : [[0, `rgba(${P.light},0.22)`], [0.6, 'rgba(255,240,210,0)'], [1, 'rgba(90,60,30,0.16)']]); g.fillRect(0, 0, GW, H); g.restore();
   g.globalAlpha = 1; return keep(key, c);
@@ -292,7 +302,7 @@ export function paintGround(id, seed = 7) {
 // 맨 앞 한 겹: 패 받침 바로 위의 풀과 돌 (낮게, 인형을 가리지 않게)
 export function paintFront(id) {
   const key = 'front:' + id; let c = CACHE.get(key); if (c) return c;
-  const P = pal(id), S = 1.25; c = makeCanvas(GW * S, H * S); const g = c.getContext('2d'); g.scale(S, S); const R = rng(613);
+  const P = pal(id), S = 1.25; c = makeCanvas(GW * S, H * S); const g = c.getContext('2d'); g.scale(S, S); const R = srng(613);
   for (let i = 0; i < 70; i++) { const x = R() * GW, n = 2 + ((R() * 6) | 0), y = 548 + R() * 22; wrapAt(GW, x, 40, xx => { for (let j = 0; j < n; j++) tuft(g, xx + (R() - 0.5) * 30, y + R() * 8, 0.9 + R() * 0.8, P, R, R() < 0.5 ? P.leaf[0] : P.grass[2]); }); }
   const fl = P.night ? ['#c9c4e8', '#f0e8ff'] : ['#f4e38a', '#fbf7ec', P.bloom[0]];
   for (const cx of [0, 1280]) for (let i = 0; i < 60; i++) { const x = cx + (R() - 0.5) * 360, y = 530 + R() * 36, col = fl[(R() * fl.length) | 0]; wrapAt(GW, x, 6, xx => { tuft(g, xx, y + 4, 0.8, P, R); dab(g, xx, y - 6, 2.6, 2.2, col, 0.95); dab(g, xx, y - 6, 1, 1, '#d9a441', 0.9); }); }

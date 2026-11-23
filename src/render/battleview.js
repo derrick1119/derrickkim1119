@@ -143,8 +143,9 @@ const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
 // 이어 붙인 긴 그림 한 장(너비 period)을 화면에 보이는 만큼만 그린다. top 위쪽은 투명해서 건너뛴다
 function strip(g, img, period, off, top) {
-  const k = img.width / period, full = img.height / k; let x = -(((off % period) + period) % period);
-  for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(img, a * k, top * k, (b - a) * k, (full - top) * k, x + a, top, b - a, full - top); }
+  const k = img.width / period, full = img.height / k; let x = -Math.round(((off % period) + period) % period);
+  // 두 장이 만나는 자리는 정수 픽셀에 맞추고 반 픽셀 겹쳐 그린다 (소수 자리에서 만나면 가는 틈이 비친다)
+  for (; x < W; x += period) { const a = Math.max(0, -x), b = Math.min(period, W - x); if (b > a) g.drawImage(img, a * k, top * k, Math.min(img.width - a * k, (b - a + 0.5) * k), (full - top) * k, x + a, top, Math.min(b - a + 0.5, period - a), full - top); }
 }
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.fork = null; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
