@@ -736,7 +736,7 @@
       else if (o.k === 'box') { P.fill(g, P.rr(o.x - 13, y - 58, 26, 34, 6), '#c9573f'); P.fill(g, P.rr(o.x - 8, y - 46, 16, 4, 2), '#3a3032'); P.line(g, o.x, y - 24, o.x, y + 2, 6, '#8a4a3a'); }
       else if (o.k === 'slip') { if (!(S.hook && S.hook.flags.bramGone)) drawSlip(g, o.x, y); }
       else if (o.k === 'builder') drawBuilder(g, o.x, y);
-      else if (o.k === 'rosa') drawRosa(g, o.x, y);
+      else if (o.k === 'rosa') { if (!(S.hook && (T.rosaOut || S.hook.flags.rosaGone))) drawRosa(g, o.x, y); }   /* not at her window while she is out on the porch or the quay */
       else if (o.k === 'sitter') drawSitter(g, o.x, y);
       else if (o.k === 'roses') { if (!(gardenOn() && o.x === 3540)) K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0']); }
       else if (o.k === 'arch') { if (!gardenOn()) drawArch(g, o.x, y); }   /* the tomato rack (garden.js) stands here in the later chapters */

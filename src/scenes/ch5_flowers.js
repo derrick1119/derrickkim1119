@@ -249,7 +249,7 @@
         mom2 = X.actor('mom', { x: 180, style: F.styles.mom, s: C.MOM_S, lean: 0.1, flip: true });
         leo = X.actor('leo', { x: 250, style: F.leoAt(2), flip: true, lean: 0.06 });
         bean = X.actor('bean', { dog: true, s: 220, x: 300, sit: 1, flip: true, wag: 0.4 });
-        far = X.boat({ x: -236, hull: '#e9e2d6', lamp: false, riders: [] });
+        far = X.boat({ x: -74, hull: '#e9e2d6', lamp: false, riders: [] });   /* moored at the pier's end */
       });
       X.bed(1, 0.12, 'sea');
       T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
@@ -258,7 +258,7 @@
       await X.TALK.say('mom', '네 아빠, 평생 기다리게만 했는데.\n…이제 가 줘야지.', { slow: true });
       await X.TALK.say('leo', '…가요, 엄마.', { slow: true });
       await X.TALK.say('leo', '기다리는 게 어떤 건지,\n이제 저도 알아요.');
-      await X.walk(mom2, 60, 50);
+      await X.walk(mom2, 24, 46);
       await X.board(mom2, far, -10);
       mom2.flip = true;
       /* the bell asks one last time; to send someone off, the lamps answer it backwards */

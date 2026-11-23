@@ -134,7 +134,7 @@
     X.board = async function (a, b, seat) {
       a.seat = seat; a.landX = a.x; a.boat = b; a.hop = 1; a.stand = 1;
       if (!b.riders.includes(a)) b.riders.push(a);
-      await S.clock.tween(a, 'hop', 0, 1.0, T.ease.io);
+      await S.clock.tween(a, 'hop', 0, 1.3, T.ease.io);   /* one careful step down into the boat */
       await S.clock.tween(a, 'stand', 0, 0.7, T.ease.io);
     };
     function drawBoats(g) {
@@ -432,6 +432,7 @@
       S.idle += dt;
       if (S.yr.tick) S.yr.tick();
       T.gardenOn = !!(S.ps && (S.ps.patch || S.ps.site)) || !!(S.game && S.game.garden);
+      T.rosaOut = S.actors.some((q) => q.id === 'rosa' && !q.hidden);
       if (S.game) S.game.update(dt);
       const W_ = Wd();
       for (const a of S.actors) {
