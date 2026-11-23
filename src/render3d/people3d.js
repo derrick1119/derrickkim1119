@@ -16,7 +16,7 @@ import { THREE, mat, mesh, sphereGeo, cylGeo, coneGeo, torusGeo, roundBoxGeo, ad
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** 지구인 종류(게임 순서). */
-export const WATCHER_TYPES = ['farmer', 'kid', 'walker', 'camper', 'fisher', 'worker', 'streamer', 'astronomer', 'photographer', 'balloonist', 'astronaut'];
+export const WATCHER_TYPES = ['farmer', 'kid', 'walker', 'camper', 'fisher', 'worker', 'streamer', 'astronomer', 'photographer', 'balloonist', 'astronaut', 'hunter'];
 
 const TAU = Math.PI * 2;
 // 뼈대(발밑 기준, 1 = 64px)
@@ -405,6 +405,7 @@ function exprOf(F, ex) {
     Object.assign(p, { lid: 0.3, slant: 0.52, px: 3, py: 2, browY: 8, tilt: 0.62, arch: -1, asym: 0, browWk: 1.15, mouth: ex === 's' ? 'shout' : 'grit', sparkle: false, sweat: !!F.sweat });
   else if (ex === 'h') Object.assign(p, { eye: 'happy', browY: -7, tilt: -0.1, arch: 8, mouth: 'happy' });
   else if (ex === 'g') Object.assign(p, { lid: 0, slant: 0, pupil: 0.55, k: 1.14, browY: -18, arch: 12, tilt: -0.25, asym: 0, mouth: 'gasp' });
+  else if (ex === 'j') Object.assign(p, { eye: 'happy', browY: -12, tilt: -0.38, arch: 6, asym: 0, mouth: 'happy', tears: true });
   return p;
 }
 
@@ -462,8 +463,8 @@ function eyeShape(ctx, x, y, sx, F, p) {
   // 홍채(위 어둡게 → 아래 제 색이 밝게) + 동공
   const ix = x + p.px;
   const iy = y + p.py + 1;
-  const irx = rx * 0.8 * p.pupil;
-  const iry = ry * 0.8 * p.pupil;
+  const irx = rx * 0.8 * p.pupil * (F.irisK || 1);
+  const iry = ry * 0.8 * p.pupil * (F.irisK || 1);
   ctx.beginPath();
   ctx.ellipse(ix, iy, irx, iry, 0, 0, TAU);
   const gi = ctx.createLinearGradient(0, iy - iry, 0, iy + iry);
@@ -726,7 +727,25 @@ function sweatDrop(ctx, x, y) {
   ctx.fill();
 }
 
-/** 얼굴 한 장. ex: n 보통(인물 성격), b 깜빡, l 올려다봄, s 고함(입 크게), z 고함(이 악물기), h 웃음, g 깜짝. */
+/** 기쁨의 눈물 두 줄기(눈꼬리 → 뺨 아래). */
+function tearStream(ctx, sx) {
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(sx * 60, 26);
+  ctx.bezierCurveTo(sx * 68, 50, sx * 62, 80, sx * 74, 118);
+  ctx.strokeStyle = 'rgba(110,200,255,0.9)';
+  ctx.lineWidth = 13;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(140,215,255,0.95)';
+  ctx.beginPath();
+  ctx.ellipse(sx * 92, 30, 6, 8, sx * 0.5, 0, TAU);
+  ctx.fill();
+}
+
+/** 얼굴 한 장. ex: n 보통(인물 성격), b 깜빡, l 올려다봄, s 고함(입 크게), z 고함(이 악물기), h 웃음, g 깜짝, j 감격(눈물). */
 function paintFace(ctx, s, F, ex) {
   ctx.clearRect(0, 0, s, s);
   ctx.save();
@@ -747,6 +766,20 @@ function paintFace(ctx, s, F, ex) {
       }
     }
   }
+  if (F.stubble) {
+    // 까칠한 수염 자국
+    ctx.fillStyle = 'rgba(70,46,40,0.32)';
+    for (let i = 0; i < 70; i++) {
+      const a = (i * 2.399) % TAU;
+      const r = 30 + ((i * 37) % 44);
+      const x = Math.cos(a) * r * 1.25;
+      const y = 92 + Math.sin(a) * r * 0.55;
+      if (y < 66 || Math.abs(x) < 22 && y < 92) continue;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2, 0, TAU);
+      ctx.fill();
+    }
+  }
   if (F.bags && p.eye === 'open') {
     ctx.strokeStyle = 'rgba(110,64,130,0.5)';
     ctx.lineWidth = 3.5;
@@ -761,6 +794,7 @@ function paintFace(ctx, s, F, ex) {
   for (const sx of [-1, 1]) browShape(ctx, sx * EX, EY, sx, F, p);
   mouthShape(ctx, F, p.mouth);
   if (p.sweat) sweatDrop(ctx, -104, -34);
+  if (p.tears) for (const sx of [-1, 1]) tearStream(ctx, sx);
   ctx.restore();
 }
 
@@ -769,7 +803,7 @@ const EXPR = ['n', 'b', 'l', 's', 'z', 'h', 'g'];
 function faceSet(F) {
   const key = `p4|${JSON.stringify(F)}`;
   const set = {};
-  for (const ex of EXPR) set[ex] = faceTexture(`${key}|${ex}`, (ctx, s) => paintFace(ctx, s, F, ex));
+  for (const ex of F.joy ? [...EXPR, 'j'] : EXPR) set[ex] = faceTexture(`${key}|${ex}`, (ctx, s) => paintFace(ctx, s, F, ex));
   return set;
 }
 
@@ -972,6 +1006,10 @@ function poseState(p, R) {
   st.maxB = 0;
   st.face = null;
   st.idle = (1 - st.walk) * (1 - Math.max(st.lk, shock || wave ? 1 : 0));
+  st.target = p.target || null;
+  st.umb = clamp01(p.umbrella);
+  st.flash = clamp01(p.flashlight);
+  st.flashHand = 0;
   return st;
 }
 
@@ -1038,6 +1076,21 @@ function swingState(st, seed) {
   st.sw2.v = (st.sw2.a - b0) / 0.025;
 }
 
+/** 감격(사냥꾼): 그물 대신 제자리에서 펄쩍펄쩍 뛰며 기체를 가리킨다. st.sw 를 휘두르기와 같은 꼴로 채운다. */
+function celebrateState(st, seed) {
+  const u = frac(st.t * 1.7 + seed * 0.37);
+  const s = st.sw;
+  const air = u < 0.62 ? Math.sin((u / 0.62) * Math.PI) : 0;
+  s.air = air;
+  s.hop = air * 0.16;
+  s.sq = u < 0.62 ? 1 + air * 0.08 : 1 - 0.13 * Math.sin(((u - 0.62) / 0.38) * Math.PI);
+  s.lean = 0.08 * air;
+  s.shout = true;
+  s.a = 0;
+  s.v = 0;
+  s.h = 0.6;
+}
+
 /** 잠자리채를 손 i 에 쥐고 화면 평면 각 a 로 세운다(손 0 이면 좌우 반대). */
 function holdNet(P, net, i, a, v) {
   net.visible = true;
@@ -1097,6 +1150,8 @@ function updateGround(R, pose) {
   const st = poseState(pose, R);
   const { t, walk, shock, wave, lk, idle } = st;
   const seed = R.seed;
+  const D = R.def;
+  if (D.step) st.ph = t * D.step;
   R.flip.scale.x = st.dir;
   aimAt(R.root, R.flip, pose.target, 0.64, st.aim);
   const foc = shock ? 0.8 : lk;
@@ -1105,7 +1160,10 @@ function updateGround(R, pose) {
   const bnc = Math.abs(sw);
   const br = Math.sin(t * 2.3 + seed * 5);
   const shift = Math.sin(t * 0.9 + seed * 3);
-  if (shock) swingState(st, seed);
+  if (shock) {
+    if (D.celebrate) celebrateState(st, seed);
+    else swingState(st, seed);
+  }
 
   // 1) 바탕: 튀어 오르기·찌그러짐·화면 평면 기울기(발밑 기준)
   let by = 0;
@@ -1122,7 +1180,7 @@ function updateGround(R, pose) {
     lean += st.sw.lean * (1 - walk * 0.5);
   } else if (lk > 0) {
     by += Math.abs(Math.sin(t * 6.2 + seed)) * 0.014 * lk;
-    lean += 0.06 * lk * elev;
+    lean += (D.leanBack ?? 0.06) * lk * elev;
   } else if (wave) {
     by += Math.abs(Math.sin(t * 5)) * 0.035;
   }
@@ -1155,17 +1213,19 @@ function updateGround(R, pose) {
   }
 
   // 4) 몸통: 걸을 때 앞으로·좌우로 비틀고, 올려다볼 때 뒤로 젖힌다. 숨쉬면 가슴이 부푼다.
-  P.torso.rotation.set(0.08 * walk - lk * elev * 0.12, -sw * 0.13 * walk, sw * 0.035 * walk);
+  P.torso.rotation.set((0.08 + (D.hunch || 0)) * walk - lk * elev * 0.12, -sw * 0.13 * walk, sw * 0.035 * walk);
   const bk = 1 - walk * 0.6;
   P.torso.scale.set(1 + br * 0.008 * bk, 1 + br * 0.016 * bk, 1 + br * 0.008 * bk);
 
   // 5) 고개
   const yawRel = clamp(st.aim.yaw - bodyYaw, -0.75, 0.75) * foc;
-  const pitch = foc * elev * (shock ? 0.3 : (R.def.lookPitch ?? 0.62));
+  const pitch = foc * elev * (shock ? 0.3 : (D.lookPitch ?? 0.62));
+  // 하늘을 훑으며 걷는다(사냥꾼): 웅크린 몸에 고개만 들고 좌우로
+  const scan = (D.scan || 0) * walk * (1 - foc);
   const around = Math.sin(t * 0.55 + seed * 2) * 0.2 + Math.sin(t * 1.9 + seed) * 0.04;
   P.neck.rotation.set(
-    -pitch + Math.sin(st.ph * 2 + 0.8) * 0.045 * walk + Math.sin(t * 1.3) * 0.03 * idle - (shock ? st.sw.lean * 0.5 : 0),
-    yawRel + around * idle,
+    -pitch + Math.sin(st.ph * 2 + 0.8) * 0.045 * walk + Math.sin(t * 1.3) * 0.03 * idle - (shock ? st.sw.lean * 0.5 : 0) - scan * (0.7 + Math.sin(t * 1.3) * 0.2),
+    yawRel + around * idle + Math.sin(t * 2.1 + seed) * scan,
     Math.sin(t * 0.8 + seed) * 0.08 * idle + (shock ? Math.sin(t * 17) * 0.05 : 0) + lk * (0.1 + Math.sin(t * 2.1) * 0.03),
   );
 
@@ -1174,7 +1234,11 @@ function updateGround(R, pose) {
   const ar = br * 0.006 * idle;
   set3(st.F, -0.212 - ar, 0.0 + ar + Math.max(0, sw) * 0.045 * walk, 0.035 + sw * 0.14 * walk);
   set3(st.B, 0.212 + ar, 0.0 + ar + Math.max(0, -sw) * 0.045 * walk, 0.035 - sw * 0.14 * walk);
-  if (shock) {
+  if (shock && D.celebrate) {
+    // 기체를 가리키며 다른 주먹을 불끈불끈
+    pointUp(P, st, 1);
+    armToward(P, 0, 0.35 + Math.abs(Math.sin(t * 5.3)) * 0.35, ARM * 1.25, 0.35, st.F);
+  } else if (shock) {
     armToward(P, 1, st.sw.h, ARM * 1.28, 0.25, st.B);
     // 빈손이면 주먹을 흔든다
     armToward(P, 0, 0.55 + Math.sin(t * 15) * 0.18, ARM * 1.15, 0.35, st.F);
@@ -1185,20 +1249,162 @@ function updateGround(R, pose) {
     // 빈손: 가슴 앞에서 들뜬 주먹
     mix3(st.F, -0.17, 0.1 + Math.abs(Math.sin(t * 6.2 + seed)) * 0.02, 0.15, lk);
   }
-  R.def.pose?.(P, st);
+  D.pose?.(P, st);
+  extrasHands(P, st, D);
   reach(P, 0, st.F, st.maxF || 1.5);
   reach(P, 1, st.B, st.maxB || 1.5);
   placeFinger(P, st);
   if (wave) P.hands[1].scale.setScalar(1.15);
   // 잠자리채
-  if (shock) holdNet(P, P.net, 1, st.sw.a, st.sw.v);
+  if (shock && !D.celebrate) holdNet(P, P.net, 1, st.sw.a, st.sw.v);
   else P.net.visible = false;
   if (P.net2) {
     if (shock && st.netB) holdNet(P, P.net2, 0, st.sw2.a, st.sw2.v);
     else P.net2.visible = false;
   }
-  R.def.after?.(P, st);
+  D.after?.(P, st);
+  extrasPlace(P, st, D);
   pickFace(P, st, seed);
+}
+
+// ───────── 날씨 소품(우산·손전등) ─────────
+// pose.umbrella(0..1): 비·폭풍 때 카메라 쪽 손으로 머리 위에 펴 든다(값만큼 커지며 나타난다). 올려다보면 뒤로 젖혀 얼굴을 드러낸다.
+// pose.flashlight(0..1): 밤에 카메라 쪽 손(우산을 들었으면 기체 쪽 손)으로 기체를 비춘다. 렌즈는 빛 번짐이 생기게 밝다.
+// 그 손에 들던 소품(def.fprop)은 그동안 감춘다. 열기구·우주비행사에는 쓰지 않는다.
+
+/** 종류별 우산 색(두 색 번갈아 8폭). */
+const UMB = {
+  farmer: ['#e2483c', '#fbf6ee'],
+  kid: ['#ff8fb0', '#fbf6ee'],
+  walker: ['#2fc8b8', '#9a5ce6'],
+  camper: ['#ff8a2c', '#3e9b5a'],
+  fisher: ['#ffd23f', '#2f6fd8'],
+  worker: ['#2b2f4a', '#4a5a9c'],
+  streamer: ['#ff7fae', '#2fc8b8'],
+  astronomer: ['#3f5fb8', '#ffcf4a'],
+  photographer: ['#e2483c', '#2fb5a6'],
+  hunter: ['#5e6a3a', '#c9a060'],
+};
+const UMB_SHAFT = 0.86; // 천 가장자리 높이(원점) → 손잡이 끝
+
+let vmd = null;
+/** 양면 정점 색 재질(우산 천·레이더 접시처럼 안쪽이 보이는 것). */
+function VMD() {
+  if (!vmd) vmd = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.6 });
+  return vmd;
+}
+
+/** 우산(원점 = 천 가장자리 높이의 가운데, +y 위). 살 끝은 낮고 폭 사이는 살짝 올라간다. */
+function umbrellaGeo(c1, c2) {
+  return merged(`umb|${c1}|${c2}`, () => {
+    const canopy = lathe('umbCanopy', [[0.0, 0.17], [0.13, 0.155], [0.26, 0.115], [0.37, 0.055], [0.44, 0.0]], { seg: 64, n: 14 }).clone();
+    const p = canopy.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i);
+      const z = p.getZ(i);
+      const k = Math.hypot(x, z) / 0.44;
+      p.setY(i, p.getY(i) + (1 - Math.abs(Math.cos(Math.atan2(z, x) * 4))) * 0.04 * k * k);
+    }
+    const A = grad(c1, -0.02, 0.17, 0.15, 0.08);
+    const B = grad(c2, -0.02, 0.17, 0.15, 0.08);
+    const dark = '#3a3040';
+    const parts = [
+      paint(canopy, (x, y, z) => (Math.floor((Math.atan2(z, x) + Math.PI) / (Math.PI / 4)) % 2 ? A(x, y) : B(x, y))),
+      paint(place(cylGeo(0.012, 0.012, UMB_SHAFT + 0.17, 8), [0, (0.17 - UMB_SHAFT) / 2, 0]), dark),
+      paint(place(torusGeo(0.045, 0.015, 6, 14, Math.PI), [-0.045, -UMB_SHAFT, 0], [0, 0, Math.PI]), '#8a5432'),
+      paint(place(coneGeo(0.018, 0.07, 8), [0, 0.2, 0]), dark),
+    ];
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      parts.push(paint(ell([Math.cos(a) * 0.44, 0.0, Math.sin(a) * 0.44], [0.014, 0.014, 0.014]), dark));
+    }
+    return parts;
+  });
+}
+
+/** 손전등(손잡이가 원점, +y 로 비춘다). */
+const flashGeo = () =>
+  merged('flashlight', () => [
+    paint(place(cylGeo(0.026, 0.026, 0.14, 12), [0, 0.03, 0]), (x, y) => (y < 0.02 ? col('#2a2a33') : col('#ffd23f'))),
+    paint(place(cylGeo(0.044, 0.028, 0.06, 14), [0, 0.13, 0]), '#ffd23f'),
+    paint(place(torusGeo(0.04, 0.008, 6, 18), [0, 0.16, 0], [Math.PI / 2, 0, 0]), '#c3cbe6'),
+    paint(place(roundBoxGeo(0.014, 0.03, 0.012, 0.005, 1), [0, 0.05, 0.026]), '#e2483c'),
+  ]);
+
+/** 우산·손전등을 미리 만들어 감춰 둔다(값이 0 이면 아무 비용도 없다). */
+function buildExtras(P, type) {
+  const [c1, c2] = UMB[type] || UMB.farmer;
+  P.umb = new THREE.Group();
+  P.umb.visible = false;
+  P.torso.add(P.umb);
+  add(P.umb, umbrellaGeo(c1, c2), VMD(), { outline: OLS });
+  P.flash = new THREE.Group();
+  P.flash.visible = false;
+  P.torso.add(P.flash);
+  add(P.flash, flashGeo(), VM(0.4));
+  add(P.flash, cylGeo(0.036, 0.036, 0.006, 16), M('#fff6c8', { rough: 0.2, emissive: '#fff2b0', emissiveIntensity: 2.2 }), { pos: [0, 0.163, 0], cast: false });
+  P.flashGlow = glowSprite('#fff0b8', 0.26, 0);
+  P.flashGlow.position.set(0, 0.19, 0);
+  P.flash.add(P.flashGlow);
+}
+
+/** 우산·손전등이 쓰는 손 목표(reach 전에). */
+function extrasHands(P, st, D) {
+  const u = st.umb;
+  const f = st.flash;
+  st.flashHand = u > 0.5 ? 1 : 0;
+  if (u > 0) {
+    // 카메라 쪽 손을 어깨 높이로 들어 우산대를 쥔다(모자가 높으면 더 높이)
+    const k = smooth(clamp01(u * 1.6));
+    mix3(st.F, -0.25, 0.17 + Math.max(0, D.umbY - 0.4) + (st.shock ? Math.sin(st.t * 15) * 0.03 : 0), 0.1, k);
+  }
+  if (f > 0) {
+    if (st.flashHand) {
+      if (st.point < 0.5) mix3(st.B, 0.28, 0.08, 0.15, f);
+      if (f > 0.5) st.point = 0;
+    } else mix3(st.F, -0.29, 0.05 + Math.abs(Math.sin(st.ph)) * 0.02 * st.walk, 0.15, f);
+  }
+  const busy = u > 0.5 || (f > 0.5 && !st.flashHand);
+  const it = D.fprop && P.items[D.fprop];
+  if (it) it.visible = !busy;
+}
+
+/** 우산·손전등 놓기(reach 뒤에). */
+function extrasPlace(P, st, D) {
+  const u = st.umb;
+  P.umb.visible = u > 0.01;
+  if (P.umb.visible) {
+    const k = smooth(clamp01(u * 1.4));
+    // 천 가운데 = 머리(모자) 위. 올려다보면 뒤로 젖혀 얼굴이 보이게
+    const lb = smooth(clamp01((st.look - 0.3) / 0.4));
+    headToTorso(P, -0.04 + Math.sin(st.t * 2.3) * 0.02, D.umbY - 0.1 * lb, -0.34 * lb, _c);
+    const h = P.hands[0].position;
+    _a.copy(_c).sub(h);
+    _b.copy(_a).normalize();
+    P.umb.quaternion.setFromUnitVectors(UP, _b);
+    P.umb.position.copy(h).addScaledVector(_a, k);
+    P.umb.scale.setScalar(Math.max(0.001, k * (1 + Math.sin(k * Math.PI) * 0.12)));
+  }
+  const f = st.flash;
+  P.flash.visible = f > 0.01;
+  if (P.flash.visible) {
+    const hand = P.hands[st.flashHand].position;
+    P.flash.position.copy(hand);
+    if (st.target) {
+      P.torso.updateWorldMatrix(true, false);
+      _b.copy(st.target);
+      P.torso.worldToLocal(_b);
+      _b.sub(hand).normalize();
+    } else _b.set(0.3, 1, 0.4).normalize();
+    // 올려다보기 전에는 하늘을 이리저리 훑는다
+    const sweep = (1 - st.lk) * (1 - (st.shock ? 1 : 0)) * 0.35;
+    _b.x += Math.sin(st.t * 1.3) * sweep;
+    _b.z += Math.cos(st.t * 1.1) * sweep * 0.5;
+    _b.normalize();
+    P.flash.quaternion.setFromUnitVectors(UP, _b);
+    P.flash.scale.setScalar(Math.max(0.001, smooth(f) * 1.25));
+    P.flashGlow.material.opacity = 0.7 * f;
+  }
 }
 
 // ───────── 종류별 생김새 ─────────
@@ -1256,8 +1462,166 @@ function fluffyRing(key, R0, tube, bumps = 13) {
 }
 
 const DEFS = {
+  // UFO 사냥꾼(특별 손님): 은박 고깔모자(안테나)·트렌치코트에 UFO 배지·목에 건 큰 쌍안경·레이더 접시 배낭.
+  // 20년째 UFO 를 쫓는 집요하고 귀여운 음모론자. 눈은 부릅뜨고(작은 눈동자·다크서클·수염 자국), 웅크린 채 하늘을 훑으며 바삐 걷는다.
+  // 올려다보면 쌍안경을 두 손으로 눈에 대고 기체를 정확히 쫓으며 덜덜 떨고, 들키면 감격의 눈물을 흘리며 펄쩍펄쩍 뛴다.
+  hunter: {
+    lookPitch: 0.85,
+    hunch: 0.17,
+    scan: 0.42,
+    step: 11.5,
+    celebrate: true,
+    leanBack: 0.12,
+    umbY: 0.66,
+    L: {
+      skin: '#e8b48e',
+      top: '#c9a060',
+      cuff: '#9a7438',
+      legs: '#4a4f5e',
+      shoe: '#5a3a22',
+      sole: '#2e1c12',
+      boot: true,
+      trim: '#8a6040',
+      nose: 1.2,
+      face: { iris: '#3f8f4a', irisK: 0.68, brow: '#3a2a20', browW: 13, browLen: 42, browTilt: 0.32, browArch: 1, slant: 0.14, bags: true, stubble: true, mouth: 'flat', lookMouth: 'grin', blush: 0.6, joy: true },
+    },
+    build(P, R) {
+      const coat = '#c9a060';
+      const g = grad(coat, -0.135, 0.22, 0.22, 0.06);
+      const belt = col('#6a4426');
+      add(
+        P.torso,
+        merged('trench', () => [
+          paint(
+            place(lathe('trench', [[0, -0.138], [0.19, -0.136], [0.22, -0.12], [0.202, -0.04], [0.182, 0.05], [0.16, 0.12], [0.134, 0.175], [0.095, 0.214], [0.046, 0.234], [0, 0.238]], { seg: 36, n: 30 }), [0, 0, 0], [0, 0, 0], [1, 1, 0.9]),
+            (x, y) => (y > -0.004 && y < 0.03 ? belt : g(x, y)),
+          ),
+          ...shoulderCaps(coat, 0.08),
+          paint(frontPanel('hunterLapel', -0.02, 0.236, 0.32, 1.36, 0.012), tone(coat, -0.12)),
+          paint(frontPanel('hunterShirt', 0.05, 0.236, 0.14, 0.98, 0.017), grad('#3f7a4a', 0.05, 0.22, 0.12, 0.06)),
+          // 세운 깃
+          paint(ell([-0.1, 0.228, -0.01], [0.075, 0.07, 0.022], [0.15, 0.95, 0.35]), tone(coat, -0.06)),
+          paint(ell([0.1, 0.228, -0.01], [0.075, 0.07, 0.022], [0.15, -0.95, -0.35]), tone(coat, -0.06)),
+        ]),
+        VM(0.8),
+        { outline: OL },
+      );
+      // UFO 배지·외계인 배지·별 배지·벨트 버클·티셔츠의 외계인 얼굴
+      add(
+        P.torso,
+        merged('hunterPins', () => [
+          paint(place(roundBoxGeo(0.05, 0.034, 0.016, 0.008, 1), onBody(0.012, 0, 0.014)), '#ffd23f'),
+          paint(ell(onBody(0.13, -0.56, 0.014), [0.028, 0.034, 0.012]), '#7ee06a'),
+          paint(ell(onBody(0.126, -0.61, 0.026), [0.007, 0.011, 0.005], [0, 0, 0.5]), '#1d1430'),
+          paint(ell(onBody(0.126, -0.5, 0.026), [0.007, 0.011, 0.005], [0, 0, -0.5]), '#1d1430'),
+          paint(ell(onBody(0.07, -0.66, 0.014), [0.036, 0.012, 0.014], [0, -0.66, 0]), '#c3cbe6'),
+          paint(ell(onBody(0.078, -0.66, 0.02), [0.016, 0.014, 0.01], [0, -0.66, 0]), '#5ff0ff'),
+          paint(ell(onBody(-0.06, -0.62, 0.014), [0.024, 0.024, 0.01], [0, -0.62, 0]), '#e2483c'),
+          paint(ell(onBody(0.15, 0.0, 0.026), [0.03, 0.036, 0.01]), '#b8f0a0'),
+          paint(ell(onBody(0.152, -0.12, 0.034), [0.008, 0.012, 0.005], [0, 0, 0.5]), '#1d1430'),
+          paint(ell(onBody(0.152, 0.12, 0.034), [0.008, 0.012, 0.005], [0, 0, -0.5]), '#1d1430'),
+        ]),
+        VM(0.4),
+      );
+      // 은박모자 밑으로 삐친 부스스한 머리
+      const hair = hairPaint('#4a3324', 0.16);
+      add(
+        P.head,
+        merged('hunterHair', () => [
+          paint(capHair(0.98, -0.03), hair),
+          paint(ell([0, -0.08, -0.16], [0.18, 0.12, 0.1]), hair),
+          ...[[-1, 0.0, 1.25], [-1, -0.08, 1.7], [1, 0.0, -1.25], [1, -0.08, -1.7], [-1, 0.06, 0.8], [1, 0.06, -0.8]].map(([sx, y, rz]) => paint(place(coneGeo(0.045, 0.13, 8), [sx * 0.22, y, -0.04], [0, 0, rz]), hair)),
+          paint(place(coneGeo(0.05, 0.14, 8), [0, -0.02, -0.25], [-1.3, 0, 0]), hair),
+        ]),
+        VM(0.7),
+        { outline: OL },
+      );
+      // 은박 고깔모자 + 안테나(구겨진 면이 반짝반짝)
+      const hat = new THREE.Group();
+      hat.rotation.set(-0.12, 0, 0.14);
+      P.head.add(hat);
+      add(hat, foilGeo(), foilMaterial(), { outline: OL });
+      // 레이더 배낭
+      add(
+        P.torso,
+        merged('hunterPack', () => [
+          paint(place(roundBoxGeo(0.22, 0.26, 0.13, 0.045, 3), [0, 0.09, -0.19]), grad('#5e6a3a', -0.04, 0.22, 0.2, 0.08)),
+          paint(place(roundBoxGeo(0.15, 0.08, 0.05, 0.02, 2), [0, 0.03, -0.265]), tone('#5e6a3a', -0.1)),
+          paint(rodGeo([-0.07, 0.2, -0.2], [-0.2, 0.52, -0.27], 0.013), '#8a919f'),
+          paint(rodGeo([-0.088, 0.222, 0.03], [-0.1, 0.03, 0.15], 0.016), '#4a4f2e'),
+          paint(rodGeo([0.088, 0.222, 0.03], [0.1, 0.03, 0.15], 0.016), '#4a4f2e'),
+        ]),
+        VM(0.75),
+        { outline: OL },
+      );
+      const dish = new THREE.Group();
+      dish.position.set(-0.2, 0.52, -0.27);
+      P.torso.add(dish);
+      add(dish, dishGeo(), VMD(), { rot: [-0.6, 0, 0.35], scale: 1.25, outline: OLS / 1.25 });
+      P.items.dish = dish;
+      // 쌍안경 + 목끈
+      const bino = new THREE.Group();
+      P.torso.add(bino);
+      add(bino, binoGeo(), VM(0.45), { outline: OLS });
+      P.items.bino = bino;
+      R.strap = add(P.torso, cg('leash', () => place(cylGeo(0.0075, 0.0075, 1, 6), [0, 0.5, 0])), M('#5a3a22', { rough: 0.7 }), { cast: false });
+      P.shockFace = 'j';
+    },
+    pose(P, st) {
+      if (st.shock || st.lk <= 0) return;
+      // 쌍안경을 두 손으로 눈에 대고 기체를 쫓는다(들떠서 덜덜)
+      headToTorso(P, 0, -0.01, 0.33, _c);
+      mix3(st.F, _c.x - 0.09, _c.y - 0.045, _c.z - 0.03, st.lk);
+      set3(st.B, lerp(st.B[0], _c.x + 0.09, st.lk), lerp(st.B[1], _c.y - 0.045, st.lk), lerp(st.B[2], _c.z - 0.03, st.lk));
+      st.point = 0;
+      st.maxF = 1.7;
+      st.maxB = 1.7;
+      P.torso.rotation.z += Math.sin(st.t * 31) * 0.012 * st.lk;
+      P.torso.rotation.x += Math.sin(st.t * 23) * 0.008 * st.lk;
+    },
+    after(P, st, R) {
+      const b = P.items.bino;
+      if (st.lk > 0.35 && !st.shock) {
+        headToTorso(P, 0, -0.01, 0.33, _c);
+        b.position.copy(_c);
+        b.position.x += Math.sin(st.t * 37) * 0.003;
+        b.position.y += Math.sin(st.t * 29) * 0.003;
+        // 기체 쪽으로 정확히 겨눈다
+        if (st.target) {
+          P.torso.updateWorldMatrix(true, false);
+          _b.copy(st.target);
+          P.torso.worldToLocal(_b);
+          _b.sub(_c).normalize();
+        } else {
+          P.neck.updateMatrix();
+          _q.setFromRotationMatrix(P.neck.matrix);
+          _b.set(0, 0, 1).applyQuaternion(_q);
+        }
+        b.quaternion.setFromUnitVectors(ZA, _b);
+      } else {
+        // 목에 걸려 가슴 앞에서 흔들린다(들키면 크게 출렁)
+        const sw = st.shock ? Math.sin(st.t * 10.7) * 0.8 : Math.sin(st.ph) * 0.22 * st.walk + Math.sin(st.t * 1.7) * 0.05;
+        const L = 0.165;
+        b.position.set(Math.sin(sw) * L, 0.2 - Math.cos(sw) * L, bodyR(0.05) * 0.9 + 0.075);
+        b.rotation.set(0.2, 0, sw);
+      }
+      // 목끈: 깃 앞 → 쌍안경
+      const s = R.strap;
+      _a.set(0, 0.2, 0.08);
+      s.position.copy(_a);
+      _b.copy(b.position).sub(_a);
+      const len = _b.length();
+      s.quaternion.setFromUnitVectors(UP, _b.divideScalar(len || 1));
+      s.scale.set(1, len, 1);
+      // 레이더 접시가 돈다(들키면 빙글빙글)
+      P.items.dish.rotation.set(0, st.t * (st.shock ? 7 : 1.6), 0);
+    },
+  },
+
   // 농부: 큰 밀짚모자(빨간 띠·밀 이삭)·무성한 콧수염·딸기코·크림 셔츠·파란 멜빵바지·갈색 장화·쇠스랑. 고집 센 아저씨.
   farmer: {
+    fprop: 'fork',
+    umbY: 0.4,
     L: {
       skin: '#f2b08a',
       top: '#f7efdd',
@@ -1381,6 +1745,8 @@ const DEFS = {
 
   // 아이: 흰 보닛(빨간 리본)·땋은 머리·빨간 원피스·흰 앞치마·막대사탕. 들키면 잠자리채 두 개를 휘두르는 개구쟁이.
   kid: {
+    fprop: 'lolly',
+    umbY: 0.38,
     L: {
       hs: 1.2,
       skin: '#f8c4a0',
@@ -1498,7 +1864,7 @@ const DEFS = {
     },
     after(P, st) {
       const l = P.items.lolly;
-      l.visible = !st.shock;
+      l.visible = l.visible && !st.shock;
       l.position.copy(P.hands[0].position);
       l.rotation.set(0, 0, 0.45 + Math.sin(st.ph) * 0.15 * st.walk - st.lk * 0.2);
     },
@@ -1506,6 +1872,7 @@ const DEFS = {
 
   // 산책하는 사람: 보라 후드티·높이 묶은 포니테일(노란 곱창끈)·운동화·개(시바). 상냥하고 밝다.
   walker: {
+    umbY: 0.36,
     L: {
       skin: '#c98d62',
       top: '#9a5ce6',
@@ -1564,6 +1931,8 @@ const DEFS = {
 
   // 캠핑족: 주황 비니(방울)·초록 파카(털 깃)·큰 배낭과 침낭·법랑 머그·주근깨. 늘 싱글벙글.
   camper: {
+    fprop: 'mug',
+    umbY: 0.44,
     L: {
       skin: '#f6c29c',
       top: '#3e9b5a',
@@ -1690,6 +2059,8 @@ const DEFS = {
 
   // 낚시꾼: 올리브 벙거지(빨간 미끼)·하얀 수염·졸린 눈·노란 비옷·초록 장화·낚싯대에 걸린 물고기. 무뚝뚝한 바닷사람.
   fisher: {
+    fprop: 'rod',
+    umbY: 0.34,
     L: {
       skin: '#eab38c',
       top: '#ffcf2e',
@@ -1837,6 +2208,8 @@ const DEFS = {
 
   // 회사원: 남색 양복·빨간 줄무늬 넥타이·사원증·서류 가방·포마드 머리. 늘 피곤하고 걱정이 많다(다크서클·땀).
   worker: {
+    fprop: 'bag',
+    umbY: 0.38,
     L: {
       skin: '#f6c29c',
       top: '#384a8f',
@@ -1919,6 +2292,8 @@ const DEFS = {
 
   // 방송인: 분홍 후드티(별)·고양이 귀 헤드폰·머리 경단 둘·셀카봉. 늘 흥분해서 눈이 반짝반짝.
   streamer: {
+    fprop: 'stick',
+    umbY: 0.4,
     L: {
       skin: '#a8714c',
       top: '#ff7fae',
@@ -2002,6 +2377,8 @@ const DEFS = {
 
   // 천문학자: 대머리·옆머리 곱슬·두꺼운 둥근 안경·흰 가운·망원경. 궁금한 게 많은 괴짜(한쪽 눈썹이 늘 올라가 있다).
   astronomer: {
+    fprop: 'scope',
+    umbY: 0.36,
     L: {
       skin: '#f6c29c',
       top: '#f2f3f8',
@@ -2099,6 +2476,7 @@ const DEFS = {
 
   // 사진가: 빨간 베레모·곱슬 단발·청록 셔츠·주머니 많은 카키 조끼·사진기. 여유만만(한쪽 입꼬리·한쪽 눈썹).
   photographer: {
+    umbY: 0.38,
     lookPitch: 0.3,
     L: {
       skin: '#d39a6c',
@@ -2215,6 +2593,65 @@ const DEFS = {
     },
   },
 };
+
+/** 구겨진 은박 고깔(머리 기준, 위 = +y). 위치마다 정해진 흔들림이라 이음매가 벌어지지 않는다. */
+function foilGeo() {
+  return cg('foilHat', () => {
+    const hash = (x, y, z) => {
+      const v = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    const cone = lathe('foilCone2', [[0, 0.44], [0.04, 0.42], [0.1, 0.34], [0.165, 0.24], [0.22, 0.15], [0.262, 0.1], [0.292, 0.072], [0.27, 0.052], [0.0, 0.08]], { seg: 30, n: 14 }).clone();
+    const p = cone.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i);
+      const y = p.getY(i);
+      const z = p.getZ(i);
+      const n = hash(Math.round(x * 200), Math.round(y * 200), Math.round(z * 200)) - 0.5;
+      const k = 1 + n * 0.2;
+      p.setXYZ(i, x * k, y + n * 0.025, z * k);
+    }
+    cone.computeVertexNormals();
+    const silver = col('#f2f2f4');
+    const shade = col('#8e93a6');
+    return mergeGeometries(
+      [
+        paint(cone, (x, y, z) => _pc.copy(shade).lerp(silver, hash(Math.round(x * 60), Math.round(y * 60), Math.round(z * 60)) * 0.75 + 0.25)),
+        paint(rodGeo([0, 0.42, 0], [0.03, 0.56, 0.0], 0.009, 0.007), '#c3cbe6'),
+        paint(ell([0.032, 0.58, 0], [0.032, 0.032, 0.032]), '#ff3b3b'),
+      ],
+      false,
+    );
+  });
+}
+let foilMat = null;
+/** 반짝이는 은박(구김이 보이게 면마다 따로 빛난다). */
+function foilMaterial() {
+  if (!foilMat) foilMat = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.32, metalness: 0.55, flatShading: true, envMapIntensity: 1.1 });
+  return foilMat;
+}
+
+/** 레이더 접시(오목한 그릇 + 수신 뿔). 원점 = 접시 아래 가운데, 오목면이 +y. */
+const dishGeo = () =>
+  merged('radarDish', () => [
+    paint(lathe('dish', [[0.0, -0.012], [0.05, -0.006], [0.1, 0.02], [0.13, 0.05]], { seg: 24, n: 8 }), grad('#e6e9f2', -0.01, 0.05, 0.15, 0.05)),
+    paint(rodGeo([0, -0.01, 0], [0, 0.08, 0], 0.006), '#8a919f'),
+    paint(ell([0, 0.085, 0], [0.016, 0.016, 0.016]), '#e2483c'),
+  ]);
+
+/** 큰 쌍안경(가운데가 원점, 대물렌즈가 +z). */
+const binoGeo = () =>
+  merged('binoculars', () => {
+    const body = grad('#34423a', -0.05, 0.05, 0.18, 0.14);
+    const parts = [paint(place(roundBoxGeo(0.06, 0.036, 0.07, 0.012, 2)), '#24302a')];
+    for (const sx of [-1, 1]) {
+      parts.push(paint(place(cylGeo(0.042, 0.042, 0.13, 14), [sx * 0.05, 0, 0], [Math.PI / 2, 0, 0]), body));
+      parts.push(paint(place(cylGeo(0.05, 0.05, 0.03, 16), [sx * 0.05, 0, 0.065], [Math.PI / 2, 0, 0]), '#c9a24a'));
+      parts.push(paint(place(cylGeo(0.026, 0.032, 0.035, 12), [sx * 0.05, 0, -0.078], [Math.PI / 2, 0, 0]), '#1a201c'));
+      parts.push(paint(place(cylGeo(0.04, 0.04, 0.006, 16), [sx * 0.05, 0, 0.082], [Math.PI / 2, 0, 0]), '#8fe8ff'));
+    }
+    return parts;
+  });
 
 /** 보닛 얼굴 둘레의 물결 주름(보닛 구와 머리가 만나는 원을 따라 휜 고리). */
 function ruffleGeo() {
@@ -2365,6 +2802,8 @@ function buildDog(R) {
     merged('dogBody2', () => [
       paint(ell([0, 0.155, 0], [0.105, 0.092, 0.155], [0, 0, 0], [24, 18]), (x, y) => (y < 0.12 ? white : fur(x, y))),
       paint(ell([0, 0.17, 0.1], [0.085, 0.085, 0.075]), (x, y, z) => (z > 0.13 && y < 0.2 ? white : fur(x, y))),
+      paint(place(torusGeo(0.072, 0.014, 6, 20), [0, 0.218, 0.115], [Math.PI / 2 - 0.7, 0, 0]), '#e2483c'),
+      paint(place(cylGeo(0.018, 0.018, 0.006, 12), [0, 0.17, 0.168], [Math.PI / 2 - 0.5, 0, 0]), '#ffd23f'),
     ]),
     VM(0.85),
     { outline: OLS },
@@ -2412,7 +2851,6 @@ function buildDog(R) {
   D.faces = { n: faceTexture('dog2|n', (ctx, s) => dogFace(ctx, s, 'n')), b: faceTexture('dog2|b', (ctx, s) => dogFace(ctx, s, 'bark')), h: faceTexture('dog2|h', (ctx, s) => dogFace(ctx, s, 'happy')) };
   D.face = faceCap(0.105, D.faces.n, { width: FACE_A, height: FACE_A });
   D.head.add(D.face);
-  add(D.hop, merged('collar2', () => [paint(place(torusGeo(0.072, 0.014, 6, 20), [0, 0.218, 0.115], [Math.PI / 2 - 0.7, 0, 0]), '#e2483c'), paint(place(cylGeo(0.018, 0.018, 0.006, 12), [0, 0.17, 0.168], [Math.PI / 2 - 0.5, 0, 0]), '#ffd23f')]), VM(0.45));
   D.collar = new THREE.Object3D();
   D.collar.position.set(0, 0.235, 0.15);
   D.hop.add(D.collar);
@@ -2843,7 +3281,19 @@ export function createWatcher(type) {
     R.P = P;
     def.build(P, R);
     // 종류별 손 목표·소품 놓기. after 에는 R 도 넘긴다(개처럼 뒤집힌 틀에 붙는 것)
-    R.def = { pose: def.pose, after: def.after ? (PP, st) => def.after(PP, st, R) : null, lookPitch: def.lookPitch };
+    R.def = {
+      pose: def.pose,
+      after: def.after ? (PP, st) => def.after(PP, st, R) : null,
+      lookPitch: def.lookPitch,
+      fprop: def.fprop,
+      hunch: def.hunch,
+      scan: def.scan,
+      step: def.step,
+      celebrate: def.celebrate,
+      leanBack: def.leanBack,
+      umbY: def.umbY ?? 0.36,
+    };
+    buildExtras(P, type);
     update = (p) => updateGround(R, p);
   }
   const pose0 = { t: 0, dir: 1, walk: 0, look: 0 };
