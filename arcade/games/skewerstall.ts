@@ -1783,7 +1783,7 @@ function puff(V: View, x: number, y: number, n: number, col: string, spread = 0.
   }
 }
 /** 떠오르는 숫자 (글자 조각을 구워 찍는다). kind 0 = 재료 하나(떼면 합계로 빨려 듦) · 1 = 합계·보너스 · 2 = 곱하기(같이 빨려 듦) */
-const POP_SIZES = [15, 17, 20, 28, 34, 40, 48], WHITE = '#ffffff', CREAM = '#fff6d0', GOLD = '#ffd23f', RED = '#ff6a5a', PINK = '#ffd2e2';
+const POP_SIZES = [28, 34, 40, 48], WHITE = '#ffffff', GOLD = '#ffd23f', PINK = '#ffd2e2';
 /** 떠오르는 숫자는 사건마다 하나(합계·손님 보너스) — 곱하기는 합계 옆 작은 딱지 */
 function addPop(V: View, x: number, y: number, str: string, col: string, size: number, delay = 0, tags: [string, string][] = []) {
   if (V.pops.length > 8) V.pops.shift();
@@ -2239,18 +2239,10 @@ function wantDayN(day: number, w: number, sc: number) {
   for (const col of ['#5a2a0a', '#9a7a6a', '#8a6a5a']) for (const c of '장사끝손님한꼬치최고/0123456789, ') want(`q${c}${col}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, col === '#8a6a5a' ? 13 : 12, 800, col)));
   want(`hand:${w}:${sc}`, () => handSpr(0.06 * w * sc));
   want(`chip:${w}:${sc}`, () => custSpr('cat', 3, 0.016 * w * sc));
-  // 떠오르는 숫자 (재료 점수는 그날 나올 값이 정해져 있다 · 곱하기)
-  const str = (t: string, z: number, col: string) => want(`p${t}${z}${col}${sc}`, () => ((DPR = sc), gtext(GLY_CTX(sc), t, 0, 0, z, 900, col, POP_INK, z >= 24 ? 4 : 3)));
-  for (const k of kinds)
-    for (let slot = 1; slot <= CAP; slot++) {
-      if (IKD[k].bad) continue;
-      const t = '+' + slotPts(k, slot);
-      str(t, 15, CREAM);
-      str(t, 17, CREAM);
-      str(t, 20, GOLD);
-    }
-  for (const t of ['×2', '×1.5']) str(t, 28, GOLD);
-  str('×½', 28, RED);
+  // 곱하기 딱지 · 꿴 개수 글자
+  const str = (t: string, z: number, col: string) => want(`p${t}${z}${col}${sc}`, () => ((DPR = sc), gtext(GLY_CTX(sc), t, 0, 0, z, 900, col)));
+  for (const t of ['×2', '×1.5', '×½']) str(t, 15, '#5a2a0a');
+  for (const c of '12345678') want(`k${c}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, 15, 900, '#ffffff')));
   for (const z of [28, 34, 40, 48])
     for (const col of z === 28 ? [WHITE, GOLD, PINK] : [WHITE, GOLD]) for (const c of '+0123456789,') want(`g${c}${z}${col}${sc}`, () => ((DPR = sc), ntext(GLY_CTX(sc), c, 0, 0, z, 900, col, POP_INK, 4)));
   idlePump();
@@ -2421,6 +2413,18 @@ function drawAll(ctx: C2, s: S, w: number, h: number) {
       ctx.translate(X(px), X(py));
       ctx.scale(1 + pop * 0.4, 1 + pop * 0.25);
       stamp(ctx, itemSpr(o.k, o.k === 'burnt' ? 4 : o.k === 'chili' ? 3 : 1, u * sc), F_ITEM, u);
+      ctx.restore();
+    }
+    // 꼬치 끝에 꿴 개수만 작게 (3, 4, 5…)
+    if (st.on.length) {
+      const n = st.on.length, age = s.t - st.on[n - 1].at, bump = 1 + 0.5 * Math.max(0, 1 - age / 6);
+      const bx = X(tip.x) + Math.cos(ta) * X(0.05) + Math.sin(ta) * X(0.045), by = X(tip.y) + Math.sin(ta) * X(0.05) - Math.abs(Math.cos(ta)) * X(0.05);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(bump, bump);
+      ell(ctx, 0, 0, 12, 12);
+      ink(ctx, n >= 6 ? '#e8473c' : n >= 4 ? '#e08a10' : '#5a2a0a', 2, '#ffe9a0');
+      ntext(ctx, String(n), 0, 0.5, 15, 900, '#ffffff');
       ctx.restore();
     }
   }
