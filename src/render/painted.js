@@ -9,16 +9,16 @@ import { THEMES, GW, FW, BW } from './terrain.js';
 // sky 위·아래, far 먼 산 세 겹, hill 언덕, leaf 솔잎(짙은·가운데·밝은), sand 들판, grass 풀(가운데·밝은·짙은), bloom 꽃나무(가운데·밝은·짙은)
 const BASE = {
   sky: ['#bcd3df', '#f6ead0'], far: ['#7c93a8', '#9cb0bf', '#c0ccd2'], hill: ['#6f8c6c', '#8fa77a'], leaf: ['#2f5440', '#557d48', '#8fb260'],
-  trunk: '#5a3e2e', sand: ['#dcc58f', '#c7a872'], grass: ['#8fa64a', '#b3c35e', '#66843a'], bloom: ['#f0a6ba', '#fcd8e1', '#d4728e'],
+  trunk: '#5a3e2e', sand: ['#ceb47c', '#b99a62'], grass: ['#8fa64a', '#b3c35e', '#66843a'], bloom: ['#f0a6ba', '#fcd8e1', '#d4728e'],
   rock: ['#b5ad9c', '#8e8676'], wood: '#8c6a48', roof: '#4f5866', wall: '#cfc6b2', light: [255, 236, 196], sun: true,
 };
 const PT = {
   pass: {},
   autumn: { sky: ['#dcd0bc', '#f4e2c2'], far: ['#a2958c', '#b9ac9e', '#cfc3b0'], hill: ['#a0884e', '#b99c60'], leaf: ['#4a5a3a', '#6f7a44', '#a3a05a'], grass: ['#b8a04e', '#d0b462', '#937a3c'], sand: ['#ead2a0', '#d8b882'], bloom: ['#d8662c', '#f2a446', '#a9402a'] },
   grove: { sky: ['#c6dccf', '#eef0d8'], far: ['#86a397', '#a2b9ab', '#c2d0bf'], hill: ['#6a9468', '#84a774'], leaf: ['#2f5a3c', '#4f7c46', '#86a85c'], grass: ['#84a04c', '#a2b85e', '#62833e'], sand: ['#e0d09c', '#cdb984'], bloom: ['#f3efdc', '#fffcec', '#d8d2a8'] },
-  snow: { sky: ['#c3d1de', '#eaeff3'], far: ['#a2b3c4', '#bccad6', '#d8e0e8'], hill: ['#bccad4', '#d4dde4'], leaf: ['#3e5a56', '#5f7c74', '#e8f0f2'], grass: ['#c2ced4', '#dfe7ec', '#9aaab4'], sand: ['#dde5ea', '#c6d2da'], bloom: ['#e4edf2', '#ffffff', '#aebdc8'], bare: true, rock: ['#c4cad0', '#9aa4ac'], light: [236, 244, 255] },
+  snow: { sky: ['#c3d1de', '#eaeff3'], far: ['#a2b3c4', '#bccad6', '#d8e0e8'], hill: ['#bccad4', '#d4dde4'], leaf: ['#3e5a56', '#5f7c74', '#e8f0f2'], grass: ['#c2ced4', '#dfe7ec', '#9aaab4'], sand: ['#ccd7df', '#b3c2cd'], bloom: ['#e4edf2', '#ffffff', '#aebdc8'], bare: true, rock: ['#c4cad0', '#9aa4ac'], light: [236, 244, 255] },
   mist: { sky: ['#d3d8ce', '#e9e8da'], far: ['#a2aba6', '#b8bfb9', '#cfd3cb'], hill: ['#8b9b8c', '#a3ae9f'], leaf: ['#3f5a4c', '#5d7660', '#8fa384'], grass: ['#96a276', '#adb688', '#7a8862'], sand: ['#ddd8be', '#cbc5a8'], bloom: ['#e8e2ef', '#f6f4f9', '#c4bad6'] },
-  ember: { sky: ['#a89488', '#d8b89a'], far: ['#7c726e', '#938680', '#ab9c92'], hill: ['#6a6058', '#7e7268'], leaf: ['#3a3630', '#4e4840', '#6e6458'], grass: ['#7a705e', '#8e826c', '#5a5246'], sand: ['#bdb2a4', '#a39788'], wood: '#4e3e34', smoke: true, bare: true, bloom: ['#5e4c42', '#f08a3a', '#2e2622'], rock: ['#9a928a', '#726a64'], light: [255, 196, 140] },   // 불탄 숲: 검게 그은 가지에 불씨가 남았다
+  ember: { sky: ['#a89488', '#d8b89a'], far: ['#7c726e', '#938680', '#ab9c92'], hill: ['#6a6058', '#7e7268'], leaf: ['#3a3630', '#4e4840', '#6e6458'], grass: ['#7a705e', '#8e826c', '#5a5246'], sand: ['#bdb2a4', '#a39788'], wood: '#4e3e34', smoke: true, bare: true, bloom: ['#4e4038', '#b8582a', '#2a221e'], rock: ['#9a928a', '#726a64'], light: [255, 196, 140] },   // 불탄 숲: 검게 그은 가지에 불씨가 남았다
   storm: { sky: ['#a7b6bf', '#ccd6d8'], far: ['#788b96', '#90a2aa', '#adbbc0'], hill: ['#6a8284', '#829698'], leaf: ['#2f4e4e', '#4a6a66', '#7a9a8e'], grass: ['#7d987e', '#93ac8e', '#607c66'], sand: ['#cdd1c6', '#b7bcb0'], bloom: ['#cfe2e6', '#eef6f8', '#98bccb'], light: [220, 236, 244], sun: false },
   dusk: { sky: ['#2a2c56', '#c98a74'], far: ['#45506e', '#5a6584', '#707b98'], hill: ['#3a4560', '#4b5672'], leaf: ['#26343e', '#3a4a52', '#5c6e78'], grass: ['#4c5c66', '#5e6e78', '#3c4a54'], sand: ['#8a90a2', '#767c90'], bloom: ['#b9a2e2', '#dccdf4', '#8a72ba'], rock: ['#8a8ea0', '#646878'], wood: '#5a4c48', wall: '#9aa0b0', light: [196, 206, 255], night: true },
   under: { sky: ['#140f1e', '#5a2a4a'], far: ['#3a2c4c', '#4c3a5e', '#62486e'], hill: ['#2c2a3a', '#3a3a4a'], leaf: ['#1e2a2c', '#2e3e40', '#4e6264'], grass: ['#34484a', '#466064', '#24343a'], sand: ['#5c6c6e', '#48585c'], bloom: ['#d0422f', '#ec7060', '#8a2420'], rock: ['#8a8292', '#625a6c'], wood: '#4a3a40', wall: '#9a90a6', light: [255, 170, 160], night: true },
@@ -109,7 +109,7 @@ function pavilion(g, x, y, s, P) {
 // 성벽: 언덕 능선을 따라 기어오르는 돌담과 여장
 // 마을: 기와집과 초가가 비탈에 모여 앉았다
 function village(g, f, x0, n, P, R) {
-  for (let i = 0; i < n; i++) { const x = x0 + i * (26 + R() * 14), y = f(x) + 8 + R() * 10, w = 24 + R() * 14, tile = R() < 0.55;
+  for (let i = 0; i < n; i++) { const x = x0 + i * (32 + R() * 16), y = f(x) + 8 + R() * 12, w = 32 + R() * 16, tile = R() < 0.55;
     g.globalAlpha = 1; g.fillStyle = mix(P.wall, '#ffffff', 0.2); g.fillRect(x - w * 0.36, y - 8, w * 0.72, 8); g.fillStyle = mix(P.wood, '#000000', 0.2); g.fillRect(x - w * 0.36, y - 8, 1.6, 8); g.fillRect(x + w * 0.36 - 1.6, y - 8, 1.6, 8);
     if (tile) roof(g, x, y - 7, w, 10, P.roof); else { g.fillStyle = vgrad(g, y - 18, y - 6, [[0, mix(P.sand[0], '#c8a868', 0.4)], [1, mix(P.sand[1], '#7a5a34', 0.35)]]); g.beginPath(); g.moveTo(x - w * 0.5, y - 6); g.quadraticCurveTo(x - w * 0.42, y - 17, x, y - 18); g.quadraticCurveTo(x + w * 0.42, y - 17, x + w * 0.5, y - 6); g.closePath(); g.fill(); } }
   g.globalAlpha = 1;
@@ -201,18 +201,18 @@ export function paintBack(id) {
   const hillA = x => 196 - 64 * bumpP(x, 640, 230, BW) - 40 * bumpP(x, 980, 160, BW) - 52 * bumpP(x, 1900, 240, BW) - 26 * bumpP(x, 2250, 150, BW) - Math.sin(x * 0.02) * 2;
   mountain(g, hillA, BW, 232, mix(P.hill[0], haze, 0.42), haze, R, { h: 90, n: 160, mist: 44 });
   wall(g, hillA, 560, 600, P, R); wall(g, hillA, 680, 740, P, R);
-  g.globalAlpha = 0.9; gateTower(g, 640, hillA(640) + 2, 0.66, P); village(g, hillA, 1800, 6, P, R); pavilion(g, 1000, hillA(1000) + 1, 0.5, P); pavilion(g, 2260, hillA(2260) + 1, 0.46, P);
+  g.globalAlpha = 0.9; gateTower(g, 640, hillA(640) + 2, 0.66, P); village(g, hillA, 1780, 8, P, R); pavilion(g, 1000, hillA(1000) + 1, 0.5, P); pavilion(g, 2260, hillA(2260) + 1, 0.46, P);
   // 안개를 한 겹 덮어 멀어 보이게
-  g.globalAlpha = 1; g.fillStyle = vgrad(g, 90, 232, [[0, rgba(haze, 0.18)], [1, rgba(haze, 0.4)]]); g.fillRect(0, 90, BW, 142);
-  if (P.smoke) for (const sx of [420, 1180, 1960]) for (let i = 0; i < 26; i++) { const t = i / 25; dab(g, sx + Math.sin(t * 5) * 22 * t + t * 60, 200 - t * 150, 10 + t * 34, 8 + t * 22, mix('#8a8078', P.sky[0], t * 0.5), 0.22 * (1 - t * 0.6)); }
+  g.globalAlpha = 1; g.fillStyle = vgrad(g, 90, 232, [[0, rgba(haze, 0.1)], [1, rgba(haze, 0.28)]]); g.fillRect(0, 90, BW, 142);
   for (let i = 0; i < 60; i++) { const x = R() * BW; dab(g, x, 198 + R() * 14, 60 + R() * 90, 7 + R() * 6, haze, 0.18); }   // 안개 띠
   const hillB = x => 232 - 44 * bumpP(x, 260, 200, BW) - 30 * bumpP(x, 1250, 260, BW) - 38 * bumpP(x, 1530, 170, BW) - 34 * bumpP(x, 2440, 210, BW) - Math.sin(x * 0.03 + 1) * 2;
-  mountain(g, hillB, BW, 258, mix(P.hill[1], haze, 0.2), haze, R, { h: 70, n: 160, mist: 30 });
+  mountain(g, hillB, BW, 258, mix(P.hill[0], '#1e2a1e', 0.12), haze, R, { h: 70, n: 160, mist: 22 });
   pavilion(g, 260, hillB(260) + 1, 0.7, P); pavilion(g, 1530, hillB(1530) + 1, 0.62, P);
   // 언덕 위의 작은 반송과 덤불 (멀어서 작고 옅다)
   g.globalAlpha = 1;
   for (const [x, s2, fl] of [[200, 0.28, false], [330, 0.24, true], [1180, 0.3, false], [1330, 0.22, true], [1470, 0.26, true], [1600, 0.3, false], [2380, 0.28, false], [2520, 0.24, true], [800, 0.2, false], [2050, 0.22, true]]) wrapAt(BW, x, 60, xx => { g.save(); g.globalAlpha = 0.9; umbrellaPine(g, xx, hillB(xx) + 6, s2, Object.assign({}, P, { leaf: P.leaf.map(q => mix(q, haze, 0.3)), trunk: mix(P.trunk, haze, 0.3) }), R, fl); g.restore(); });
-  for (let i = 0; i < 700; i++) { const x = R() * BW, y = 238 + R() * 20 - 6 * Math.sin(x * 0.01); dab(g, x, y, 6 + R() * 12, 4 + R() * 7, R() < 0.6 ? mix(P.leaf[0], haze, 0.15) : mix(P.leaf[1], haze, 0.2), 0.7); }   // 울타리 뒤로 보이는 짙은 숲 띠
+  for (let i = 0; i < 700; i++) { const x = R() * BW, y = 238 + R() * 20 - 6 * Math.sin(x * 0.01); dab(g, x, y, 6 + R() * 12, 4 + R() * 7, R() < 0.6 ? mix(P.leaf[0], '#0e1a12', 0.15) : P.leaf[1], 0.8); }   // 울타리 뒤로 보이는 짙은 숲 띠
+  if (P.smoke) for (const sx of [420, 1180, 1960]) for (let i = 0; i < 26; i++) { const t = i / 25; dab(g, sx + Math.sin(t * 5) * 22 * t + t * 60, 200 - t * 150, 10 + t * 34, 8 + t * 22, mix('#5e5650', P.sky[0], t * 0.45), 0.42 * (1 - t * 0.55)); }
   g.fillStyle = vgrad(g, 222, 258, [[0, rgba(haze, 0)], [1, rgba(haze, 0.5)]]); g.globalAlpha = 1; g.fillRect(0, 222, BW, 38);
   return keep(key, c);
 }
@@ -240,7 +240,9 @@ export function paintGround(id, seed = 7) {
   const dens = (x, y) => { let d = Math.exp(-Math.pow((y - FIELD_TOP - 10) / (40 + 14 * Math.sin(x * k * 7)), 2)) + Math.exp(-Math.pow((y - 574) / (46 + 16 * Math.sin(x * k * 5 + 2)), 2)); for (const [ix, iy, rx, ry] of isles) { const dx = (((x - ix) % GW) + GW * 1.5) % GW - GW / 2; d += Math.exp(-(dx * dx) / (rx * rx) - Math.pow((y - iy) / ry, 2)) * 0.8; } return Math.min(1, d); };
   // 흙빛의 큰 얼룩 (붓을 눕혀 넓게)
   for (let i = 0; i < 420; i++) { const x = R() * GW, y = 230 + R() * 300, r = 30 + R() * 80; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.26, R() < 0.45 ? mix(P.sand[0], '#fff8e4', 0.25) : mix(P.sand[1], '#7a5a34', 0.25), 0.14)); }
-  { const py = x => 380 + Math.sin(x * k * 2 + 0.4) * 70 + Math.sin(x * k * 5) * 18; for (let i = 0; i < 1800; i++) { const x = R() * GW, y = py(x) + (R() - 0.5) * 70, r = 6 + R() * 16; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.24, mix(P.sand[0], '#fffaf0', 0.35), 0.1)); } }   // 밝게 닳은 길
+  { const py = x => 380 + Math.sin(x * k * 2 + 0.4) * 70 + Math.sin(x * k * 5) * 18, pw = x => 34 + 10 * Math.sin(x * k * 6 + 1);
+    for (let i = 0; i < 2600; i++) { const x = R() * GW, y = py(x) + (R() - 0.5) * 2 * pw(x) * 0.85, r = 6 + R() * 16; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.24, mix(P.sand[0], '#fff6e2', 0.4), 0.16)); }
+    for (let i = 0; i < 1600; i++) { const x = R() * GW, side = R() < 0.5 ? -1 : 1, y = py(x) + side * pw(x) + (R() - 0.5) * 6, r = 4 + R() * 10; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.22, mix(P.sand[1], '#5a4024', 0.3), 0.18)); } }   // 밝게 닳은 길
   // 풀: 먼저 넓은 붓으로 풀빛 바탕을 깔고, 가는 붓으로 잎 자국을 얹는다
   for (let i = 0; i < 9000; i++) { const x = R() * GW, y = FIELD_TOP + R() * (H - FIELD_TOP), d = dens(x, y); if (R() > d) continue; const r = 10 + R() * 14; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.22, R() < 0.6 ? P.grass[0] : P.grass[2], 0.06 + d * 0.16)); }
   for (let i = 0; i < 52000; i++) { const x = R() * GW, y = FIELD_TOP + R() * (H - FIELD_TOP), d = dens(x, y); if (R() > d * d) continue; const r = 2 + R() * 5, q = R(), col = q < 0.42 ? P.grass[0] : q < 0.72 ? P.grass[1] : P.grass[2]; wrapAt(GW, x, r, xx => dab(g, xx, y, r, r * 0.34, col, 0.2 + d * 0.5 * R() + d * 0.2)); }
@@ -286,8 +288,8 @@ export function paintTrees(id) {
     { wx: 1130, y: 206, s: 0.85, kind: 'pine', f: true, w: 260, h: 170 },
     { wx: 1720, y: 216, s: 1.0, kind: 'pine', f: true, w: 300, h: 190 },
     { wx: 2330, y: 208, s: 0.8, kind: 'pine', f: false, w: 240, h: 160 },
-    { wx: -14, y: 626, s: 1.15, kind: 'bloom', f: false, w: 340, h: 280, under: true },
-    { wx: 1310, y: 628, s: 1.05, kind: 'bloom', f: true, w: 330, h: 270, under: true },
+    { wx: -14, y: 640, s: 1.0, kind: 'bloom', f: false, w: 320, h: 260, under: true },
+    { wx: 1310, y: 640, s: 0.95, kind: 'bloom', f: true, w: 310, h: 250, under: true },
     { wx: 560, y: 200, s: 0.55, kind: 'bloom', f: true, w: 180, h: 140 },
     { wx: 2040, y: 198, s: 0.5, kind: 'bloom', f: false, w: 170, h: 130 },
   ].map((t, i) => {

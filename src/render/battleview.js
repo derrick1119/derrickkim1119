@@ -173,7 +173,8 @@ export class BattleView {
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
     if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
       // 모서리 꽃나무: 들판 가장자리를 꾸미되 인형·표시는 가리지 않게 그 아래에 깐다
-      const off2 = sc % GW; for (const p of paintTrees(this.theme)) if (p.under) for (const k of [0, 1]) { const x = p.wx - off2 + k * GW; if (x > -p.hw * 1.6 && x < W + p.hw * 1.6) drawSprite(g, p.spr, x, p.y); }
+      // 싸움 중 들판 한가운데 멈춘 나무는 옅게 (붉은 원 같은 표시가 꽃빛에 묻히지 않게). 행군 중에는 그대로 흐른다
+      const off2 = sc % GW; for (const p of paintTrees(this.theme)) if (p.under) for (const k of [0, 1]) { const x = p.wx - off2 + k * GW; if (x > -p.hw * 1.6 && x < W + p.hw * 1.6) { const mid = opt.march ? 0 : clamp(1 - (Math.abs(x - W / 2) - 380) / 160, 0, 1); g.globalAlpha = 1 - 0.55 * mid; drawSprite(g, p.spr, x, p.y); g.globalAlpha = 1; } }
     } else strip(g, makeFrame(this.theme), GW, sc, 280);
     if (opt.deploy) this.drawDeployZone(g, opt.deploy, T);
     for (const z of b.zones) this.drawZone(g, z, T);
