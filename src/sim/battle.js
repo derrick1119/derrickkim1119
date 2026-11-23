@@ -328,7 +328,9 @@ export class Battle {
   formSquads() { return this.squads.filter(q => q.team === 0 && q.alive > 0 && !q.temp && !q.hero && !q.def.banner && !q.def.structure); }
   formations(dt) {
     if (this.form && this.form.until && this.time > this.form.until) { this.form.fx = this.form.base; this.form.until = 0; }   // 진 다지기가 끝나면 본래의 힘으로
-    const sq = this.formSquads(), p = sq.map(q => ({ x: q.cx, y: q.cy })), hq = this.squads.find(q => q.team === 0 && q.hero && q.alive > 0), h = hq ? { x: hq.cx, y: hq.cy } : null;
+    // 제자리를 지키는 부대는 맡은 자리(붓으로 친 진·끌어 옮긴 자리)로 읽는다: 둘레에서 요괴와 맞붙어 조금 밀려나도 진이 풀리지 않게
+    const at = q => q.order && q.order.kind === 'hold' && q.order.x !== undefined && Math.hypot(q.cx - q.order.x, q.cy - q.order.y) < 90 ? { x: q.order.x, y: q.order.y } : { x: q.cx, y: q.cy };
+    const sq = this.formSquads(), p = sq.map(at), hq = this.squads.find(q => q.team === 0 && q.hero && q.alive > 0), h = hq ? at(hq) : null;
     let now = null; for (const id of FORM_ORDER) { const f = FORMS[id]; if (!this.mods.forms.includes(id) || p.length < f.need) continue; if (f.shape(p, h)) { now = id; break; } }
     const cur = this.form ? this.form.id : null;
     if (now === cur) { this.formTry = null; this.formT = 0; return; }

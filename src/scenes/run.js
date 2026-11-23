@@ -14,6 +14,7 @@ import { AFFIX, TWIST, BOSS_VAR } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
+import { Brush, BRUSH_MIN, applyBrush, drawBrushPreview } from '../ui/brushform.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES, synLv, synDesc } from '../data/units.js';
 import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
@@ -194,7 +195,19 @@ export class RunScene {
     const b = this.b, fx = this.view.fx;
     if (i.pressed && i.y < BAR_Y - 4 && i.y > HUD_H + 4) {
       if (this.aim && this.aim.armed) this.aim.live = true;
-      else if (!this.aim) { const sq = b.squadNear(i.x, i.y, 0, 48); if (sq && !sq.def.banner) { this.order = { sq, moved: false, target: null }; sfx('click'); } }
+      else if (!this.aim) { const sq = b.squadNear(i.x, i.y, 0, 48); if (sq && !sq.def.banner) { this.order = { sq, moved: false, target: null }; sfx('click'); }
+        // 빈 땅을 누르면 붓을 든다: 끌어서 그은 획을 따라 진을 친다 (싸움 준비·싸움 중에만)
+        else if (!sq && (this.phase === 'prep' || this.phase === 'fight')) this.brush = new Brush(i.x, i.y, performance.now() / 1000); }
+    }
+    const br = this.brush;
+    if (br && !br.done) {
+      if (i.down) br.add(i.x, i.y, performance.now() / 1000);
+      else { br.done = true; this.brush = null;
+        const n = b.formSquads().length;
+        if (this.phase !== 'prep' && this.phase !== 'fight') { /* 싸움이 끝난 뒤 손을 뗀 획은 버린다 */ }
+        else if (br.len >= BRUSH_MIN && n) { const res = applyBrush(b, br); br.fade = 1; (this.inked = this.inked || []).push(br); if (this.inked.length > 3) this.inked.shift(); sfx('order'); sfx('card');
+          const last = br.pts[br.pts.length - 1]; br.seal = { x: last.x, y: last.y, t: 0 }; if (res.hero) fx.ring(res.hero.x, res.hero.y, 40, INK, 0.5, 4); }
+        else if (br.len >= BRUSH_MIN && !n) this.toast('진을 칠 부대가 없습니다 — 병력 패를 먼저 세우세요', 2.2); }
     }
     const o = this.order;
     if (o) {
@@ -278,7 +291,7 @@ export class RunScene {
     else if (r.beastQ && r.beastQ.length && !busy && this.phase === 'march' && !(this.curtain && this.curtain.t < 3)) { const id = r.beastQ.shift(), first = !meta.unlocked[id]; meta.unlocked[id] = true; save(); this.beastScene(id, first, () => { this.phase = 'march'; }); }   // 사건에서 부른 영물: 처음이면 인연 이야기부터
     const live = !this.menu && !this.over && !this.sub && !coaching && this.phase !== 'over' && this.phase !== 'stop' && this.phase !== 'fork';
     if (live) this.input(i);
-    const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;
+    const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming || (this.brush && this.brush.len > 12) ? 0.12 : 1;
     this.slow += (want - this.slow) * Math.min(1, dt * 16);
     if (!this.menu && !this.sub && !coaching && this.phase !== 'stop') {
       const ts = this.slow * (this.phase === 'over' ? 0.3 : 1);
@@ -297,7 +310,7 @@ export class RunScene {
       if (this.phase === 'over') { this.endT -= dt; if (this.endT <= 0 && !this.gone) { this.gone = true; nav.go('end', { win: false }); } }
     } else view.fx.update(0);
     // 그리기
-    const opt = { dt, orders: true, march: this.phase === 'march', rings: [] }, o = this.order, a = this.aim;
+    const opt = { dt, orders: true, march: this.phase === 'march', rings: [], under: g2 => this.inkGround(g2, dt) }, o = this.order, a = this.aim;
     if (o) { for (const u of o.sq.units) if (!u.dead) opt.rings.push({ x: u.x, y: u.y, r: u.r, col: '#2f4d7e' }); if (o.target) for (const u of o.target.units) if (!u.dead) opt.rings.push({ x: u.x, y: u.y, r: u.r, col: '#c8402f' }); }
     if (a && isUnit(a.card) && (a.live || a.drag || a.armed)) {
       const maxX = b.deployMaxX(), on = (a.live || a.drag) && i.y < BAR_Y - 8 && i.y > HUD_H; opt.deploy = { maxX, ok: !on || i.x <= maxX + 34 };
@@ -305,6 +318,7 @@ export class RunScene {
     }
     view.style = PAPER_BG ? 'paper' : 'paint';   // 전장 배경은 그림 배경 (?paper 로 예전 종이 배경을 볼 수 있다)
     view.draw(g, b, this.T, opt);
+    this.drawBrush(g, dt);
     this.drawOrder(g, i);
     if (view.fork) this.drawFork(g, i, dt, busy);
     if (!this.over && !this.menu && !this.sub && !juice.show && !(this.enc && this.enc.boss && this.phase === 'fight') && this.phase !== 'clear') this.drawTalk(g);
@@ -342,6 +356,17 @@ export class RunScene {
     if (this.sub) this.sub.frame(g, dt);
     juice.frame(g, dt);
     this.coach.frame(g, dt);
+  }
+  // 붓으로 그은 진: 그리는 동안은 진한 먹과 설 자리, 손을 떼면 낙관이 찍히고 먹이 종이에 스며들며 옅어진다
+  // 땅에 그은 먹 (인형들 아래): 그리는 중인 획과 스며드는 획
+  inkGround(g, dt) { const T = this.T; if (this.inked) for (const br of this.inked) { br.fade -= dt / 2.2; br.draw(g, T, Math.min(1, br.fade * 1.6)); } }
+  drawBrush(g, dt) {
+    const T = this.T;
+    if (this.inked) { for (const br of this.inked) { if (br.seal && br.fade > 0) { br.seal.t += dt; const k = clamp(br.seal.t / 0.18, 0, 1), s = 1.6 - 0.6 * k; g.save(); g.globalAlpha = Math.min(1, br.fade * 1.6) * k; g.translate(br.seal.x + 26, br.seal.y - 26); g.rotate(-0.12); g.scale(s, s); rr(g, -15, -15, 30, 30, 4, '#b8322a', '#7a1c18', 1.2); rr(g, -12, -12, 24, 24, 3, null, 'rgba(255,230,220,0.55)', 1); text(g, '진', 0, 1, { size: 19, font: FONT_B, fill: '#fbeee6' }); g.restore(); } }
+      this.inked = this.inked.filter(br => br.fade > 0); }
+    // 긋는 중인 획은 인형들 위에 (붓끝이 잘 보이게), 손을 떼면 땅에 스며들어 인형들 아래로
+    const br = this.brush; if (!br) return;
+    br.draw(g, T, 0.92); drawBrushPreview(g, this.b, br, T);
   }
   drawOrder(g, i) {
     const o = this.order, a = this.aim, T = this.T, b = this.b;
@@ -558,8 +583,8 @@ export class RunScene {
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
     if (button(g, 'm4', 450, 410, 380, 56, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 25 })) setMuted(!audio.muted);
     if (button(g, 'm5', 450, 476, 380, 56, '처음 화면으로', { style: 'paper', size: 25 })) nav.go('title');
-    text(g, '패 끌기 = 병력 세우기·전술 쓰기  ·  부대 끌기 = 이동  ·  요괴 위에 놓기 = 집중 공격', 640, 554, { size: 16, fill: '#4a4034', maxW: 644 });
-    text(g, '키보드  ·  1~5 패 고르기  ·  Q 전군 대기  ·  E 전군 돌격', 640, 580, { size: 16, fill: '#4a4034', weight: 400 });
-    text(g, 'R 패 갈기  ·  F 빠르기  ·  스페이스 멈춤', 640, 604, { size: 16, fill: '#4a4034', weight: 400 });
+    text(g, '패 끌기 = 병력 세우기·전술 쓰기  ·  부대 끌기 = 이동  ·  요괴 위에 놓기 = 집중 공격', 640, 550, { size: 16, fill: '#4a4034', maxW: 644 });
+    text(g, '빈 땅에 붓으로 긋기 = 그 획을 따라 진을 친다 (둥글게 감싸면 영웅이 가운데)', 640, 573, { size: 16, fill: '#4a4034', maxW: 644 });
+    text(g, '키보드  ·  1~5 패 고르기  ·  Q 전군 대기  ·  E 전군 돌격  ·  R 패 갈기  ·  F 빠르기  ·  스페이스 멈춤', 640, 597, { size: 15, fill: '#4a4034', weight: 400, maxW: 644 });
   }
 }

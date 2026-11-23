@@ -23,6 +23,7 @@ export const TIPS = [
   { id: 'morale', after: 'deploy', when: s => s.phase === 'prep' || fight(s), at: () => ({ x: 6, y: 574, w: 232, h: 104 }), s: '패마다 사기가 듭니다.\n요괴 무리를 물리치면 사기가 차오릅니다.' },
   { id: 'tactic', after: 'morale', when: s => fight(s) && s.b.waveT > 3 && handIdx(s, c => !isUnit(c) && CARDS[c.id].kind !== 'curse') >= 0, at: s => slot(handIdx(s, c => !isUnit(c) && CARDS[c.id].kind !== 'curse')), s: '전술 패는 한 번 쓰면 이번 원정에서 사라집니다.\n아래의 ×숫자가 남은 장수입니다.' },
   { id: 'order', after: 'tactic', when: s => fight(s) && s.b.waveT > 8 && !!mySquad(s), at: s => squadBox(mySquad(s)), s: '부대를 끌어 옮길 수 있습니다.\n요괴 위에 놓으면 그 요괴를 집중 공격합니다.' },
+  { id: 'brush', after: 'order', when: s => fight(s) && s.b.waveT > 10 && s.b.formSquads().length >= 3, at: () => ({ x: 300, y: 150, w: 560, h: 360 }), s: '빈 땅을 끌어 붓으로 그어 보세요.\n부대들이 그 획을 따라 진을 칩니다. 세로로 그으면 일자진,\n양 끝을 앞으로 휘면 학익진, 둥글게 감싸면 방원진.' },
   { id: 'hero', after: 'order', when: s => fight(s) && s.b.waveT > 13 && s.b.units.some(u => !u.dead && u.team === 0 && u.def.hero), at: s => { const u = s.b.units.find(q => !q.dead && q.team === 0 && q.def.hero); return { x: u.x - 56, y: u.y - 152, w: 112, h: 156 }; }, s: '머리 위 금빛 띠가 영웅의 기력입니다.\n가득 차면 고유기를 스스로 씁니다.' },
   { id: 'all', after: 'hero', when: s => fight(s) && s.b.waveT > 18, at: () => ({ x: 934, y: 574, w: 336, h: 66 }), s: '모든 부대를 한꺼번에\n물리거나 돌격시킵니다.' },
   { id: 'reward', when: s => ov(s, RewardOverlay), at: () => ({ x: 254, y: 92, w: 772, h: 370 }), s: '셋 중 하나를 고르세요.\n이렇게 군대가 조금씩 커집니다.' },

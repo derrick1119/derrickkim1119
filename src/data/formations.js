@@ -17,7 +17,7 @@ export const FORMS = {
     shape: (p, h) => { if (!h) return false; const q = new Set(); for (const s of p) { const dx = s.x - h.x, dy = s.y - h.y, d = Math.hypot(dx, dy); if (d > 190 || d < 40) return false; q.add((dx >= 0 ? 1 : 0) + (dy >= 0 ? 2 : 0)); } return q.size >= 3; } },
 };
 // 여럿이 함께 서면 더 어려운 모양을 먼저 본다
-export const FORM_ORDER = ['hakik', 'eorin', 'bangwon', 'ilja', 'jangsa'];
+export const FORM_ORDER = ['hakik', 'bangwon', 'eorin', 'ilja', 'jangsa'];   // 방원진(영웅을 감싼 둥근 진)은 어린진보다 먼저 본다: 둥글게 감싸면 가운데가 앞서 보여도 방원진
 export const FORM_START = ['ilja'];
 // 안내용 작은 그림: 부대 자리 (-1~1, 적은 오른쪽). 방원진의 가운데 점은 영웅
 export const FORM_DIAG = { ilja: [[0, -1], [0, -0.33], [0, 0.33], [0, 1]], jangsa: [[-1, 0], [-0.33, 0], [0.33, 0], [1, 0]], hakik: [[0.7, -1], [-0.2, -0.5], [-0.6, 0], [-0.2, 0.5], [0.7, 1]], eorin: [[-0.6, -0.9], [0.5, -0.3], [0.5, 0.3], [-0.6, 0.9]], bangwon: [[0, -0.9], [0.8, 0], [0, 0.9], [-0.8, 0], [0, 0, 1]] };

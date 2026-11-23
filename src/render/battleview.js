@@ -194,6 +194,7 @@ export class BattleView {
       else { g.globalAlpha = clamp(c.t / 3, 0, 0.6); poly(g, [c.x - 7, c.y - 1, c.x - 2, c.y - 5, c.x + 6, c.y - 3, c.x + 8, c.y + 2, c.x - 3, c.y + 4], PAPER, INK, 1); g.globalAlpha = 1; }
     }
     if (opt.rings) for (const r of opt.rings) { g.globalAlpha = 0.9; ell(g, r.x, r.y + 1, r.r * 1.35, r.r * 0.72, r.col + '55', r.col, 2.4); g.globalAlpha = 1; }
+    if (opt.under) opt.under(g);   // 땅에 그은 것 (붓으로 친 진의 먹 획): 인형들 아래
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
