@@ -1169,6 +1169,11 @@
   width: 200px;
   height: 200px;
 }
+.sh-pv-stage .sh-cpic .pic {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .sh-pv-stage.two .sh-pv-ship {
   transform: translateX(-34px);
 }

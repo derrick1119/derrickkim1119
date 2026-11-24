@@ -891,8 +891,8 @@ function openCosPreview(ui, item, go) {
       h(
         'div',
         { class: `sh-pv-stage ${item.kind === 'outfit' ? 'two' : ''}`.trim() },
-        h('span', { class: 'sh-pv-ship' }, cosPic(lookKey(look, form, item.kind === 'beam'), 196, 'hero')),
-        item.kind === 'outfit' ? h('span', { class: 'sh-pv-close' }, cosPic(key, 96, 'hero')) : null,
+        h('span', { class: 'sh-pv-ship' }, cosPic(lookKey(look, form, item.kind === 'beam'), 196, 'pv')),
+        item.kind === 'outfit' ? h('span', { class: 'sh-pv-close' }, cosPic(key, 96, 'pv')) : null,
       ),
       h('p', { class: 'sh-pv-note' }, icon('eye', 15), h('span', { text: S('style.previewNote') })),
       h('div', { class: 'sh-pv-how' }, how()),

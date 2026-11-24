@@ -351,7 +351,7 @@ function dotsArt() {
       ctx.fillStyle = '#ff3d55';
       ctx.fillRect(0, 0, s, s);
       ctx.fillStyle = '#ffffff';
-      for (const [x, y] of [[0.25, 0.25], [0.75, 0.75], [0.75, 0.25], [0.25, 0.75]].slice(0, 2)) {
+      for (const [x, y] of [[0.25, 0.25], [0.75, 0.75]]) {
         for (const dx of [-s, 0, s]) {
           for (const dy of [-s, 0, s]) {
             ctx.beginPath();
@@ -528,7 +528,7 @@ registerOutfit('pirate', () => {
     p.add(new THREE.CubicBezierCurve(new THREE.Vector2(0, H), new THREE.Vector2(W * 0.48, H), new THREE.Vector2(W * 0.82, TIP + 0.3), new THREE.Vector2(W, TIP)));
     return p;
   };
-  // 위에서 본 렌즈의 앞뒤 두께(가운데 1 → 끝 0)와 그 기울기
+  // 위에서 본 렌즈 모양: 가운데에서 1, 뿔 끝으로 갈수록 0(앞뒤 날개가 맞붙는다)
   const lens = (x) => Math.pow(Math.max(1e-4, 1 - Math.pow(Math.min(1, Math.abs(x) / WZ), 2.4)), 0.55);
   // 판 위의 점(x, y, 바깥으로 z) → 머리 공간. 뒤 날개는 앞 날개를 y 축으로 반 바퀴 돌린 것
   const flapPoint = (f, x, y, z) => {

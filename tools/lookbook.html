@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>쉿! UFO 꾸미기 도감</title>
+<link rel="stylesheet" href="../styles/fonts.css">
+<style>
+  :root { --ink: #161c4e; --soft: #4f5788; --line: #dbe2f7; }
+  html, body { margin: 0; background: #eef2ff; color: var(--ink); font-family: "Pretendard", system-ui, sans-serif; }
+  main { width: 1180px; padding: 28px 32px 40px; box-sizing: border-box; }
+  h1 { margin: 0 0 4px; font: 800 30px/1.2 "Pretendard"; }
+  .lead { margin: 0 0 22px; font: 600 15px/1.4 "Pretendard"; color: var(--soft); }
+  h2 { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 12px; font: 800 21px/1.2 "Pretendard"; }
+  h2 small { font: 700 14px/1 "Pretendard"; color: var(--soft); }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr)); gap: 10px; }
+  .tile { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 4px; padding: 8px 4px 9px; background: #fff; border: 2px solid var(--line); border-radius: 16px; box-shadow: 0 3px 0 #c3ccec; }
+  .tile img { width: 112px; height: 112px; background: #f3f6ff; border-radius: 12px; }
+  .tile b { font: 800 14px/1.2 "Pretendard"; text-align: center; word-break: keep-all; }
+  .tag { justify-self: center; max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; padding: 3px 8px; font: 800 11.5px/1.2 "Pretendard"; border-radius: 7px; color: #fff; background: #2563eb; }
+  .tag.set { background: #6d3fe0; }
+  .tag.shop { color: var(--ink); background: #ffcf26; }
+  .tag.achievement { color: var(--ink); background: #fff5cc; box-shadow: inset 0 0 0 1.5px #f0a800; }
+  .tag.ladder { background: #0b7480; }
+  .tag.default, .tag.season, .tag.freepass, .tag.starter { background: #1b2266; }
+  .tile.new { border-color: #ff8a3d; }
+  .new-dot { font: 800 11px/1 "Pretendard"; color: #ff6a2a; }
+  .sets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .set { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: center; padding: 12px; background: #fff; border: 2px solid var(--line); border-radius: 20px; box-shadow: 0 4px 0 #c3ccec; }
+  .set img { width: 170px; height: 170px; border-radius: 16px; }
+  .set h3 { margin: 0 0 6px; font: 800 19px/1.2 "Pretendard"; }
+  .set ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font: 600 13.5px/1.35 "Pretendard"; color: var(--soft); }
+  .set .price { margin-top: 8px; font: 800 16px/1 "Pretendard"; }
+</style>
+<script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
+</head>
+<body>
+<!-- 개발용: 모든 꾸미기(테마 세트 · 피포 의상 · 기체 도색 · 빔 색 · 기체 장식)를 이름·얻는 길과 함께 한 장에 보여 준다.
+     ?new=outfit:cat,paint:honey 처럼 주면 그 칸에 NEW 표시. 3D 아이콘이라 소프트웨어 WebGL 에서는 1~2분 걸린다. -->
+<main id="root"></main>
+<script type="module">
+import { t, setLang } from '../src/i18n/index.js';
+import '../src/features/monetize/strings.js';
+import { COSMETICS, COSMETIC_KINDS, SETS, PRODUCTS, DEFAULT_LOOK, cosmeticKey } from '../src/features/monetize/catalog.js';
+import { renderIcon3d } from '../src/render3d/studio.js';
+
+const q = new URLSearchParams(location.search);
+setLang(q.get('lang') === 'en' ? 'en' : 'ko');
+const fresh = new Set((q.get('new') || '').split(',').filter(Boolean));
+const root = document.getElementById('root');
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const pic = (key, px) => {
+  const img = new Image();
+  const cv = renderIcon3d('cosmetic', key, px * 2, { mood: 'happy', t: 1.2 });
+  if (cv) img.src = cv.toDataURL();
+  return img;
+};
+const won = (n) => `₩${n.toLocaleString('ko-KR')}`;
+const productOf = (key) => PRODUCTS.find((p) => (p.give.cosmetics || []).includes(key));
+const ko = document.documentElement.lang === 'ko' || q.get('lang') !== 'en';
+
+function sourceLabel(c) {
+  const key = cosmeticKey(c.kind, c.id);
+  if (c.source === 'shop') return won(productOf(key).krw);
+  if (c.source === 'set') return t(`monetize.cosmetic.set.${c.set}`);
+  if (c.source === 'achievement') return `${t('monetize.cosmetic.source.achievement')} · ${t(`ach.${c.ach}.name`)}`;
+  if (c.source === 'default') return ko ? '기본' : 'Default';
+  return t(`monetize.cosmetic.source.${c.source}`);
+}
+
+root.append(el('h1', null, ko ? '쉿! UFO 꾸미기 도감' : 'Shh! UFO style book'));
+const counts = COSMETIC_KINDS.map((k) => `${t(`monetize.cosmetic.kind.${k}`)} ${COSMETICS.filter((c) => c.kind === k).length}`);
+root.append(el('p', 'lead', `${counts.join(' · ')} · ${ko ? '테마 세트' : 'Theme sets'} ${SETS.length}`));
+
+// 테마 세트
+root.append(el('h2', null, ko ? '테마 세트' : 'Theme sets'));
+const sets = el('div', 'sets');
+for (const s of SETS) {
+  const look = { ...DEFAULT_LOOK };
+  for (const k of s.items) {
+    const [kind, id] = k.split(':');
+    look[kind] = id;
+  }
+  const lk = `look:${COSMETIC_KINDS.map((k) => `${k}=${look[k]}`).join(';')};form=2;beamOn=1`;
+  const card = el('div', 'set');
+  card.append(pic(lk, 170));
+  const box = el('div');
+  box.append(el('h3', null, t(`monetize.cosmetic.set.${s.id}`)));
+  const ul = el('ul');
+  for (const k of s.items) {
+    const [kind, id] = k.split(':');
+    ul.append(el('li', null, `${t(`monetize.cosmetic.kind.${kind}`)} · ${t(`monetize.cosmetic.${kind}.${id}`)}`));
+  }
+  box.append(ul, el('div', 'price', won(s.krw)));
+  card.append(box);
+  sets.append(card);
+}
+root.append(sets);
+
+// 종류별
+for (const kind of COSMETIC_KINDS) {
+  const list = COSMETICS.filter((c) => c.kind === kind);
+  const h = el('h2', null, t(`monetize.cosmetic.kind.${kind}`));
+  h.append(el('small', null, `${list.length}`));
+  root.append(h);
+  const grid = el('div', 'grid');
+  grid.style.setProperty('--cols', '8');
+  for (const c of list) {
+    const key = cosmeticKey(c.kind, c.id);
+    const tile = el('div', `tile ${fresh.has(key) ? 'new' : ''}`);
+    tile.append(pic(key, 112));
+    if (fresh.has(key)) tile.append(el('span', 'new-dot', 'NEW'));
+    tile.append(el('b', null, t(`monetize.cosmetic.${kind}.${c.id}`)), el('span', `tag ${c.source}`, sourceLabel(c)));
+    grid.append(tile);
+  }
+  root.append(grid);
+}
+await document.fonts.ready;
+await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r)))));
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
