@@ -6,6 +6,7 @@ import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawSho
 import { mulgwisin, dalgyal, agwi, yeongno, myodusa, centipede, gangcheori, bat, foxTailOne, caneItem, lureLamp, gamtuCap } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
 import { ALT_LOOKS, ALT_WEAPONS } from './bossart2.js';
+import { PXH } from '../pixel/hook.js';
 
 // 요괴가 끌고 가던 나무 우리: 안에 흰 옷 입은 마을 사람이 웅크려 있다 (부수면 의병으로 합류한다)
 function cage(g) {
@@ -503,8 +504,11 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false
 // 무기 그림만 (보관함·전리품용). [그림 중심까지의 거리, 길이] 로 칸 가운데에 비슷한 크기로 맞춘다
 const ICON = { chae: [6, 26], hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28],
   ssangsudo: [15, 68], ungeom: [12, 34], bujeokgeom: [12, 34], bamboo: [19, 64], jukjang: [22, 77], galgori: [18, 61], gombong: [14, 55], hongdukkae: [15, 42], seungja: [10.5, 49], baramtal: [12.5, 22], dokkaebital: [14, 26], sinkal: [1, 44], yeomju: [8, 35], jing: [13, 34], sogo: [6, 40] };
+const WICON = new Map();
 export function weaponIcon(g, wid, x, y, s = 1) {
   const W = getWeapon(wid), d = WDATA[wid]; if (!W) return;
+  // 도트: 기울여 그린 무기를 한 장으로 구워 도트로 바꾼다 (화면에서 돌리지 않는다)
+  if (PXH.paper) { const key = wid + ':' + Math.round(s * 100); let c = WICON.get(key); if (!c) { const cv = document.createElement('canvas'); cv.width = cv.height = Math.ceil(200 * s); const q = cv.getContext('2d'); const save = PXH.paper; PXH.paper = null; weaponIcon(q, wid, cv.width / 2, cv.height / 2, s); PXH.paper = save; c = { img: cv, w: cv.width, h: cv.height, ox: cv.width / 2, oy: cv.height / 2 }; WICON.set(key, c); } PXH.paper(g, c, x, y, 1); return; }
   if (W.hand === 'L') { drawSprite(g, W.spr, x + 2 * s, y, s * 1.6, s * 1.6, 0.5); return; }
   const [c, span] = ICON[d.spr] || [12, 34], k = s * Math.min(2.7, 62 / span), rot = d.spr === 'fans' || d.spr === 'bowl' || d.spr === 'featherfan' ? 0 : 0.6;
   drawSprite(g, W.spr, x - Math.sin(rot) * c * k, y + Math.cos(rot) * c * k, k, k, rot);

@@ -1,6 +1,7 @@
 // 도트 전장: 배경 겹(하늘·산·들판)과 날씨, 인형 한 장을 2배로 찍는다 (화면 1280×720 = 도트 640×360)
 import { tinted } from './px.js';
-import { LOWQ } from './paper.js';
+import { LOWQ, pxPaper } from './paper.js';
+import { PXH } from './hook.js';
 import { pxUnit, pxFlip, pxKeys } from './units.js';
 import { pxField, drawPxWeather, prewarmPxField } from './field.js';
 export { prewarmPxField };
@@ -38,7 +39,7 @@ export function pxPortrait(g, lookKey, x, y, s, t = 0, bob = false, wpn) {
   const P = pxUnit(lookKey, wpn), sp = P.stand, n = Math.max(1, Math.ceil(s * 1.5 - 0.15)), yy = y - (bob ? Math.round(Math.abs(Math.sin(t * 5)) * 3 * s) : 0);
   g.save(); g.imageSmoothingEnabled = false; g.drawImage(sp.canvas(), Math.round(x - sp.ox * n), Math.round(yy - sp.oy * n), sp.w * n, sp.h * n); g.restore();
 }
-if (GFX.pixel) PORTRAIT.px = pxPortrait;
+if (GFX.pixel) { PORTRAIT.px = pxPortrait; PXH.paper = pxPaper; }
 // 처음 찍을 때 한 장에 수십 밀리초 걸리는 큰 인형(두목·짐승)이 많아서, 한가할 때 조금씩 미리 굽는다
 if (GFX.pixel && typeof window !== 'undefined') {
   const keys = pxKeys(), idle = window.requestIdleCallback || (f => setTimeout(() => f({ timeRemaining: () => 8 }), 60));
