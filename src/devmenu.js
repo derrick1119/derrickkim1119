@@ -15,9 +15,9 @@
     ['프롤로그', [['제목 화면', 'title'], ['병실 (처음)', 'hub'], ['마지막 대화', 'final'], ['약속 목록 (끝)', 'ending']]],
     ['프롤로그의 기억', [['스튜', 'stew'], ['산책', 'walk'], ['그네', 'swing'], ['첫 집', 'home']]],
     ['1장 「항구」', [['아나의 부엌', 'kitchen'], ['구름바다', 'sea'], ['부두', 'quay'], ['마을 길', 'street'], ['언덕길', 'hills'], ['엄마 집', 'house'], ['언덕 꼭대기', 'top']]],
-    ['2장부터', [['2장 약속 목록', 'ch2'], ['3장 꿈', 'ch3'], ['4장 이웃들', 'ch4'], ['5장 꽃길', 'ch5'], ['6장 다 지킨 약속', 'ch6'], ['마지막 장 마중', 'ch7']]],
+    ['2장부터', [['2장 약속 목록', 'ch2'], ['3장 꿈', 'ch3'], ['4장 이웃들', 'ch4'], ['5장 꽃길', 'ch5'], ['6장 손주', 'ch6'], ['7장 아직은', 'ch7'], ['8장 다 지킨 약속', 'ch8'], ['마지막 장 마중', 'ch9']]],
   ];
-  const NAMES = { room: '프롤로그 병실', ending: '프롤로그 끝', stew: '기억: 스튜', walk: '기억: 산책', swing: '기억: 그네', home: '기억: 첫 집', kitchen: '1장 아나의 부엌', harbor: '1장 항구', ch2: '2장', ch3: '3장', ch4: '4장', ch5: '5장', ch6: '6장', ch7: '마지막 장' };
+  const NAMES = { room: '프롤로그 병실', ending: '프롤로그 끝', stew: '기억: 스튜', walk: '기억: 산책', swing: '기억: 그네', home: '기억: 첫 집', kitchen: '1장 아나의 부엌', harbor: '1장 항구', ch2: '2장', ch3: '3장', ch4: '4장', ch5: '5장', ch6: '6장', ch7: '7장', ch8: '8장', ch9: '마지막 장' };
 
   /* ---------- the button ---------- */
   const open = el('button', 'position:absolute;z-index:2;height:40px;padding:0 14px;border:0;border-radius:20px;background:rgba(201,87,63,.86);color:#fff6e4;cursor:pointer;font:700 13px/40px system-ui,sans-serif;letter-spacing:.08em', 'TEST');

@@ -14,7 +14,7 @@
     if (name === 'final') { mark(4); st.together = true; return ['room', { final: true }]; }
     if (['home', 'stew', 'swing', 'walk', 'ending', 'kitchen'].includes(name)) return [name, {}];
     if (['sea', 'quay', 'street', 'hills', 'house', 'top'].includes(name)) return ['harbor', { cp: name }];
-    if (/^ch[2-7]$/.test(name) && T.scenes[name]) return [name, {}];
+    if (/^ch[2-9]$/.test(name) && T.scenes[name]) return [name, {}];
     return null;
   }
 

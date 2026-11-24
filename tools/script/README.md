@@ -4,7 +4,7 @@
 Playwright와 Chromium이 필요합니다.
 
 ```bash
-tools/script/runall.sh "$PWD" /tmp/script        # 프롤로그~1장, 2~7장을 녹화 (병렬, 몇 분)
+tools/script/runall.sh "$PWD" /tmp/script        # 프롤로그~1장, 2장~마지막 장(ch9)을 녹화 (병렬, 몇 분)
 node tools/script/fmt.js /tmp/script             # 플레이 순서대로 번호 매기기 → script.txt, script.json
 python3 tools/script/locate.py "$PWD" /tmp/script # 줄마다 코드 위치, 자동 플레이로는 안 나온 문장 목록
 python3 tools/script/mkdoc.py /tmp/script        # 장별 표 → doc_*.md, lines.json (번호 → 문장, 위치)

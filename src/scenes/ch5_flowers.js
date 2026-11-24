@@ -357,7 +357,7 @@
   }
 
   T.stage('ch5', {
-    chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「다 지킨 약속」'], next: 'ch6', pad: 3,
+    chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「손주」'], next: 'ch6', pad: 3,
     plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 0, garden: 0.4, patch: 2, fruit: 1, season: 'winter' },   /* the swing is built during the first years card */
     flags: { bramGone: true, rosaGone: true },   /* Bram and Marta, and Rosa and her son, went on in chapter 4 */
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * (S.swingAmp == null ? 0.5 : S.swingAmp); },

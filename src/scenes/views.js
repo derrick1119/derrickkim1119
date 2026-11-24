@@ -96,7 +96,10 @@
        the picture, a shadow stays. Nothing is marked out: the picture shows what it is missing, a soft want of light
        where something belongs (a dark window, an empty seat), and it warms as the right shadow comes near.
        o.deep: the bank has depth as well (거리, chapter 3). A thing can be brought nearer the water or set back,
-       and the nearer it stands, the larger and darker its shadow; a faint one does not stay (q.needD, 0.7). */
+       and the nearer it stands, the larger and darker its shadow; a faint one does not stay (q.needD, 0.7).
+       o.rhText: the line at the foot when help comes (what goes where); o.rhShow: show it from the start instead
+       (chapter 6, where the chapter's guide line is that line). A thing may draw itself (q.bank, q.ghost): the star
+       mobile does (mobile.js, T.mobile.thing). */
     const BANK = 228, DEPTH = { lamp: TOP + 304 * SC, pot: TOP + 548 * SC, leo: TOP + (COUNTER - 34) * SC };
     const BACK = 170, FRONT = 246, SURF = 258;   /* with o.deep: the far bank from its back to the water's edge; the water's skin */
     /* a thing: { kind: 'lamp'|'pot'|'leo'|'who'|'dog' or anything with its own bank()/ghost(), id, x (on the bank),
@@ -553,7 +556,7 @@
       if (live) {
         /* no instructions up front: the picture's want of each thing says enough. Stuck a while, the help every
            puzzle has: a glow on the next thing, then the gesture at the top and what goes where at the foot, then the skip */
-        const C = R.coach, ca = C ? C.tipA : 0;
+        const C = R.coach, ca = Math.max(C ? C.tipA : 0, L.rhShow ? 1 : 0);   /* o.rhShow: the line at the foot from the start */
         if (ca > 0.01) {
           const cap = L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 그림자가 그 위에 겹치게 물가에서 옮겨 보세요';
           g.save(); g.globalAlpha = ca; T.band(g, 1); g.restore();

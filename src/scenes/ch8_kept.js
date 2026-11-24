@@ -1,17 +1,15 @@
-/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The cloud whale goes by for the third time since he
-   came, as many times as his mother saw it waiting for him. In the garden (five beds now, and a fence against Bean)
-   he finds Pipi the reddest tomato, hanging in the shade behind a leaf, and Pipi pockets it; then the bell rings,
-   and the white-haired woman off the boat is Pipi's mother, who had promised to hold him again. The tomato is the
-   one he promised her. On the day he died, every year, Ana cooks his stew from his notebook and he takes his pot
+/* Chapter 8 「다 지킨 약속」 — years thirty-five to forty-five. (Until the story was split into nine parts this was
+   the second half of chapter 6; its first half, the whale, the reddest tomato and Pipi's mother, is in
+   ch6_grand.js now.) On the day he died, every year, Ana cooks his stew from his notebook and he takes his pot
    down to the lake to cook it with her; this year her kitchen is dark, and she is walking through the rain to
    Lily's with the makings in a basket. From the bank he lights her way, as he once walked Lily home. At Lily's she
-   teaches the grandchildren and puts in what is not in his notebook; the steam of her pot comes up out of the
-   water into his, and this time he is the one who learns. Then she looks round at the grandchild sitting up on the
-   counter, where she used to sit and watch him cook, and this time she smiles. He crosses off the house, the
-   cooking and the swing. Years on Pipi's father comes, who had promised to go and look at the stars with him, and
-   is shown the ones Pipi joined up while he waited; the white boat comes, and Leo rings the bell for them himself.
-   The smallest one is left on the pier, and he says he will help her look for hers. He paints an aurora to
-   practise. */
+   teaches the grandchildren (the elder is Nora, ten) and puts in what is not in his notebook; the steam of her pot
+   comes up out of the water into his, and this time he is the one who learns. Then she looks round at the
+   grandchild sitting up on the counter, where she used to sit and watch him cook, and this time she smiles. He
+   crosses off the house, the cooking and the swing. Years on Pipi's father comes, who had promised to go and look
+   at the stars with him, and is shown the ones Pipi joined up while he waited; the white boat comes, and Leo rings
+   the bell for them himself. The smallest one is left on the pier, and he says he will help her look for hers. He
+   paints an aurora to practise. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -210,10 +208,11 @@
     }
     const jf = F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, hand[0], hand[1]) } }));
     if (spoon && jf && jf.handF) { const h = jf.handF; P.line(g, h[0], h[1], h[0] - 24, h[1] - 6, 3.4, '#b98a5a'); P.fill(g, P.ellipse(h[0] - 28, h[1] - 7, 7, 4), '#b98a5a'); }
-    /* the grandchildren: one up on a step stool over the notebook, one sitting on the counter (where she used to sit) */
-    const kb = F.styles.kidB, kc = F.styles.kidC;
+    /* the grandchildren: Nora (ten, the elder) up on a step stool over the notebook, her little brother sitting on the
+       counter (where Ana used to sit) */
+    const kb = F.styles.nora, kc = F.styles.kidC;
     P.fill(g, P.rr(112, 722, 84, 14, 4), '#c79a62'); P.line(g, 120, 734, 116, FLOORY, 6, '#a8784e'); P.line(g, 188, 734, 192, FLOORY, 6, '#a8784e'); P.line(g, 118, 780, 190, 780, 5, '#a8784e');
-    const k1 = { x: 154, y: 722 - F.hipHeight(kb, 250) - (joy ? Math.abs(Math.sin(t * 6)) * 6 : 0), s: 250, style: kb, flip: true, lean: 0.16, headTilt: b >= 2 ? 0.04 : 0.26,
+    const k1 = { x: 154, y: 722 - F.hipHeight(kb, 268) - (joy ? Math.abs(Math.sin(t * 6)) * 6 : 0), s: 268, style: kb, flip: true, lean: 0.16, headTilt: b >= 2 ? 0.04 : 0.26,
       face: { eye: joy ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.3 }, skip: { armF: true } };
     k1.armB = { hand: F.local(k1, 132, COUNTER - 10) };
     F.person(g, k1);
@@ -265,188 +264,6 @@
     P.glow(g, hq[0], hq[1], 26, '#fff6e6', 0.4 * s.a);
   }
 
-  /* ---------- the reddest tomato ----------
-     A close look in among the vines, at the end of summer, from behind the new fence (Bean is on the other side of
-     it). Seven tomatoes, none quite alike. The sun coming in from the left makes the ones it falls on look riper than
-     they are, and the reddest of all hangs in the shade behind a leaf, a little of it showing. Tap a leaf to lift it,
-     a tomato to pick it; Pipi says what is wrong with the others. Nothing is lost by a wrong one. */
-  const TOMS = [
-    { x: -432, y: 292, r: 36, c: '#a9c46a', say: 'raw' },
-    { x: -300, y: 452, r: 40, c: '#e8963a', sun: 1, say: 'raw' },
-    { x: -168, y: 300, r: 43, c: '#e9603a', sun: 1, say: 'sun' },
-    { x: -26, y: 474, r: 38, c: '#dc6a44', say: 'red' },
-    { x: 128, y: 318, r: 40, c: '#d6563c', say: 'red' },
-    { x: 258, y: 500, r: 35, c: '#c4c060', leaf: 0, say: 'raw' },
-    { x: 404, y: 312, r: 43, c: '#c8121e', leaf: 1 },
-  ];
-  const BEST = 6;
-  /* a leaf hangs from p (where its stalk is) toward its tip; lifted, it swings up about p */
-  const LEAVES = [{ p: [196, 446], tip: [328, 556], lift: -1.35 }, { p: [326, 224], tip: [470, 362], lift: -1.3 }];
-  const PIPI_SAYS = {
-    raw: '피피: "그건 아직 덜 빨개."',
-    sun: '피피: "그건 해가 비쳐서 빨개 보이는 거야."',
-    red: '피피: "빨갛긴 한데… 더 빨간 거 있어."',
-  };
-  function bigTomato(g, x, y, r, c, sun, t) {
-    P.fill(g, P.ellipse(x + 4, y + r * 0.95, r * 0.7, r * 0.18), 'rgba(40,60,30,0.16)');
-    if (sun) P.glow(g, x - r * 0.2, y - r * 0.2, r * 2.1, '#ffe1a0', 0.55);
-    const col = sun ? T.mix(c, '#ff9f55', 0.16) : c;
-    const body = P.ellipse(x, y, r * 1.06, r * 0.94);
-    P.fill(g, body, col);
-    g.save(); g.clip(body);
-    P.fill(g, P.ellipse(x + r * 0.3, y + r * 0.6, r * 1.15, r * 0.72), T.shade(col, sun ? -0.08 : -0.2));
-    g.strokeStyle = T.rgba(T.shade(col, -0.25), 0.5); g.lineWidth = 2;
-    for (const d of [-0.42, 0.42]) { g.beginPath(); g.moveTo(x + d * r * 0.5, y - r * 0.8); g.quadraticCurveTo(x + d * r * 1.05, y, x + d * r * 0.45, y + r * 0.85); g.stroke(); }
-    g.restore();
-    P.fill(g, P.ellipse(x - r * 0.4, y - r * 0.36, r * 0.3, r * 0.17, -0.6), `rgba(255,255,255,${sun ? 0.85 : 0.42})`);
-    if (sun) P.fill(g, P.circle(x - r * 0.2, y - r * 0.52, r * 0.07), 'rgba(255,255,255,0.9)');
-    const star = [];
-    for (let i = 0; i < 10; i++) { const an = -Math.PI / 2 + (i * Math.PI) / 5 + 0.1, rr = i % 2 ? r * 0.14 : r * 0.5; star.push([x + Math.cos(an) * rr, y - r * 0.82 + Math.sin(an) * rr * 0.5]); }
-    P.fill(g, P.poly(star), '#4f8a42');
-    P.line(g, x, y - r * 0.86, x + 3, y - r * 1.2, 4.5, '#5f8f4a');
-    void t;
-  }
-  function bigLeaf(g, p, tip, lift, k, t, seed) {
-    const ang = Math.atan2(tip[1] - p[1], tip[0] - p[0]) + lift * T.ease.out(k) + Math.sin(t * 1.4 + seed) * 0.02 + Math.sin(k * Math.PI) * 0.12, len = Math.hypot(tip[0] - p[0], tip[1] - p[1]);
-    g.save(); g.translate(p[0], p[1]); g.rotate(ang);
-    if (k < 0.98) { g.save(); g.globalAlpha *= 0.2 * (1 - k); P.fill(g, P.ellipse(len * 0.55 + 10, 22, len * 0.6, 40), '#24401c'); g.restore(); }   /* its shade on what is under it */
-    /* a leaflet: a broad, pointed oval, solid under its crayon so that what is behind it does not show through */
-    const cray = P.cray;
-    const lf = (x, y, w, h, rot, c) => {
-      g.save(); g.translate(x, y); g.rotate(rot);
-      const sh = P.soft([[-w, 0], [-w * 0.55, -h], [w * 0.35, -h * 0.9], [w * 1.05, 0], [w * 0.35, h * 0.9], [-w * 0.55, h]]);
-      P.cray = false; P.fill(g, sh, c); P.cray = cray; if (cray) P.fill(g, sh, c);
-      P.line(g, -w * 0.8, 0, w * 0.8, 0, 1.6, 'rgba(220,240,190,0.55)');
-      g.restore();
-    };
-    P.cray = false; P.line(g, 0, 0, len * 0.96, 0, 4, '#4f7f3e'); P.cray = cray;
-    for (let i = 0; i < 3; i++) {
-      const x = len * (0.26 + i * 0.25), s = 1 - i * 0.1;
-      lf(x + 22 * s, -24 * s, 34 * s, 22 * s, -0.55, i % 2 ? '#5f9a52' : '#68a458');
-      lf(x + 26 * s, 24 * s, 34 * s, 22 * s, 0.55, i % 2 ? '#68a458' : '#5f9a52');
-    }
-    lf(len * 0.98, 0, 40, 27, 0, '#6fae5e');
-    g.restore();
-  }
-  function reddest(o) {
-    const Z = T.puzzle;
-    const G = Z.make({ up: LEAVES.map(() => 0), lifted: LEAVES.map(() => false), wob: TOMS.map(() => 0), pk: 0, picked: -1, busy: false });
-    const covered = (n) => TOMS[n].leaf != null && !G.lifted[TOMS[n].leaf];
-    const leafMid = (i) => { const L = LEAVES[i]; return [T.lerp(L.p[0], L.tip[0], 0.55), T.lerp(L.p[1], L.tip[1], 0.55)]; };
-    function nearLeaf(i, x, y) {
-      const L = LEAVES[i], dx = L.tip[0] - L.p[0], dy = L.tip[1] - L.p[1], l2 = dx * dx + dy * dy;
-      const u = T.clamp(((x - L.p[0]) * dx + (y - L.p[1]) * dy) / l2), qx = L.p[0] + dx * u, qy = L.p[1] + dy * u;
-      return Math.hypot(x - qx, y - qy) < 58;
-    }
-    G.hit = function (x, y) {
-      if (G.busy) return -1;
-      for (let i = 0; i < LEAVES.length; i++) if (!G.lifted[i] && nearLeaf(i, x, y)) return 7 + i;
-      let best = -1, bd = 1e9;
-      TOMS.forEach((q, n) => { const d = Math.hypot(x - q.x, y - q.y); if (d < q.r + 20 && d < bd && !covered(n)) { bd = d; best = n; } });
-      return best;
-    };
-    function lift(i) {
-      if (G.lifted[i]) return;
-      G.lifted[i] = true; G.idle = 0; G.say = '';
-      T.audio.sfx('step-grass'); T.audio.sfx('touch');
-      G.clock.tween(G.up, i, 1, 0.7, T.ease.io);
-    }
-    G.tap = function (n) {
-      if (G.done || G.busy || n < 0) return;
-      G.idle = 0;
-      if (n >= 7) { lift(n - 7); return; }
-      if (n >= TOMS.length) return;
-      if (covered(n)) { lift(TOMS[n].leaf); return; }
-      if (n !== BEST) { G.wob[n] = 1; G.clock.tween(G.wob, n, 0, 0.7); G.wrong(PIPI_SAYS[TOMS[n].say]); return; }
-      pick();
-    };
-    function pick() {
-      G.busy = true; G.say = ''; G.picked = BEST;
-      T.audio.sfx('join'); T.audio.sfx('star', 0.7);
-      G.clock.tween(G, 'pk', 1, 1.1, T.ease.io);
-      G.finish(1.3);
-    }
-    const target = () => (covered(BEST) ? 7 + TOMS[BEST].leaf : BEST);
-    G.next = () => (G.done || G.busy ? null : String(target() + 1));
-    G.hintAt = () => { if (G.done || G.busy) return null; const n = target(); return n >= 7 ? leafMid(n - 7) : [TOMS[n].x, TOMS[n].y]; };
-    G.hintR = 58;
-    G.keys = () => (G.busy ? null : 'pick');
-    G.tip = '잎 뒤에 숨은 것도 있어요. 잎을 눌러 들춰 봐요';
-    G.spots = () => (G.busy ? [] : TOMS.map((q, n) => (covered(n) ? null : [n, q.x, q.y, q.r + 12])).concat(LEAVES.map((L, i) => (G.lifted[i] ? null : [7 + i, ...leafMid(i), 60]))));
-    /* skipped: the leaf is lifted, and the right one picked */
-    G.solve = function () { if (G.busy || G.done) return; const L = TOMS[BEST].leaf; if (!G.lifted[L]) lift(L); G.clock.wait(0.6).then(pick); };
-    G.draw = function (g, t) {
-      if (G.a < 0.005) return;
-      G.dim(g, 0.5);
-      const X0 = -560, Y0 = 118, PW = 1120, PH = 604, frame = P.rr(X0, Y0, PW, PH, 30);
-      g.save(); g.globalAlpha = G.a;
-      g.save(); g.translate(0, (1 - T.ease.out3(G.a)) * 30);
-      g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 36; g.shadowOffsetY = 12;
-      P.fill(g, frame, '#9fbf7a');
-      g.shadowColor = 'transparent';
-      g.save(); g.clip(frame);
-      /* among the vines, late in the afternoon: light from the left */
-      const bg = g.createLinearGradient(0, Y0, 0, Y0 + PH);
-      bg.addColorStop(0, '#f2e6ae'); bg.addColorStop(0.45, '#b7cf8a'); bg.addColorStop(1, '#7c9c5e');
-      g.fillStyle = bg; g.fillRect(X0, Y0, PW, PH);
-      P.glow(g, X0 + 60, Y0 + 10, 560, '#fff4c8', 0.8);
-      const r = T.rng(66);
-      for (let i = 0; i < 46; i++) {   /* the leaves behind, softer */
-        const x = X0 + r() * PW, y = Y0 + 40 + r() * (PH - 160), rot = r() * TAU, sx = 22 + r() * 26;
-        P.fill(g, P.ellipse(x + Math.sin(t * 0.9 + i) * 2, y, sx, sx * 0.5, rot), r() < 0.5 ? 'rgba(96,150,80,0.55)' : 'rgba(120,170,96,0.5)');
-      }
-      /* the stakes, with the vines tied up them and a stalk out to each tomato */
-      [-366, -96, 190, 440].forEach((sx, i) => {
-        P.line(g, sx, Y0 + 30, sx + 4, Y0 + PH - 70, 9, '#c9a878'); P.line(g, sx - 3, Y0 + 30, sx + 1, Y0 + PH - 70, 3, '#e2c99c');
-        g.strokeStyle = '#5f8f4a'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
-        for (let y = Y0 + PH - 70; y > Y0 + 40; y -= 24) { const x = sx + Math.sin(y * 0.03 + i) * 16; if (y === Y0 + PH - 70) g.moveTo(x, y); else g.lineTo(x, y); }
-        g.stroke();
-        for (let y = Y0 + 90 + i * 20; y < Y0 + PH - 120; y += 150) { g.strokeStyle = '#efe0c0'; g.lineWidth = 2.4; g.beginPath(); g.ellipse(sx + 2, y, 10, 4, 0.2, 0, TAU); g.stroke(); }
-      });
-      TOMS.forEach((q) => { const sx = [-366, -96, 190, 440].reduce((a, b) => (Math.abs(b - q.x) < Math.abs(a - q.x) ? b : a)); P.line(g, sx + 4, q.y - q.r - 30, q.x + 2, q.y - q.r * 1.1, 4, '#5f8f4a'); });
-      /* the sun, falling in a slant across the left of the picture */
-      g.save(); g.globalCompositeOperation = 'screen';
-      const beam = g.createLinearGradient(X0, Y0, X0 + 520, Y0 + PH);
-      beam.addColorStop(0, 'rgba(255,236,170,0.55)'); beam.addColorStop(1, 'rgba(255,236,170,0)');
-      g.fillStyle = beam; g.beginPath(); g.moveTo(X0, Y0); g.lineTo(X0 + 300, Y0); g.lineTo(X0 + 520, Y0 + PH); g.lineTo(X0, Y0 + PH); g.closePath(); g.fill();
-      g.restore();
-      /* the tomatoes */
-      TOMS.forEach((q, n) => {
-        if (n === G.picked) return;
-        const j = Math.sin(t * 40 + n) * 5 * G.wob[n];
-        bigTomato(g, q.x + j, q.y + Math.sin(t * 1.3 + n) * 1.5, q.r, q.c, q.sun, t);
-      });
-      LEAVES.forEach((L, i) => bigLeaf(g, L.p, L.tip, L.lift, G.up[i], t, i * 2));
-      /* the new fence along the front, and the one it was put up against */
-      const soil = g.createLinearGradient(0, Y0 + PH - 60, 0, Y0 + PH);
-      soil.addColorStop(0, '#7c9c5e'); soil.addColorStop(0.5, '#8a6a46'); soil.addColorStop(1, '#7a5636');
-      g.fillStyle = soil; g.fillRect(X0, Y0 + PH - 60, PW, 60);
-      F.dog(g, { x: 446, y: Y0 + PH - 8, s: 400, sit: 1, wag: Math.sin(t * 9) * 0.9, headTilt: -0.12 + Math.sin(t * 0.8) * 0.06, flip: true });
-      for (let x = X0 + 14; x < X0 + PW; x += 50) {
-        const y = Y0 + PH - 82 + (Math.round(x / 50) % 2) * 3;
-        P.fill(g, P.poly([[x - 11, Y0 + PH], [x - 11, y + 11], [x, y], [x + 11, y + 11], [x + 11, Y0 + PH]]), '#f1e6cc');
-        P.fill(g, P.rr(x + 6, y + 12, 5, Y0 + PH - y - 12, 2), 'rgba(160,130,96,0.3)');
-      }
-      P.fill(g, P.rr(X0, Y0 + PH - 56, PW, 9, 4), '#e2d1ac'); P.fill(g, P.rr(X0, Y0 + PH - 24, PW, 9, 4), '#e2d1ac');
-      g.restore();
-      g.strokeStyle = 'rgba(255,250,236,0.7)'; g.lineWidth = 3; g.stroke(frame);
-      g.restore();
-      /* the one picked comes away in the hand */
-      if (G.picked >= 0) {
-        const q = TOMS[G.picked], k = G.pk;
-        P.glow(g, q.x, q.y - 60 * k, 110 * (1 - k * 0.3), '#fff0c0', 0.5 * Math.sin(k * Math.PI) + 0.2);
-        g.save(); g.globalAlpha = 1 - T.clamp((k - 0.8) / 0.2);
-        bigTomato(g, q.x, q.y - 60 * k, q.r * (1 + 0.25 * Math.sin(k * Math.PI)), q.c, false, t);
-        g.restore();
-      }
-      g.restore();
-      G.hintRing(g, t);
-      G.caption(g, '제일 빨간 토마토를 골라 따 주세요');
-    };
-    void o;
-    return G;
-  }
-
   /* the four lanterns strung from the end post to the bell: when he rings, they answer one by one, out to the boat */
   function lineLamp(u) {
     const PY = T.world.C.PIER_Y, A0 = [16, PY - 240], C0 = [218, PY - 186], B0 = [412, PY - 174], v = 1 - u;
@@ -465,23 +282,14 @@
     });
     g.restore();
   }
-  /* the fence round the five beds, and a little gate on the near side */
-  function fence(g) {
-    const Wd = T.world, AX = T.puzzle.PATCH_X, x0 = AX - 184, x1 = AX + 176;
-    g.save(); g.globalAlpha *= 0.94;
-    const rail = (dy) => { g.strokeStyle = '#d9c7a2'; g.lineWidth = 3; g.beginPath(); for (let x = x0; x <= x1; x += 12) { const y = Wd.y3(x) + dy; if (x === x0) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke(); };
-    rail(-9); rail(-19);
-    for (let x = x0; x <= x1; x += 13) { const y = Wd.y3(x) + 3, h = x > x1 - 40 ? 22 : 25; P.fill(g, P.poly([[x - 3.6, y], [x - 3.6, y - h], [x, y - h - 4.5], [x + 3.6, y - h], [x + 3.6, y]]), '#f1e5c8'); }
-    g.restore();
-  }
 
-  T.stage('ch6', {
-    chapter: 6, title: ['6장', '다 지킨 약속'], end: ['6장 끝', '마지막 장 「마중」'], next: 'ch7', pad: 2, nextColor: '#161d2a',
-    plot: { stage: 4, stones: 4, board: true, table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 2, fruit: 1, season: 'spring' },
+  T.stage('ch8', {
+    chapter: 8, title: ['8장', '다 지킨 약속'], end: ['8장 끝', '마지막 장 「마중」'], next: 'ch9', pad: 2, nextColor: '#161d2a',
+    plot: { stage: 4, stones: 4, board: true, table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1, season: 'spring' },
     flags: { bramGone: true, rosaGone: true },
     build() { T.scenes.kitchen.build(); },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.3) * 0.45; },
-    onHill(g, h, S) { if (h === 3 && S.ps && S.ps.patch >= 3 && !S.ps.patchHide) fence(g); },
+    onHill(g, h, S) { if (h === 3 && S.ps && S.ps.patch >= 3 && !S.ps.patchHide) T.plot.fence(g); },   /* the five beds and their fence, since chapter 6 */
     after(g, S) { pierLights(g, S); },
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, lin = T.ease.lin, PIER = C.PIER_Y;
@@ -511,127 +319,10 @@
       const TALK = X.TALK;
       X.title();
       await X.wait(4.4);
-
-      /* ---- the whale again, the third he has seen: he has waited here about as long as his mother did ---- */
-      const wh = T.place('whales', { dusk: 0.2, actors: [
-        { id: 'leo', style: F.leoAt(3), at: 'leo', lean: 0.07, face: { old: true, mouth: 'smile' } },
-        { id: 'bean', dog: true, at: 'beside', s: 150, sit: 1, headTilt: -0.1 },
-      ] });
-      wh.pass({ from: 0.04, dur: 46 });
-      await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
-      T.announce('해 질 녘, 언덕 끝. 구름 고래가 새끼와 함께 또 지나간다. 늙은 레오와 빈이 나란히 본다.');
-      await X.wait(6.5);
-      await TALK.say('leo', '벌써 세 번째 고래야, 빈.');
-      await X.wait(0.8);
-      await TALK.say('leo', '…엄마도 이걸 세 번 보면서\n날 기다렸대.', { slow: true });
-      await X.wait(1.6);
-      X.tween(wh.sun, 'k', 0.6, 8);
-      await X.years(25, 30, { age: 66, season: 'late summer' });   /* tomato time */
-      await X.wait(0.6);
-
-      /* ---- the garden, grown to five beds this year, and a fence round it against Bean ---- */
-      const GZ = T.puzzle;
-      const pipi0 = X.actor('kid', { x: GZ.PATCH_X + 275, style: F.styles.kidA, s: 100, flip: true });
-      leo.chair = 0; leo.x = GZ.PATCH_X + 230; leo.flip = true; bean.x = GZ.PATCH_X + 330; bean.flip = true; bean.sit = 1;
-      ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
-      { const q = GZ.patchCam(); X.cam(q[0] + 60, q[1] + 10, GZ.PATCH_Z * 0.9); X.camSnap(); }
-      await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
-      await TALK.say('kid', '올해는 고랑 다섯 개!\n울타리도 쳤으니까 빈은 못 들어와.');
-      A.sfx('bark', 0.3);
-      await X.wait(0.4);
-      await TALK.say('kid', '올해 건 진짜 빨개!\n제일 빨간 거, 아저씨가 골라 줘.');
-      T.announce('제일 빨간 토마토 고르기. 덩굴 사이에 토마토가 일곱 개 열려 있다. 햇빛이 드는 쪽은 더 빨개 보이고, 잎 뒤에 숨은 것도 있다.');
-      await X.play(reddest({}));
-      /* he holds it up, and it goes into his pocket */
-      pipi0.hold = true;
-      pipi0.pose = (o, a) => { if (a.hold) { o.armF = { a: 2.3, b: 0.4 }; o.face.eye = 'happy'; } };
-      pipi0.prop = (g, j, o, a) => { if (a.hold && j.handF) tomato(g, j.handF[0], j.handF[1] - 3, 0.8); };
-      A.sfx('join');
-      await TALK.say('kid', '이건 내 거!\n제일 빨간 거.');
-      pipi0.hold = false;
-      await X.wait(0.8);
-      /* the bell, far off at the harbour */
-      X.toll(0);
-      T.announce('항구 쪽에서 종이 운다.');
-      await X.wait(1.6);
-      await TALK.say('leo', '…종이 우네.\n마중 나가자, 피피.');
-
-      /* ---- the one who steps off the boat: Pipi has been seven all this time, and she has grown old ---- */
-      let pipi, pm;
-      await quay(() => {
-        keep0.splice(keep0.indexOf(pipi0), 1);
-        X.actor('leo', { x: 340, style: F.leoAt(3), flip: true, face: { old: true } });
-        X.actor('bean', { dog: true, s: 220, x: 410, sit: 1, flip: true, wag: 0.4 });
-        pipi = X.actor('kid', { x: 250, style: F.styles.kidA, s: 100, flip: true });
-        pm = X.actor('pmom', { style: F.styles.villagerB, s: 128, lean: 0.14, face: { old: true } });
-        S.b1 = X.boat({ x: -880, riders: [pm] });
-        X.cloudKid({ lamp: true, lampHand: 'F', look: true });
-      });
-      X.bed(1, 0.13, 'sea');
-      X.toll(1); await X.wait(1.2);
-      T.announce('부두. 구름바다 안개 속에서 배 한 척이 기다린다. 바다 등불이 꺼져 있다. 등불을 눌러 켠다.');
-      await TALK.say('leo', '안개가 짙네.\n등불부터 켜 드리자.');
-      const pressed = X.seaLamp();
-      X.sail(S.b1, -74, 62);
-      await pressed;
-      await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
-      A.sfx('door');
-      await X.land(pm, 30);
-      X.sail(S.b1, -1500, 34);   /* the boat that brought her goes back into the cloud, empty */
-      T.announce('배에서 백발의 할머니가 내린다. 피피가 멀뚱히 올려다본다. 할머니도 피피를 본다.');
-      pm.pose = (o) => { o.headTilt = 0.1; o.face.mouth = 'line'; };
-      X.cam(150, 540, 1.7, 0.9);   /* closer, for the two of them */
-      await X.wait(1.8);
-      await TALK.say('pmom', '…피피?', { slow: true });
-      await TALK.say('kid', '…엄마?', { slow: true });
-      pipi.hug = { k: 0 }; pm.hug = pipi.hug;
-      pipi.pose = (o, a) => { T.embrace(o, pipi, pm, pipi.hug.k, true); if (a.give) o.armF = { a: 1.35, b: 0.15 }; };
-      pm.pose = (o, a) => { T.embrace(o, pm, pipi, pipi.hug.k); o.lean += 0.2 * pipi.hug.k; if (a.tom) o.armF = { a: 0.9, b: 0.9 }; };
-      pipi.armOver = true; pm.z = 1;
-      await X.walk(pipi, pm.x + 30, 180);
-      pipi.flip = true;
-      await X.tween(pipi.hug, 'k', 1, 0.7, T.ease.out);
-      A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
-      await X.wait(1.2);
-      await TALK.say('pmom', '우리 피피, 여기 있었구나.', { slow: true });
-      /* what she could not do down there, and has done now */
-      await TALK.say('pmom', '…꼭 다시 안아 준다고 했는데.\n이제 지켰다.');
-      await X.tween(pipi.hug, 'k', 0.35, 0.6, T.ease.io);   /* he leans back in her arms to look at her */
-      pipi.face = { eye: 'open', mouth: 'open' };
-      await TALK.say('kid', '엄마… 할머니 됐네.');
-      pm.face = { old: true, eye: 'happy', mouth: 'smile' };
-      await TALK.say('pmom', '그러게. 엄마만 이렇게 늙었네.');
-      pipi.face = {};
-      await X.tween(pipi.hug, 'k', 1, 0.5, T.ease.io);
-      await TALK.say('kid', '그래도 엄마 냄새는 그대로야.');
-      await X.wait(0.8);
-      await TALK.say('kid', '아빠는? 아빠도 잘 있어?');
-      await TALK.say('pmom', '응. 잘 지내.\n네 사진, 아직도 지갑에 넣고 다녀.');
-      /* the tomato from his pocket */
-      await X.tween(pipi.hug, 'k', 0, 0.6, T.ease.io);
-      pipi.armOver = false; pipi.keepFlip = true;
-      await X.walk(pipi, pm.x + 40, 40);
-      pipi.give = true;
-      pipi.prop = (g, j, o, a) => { if (a.give && j.handF) tomato(g, j.handF[0], j.handF[1] + 1, 1.2); };
-      await TALK.say('kid', '아, 맞다. 엄마, 이거.\n레오 아저씨랑 같이 키운 토마토.');
-      T.announce('피피가 주머니에서 빨간 토마토를 꺼내 엄마 손에 쥐여 준다.');
-      await X.wait(0.4);
-      pipi.give = false; pm.tom = true;
-      pm.prop = (g, j, o, a) => { if (a.tom && j.handF) tomato(g, j.handF[0], j.handF[1] - 3, 1.2); };
-      A.sfx('star', 0.4);
-      await X.wait(0.6);
-      await TALK.say('pmom', '…베란다에서 키우던 거, 기억하는구나.');
-      await TALK.say('kid', '빨간 거 열리면 준다고 했잖아.');
-      await TALK.say('pmom', '…다 컸네, 우리 피피.');
-      await TALK.say('pmom', '…고맙습니다.\n우리 애 곁에 있어 주셔서.');
-      await TALK.say('leo', '제가 도움을 받았는걸요.');
-      pipi.keepFlip = false;
-      await X.wait(1.4);
-      await home(atTable);
       X.bed(4, 0.13, 'home');
 
       /* ---- his day. Every year she makes his stew from his notebook, and he takes his pot to the lake and makes it with her ---- */
-      await X.years(30, 37, { age: 73, season: 'late autumn' });   /* the day he went */
+      await X.years(35, 37, { age: 73, season: 'late autumn' });   /* the day he went */
       T.announce('레오의 기일. 해마다 이날이면 아나는 레오의 공책을 펴 놓고 스튜를 끓이고, 레오는 냄비를 들고 호수에 내려가 같이 끓인다.');
       await TALK.say('leo', '오늘이네, 빈.\n해마다 아나랑 같이 끓이는 날.');
       leo.chair = 0; leo.prop = potProp;

@@ -13,6 +13,8 @@
                            write to the ones who have gone (left by a photo, burned, kept in a drawer) come in on the
                            wind and flutter about like birds; magpies on the roof, an old postmaster at the counter.
                            V.catchLetter() -> Promise: catch the one with a crayon star on it as it flies past.
+                           o.noStar: no crayon star among the letters (no letter to catch this time).
+                           T.place.magpie(g, x, y, s, t, o) draws one of its magpies anywhere.
      T.place('whales', o)  구름 고래. Dusk over the open cloud sea, from a grassy headland. A cloud whale and her calf
                            go by, singing, once every ten years. V.pass({ dur, from }) -> Promise (when they are gone).
    Each is a view (draw · update · pointer · key · want · hintAt) shown with `await X.view(T.place('grove', o))`.
@@ -784,7 +786,7 @@
       /* the letters in the air, each on its own loop in front of the house; Lily's comes down past his hand */
       const rr = T.rng(17), loops = [];
       const PAP = ['#fbf3e0', '#f3e6f0', '#e6eef8', '#fff6dc', '#eef3e2', '#f6e8dc', '#efe8f8'];
-      const MK = ['star', 'moon', 'seal', 'stamp', 'flower', 'ribbon', 'ink'];
+      const MK = [o.noStar ? 'flower' : 'star', 'moon', 'seal', 'stamp', 'flower', 'ribbon', 'ink'];   /* o.noStar: Lily's letter is not in the air (chapter 6) */
       for (let i = 0; i < 7; i++) {
         let pts;
         if (i === 0) pts = [[R[0] + 6, R[1] + 4], [R[0] + 190, R[1] - 60], [BX - 40, 360], [BX + 150, 262], [BX - 150, 196], [LX + 140, 300], [LX - 50, 420]];
@@ -1284,5 +1286,6 @@
 
   T.place.add('grove', grove);
   T.place.add('post', post);
+  T.place.magpie = magpie;   /* (g, x, y, s, t, { flip, fly, tilt, tail, ph }): for a magpie on the hill (chapter 6) */
   T.place.add('whales', whales);
 })();

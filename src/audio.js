@@ -1061,10 +1061,33 @@
     const sg = ctx.createGain(); sg.gain.value = 0.3; g.connect(sg); sg.connect(A.fxSend);
     src.start(t); src.stop(t + dur + 0.02); nz.start(t, k * 2); nz.stop(t + dur + 0.02);
   }
+  /* a baby's laugh, very soft: a few short breathy "ha"s, the pitch going up and coming down, through the shape of an
+     open mouth (kept quiet and under a music-box cue, so that it is heard as a laugh, never as a voice) */
+  function giggle(at, vel) {
+    const ctx = A.ctx, F0 = [520, 610, 660, 600, 540];
+    F0.forEach((f0, i) => {
+      const t = now() + 0.01 + at + i * 0.16 + (i > 2 ? 0.04 : 0), dur = 0.085 + (i === 2 ? 0.03 : 0);
+      const src = ctx.createOscillator(); src.type = 'triangle';
+      src.frequency.setValueAtTime(f0 * 0.92, t); src.frequency.linearRampToValueAtTime(f0 * 1.08, t + dur * 0.4); src.frequency.exponentialRampToValueAtTime(f0 * 0.86, t + dur);
+      const nz = ctx.createBufferSource(); nz.buffer = A.white; const ng = ctx.createGain(); ng.gain.value = 0.18;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vel * (1 - i * 0.12), t + 0.014); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const mix = ctx.createGain();
+      [[1150, 5, 1], [2300, 7, 0.45], [3400, 9, 0.16]].forEach((q) => {
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = q[0]; f.Q.value = q[1];
+        const fg = ctx.createGain(); fg.gain.value = q[2] * 2.4;
+        src.connect(f); nz.connect(ng); ng.connect(f); f.connect(fg); fg.connect(mix);
+      });
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3600;
+      mix.connect(lp); lp.connect(g); g.connect(A.fx);
+      const sg = ctx.createGain(); sg.gain.value = 0.4; g.connect(sg); sg.connect(A.fxSend);
+      src.start(t); src.stop(t + dur + 0.02); nz.start(t, i * 0.7); nz.stop(t + dur + 0.02);
+    });
+  }
   const box = (m, at, vel) => A.note({ m, at, vel, voice: 'box', dur: 1.6, fx: true });
   /* Names: touch · paper · page · card · chalk · crayon · bubble · step (step-wood, step-grass) ·
      whoosh · star · shoot · sparkle · knock · bike · door · bark · wind · thunder · pour · boil ·
-     splash · ripple · drip · knit · creak · join. k (0..1) varies the ones that have a pitch or a size. */
+     splash · ripple · drip · knit · creak · join · laugh. k (0..1) varies the ones that have a pitch or a size. */
   A.sfx = function (name, k) {
     if (!ok() || fxOff()) return;
     const kk = k == null ? Math.random() : k;
@@ -1136,6 +1159,10 @@
       else { burst({ white: true, f0: 5200, dur: 0.02, vel: 0.15, q: 4, rate: 1, attack: 0.002, verb: 0.1 }); burst({ at: 0.12, white: true, f0: 5600, dur: 0.02, vel: 0.12, q: 4, rate: 1, attack: 0.002, verb: 0.1 }); }
     } else if (name === 'creak') { creak(0, kk, 0.17); A.note({ m: 62, vel: 0.05, voice: 'pluck', dur: 0.4, fx: true }); }
     else if (name === 'join') { box(72, 0, 0.26); box(77, 0.1, 0.26); }
+    else if (name === 'laugh') { /* a baby laughing (Nora, chapter 6): the giggle, and a little run of the music box over it */
+      giggle(0, 0.12 * (k == null ? 1 : 0.6 + 0.4 * k));
+      [84, 88, 91, 89].forEach((m, i) => box(m, 0.05 + i * 0.17, 0.12 - i * 0.015));
+    }
   };
 
   document.addEventListener('visibilitychange', () => {

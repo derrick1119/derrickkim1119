@@ -23,6 +23,7 @@
     leo: ['레오', '#fbeccb'], ana: ['아나', '#ffdccf'], mom: ['엄마', '#f3e6f4'],
     bram: ['브램 선장', '#dfe8f4'], v1: ['이웃 할아버지', '#e6efe2'], v2: ['빵집 아주머니', '#fbe7d6'], v3: ['목수 아저씨', '#e8e2f2'], rosa: ['로사', '#fff0c0'], wife: ['마르타', '#f0e2f0'], son: ['로사의 아들', '#e6e9ef'], kid: ['피피', '#fde6c8'], pmom: ['피피의 엄마', '#f6e6da'], pdad: ['피피의 아빠', '#e3ecf2'], post: ['집배원', '#dfeaf2'], lily: ['릴리', '#e2ecf8'], dil: ['로사의 며느리', '#f2e6e0'], both: ['레오와 아나', '#fff3dc'],
     cloud: ['구름이', '#f6e4ea'], all: ['레오와 아나와 구름이', '#fff3dc'],
+    v4: ['빵집 아저씨', '#f4e4cc'], nora: ['노라', '#e4f2ea'],
   };
 
   /* One line at a time at the foot of the screen. A tap finishes the line, the next tap moves on. */

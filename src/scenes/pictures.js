@@ -108,6 +108,79 @@
     evening(g, '#4d5a82', '#ffe3b4', 120, 520);
   };
 
+  /* ---------- Lily's nursery, the night after Nora came home (chapter 6) ----------
+     Night. A low ceiling over a lavender room (the lake fades the top of a picture, so the ceiling is brought well
+     down into it); a door on the left with the hall light behind Ana; a window with the moon; the crib on the right,
+     a little lamp on the dresser beside it. Lily walks up and down with the baby crying in her arms.
+     T.vig.NURSERY.ceiling: the middle of the ceiling over the crib, where the mobile's shadows turn (for
+     T.mobile.thing's at). L.lit.mobile: how far its shadows have come into the room. L.beat: 0 walking, Nora crying ·
+     1 she stops under the ceiling and looks up (L.stop.k) · 2 Nora laughs (L.lift.k: Lily holds her up a little
+     toward it) · 3 Lily lays her in the crib (L.lay.k 0..1) · 4 Nora in the crib, watching it (L.sleep: asleep) */
+  const NURSERY = (T.vig.NURSERY = { ceiling: [300, 176], crib: 300, CEIL: 248 });
+  V_.nursery = function (g, t, L) {
+    const W = T.view.W, lit = (L.lit && L.lit.mobile) || 0, b = L.beat || 0, CEIL = NURSERY.CEIL, CX = NURSERY.crib;
+    /* the ceiling, seen a little from below, and the walls */
+    const cg = g.createLinearGradient(0, 0, 0, CEIL); cg.addColorStop(0, '#c9c4dc'); cg.addColorStop(1, '#e3def0');
+    g.fillStyle = cg; g.fillRect(-W / 2, 0, W, CEIL);
+    g.fillStyle = '#d6cde4'; g.fillRect(-W / 2, CEIL, W, FLOOR - CEIL);
+    P.fill(g, P.rr(-W / 2, CEIL - 6, W, 12, 0), '#f1ecf6');   /* the cornice */
+    /* little stars on the wallpaper */
+    const r = T.rng(27);
+    for (let i = 0; i < 46; i++) {
+      const x = -W / 2 + r() * W, y = CEIL + 30 + r() * 380, rot = r() * 1.2;
+      g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = 'rgba(255,248,226,0.55)'; g.beginPath();
+      for (let k = 0; k < 10; k++) { const an = (k * Math.PI) / 5, rr = k % 2 ? 2.4 : 6; g.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
+      g.closePath(); g.fill(); g.restore();
+    }
+    g.fillStyle = '#c3b8d4'; g.fillRect(-W / 2, 640, W, FLOOR - 640); P.fill(g, P.rr(-W / 2, 636, W, 8, 0), '#efe8f2');   /* the dado */
+    g.fillStyle = '#a07a5a'; g.fillRect(-W / 2, FLOOR, W, 900 - FLOOR);
+    P.fill(g, P.ellipse(-60, FLOOR + 30, 300, 26), '#e6c7c9');   /* the rug */
+    /* the door, open, and the hall light */
+    P.fill(g, P.rr(-600, 360, 176, FLOOR - 360, 4), '#f6dcae'); P.glow(g, -512, 600, 230, '#ffd9a0', 0.5);
+    P.fill(g, P.rr(-612, 350, 12, FLOOR - 350, 3), '#efe8f2'); P.fill(g, P.rr(-424, 350, 12, FLOOR - 350, 3), '#efe8f2'); P.fill(g, P.rr(-612, 344, 200, 12, 3), '#efe8f2');
+    P.fill(g, P.poly([[-424, 360], [-356, 384], [-356, FLOOR + 10], [-424, FLOOR]]), '#e7dccf');   /* the door itself, swung in */
+    /* the window: night, the moon */
+    windowView(g, [-250, 320, 200, 230], t, 'night', 0);
+    /* a dresser and its little lamp */
+    P.fill(g, P.rr(500, 650, 170, FLOOR - 650, 6), '#e9dcc6');
+    for (let k = 0; k < 2; k++) { P.fill(g, P.rr(512, 666 + k * 74, 146, 62, 4), '#f2e8d6'); P.fill(g, P.circle(585, 697 + k * 74, 4), '#b98a5a'); }
+    P.fill(g, P.rr(560, 610, 50, 40, 8), '#f1c48a'); P.fill(g, P.rr(578, 640, 14, 12, 3), '#b98a5a'); P.glow(g, 585, 626, 110, '#ffd08a', 0.75); P.glow(g, 585, 626, 30, '#fff0c8', 0.9);
+    /* the crib: its far side first */
+    P.fill(g, P.rr(CX - 160, 560, 14, FLOOR - 560, 4), '#f3ede4'); P.fill(g, P.rr(CX + 146, 560, 14, FLOOR - 560, 4), '#f3ede4');
+    P.fill(g, P.rr(CX - 152, 582, 304, 10, 4), '#e9e1d6'); P.fill(g, P.rr(CX - 150, 694, 300, 40, 6), '#f6f2fa'); P.fill(g, P.rr(CX - 150, 690, 300, 14, 6), '#dfe6f2');
+    /* Ana in the doorway, a hand on the frame */
+    const as = F.anaAt(63), look = b >= 2;
+    const a = { x: -486, y: FLOOR - F.hipHeight(as, 350), s: 350, style: as, lean: 0.04, headTilt: look ? -0.24 : 0.14, face: { eye: look ? 'happy' : 'open', mouth: look ? 'smile' : 'line', blush: 0.2, old: true } };
+    a.armB = { hand: F.local(a, -430, 560) }; a.armF = { a: 0.3, b: 0.5 };
+    F.person(g, a);
+    /* Lily, walking her up and down; then still, under the ceiling; then by the crib */
+    const ls = F.lilyAt(33), stopK = L.stop ? T.ease.io(L.stop.k) : 0, lay = L.lay ? T.clamp(L.lay.k) : 0;
+    const ph = t * 0.42, walkX = -110 + Math.sin(ph) * 170, dirW = Math.cos(ph) >= 0 ? 1 : -1;
+    const stopX = T.lerp(90, CX - 170, T.ease.io(T.clamp(lay / 0.45)));
+    const lx = T.lerp(walkX, stopX, stopK), dir = stopK > 0.5 ? 1 : dirW;
+    const bob = stopK < 0.5 ? Math.abs(Math.sin(ph * 6)) * 3 : 0, rock = b === 0 ? Math.sin(t * 3.2) * 0.06 : Math.sin(t * 1.4) * 0.03;
+    const bend = T.ease.io(T.clamp((lay - 0.45) / 0.4)) * (lay > 0.9 ? T.clamp((1 - lay) * 10) * 0.6 + 0.4 : 1);
+    const lo = { x: lx, y: FLOOR - F.hipHeight(ls, 360) - bob, s: 360, style: ls, flip: dir < 0, lean: 0.06 + 0.34 * bend + (b === 0 ? 0.04 : 0), headTilt: b === 0 ? 0.26 : b <= 2 ? T.lerp(0.2, -0.3, stopK) : 0.3,
+      face: { eye: b === 2 ? 'happy' : b === 0 ? 'closed' : 'open', mouth: b === 2 ? 'open' : b === 0 ? 'line' : 'smile', blush: 0.22 + (b === 2 ? 0.1 : 0) }, skip: { armF: true } };
+    /* where the baby is: in her arms, lifted a little, then down into the crib */
+    const lift = L.lift ? T.ease.io(L.lift.k) : 0, inArms = [lx + dir * 24, lo.y - 58 - lift * 34], inCrib = [CX - 30, 680];
+    const dk = T.ease.io(T.clamp((lay - 0.45) / 0.45)), bx = T.lerp(inArms[0], inCrib[0], dk), by = T.lerp(inArms[1], inCrib[1], dk);
+    const held = lay < 0.97;
+    lo.armB = held ? { hand: F.local(lo, bx - dir * 28, by + 8) } : { hand: F.local(lo, CX - 136, 624) };
+    F.person(g, lo);
+    const face = b === 0 ? 'cry' : b === 2 ? 'laugh' : b >= 4 && L.sleep ? 'sleep' : 'open';
+    F.baby(g, { x: bx, y: by, s: 2, flip: dk > 0.5 ? false : dir > 0, rot: (dir > 0 ? 0.12 : -0.12) * (1 - dk) + rock, face, t, hand: b === 0 || b === 2 ? 1 : 0.3 });
+    F.person(g, Object.assign({}, lo, { only: 'armF', skip: null, armF: { hand: held ? F.local(lo, bx + dir * 26, by + 12) : F.local(lo, CX - 112, 622) } }));
+    /* the crib's near side, over her */
+    P.fill(g, P.rr(CX - 158, 620, 316, 10, 4), '#f6f0e8');
+    for (let x = CX - 140; x <= CX + 140; x += 28) P.fill(g, P.rr(x - 3, 628, 6, 116, 3), '#f6f0e8');
+    P.fill(g, P.rr(CX - 158, 738, 316, 12, 4), '#efe7dc');
+    if (b === 0) for (let i = 0; i < 3; i++) { g.strokeStyle = T.rgba('#7a3a48', 0.35); g.lineWidth = 2; g.beginPath(); g.arc(bx + dir * 6, by - 20, 18 + i * 9 + ((t * 30) % 9), Math.PI * 1.15, Math.PI * 1.45); g.stroke(); }
+    /* night: dark at the edges, the lamp and the hall the warm places; warmer overhead once the shadows turn there */
+    evening(g, T.mix('#6e7299', '#8a88aa', lit), T.mix('#ffe2b4', '#fff0d0', lit), T.lerp(560, CX, lit * 0.4), T.lerp(620, 420, lit * 0.6));
+    if (lit > 0.01) P.glow(g, NURSERY.ceiling[0], NURSERY.ceiling[1], 300, '#ffe6b8', 0.3 * lit);
+  };
+
   /* ---------- Bram's wife, at the window over the sea ---------- */
   /* beats: 0 she watches the sea · 1 she hums and taps the chair arm · 2 dozing, a hand on the sill */
   V_.bramWife = function (g, t, L) {

@@ -167,8 +167,8 @@
     g.restore();
   }
 
-  T.stage('ch7', {
-    chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
+  T.stage('ch9', {
+    chapter: 9, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
     plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 0, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1, season: 'late autumn' },   /* she comes in late autumn, as he did */
     flags: { bramGone: true, rosaGone: true },
     build() { T.scenes.kitchen.build(); T.scenes.room.build(); T.scenes.stew.build(); },
@@ -232,9 +232,11 @@
       /* everyone who waited with him is on the quay too */
       const folk = [
         X.actor('v1', { x: 300, style: F.styles.villagerA, s: 142, lamp: true, lampHand: 'F', flip: true }),
-        X.actor('v2', { x: 356, style: F.styles.villagerB, s: 134, flip: true }),
-        X.actor('kid2', { x: 400, style: F.styles.kidB, s: 100, flip: true }),
-        X.actor('v3', { x: 456, style: F.styles.villagerC, s: 142, flip: true }),
+        X.actor('v2', { x: 350, style: F.styles.villagerB, s: 134, flip: true }),
+        /* the baker's husband, who came in chapter 7, beside her (no lines of his own here) */
+        X.actor('v4', { x: 384, style: F.styles.baker, s: 140, lean: 0.1, flip: true, face: { old: true } }),
+        X.actor('kid2', { x: 416, style: F.styles.kidB, s: 100, flip: true }),
+        X.actor('v3', { x: 462, style: F.styles.villagerC, s: 142, flip: true }),
       ];
       /* and 구름이, with her little lamp held out for whoever is coming */
       const cloud = X.cloudKid({ x: 254, chair: 0, lamp: true, lampHand: 'F', look: true });
@@ -395,7 +397,7 @@
 
       /* ---- the little one with the lamp ----
          Ana sees the hat she knitted, twice over, for two babies; one of them never came out into the world */
-      [384, 424, 456, 496].forEach((x, i) => X.walk(folk[i], x, 60).then(() => { folk[i].flip = true; }));   /* the neighbours step back up the quay */
+      [384, 418, 450, 480, 514].forEach((x, i) => X.walk(folk[i], x, 60).then(() => { folk[i].flip = true; }));   /* the neighbours step back up the quay */
       leo.flip = false; ana.wet = 0;
       bean.sit = 0; X.walk(bean, 112, 50).then(() => { bean.flip = false; bean.sit = 1; });
       ana.pose = (o) => { o.headTilt = 0.08; o.face.eye = 'open'; o.face.mouth = 'line'; };

@@ -2,11 +2,11 @@
 // node fmt.js <outdir> → <outdir>/script.txt (for reading) and <outdir>/script.json (rows with ids)
 const fs = require('fs');
 const dir = process.argv[2];
-const NAMES = { leo: '레오', ana: '아나', mom: '엄마', bram: '브램 선장', v1: '이웃 할아버지', v2: '빵집 아주머니', v3: '목수 아저씨', rosa: '로사', wife: '마르타', son: '로사의 아들', kid: '피피', pmom: '피피의 엄마', pdad: '피피의 아빠', post: '집배원', lily: '릴리', dil: '로사의 며느리', both: '레오와 아나', cloud: '구름이', all: '레오와 아나와 구름이' };
+const NAMES = { leo: '레오', ana: '아나', mom: '엄마', bram: '브램 선장', v1: '이웃 할아버지', v2: '빵집 아주머니', v3: '목수 아저씨', rosa: '로사', wife: '마르타', son: '로사의 아들', kid: '피피', pmom: '피피의 엄마', pdad: '피피의 아빠', post: '집배원', lily: '릴리', dil: '로사의 며느리', both: '레오와 아나', cloud: '구름이', all: '레오와 아나와 구름이', v4: '빵집 아저씨', nora: '노라' };
 const nameSet = new Set(Object.values(NAMES));
 // screen writing that is interface, not story
 const UI = /^(건너뛰기|눌러서|화면을 눌러|소리를 켜면|장 바로 가기|처음부터 시작|이어하기|설정|소리|음악|효과음|글자|언어|닫기|English|한국어)/;
-const PARTS = [['pro', 'P', '프롤로그 ~ 1장'], ['ch2', '2', '2장'], ['ch3', '3', '3장'], ['ch4', '4', '4장'], ['ch5', '5', '5장'], ['ch6', '6', '6장'], ['ch7', '7', '마지막 장']];
+const PARTS = [['pro', 'P', '프롤로그 ~ 1장'], ['ch2', '2', '2장'], ['ch3', '3', '3장'], ['ch4', '4', '4장'], ['ch5', '5', '5장'], ['ch6', '6', '6장'], ['ch7', '7', '7장'], ['ch8', '8', '8장'], ['ch9', '9', '마지막 장']];
 const rows = [];
 let txt = '';
 for (const [part, tag, title] of PARTS) {

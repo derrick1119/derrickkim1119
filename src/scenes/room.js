@@ -373,9 +373,10 @@
     T.audio.ambience(0.5, 0.3);
   };
   /* a quiet row at the foot of the title: straight to any chapter */
-  const CHAPTERS = [['1장', 'kitchen'], ['2장', 'ch2'], ['3장', 'ch3'], ['4장', 'ch4'], ['5장', 'ch5'], ['6장', 'ch6'], ['마지막 장', 'ch7']];
-  const chapterX = (i) => (i - 3) * 100 + (i === 6 ? 22 : 0);
-  const overChapter = (x, y) => { if (Math.abs(y - 842) > 28) return -1; for (let i = 0; i < Math.min(CHAPTERS.length, S.seen || 0); i++) if (Math.abs(x - chapterX(i)) < (i === 6 ? 62 : 46)) return i; return -1; };
+  const CHAPTERS = [['1장', 'kitchen'], ['2장', 'ch2'], ['3장', 'ch3'], ['4장', 'ch4'], ['5장', 'ch5'], ['6장', 'ch6'], ['7장', 'ch7'], ['8장', 'ch8'], ['마지막 장', 'ch9']];
+  const LAST = CHAPTERS.length - 1;
+  const chapterX = (i) => (i - 4) * 90 + (i === LAST ? 22 : 0);
+  const overChapter = (x, y) => { if (Math.abs(y - 842) > 28) return -1; for (let i = 0; i < Math.min(CHAPTERS.length, S.seen || 0); i++) if (Math.abs(x - chapterX(i)) < (i === LAST ? 62 : 42)) return i; return -1; };
   S.skipToChapter = function (i) {
     const c = CHAPTERS[i || 0];
     if (S.mode !== 'title' || S.title.leaving || T.director.busy() || !c || !T.scenes[c[1]]) return;
@@ -383,7 +384,7 @@
     T.audio.unlock();
     T.director.go(c[1], { style: 'fade', color: '#0f1522', out: 1.4, in: 1.6 });
   };
-  const NAMES = ['프롤로그', '1장 「항구」', '2장 「약속 목록」', '3장 「꿈」', '4장 「이웃들」', '5장 「꽃길」', '6장 「다 지킨 약속」', '마지막 장 「마중」'];
+  const NAMES = ['프롤로그', '1장 「항구」', '2장 「약속 목록」', '3장 「꿈」', '4장 「이웃들」', '5장 「꽃길」', '6장 「손주」', '7장 「아직은」', '8장 「다 지킨 약속」', '마지막 장 「마중」'];
   /* pick up where the last visit stopped */
   S.resume = function () {
     const sv = S.saved, st = T.state;
@@ -562,7 +563,7 @@
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
-    if (S.mode === 'title') { if (act) { if (S.saved) S.resume(); else S.begin(); } else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else if (key === 'g' || key === 'G') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); else return false; }
+    if (S.mode === 'title') { if (act) { if (S.saved) S.resume(); else S.begin(); } else if (key >= '1' && key <= '9') S.skipToChapter(+key - 1); else if (key === 'g' || key === 'G') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); else return false; }
     else if (S.mode === 'hub') {
       const open = openSpots();
       if (!open.length) return false;

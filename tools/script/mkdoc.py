@@ -33,7 +33,7 @@ for tag in TITLES:
         lines[r["id"]] = {"who": r["who"], "text": r["text"], "loc": r.get("loc", []), "kind": r["kind"]}
     docs[tag] = "\n".join(md)
 # the appendix: what shows only now and then, grouped by where it lives
-NICE = {"ch1_kitchen.js": "1장 부엌", "ch1_harbor.js": "1장 항구", "ch2_list.js": "2장", "ch3_dream.js": "3장", "ch4_neighbours.js": "4장", "ch5_flowers.js": "5장", "ch6_kept.js": "6장", "ch7_welcome.js": "마지막 장",
+NICE = {"ch1_kitchen.js": "1장 부엌", "ch1_harbor.js": "1장 항구", "ch2_list.js": "2장", "ch3_dream.js": "3장", "ch4_neighbours.js": "4장", "ch5_flowers.js": "5장", "ch6_grand.js": "6장", "ch7_notyet.js": "7장", "ch8_kept.js": "8장", "ch9_welcome.js": "마지막 장",
         "room.js": "프롤로그 병실", "mem_home.js": "기억: 사진", "mem_stew.js": "기억: 스튜", "mem_swing.js": "기억: 그네", "mem_walk.js": "기억: 산책", "ending.js": "프롤로그 끝",
         "dreamroom.js": "기울어진 방 (5장)", "evenings.js": "별자리 (2장·6장)", "garden.js": "텃밭 물길 (3장·4장)", "lakehelp.js": "비 오는 길 (6장)",
         "puzzles.js": "종 · 주춧돌", "skyplaces2.js": "소원 숲 · 바람 우체국", "views.js": "호수 (2~4장)", "work.js": "손일"}

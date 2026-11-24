@@ -32,6 +32,11 @@
     kidC: { skin: '#f3ccb0', hair: '#2a2024', hairStyle: 'short', top: '#7fb0c9', bottom: '#5d6f8a', shoe: '#33291f', kid: true },
     /* the little one who watches the clouds: about six, and always in her small knitted hat */
     cloud: { skin: '#f4d0b8', hair: '#3b2a23', hairStyle: 'bob', top: '#e3e6f3', bottom: '#e3e6f3', skirt: 16, shoe: '#8f7f9e', kid: true, knit: '#e2909c' },
+    /* 노라, Lily's daughter (born in year 27): her mother's hair, a sea-green top (her name is from the aurora) */
+    nora: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'apple', tie: '#e9c45a', top: '#7fbfa4', bottom: '#5d6f8a', skirt: 16, shoe: '#c9573f', kid: true },
+    /* 빵집 아저씨, the baker's husband (in his seventies when he comes, chapter 7): white hair, glasses, a flour-pale
+       apron over a sage shirt, a little round in the middle */
+    baker: { skin: '#e7b793', hair: '#ece7de', hairStyle: 'short', glasses: true, top: '#7d8f6e', apron: '#f2ece0', bottom: '#5a4a44', shoe: '#33291f', belly: 2.4 },
   };
   /* a small knitted hat, rose, with a cream bobble (worn as style.knit) */
   F.KNIT = '#e2909c';
@@ -261,6 +266,14 @@
         at(31.3, 3.4), at(28.4, 7.7), at(20, 8.8), at(11, 8.5 + belly), at(3, 8.2 + belly * 0.6), at(-3.6, 6)]);
       g.fillStyle = st.top; g.fill(body);
       g.save(); g.clip(body);
+      if (st.apron) {   /* an apron: the front of the body from the hip to the chest, and its strap round the neck */
+        const ap = [at(-4, 1.2), at(23, 2.6), at(23, 13), at(-4, 13)];
+        g.fillStyle = st.apron; g.beginPath(); ap.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.closePath(); g.fill();
+        const s0 = at(23, 3), s1 = at(30, -1.5);
+        g.strokeStyle = st.apron; g.lineWidth = 1.6; g.beginPath(); g.moveTo(s0[0], s0[1]); g.lineTo(s1[0], s1[1]); g.stroke();
+        const k0 = at(9, 1.6), k1 = at(9, 8);
+        g.strokeStyle = T.shade(st.apron, -0.12); g.lineWidth = 0.9; g.beginPath(); g.moveTo(k0[0], k0[1]); g.lineTo(k1[0], k1[1]); g.stroke();
+      }
       g.strokeStyle = 'rgba(30,24,48,0.1)'; g.lineWidth = 6.5 * ws; g.lineCap = 'butt';   /* the far side falls away */
       let q = at(-5, -7), r2 = at(33, -7); g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(r2[0], r2[1]); g.stroke();
       g.strokeStyle = dark(st.top); g.lineWidth = 1.5;                                    /* hem */
@@ -530,6 +543,41 @@
      reckoned for the old size (distance / stride) is taken that many times faster, as a smaller dog takes more
      steps over the same ground. The collar and head handed back are where they are drawn. */
   const DOG_K = (F.dogScale = 0.82);
+  /* A newborn, swaddled: a soft bundle with the face showing at one end, turned a little to us.
+     o: { x, y (the middle of the bundle), s (1 ≈ 64 units long, the size of a baby in an adult of s 150),
+          rot, flip (head toward -x), face: 'sleep' | 'open' | 'cry' | 'laugh', blanket (colour), t (time),
+          hand: 0..1 a small fist out of the wrap, waving }   F.baby(g, { x, y, s: 2.2, face: 'cry' }) */
+  F.baby = function (g, o) {
+    const P = T.P, s = o.s || 1, t = o.t == null ? T.time : o.t, bl = o.blanket || '#f2dfe4', face = o.face || 'sleep';
+    g.save(); g.translate(o.x, o.y); if (o.rot) g.rotate(o.rot); g.scale((o.flip ? -1 : 1) * s, s);
+    const cry = face === 'cry', laugh = face === 'laugh', wig = cry ? Math.sin(t * 13) * 0.6 : laugh ? Math.sin(t * 9) * 0.4 : 0;
+    /* the wrap, its folds, and the corner tucked over */
+    P.fill(g, P.soft([[-31, 1], [-27, -11], [-8, -15], [12, -14], [22, -6], [22, 9], [8, 14], [-14, 13], [-29, 9]]), bl);
+    g.strokeStyle = T.shade(bl, -0.13); g.lineWidth = 1.1; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-22, -9); g.quadraticCurveTo(-6, -2 + wig, 10, -11); g.moveTo(-24, 6); g.quadraticCurveTo(-8, 1, 6, 10); g.stroke();
+    /* a fist out of the wrap */
+    const hk = o.hand == null ? (cry || laugh ? 1 : 0) : o.hand;
+    if (hk > 0.02) { const hx = 6 + Math.sin(t * (cry ? 11 : 7)) * 2.4 * hk, hy = -13 - 3 * hk + Math.cos(t * (cry ? 11 : 7)) * 1.6 * hk; P.fill(g, P.circle(hx, hy, 3.3), T.shade(bl, -0.06)); P.fill(g, P.circle(hx + 1.6, hy - 2.2, 2.4), '#f6d2bf'); }
+    /* the hood round the face, and the face */
+    const hx = 17, hy = -1;
+    P.fill(g, P.circle(hx - 1, hy, 12.2), T.shade(bl, 0.05));
+    P.fill(g, P.circle(hx, hy, 9.2), '#f6d3c0');
+    P.fill(g, P.ellipse(hx + 1, hy - 7.2, 4.2, 1.9, 0.2), '#5a4036');   /* a wisp of hair */
+    g.fillStyle = T.rgba('#ef8f86', cry ? 0.5 : 0.32); g.beginPath(); g.arc(hx - 4.6, hy + 2.6, 2.4, 0, TAU); g.arc(hx + 5, hy + 2.6, 2.4, 0, TAU); g.fill();
+    g.strokeStyle = '#3a2a2a'; g.lineWidth = 1; g.lineCap = 'round';
+    for (const ex of [hx - 3.4, hx + 3.6]) {
+      g.beginPath();
+      if (face === 'open') { g.fillStyle = '#2a2024'; g.arc(ex, hy - 0.6, 1.1, 0, TAU); g.fill(); continue; }
+      if (laugh) g.arc(ex, hy + 0.2, 1.7, Math.PI * 1.1, Math.PI * 1.9);          /* happy */
+      else if (cry) { g.moveTo(ex - 1.8, hy - 1.2); g.lineTo(ex, hy - 0.2); g.lineTo(ex + 1.8, hy - 1.2); }   /* screwed up */
+      else g.arc(ex, hy - 1, 1.7, Math.PI * 0.15, Math.PI * 0.85);               /* asleep */
+      g.stroke();
+    }
+    if (cry) { P.fill(g, P.ellipse(hx + 0.4, hy + 4.6, 2.3, 2.4 + Math.abs(Math.sin(t * 6)) * 0.8), '#8a3a40'); }
+    else if (laugh) { P.fill(g, P.ellipse(hx + 0.4, hy + 4.2, 2.4, 1.7 + Math.abs(Math.sin(t * 9)) * 0.7), '#a84a4e'); }
+    else { g.beginPath(); g.arc(hx + 0.4, hy + 3.4, 1.4, Math.PI * 0.2, Math.PI * 0.8); g.stroke(); }
+    g.restore();
+  };
   F.dog = function (g, o) {
     const u = ((o.s || 240) / 100) * DOG_K, sx = o.flip ? -1 : 1;
     const ph = o.walk == null ? null : o.walk / DOG_K;

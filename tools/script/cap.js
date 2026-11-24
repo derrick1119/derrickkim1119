@@ -19,7 +19,7 @@ const [root, part, out, maxS = '1500'] = process.argv.slice(2);
     while (Date.now() - t0 < +maxS * 1000) {
       const st = await p.evaluate(() => { const s = TYT.scenes.harbor, cur = Object.keys(TYT.scenes).find((k) => TYT.scenes[k] === TYT.director.cur); return { cur, leave: cur === 'harbor' && s.canLeave, game: cur === 'harbor' && s.game ? s.game.next() : null }; });
       if (seen[seen.length - 1] !== st.cur) seen.push(st.cur);
-      if (st.leave || (st.cur && /^ch[2-7]$/.test(st.cur))) break;
+      if (st.leave || (st.cur && /^ch[2-9]$/.test(st.cur))) break;
       await p.keyboard.press(st.game || 'Enter');
       await p.waitForTimeout(st.game ? 150 : 240);
     }
@@ -40,7 +40,7 @@ const [root, part, out, maxS = '1500'] = process.argv.slice(2);
     }, part);
     while (Date.now() - t0 < +maxS * 1000) { if (await p.evaluate('window.__end != null')) break; await p.waitForTimeout(1000); }
     // after the chapter: let what follows it (end card, next title) show for a little while
-    await p.waitForTimeout(part === 'ch7' ? 60000 : 8000);
+    await p.waitForTimeout(part === 'ch9' ? 60000 : 8000);
     seen = [part, await sceneNow()];
   }
   const lines = await p.evaluate(() => window.__lines);

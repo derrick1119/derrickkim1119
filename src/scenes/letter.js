@@ -9,7 +9,7 @@
    Nothing is sent anywhere: the last letter is kept on the device (T.store 'tyt-letter'), and the postcard is drawn
    here and saved from here. Once a letter has gone up, a small paper bird rests on the hospital window sill on the
    title screen.
-     T.letter.epilogue(X, o) -> Promise   called at the end of ch7_welcome.js, before X.end(); o.tuneEnd is when
+     T.letter.epilogue(X, o) -> Promise   called at the end of ch9_welcome.js, before X.end(); o.tuneEnd is when
                                           (performance.now()) the music box tune under the last line will be over
      T.letter.sill(g, a)                  room.js, on the title: the paper bird on the sill (a: the title's alpha)
      T.letter.last()                      the letter kept, { text, at }, or null
