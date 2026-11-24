@@ -1,10 +1,35 @@
 /* Take Your Time — the small puzzles. Each one is something a hand in this story would
    actually be doing: answering the harbour bell, bedding foundation stones, raising a frame in
    the order it will stand, casting off a rope, finding a taste, weaving a garland.
+
+   ---------- one way to play, and one way to be helped, in every puzzle ----------
+   Two gestures and nothing else: TAP a thing (or a side of the screen), or DRAG it (slide it along, pull a line).
+   Nothing has to be held down, double-tapped or right-clicked, and nothing that is tapped is smaller than about
+   100 units across (44 px on a phone held sideways). The keys mean the same in every puzzle:
+     Space / Enter   act: the one thing there is to do, or the thing the keyboard is on
+     ← →             choose among the things (a white ring shows which one), or, where things are slid, move the
+                     one in hand
+     1 2 3 …         pick a thing straight away
+     S               skip, once 「건너뛰기」 is showing
+   A caption ends with its keys in the same words everywhere (Z.KEYS: 「… · 스페이스 / 엔터」, 「… · ← → 로
+   고르고 스페이스로」, …), on screens that have a keyboard.
+   Help comes the same way in every puzzle, in three steps (Z.coach; the views in views.js, lakehelp.js,
+   skyplaces2.js and dreamroom.js use it too):
+     1. left alone ~7 s: a soft glow on the next useful thing (hintAt)
+     2. ~18 s, or after 2 mistakes (G.wrong): a short line at the top, what to do but never the answer (tip)
+     3. ~40 s, or after 4 mistakes: 「건너뛰기」 in the top right corner (tap it, or S). It finishes the puzzle the
+        way solving it would (G.solve, or else the puzzle plays itself through next()), so the story goes on
+        through its own success.
+   「힌트: 적게」 in the settings makes each step wait about twice as long. The test bots press what next() and
+   S.want() say, never the skip.
+
    A puzzle is a little object a scene holds while it is being played:
      begin(clock) -> promise · draw(g, t) · pointer(type, x, y) · key(key) · update(dt)
      next() -> the key that is right just now (the hint, and how the tests play)
-     hintAt() -> where on the screen that is */
+     hintAt() -> where on the screen that is
+     tip: the line for step 2 · keys: 'act' | 'pick' | 'move' | 'sides' (Z.KEYS), words of its own, or a function
+     giving one of those (null while there is nothing to press)
+     spots() -> [[n, x, y, r], …]: what ← → choose among (n as tap(n) takes it) · solve(): finish as if solved */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, K = T.town;
@@ -12,29 +37,215 @@
   const Z = (T.puzzle = {});
   const INK = '#f3ead8';
 
+  /* ---------- the keys, said the same way everywhere ---------- */
+  Z.KEYS = { act: '스페이스 / 엔터', pick: '← → 로 고르고 스페이스로', move: '스페이스로 고르고 ← → 로 옮겨요', sides: '← →' };
+  /* a phone or tablet with no keyboard is not told about keys (until a key is pressed on it after all) */
+  const touchOnly = () => !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  Z.hasKeys = () => !!T.keyUsed || !touchOnly();
+  Z.keys = (kind) => (kind && Z.hasKeys() ? Z.KEYS[kind] || kind : '');
+  /* a caption with its keys after it */
+  Z.withKeys = (text, kind) => { const k = Z.keys(kind); return text && k ? T.tr(text) + ' · ' + T.tr(k) : text; };
+  Z.isSkipKey = (key) => key === 's' || key === 'S' || key === 'ㄴ';   /* ㄴ: the same key with Korean input */
+  Z.isAct = (key) => key === ' ' || key === 'Enter';
+  /* the thing the keyboard is on: a plain white ring, unlike the soft glow of a hint */
+  Z.focusRing = function (g, x, y, r, t, a) {
+    if (a <= 0.01) return;
+    const p = 0.5 + 0.5 * Math.sin(t * 4), R = Math.max(28, r);
+    g.save(); g.globalAlpha *= a;
+    g.strokeStyle = 'rgba(20,26,44,0.45)'; g.lineWidth = 6; g.beginPath(); g.arc(x, y, R + 2 * p, 0, TAU); g.stroke();
+    g.strokeStyle = '#fffaec'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R + 2 * p, 0, TAU); g.stroke();
+    P.fill(g, P.poly([[x - 10, y - R - 20 - 3 * p], [x + 10, y - R - 20 - 3 * p], [x, y - R - 8 - 3 * p]]), '#fffaec');
+    g.restore();
+  };
+
+  /* ---------- one way to help ----------
+     o: { idle() seconds since the player last did something, stuck() (for steps 2 and 3, if it is not just idle),
+          misses() mistakes so far, live() the puzzle is waiting on the player, hintAt() [x, y] on the screen, r (the
+          glow's size), tip (text, or a function), solve() finish it as if solved }
+     C.update(dt) · C.glow(g, t, a, r) · C.draw(g, t, a) (the tip and the skip) · C.pointer(type, x, y) / C.key(key):
+     true if it was the skip · C.end() once the puzzle is over */
+  const STEPS = { basic: { glow: 7, tip: 18, tipMiss: 2, skip: 40, skipMiss: 4 }, less: { glow: 14, tip: 36, tipMiss: 4, skip: 80, skipMiss: 7 } };
+  const steps = () => STEPS[T.hintLevel] || STEPS.basic;
+  const MC = document.createElement('canvas').getContext('2d');   /* for measuring words before they are drawn */
+  const SAID_SKIP = '막히면 오른쪽 위의 건너뛰기를 눌러도 돼요', SAID_SKIPPED = '건너뛰었어요';   /* read aloud */
+  Z.coach = function (o) {
+    const C = { tipOn: false, skipOn: false, tipA: 0, skipA: 0, glowA: 0, over: false, ended: false, skipped: false };
+    const live = () => !C.ended && (!o.live || o.live());
+    const tipText = () => (typeof o.tip === 'function' ? o.tip() : o.tip) || '';
+    C.update = function (dt) {
+      const L = steps(), on = live();
+      if (on) {
+        const id = o.idle ? o.idle() : 0, st = o.stuck ? o.stuck() : id, m = o.misses ? o.misses() : 0;
+        if (!C.tipOn && (st >= L.tip || m >= L.tipMiss) && tipText()) { C.tipOn = true; T.announce(tipText()); }
+        if (!C.skipOn && (st >= L.skip || m >= L.skipMiss)) { C.skipOn = true; T.announce(SAID_SKIP); }
+        C.glowA += (T.clamp((id - L.glow) / 1.2) - C.glowA) * Math.min(1, dt * 8);
+      } else C.glowA = Math.max(0, C.glowA - dt * 3);
+      const k = Math.min(1, dt * 3);
+      C.tipA += ((on && C.tipOn ? 1 : 0) - C.tipA) * k;
+      C.skipA += ((on && C.skipOn ? 1 : 0) - C.skipA) * k;
+    };
+    /* step 1: the soft glow on the next useful thing */
+    C.glow = function (g, t, a, r) {
+      if (C.glowA <= 0.01 || !o.hintAt) return;
+      const q = o.hintAt();
+      if (q) P.beacon(g, q[0], q[1], r || o.r || 46, t, C.glowA * (a == null ? 1 : a), '#fff0c8');
+    };
+    /* step 3: under the sound and settings buttons, in the top right corner */
+    function chip() {
+      const V = T.view, label = T.tr('건너뛰기') + (Z.hasKeys() ? '  ·  S' : '  ›');
+      MC.font = P.font('serif', 22);
+      const w = MC.measureText(label).width + 44, h = 46, fit = V.fit || 1;
+      const below = Math.max(10, (V.top || 0) + 12) + 40 - (V.top || 0);   /* the buttons' foot, in page pixels from the canvas top */
+      return { x: V.W / 2 - 30 - w / 2, y: Math.max(112, below / fit + 46), w, h, label, hw: Math.max(w / 2 + 8, 24 / fit), hh: Math.max(h / 2 + 8, 24 / fit) };
+    }
+    const onChip = (x, y) => { const b = chip(); return Math.abs(x - b.x) < b.hw && Math.abs(y - b.y) < b.hh; };
+    C.draw = function (g, t, a) {
+      a = a == null ? 1 : a;
+      /* step 2: a short line at the top, what to do */
+      const s = C.tipA > 0.01 ? tipText() : '';
+      if (s) {
+        /* kept clear of the dream tray (top left) and the skip (top right); a long line goes onto two. If the thing
+           to touch is up there itself, the line moves down above the caption (once, and stays there) */
+        const V = T.view, al = a * C.tipA, maxW = Math.max(520, V.W - 540), tx = T.tr(s);
+        MC.font = P.font('serif', 23);
+        let lines = [tx];
+        if (MC.measureText(tx).width > maxW - 80) {
+          let best = -1, bd = 1e9;
+          for (let j = 0; j < tx.length; j++) if (tx[j] === ' ' && Math.abs(j - tx.length / 2) < bd) { bd = Math.abs(j - tx.length / 2); best = j; }
+          if (best > 0) lines = [tx.slice(0, best), tx.slice(best + 1)];
+        }
+        const w = Math.min(maxW, Math.max(...lines.map((l) => MC.measureText(l).width)) + 80), h = 22 + lines.length * 32;
+        if (!C.tipLow && o.hintAt) { const q = o.hintAt(); if (q && q[1] < 200 && Math.abs(q[0]) < w / 2 + 70) C.tipLow = true; }
+        const y = C.tipLow ? 772 - h : 58;
+        g.save(); g.globalAlpha *= al;
+        const box = P.rr(-w / 2, y - 27, w, h, 27);
+        P.fill(g, box, 'rgba(14,20,32,0.6)');
+        g.strokeStyle = 'rgba(255,233,176,0.42)'; g.lineWidth = 1.5; g.stroke(box);
+        P.glow(g, -w / 2 + 28, y, 16, '#ffe9b0', 0.7);
+        P.fill(g, P.circle(-w / 2 + 28, y, 4.5), '#fff3d2');
+        g.restore();
+        lines.forEach((l, i) => P.text(g, l, 12, y + 8 + i * 32, { font: 'serif', size: 23, color: '#ffe9b0', alpha: al, fit: w - 76, nowrap: true }));
+      }
+      if (C.skipA > 0.01) {
+        const b = chip(), al = a * C.skipA * (C.over ? 1 : 0.86);   /* quiet, but it must still read on a pale dream */
+        g.save(); g.globalAlpha *= al;
+        const box = P.rr(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h, b.h / 2);
+        P.fill(g, box, C.over ? 'rgba(14,20,32,0.7)' : 'rgba(14,20,32,0.56)');
+        g.strokeStyle = 'rgba(243,234,216,0.5)'; g.lineWidth = 1.5; g.stroke(box);
+        g.restore();
+        P.text(g, b.label, b.x, b.y + 7, { font: 'serif', size: 22, color: '#f3ead8', alpha: al, nowrap: true });
+      }
+    };
+    C.pointer = function (type, x, y) {
+      if (C.skipA < 0.5 || !live()) { C.over = false; return false; }
+      C.over = onChip(x, y);
+      if (type === 'move' && C.over) T.cursor('pointer');
+      if (type === 'down' && C.over) { C.skip(); return true; }
+      return false;
+    };
+    C.key = function (key) {
+      T.keyUsed = true;
+      if (C.skipA < 0.5 || !live() || !Z.isSkipKey(key)) return false;
+      C.skip(); return true;
+    };
+    C.skip = function () {
+      if (C.ended) return;
+      C.ended = true; C.skipped = true; C.over = false;
+      T.announce(SAID_SKIPPED);
+      if (o.solve) o.solve();
+    };
+    C.end = function () { C.ended = true; };
+    C.chipAt = () => { const b = chip(); return [b.x, b.y]; };   /* (where the skip sits: the tests press it) */
+    return C;
+  };
+
+  /* ---------- the frame every puzzle here is built on ---------- */
   function make(o) {
-    const G = Object.assign({ a: 0, idle: 0, done: false, shake: 0, quiet: false, say: '' }, o);
+    const G = Object.assign({ a: 0, idle: 0, done: false, shake: 0, quiet: false, say: '', mistakes: 0, focus: -1, kb: false, auto: false }, o);
     G.promise = new Promise((res) => { G.res = res; });
-    G.begin = function (clock) { G.clock = clock; G.idle = 0; clock.tween(G, 'a', 1, 0.8, T.ease.out3); if (G.start) G.start(); return G.promise; };
+    G.begin = function (clock) { G.clock = clock; G.idle = 0; G.mistakes = 0; arm(); clock.tween(G, 'a', 1, 0.8, T.ease.out3); if (G.start) G.start(); return G.promise; };
     G.finish = function (hold) {
       if (G.done) return;
-      G.done = true; G.say = '';
+      G.done = true; G.say = ''; G.auto = false;
+      if (G.coach) G.coach.end();
       const k = G.clock;
       k.wait(hold == null ? 1.3 : hold).then(() => k.tween(G, 'a', 0, 0.8, T.ease.io)).then(() => G.res());
     };
-    G.wrong = function (text) { G.shake = 1; G.idle = 0; if (text) G.say = text; T.audio.sfx('knock', 0.2); };
+    G.wrong = function (text) { G.shake = 1; G.idle = 0; G.mistakes++; if (text) G.say = text; T.audio.sfx('knock', 0.2); };
     G.dim = function (g, k) { const V = T.view; g.fillStyle = T.rgba('#141a2c', (k == null ? 0.62 : k) * G.a); g.fillRect(-V.W / 2, 0, V.W, V.H); };
-    G.caption = function (g, text) { T.band(g, G.a); P.text(g, G.say || text, 0, 850, { font: 'serif', size: 25, color: INK, alpha: 0.94 * G.a, glow: 'rgba(8,12,22,0.9)' }); };
+    /* the line at the foot of the screen: what went wrong if something did, else what to do, and its keys while
+       there is something to press (G.keys may be a function, null when there is not) */
+    G.caption = function (g, text) {
+      const k = G.done ? null : typeof G.keys === 'function' ? G.keys() : G.keys;
+      T.band(g, G.a); P.text(g, G.say || Z.withKeys(text, k), 0, 850, { font: 'serif', size: 25, color: INK, alpha: 0.94 * G.a, glow: 'rgba(8,12,22,0.9)' });
+    };
     G.update = function (dt) { G.idle += dt; G.shake = Math.max(0, G.shake - dt * 2.6); };
-    /* left alone long enough, it shows the next move */
-    G.hintRing = function (g, t) { if (G.done || G.idle < 9 || !G.hintAt) return; const q = G.hintAt(); if (q) P.beacon(g, q[0], q[1], 46, t, G.a, '#fff0c8'); };
-    G.pointer = function (type, x, y) { if (type !== 'down' || G.done || G.a < 0.6) return; const n = G.hit(x, y); if (n >= 0) G.tap(n); };
+    /* left alone long enough, it shows the next move (step 1); G.hintR: a glow that rings round bigger things */
+    G.hintRing = function (g, t) { G.ringed = true; if (G.done || !G.hintAt || !G.coach) return; G.coach.glow(g, t, G.a, G.hintR || 46); };
+    G.pointer = function (type, x, y) {
+      if (G.done || G.a < 0.6) return;
+      if (type === 'move') { if (G.hit && !G.auto) T.cursor(G.hit(x, y) >= 0 ? 'pointer' : 'default'); return; }
+      if (type !== 'down') return;
+      G.kb = false;
+      const n = G.hit(x, y); if (n >= 0) G.tap(n);
+    };
+    /* ← → walk the white ring along the things there are (left to right); Space / Enter takes the one it is on */
+    function spots() { return G.spots ? G.spots().filter(Boolean).sort((p, q) => p[1] - q[1] || p[2] - q[2]) : []; }
+    function moveFocus(d) {
+      const list = spots();
+      if (!list.length) return false;
+      let i = G.kb ? list.findIndex((q) => q[0] === G.focus) : -1;
+      i = i < 0 ? (d > 0 ? 0 : list.length - 1) : (i + d + list.length) % list.length;
+      G.focus = list[i][0]; G.kb = true; G.idle = 0;
+      T.audio.sfx('step');
+      return true;
+    }
     G.key = function (key) {
       if (G.done || G.a < 0.6) return;
+      if (G.kb && Z.isAct(key) && G.spots) { const s = spots().find((q) => q[0] === G.focus); if (s) { G.tap(s[0]); return; } }
       const n = G.keyOf ? G.keyOf(key) : key >= '1' && key <= '9' ? +key - 1 : -1;
-      if (n >= 0) G.tap(n); else return false;
+      if (n >= 0) { G.kb = false; G.tap(n); return; }
+      if (G.spots && (key === 'ArrowLeft' || key === 'ArrowRight')) return moveFocus(key === 'ArrowLeft' ? -1 : 1) ? undefined : false;
+      if (G.spots && Z.isAct(key)) return moveFocus(1) ? undefined : false;   /* the first press shows where the keyboard is */
+      return false;
     };
     G.jig = (t, i) => (G.shake ? Math.sin(t * 42 + i * 1.7) * 6 * G.shake : 0);
+
+    /* the help, the ring and the skip go round whatever draw / update / pointer / key the puzzle has by now */
+    function arm() {
+      if (G.coach) return;
+      const C = (G.coach = Z.coach({
+        idle: () => G.idle, misses: () => G.mistakes, live: () => !G.done && !G.auto && G.a > 0.6,
+        hintAt: () => (G.hintAt ? G.hintAt() : null), tip: () => (typeof G.tip === 'function' ? G.tip() : G.tip), solve: skipped,
+      }));
+      const draw0 = G.draw, upd0 = G.update, ptr0 = G.pointer, key0 = G.key;
+      G.draw = function (g, t) {
+        G.ringed = false;
+        draw0.call(G, g, t);
+        if (G.a < 0.005) return;
+        if (!G.ringed) G.hintRing(g, t);
+        if (G.kb && !G.done && !G.auto) { const s = spots().find((q) => q[0] === G.focus); if (s) Z.focusRing(g, s[1], s[2], s[3] || 50, t, G.a); }
+        C.draw(g, t, G.a);
+      };
+      G.update = function (dt) { upd0.call(G, dt); C.update(dt); if (G.auto && !G.done) autoplay(dt); };
+      G.pointer = function (type, x, y) { if (C.pointer(type, x, y)) return; const r = ptr0.call(G, type, x, y); if (type === 'move' && C.over) T.cursor('pointer'); return r; };
+      G.key = function (key) { if (C.key(key)) return; return key0.call(G, key); };
+      /* skipped: finished the way solving it would finish it, or, for a puzzle with no solve(), played by itself */
+      let autoT = 0, autoFor = 0, autoNone = 0;
+      function skipped() {
+        if (G.done) return;
+        G.say = ''; G.kb = false;
+        if (G.solve) G.solve(); else G.auto = true;
+      }
+      function autoplay(dt) {
+        autoFor += dt; autoT -= dt;
+        /* whatever happens, the story does not wait on it for ever: if it cannot play itself, it is simply done */
+        if (autoFor > 60 || autoNone > 8) { G.finish(0.6); return; }
+        if (autoT > 0) return;
+        const k = G.next && G.next();
+        if (k) { autoNone = 0; key0.call(G, k); autoT = 0.12; } else autoNone += dt;
+      }
+    }
     return G;
   }
   Z.make = make;   /* the jobs of work (work.js) are built on the same frame */
@@ -56,16 +267,18 @@
       G.phase = 'listen'; G.i = 0;
       G.marks = seq.map((n) => ({ n, a: 0, done: 0 }));
       await k.wait(0.9);
+      if (G.done) return;
       G.say = '';
       G.pos = [0, 1, 2, 3]; G.vis = [0, 1, 2, 3];
       G.ring = 1; k.tween(G, 'ring', 0, 0.8);
-      for (let i = 0; i < seq.length; i++) { const n = seq[i]; glow(n); G.marks[i].a = 1; T.audio.note({ m: NOTE[n] - 12, vel: 0.34, voice: 'bell', dur: 5 }); await k.wait(o.beat || 1.0); }
+      for (let i = 0; i < seq.length; i++) { if (G.done) return; const n = seq[i]; glow(n); G.marks[i].a = 1; T.audio.note({ m: NOTE[n] - 12, vel: 0.34, voice: 'bell', dur: 5 }); await k.wait(o.beat || 1.0); }
       if (o.shuffle) {   /* the lamps drift to new places: follow the colour you heard, not the place it stood */
         const sh = [[1, 0, 3, 2], [2, 3, 0, 1], [3, 0, 1, 2]][G.r % 3];
         G.pos = sh.slice(); T.audio.sfx('whoosh');
         for (let n = 0; n < 4; n++) k.tween(G.vis, n, sh[n], 1.2, T.ease.io);
         await k.wait(1.3);
       }
+      if (G.done) return;
       /* the first time, the dots go pale and it is a memory; after a miss they stay as a guide */
       G.marks.forEach((m) => k.tween(m, 'a', G.miss ? 0.6 : 0, 0.7));
       G.phase = 'answer'; G.idle = 0;
@@ -97,6 +310,16 @@
     };
     G.next = () => (G.phase === 'answer' && !G.done ? String(want(G.rounds[G.r], G.i) + 1) : null);
     G.hintAt = () => (G.phase === 'answer' ? [lx(want(G.rounds[G.r], G.i)), LY + 80] : null);
+    G.keys = () => (G.phase === 'answer' ? 'pick' : null);
+    G.tip = o.reverse ? '마지막에 울린 등불부터 거꾸로 눌러요' : o.shuffle ? '자리 말고 색을 보고, 울린 차례대로 눌러요' : '종이 울린 차례대로 등불을 눌러요';
+    G.spots = () => (G.phase !== 'answer' ? [] : [0, 1, 2, 3].map((n) => [n, lx(n), LY + 80, 78]).concat([[9, BELL[0], BELL[1], 56]]));
+    /* skipped: the lamps answer every question that is left, and the bell is content */
+    G.solve = function () {
+      G.phase = 'pause'; G.marks = [];
+      while (G.r < G.rounds.length) { G.r++; if (o.onRound) o.onRound(G.r, G.rounds.length); }
+      for (let n = 0; n < 4; n++) glow(n);
+      T.audio.sfx('join'); G.finish(1.1);
+    };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g, 0.5);
@@ -161,6 +384,10 @@
     G.keyOf = (key) => (key === 'Backspace' || key === 'ArrowUp' ? 9 : key >= '1' && key <= String(N) ? +key - 1 : -1);
     G.next = () => (G.done ? null : bad() ? 'Backspace' : G.placed.length < N ? String(tray.indexOf(G.placed.length) + 1) : null);
     G.hintAt = () => (bad() ? [sx(G.placed.length - 1), GY - 10] : G.placed.length < N ? [sx(tray.indexOf(G.placed.length)), TY - 30] : null);
+    G.keys = 'pick';
+    G.tip = '돌을 눌러 구덩이에 놓아요. 놓은 돌은 다시 누르면 들려요';
+    G.spots = () => tray.map((s, n) => (G.placed.includes(s) ? null : [n, sx(n), TY - 30, 62]));
+    G.solve = function () { G.placed = depth.map((d, i) => i); T.audio.promise(); G.finish(1.5); };
     const stone = (g, x, bottom, s, lit) => {
       const hh = h(s);
       P.fill(g, P.soft([[x - 44, bottom], [x - 40, bottom - hh + 8], [x - 22, bottom - hh], [x + 24, bottom - hh + 2], [x + 42, bottom - hh + 10], [x + 45, bottom]]), s % 2 ? '#cdbfae' : '#d9cdbd');
@@ -222,6 +449,13 @@
     const want = () => tray.findIndex((id) => !G.has[id] && ready(id));
     G.next = () => (G.done ? null : want() < 0 ? null : String(want() + 1));
     G.hintAt = () => (want() < 0 ? null : [tx(want()), TY]);
+    G.keys = 'pick';
+    G.tip = '나무를 하나씩 눌러 세워요. 받쳐 줄 것부터'; G.hintR = 70;
+    G.spots = () => tray.map((id, n) => (G.has[id] ? null : [n, tx(n), TY, 60]));
+    G.solve = function () {
+      PIECES.forEach((p, id) => { if (!G.has[id]) { G.has[id] = true; G.clock.wait(id * 0.12).then(() => G.clock.tween(G.up, id, 1, 0.55, T.ease.out3)); } });
+      T.audio.promise(); G.finish(2);
+    };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g);
@@ -269,6 +503,10 @@
     G.hit = (x, y) => { if (y < BY - 300 || y > BY + 40) return -1; for (let b = 0; b < 3; b++) if (Math.abs(x - bx(b)) < 100) return b; return -1; };
     G.next = () => (G.left > 0 && !G.done ? String(order[G.left - 1] + 1) : null);
     G.hintAt = () => (G.left > 0 ? [bx(order[G.left - 1]), ly(G.left - 1)] : null);
+    G.keys = 'pick';
+    G.tip = '말뚝을 눌러 고리를 풀어요. 맨 위 고리부터';
+    G.spots = () => [0, 1, 2].map((b) => [b, bx(b), BY - 150, 70]);
+    G.solve = function () { G.left = 0; T.audio.sfx('join'); G.finish(1.1); };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g);
@@ -333,6 +571,16 @@
     const want = () => { const off = G.pick.find((q) => !ans.includes(q)); if (off != null) return off; const need = ans.find((q) => !G.pick.includes(q)); return need == null ? -1 : need; };
     G.next = () => (G.done || G.busy || want() < 0 ? null : String(want() + 1));
     G.hintAt = () => (want() < 0 ? null : [jx(want()), JY]);
+    G.keys = 'pick';
+    G.tip = '병 두 개를 눌러 넣고, 노란 점을 세어 봐요'; G.hintR = 76;
+    G.spots = () => (G.busy ? [] : [0, 1, 2, 3].map((n) => [n, jx(n), JY, 70]));
+    /* skipped: the two that are hers go in (if a try is still being tasted, it is tasted as hers) */
+    G.solve = function () {
+      G.pick = ans.slice();
+      if (G.busy) return;
+      G.tries.push({ pick: ans.slice().sort(), m: 2 }); if (G.tries.length > 5) G.tries.shift();
+      T.audio.promise(); G.finish(1.7);
+    };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g);
@@ -394,6 +642,10 @@
     G.hit = (x, y) => { for (let n = 0; n < 3; n++) if (Math.hypot(x - bx(n), y - BY) < 78) return n; return -1; };
     G.next = () => (G.n < gaps.length && !G.done ? String(kind(gaps[G.n]) + 1) : null);
     G.hintAt = () => (G.n < gaps.length ? [bx(kind(gaps[G.n])), BY] : null);
+    G.keys = 'pick';
+    G.tip = '아래의 꽃을 눌러 반짝이는 빈자리를 채워요'; G.hintR = 78;
+    G.spots = () => [0, 1, 2].map((n) => [n, bx(n), BY, 66]);
+    G.solve = function () { G.n = gaps.length; T.audio.promise(); G.finish(1.6); };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g);

@@ -1,10 +1,12 @@
-/* Take Your Time — settings: a small sheet of paper over the game. Volume, full screen, starting over. */
+/* Take Your Time — settings: a small sheet of paper over the game. Volume, language, how much help the puzzles
+   give (T.hintLevel: 'basic' | 'less', read by T.puzzle.coach), full screen, starting over. */
 (function () {
   'use strict';
   const T = window.TYT, A = T.audio;
   const saved = T.store.get('tyt-set') || {};
   A.setVolume('music', saved.music == null ? 1 : saved.music);
   A.setVolume('fx', saved.fx == null ? 1 : saved.fx);
+  T.hintLevel = saved.hints === 'less' ? 'less' : 'basic';
   const wrap = document.getElementById('wrap'), mute = document.getElementById('mute');
   const el = (tag, css, text) => { const e = document.createElement(tag); if (css) e.style.cssText = css; if (text) e.textContent = text; return e; };
 
@@ -31,7 +33,7 @@
     r.addEventListener('change', () => { if (kind === 'fx') A.sfx('touch'); else A.note({ m: 69, vel: 0.4, voice: 'felt' }); });
     row.appendChild(r); box.appendChild(row);
   };
-  const keep = () => T.store.set('tyt-set', { music: A.vol.music, fx: A.vol.fx, lang: T.lang });
+  const keep = () => T.store.set('tyt-set', { music: A.vol.music, fx: A.vol.fx, lang: T.lang, hints: T.hintLevel });
   /* language: two plain buttons, each written in its own language */
   const langRow = el('div', 'display:flex;gap:8px;margin:8px 0 2px');
   const langBtn = {};
@@ -42,9 +44,22 @@
     langBtn[q[0]] = b; langRow.appendChild(b);
   });
   box.appendChild(langRow);
+  /* hints: the puzzles' help comes at its usual pace, or later and less often */
+  const hintRow = el('div', 'display:flex;align-items:center;gap:8px;margin:12px 0 2px');
+  hintRow.appendChild(say(el('div', 'flex:0 0 auto;min-width:3.2em'), '힌트'));
+  const hintBtn = {};
+  [['basic', '기본'], ['less', '적게']].forEach((q) => {
+    const b = el('button', 'flex:1;min-height:44px;padding:9px 8px;border-radius:10px;cursor:pointer;font:inherit');
+    say(b, q[1]); b.type = 'button';
+    b.addEventListener('click', () => { T.hintLevel = q[0]; keep(); relabel(); A.sfx('touch'); });
+    hintBtn[q[0]] = b; hintRow.appendChild(b);
+  });
+  box.appendChild(hintRow);
+  const pressed = (b, on) => { b.style.cssText += ';border:2px solid #33405c;background:' + (on ? '#33405c' : 'transparent') + ';color:' + (on ? '#fff6e4' : '#33405c'); b.setAttribute('aria-pressed', on ? 'true' : 'false'); };
   function relabel() {
     labels.forEach((q) => { q[0].textContent = T.tr(q[1]); });
-    Object.keys(langBtn).forEach((k) => { const on = k === T.lang; langBtn[k].style.cssText += ';border:2px solid #33405c;background:' + (on ? '#33405c' : 'transparent') + ';color:' + (on ? '#fff6e4' : '#33405c'); langBtn[k].setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    Object.keys(langBtn).forEach((k) => pressed(langBtn[k], k === T.lang));
+    Object.keys(hintBtn).forEach((k) => pressed(hintBtn[k], k === T.hintLevel));
     gear.setAttribute('aria-label', T.tr('설정')); veil.setAttribute('aria-label', T.tr('설정'));
     A.setMuted(A.muted);
   }

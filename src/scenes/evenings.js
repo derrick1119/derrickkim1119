@@ -27,7 +27,7 @@
       G.sel = []; G.lines = 0; G.phase = 'look'; G.idle = 0;
     }
     G.start = () => lay();
-    const near = (x, y) => { let b = -1, bd = 36; G.stars.forEach((t, i) => { const d = Math.hypot(x - t.x, y - t.y); if (d < bd) { bd = d; b = i; } }); return b; };
+    const near = (x, y) => { let b = -1, bd = 56; G.stars.forEach((t, i) => { const d = Math.hypot(x - t.x, y - t.y); if (d < bd) { bd = d; b = i; } }); return b; };
     G.hit = (x, y) => near(x, y);
     G.keyOf = (key) => (key === ' ' || key === 'Enter' ? 999 : -1);
     function check() {
@@ -36,13 +36,14 @@
       if (G.sel.every((i) => G.stars[i].mine >= 0)) {
         G.phase = 'join'; T.audio.promise();
         G.clock.tween(G, 'lines', 1, 1.4, T.ease.io).then(() => G.clock.wait(1.2)).then(() => {
+          if (G.skipRest) { G.finish(0.8); return; }   /* skipped: this picture is the last of the evening */
           G.r++;
           if (G.r >= o.rounds.length) G.finish(0.8); else lay();
         });
       } else {
         G.wrong('그림이랑 모양이 달라요. 피피의 그림을 다시 봐요');
         G.phase = 'oops';
-        G.clock.wait(0.7).then(() => { G.sel = []; G.phase = 'look'; });
+        G.clock.wait(0.7).then(() => { if (G.phase === 'oops') { G.sel = []; G.phase = 'look'; } });
       }
     }
     G.tap = function (n) {
@@ -62,6 +63,16 @@
     };
     G.next = () => (G.done || G.phase !== 'look' ? null : 'Enter');
     G.hintAt = () => { if (G.phase !== 'look') return null; const t = G.stars.find((s, i) => s.mine >= 0 && !G.sel.includes(i)); return t ? [t.x, t.y] : null; };
+    G.keys = () => (G.phase === 'look' ? 'pick' : null);
+    G.tip = '피피의 그림과 같은 모양이 되게 별을 눌러요';
+    G.spots = () => (G.phase !== 'look' ? [] : G.stars.map((s, i) => [i, s.x, s.y, 24]));
+    /* skipped: the picture she drew comes out in the stars, and that is enough stars for one evening */
+    G.solve = function () {
+      G.skipRest = true;
+      if (G.phase !== 'look' && G.phase !== 'oops') return;   /* a picture is already being joined: it will be the last */
+      G.sel = G.stars.map((s, i) => (s.mine >= 0 ? i : -1)).filter((i) => i >= 0);
+      check();
+    };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       const V = T.view, W = V.W, q = R();
@@ -129,6 +140,19 @@
     };
     G.next = () => (G.done ? null : String(order.indexOf(G.i) + 1));
     G.hintAt = () => (G.done ? null : [X0(order.indexOf(G.i)), BY]);
+    G.keys = 'pick';
+    G.tip = '실타래를 하나씩 눌러 한 줄씩 떠요'; G.hintR = 60;
+    G.spots = () => order.map((idx, n) => (G.used.includes(n) ? null : [n, X0(n), BY, 50]));
+    /* skipped: Ana tells the rest of it herself, a stripe a story, in the order it happened */
+    G.solve = function () {
+      let d = 0;
+      while (G.i < o.items.length) {
+        const n = order.indexOf(G.i), row = { k: 0, item: o.items[G.i] };
+        G.used.push(n); G.rows.push(row); G.clock.wait(d).then(() => G.clock.tween(row, 'k', 1, 0.7, T.ease.out));
+        G.i++; d += 0.25;
+      }
+      T.audio.sfx('crayon'); T.audio.promise(); G.finish(1.8 + d);
+    };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       G.dim(g, 0.5);

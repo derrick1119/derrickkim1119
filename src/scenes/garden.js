@@ -130,12 +130,18 @@
     const toLocal = (x, y) => { const a = at(); return [(x - a[0]) / a[2], (y - a[1]) / a[2]]; };
     const toScr = (lx, ly) => { const a = at(); return [a[0] + lx * a[2], a[1] + ly * a[2]]; };
     G.keyOf = (key) => (key === ' ' || key === 'Enter' ? 99 : key >= '1' && key <= String(tilts.length) ? +key - 1 : -1);
+    /* a board is tapped anywhere within a finger's breadth of it; where two are near, the nearer one */
     G.hit = function (x, y) {
-      const [lx, ly] = toLocal(x, y);
-      if (Math.abs(lx) < 56 && ly > -486 && ly < -366) return 99;
-      for (let n = 0; n < tilts.length; n++) { const p = L.pieces[tilts[n]]; if (Math.abs(lx - p.x) < COL && Math.abs(ly - p.y) < 30) return n; }
-      if (L.pieces.some((p) => p.k === 's' && Math.abs(lx - p.x) < COL && Math.abs(ly - p.y) < 30)) return 98;
-      return -1;
+      const [lx, ly] = toLocal(x, y), reach = Math.max(44, 50 / at()[2]);
+      if (Math.abs(lx) < 60 && ly > -490 && ly < -362) return 99;
+      let best = -1, bd = Infinity;
+      L.pieces.forEach((p, i) => {
+        const dx = Math.abs(lx - p.x), dy = Math.abs(ly - p.y);
+        if (dx >= COL || dy >= reach) return;
+        const d = dy + dx * 0.2;
+        if (d < bd) { bd = d; best = p.k === 't' ? tilts.indexOf(i) : 98; }
+      });
+      return best;
     };
     G.tap = function (n) {
       if (G.done || G.busy) return;
@@ -192,6 +198,18 @@
       if (!SOL) return null;
       const n = tilts.findIndex((i) => G.dir[i] !== SOL[i]);
       return n >= 0 ? toScr(L.pieces[tilts[n]].x, L.pieces[tilts[n]].y) : toScr(0, -430);
+    };
+    G.keys = () => (G.busy ? null : 'pick');
+    G.tip = '판자를 눌러 기울이고, 물통을 눌러 부어요';
+    G.spots = () => (G.busy ? [] : tilts.map((i, n) => { const q = toScr(L.pieces[i].x, L.pieces[i].y); return [n, q[0], q[1], 46 * at()[2]]; }).concat([[99, ...toScr(0, -430), 52 * at()[2]]]));
+    /* skipped: the boards are set the way the water wants them, and the barrel is poured */
+    G.solve = function () {
+      if (!SOL) { G.finish(0.6); return; }
+      if (G.busy) { G.clock.wait(0.3).then(() => G.solve()); return; }
+      tilts.forEach((i) => { if (G.dir[i] !== SOL[i]) { G.dir[i] = SOL[i]; G.clock.tween(G.ang, i, G.dir[i] * TIP, 0.3, T.ease.out); } });
+      T.audio.sfx('knock', 0.4);
+      G.busy = true;
+      G.clock.wait(0.5).then(pour);
     };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
