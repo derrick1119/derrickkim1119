@@ -51,35 +51,100 @@ export const LADDER = [
 ];
 /** 7일 연속 20개 이상이면 주간 보너스. */
 export const WEEKLY = { days: 7, need: 20, reward: { piece: 2, grant: 15 } };
-/** 조각을 이만큼 모으면 「본부 우수 요원」 의상 한 벌. */
+/**
+ * 조각 꾸미기: 조각을 이만큼 모으면 아래 차례대로 하나씩 완성된다(「본부 우수 요원」 → 「꼬마 기사」 → 「천사 고리」).
+ * 모두 가졌으면 조각 하나가 연구비 PIECE_GRANT_UNITS 단위로 바뀐다.
+ */
 export const PIECES_PER_COSTUME = 7;
-export const PIECE_COSTUME = 'agent';
+export const PIECE_SERIES = ['outfit:agent', 'outfit:knight', 'deco:halo'];
+export const PIECE_COSTUME = 'agent'; // 첫 조각 의상(예전 이름)
+export const PIECE_GRANT_UNITS = 3;
 
 /**
- * 꾸미기. kind: outfit(피포 의상) · paint(기체 도색) · beam(빔 색). 능력치 없음.
- * source: shop(상품) · starter · season · ladder(조각) · default
+ * 테마 세트: 의상 + 도색 + 빔 + 장식 네 가지가 한 벌. 세트로만 판다(product).
  */
-export const COSMETICS = [
-  { id: 'none', kind: 'outfit', source: 'default' },
-  { id: 'cadet', kind: 'outfit', source: 'starter' }, // 견습 비행사 모자와 고글 목도리
-  { id: 'agent', kind: 'outfit', source: 'ladder' }, // 본부 우수 요원: 선글라스 + 넥타이 + 배지
-  { id: 'star', kind: 'outfit', source: 'season' }, // 시즌 1: 별빛 망토와 왕관
-  { id: 'bunny', kind: 'outfit', source: 'shop' }, // 토끼 귀 털모자
-  { id: 'raincoat', kind: 'outfit', source: 'shop' }, // 노란 우비
-  { id: 'chef', kind: 'outfit', source: 'shop' }, // 우주 요리사
-  { id: 'astro', kind: 'outfit', source: 'shop' }, // 꼬마 우주복
-  { id: 'navy', kind: 'paint', source: 'default' },
-  { id: 'sunset', kind: 'paint', source: 'shop' },
-  { id: 'mint', kind: 'paint', source: 'shop' },
-  { id: 'galaxy', kind: 'paint', source: 'shop' },
-  { id: 'gold', kind: 'paint', source: 'freepass' }, // 본부 프리패스 감사 선물
-  { id: 'cyan', kind: 'beam', source: 'default' },
-  { id: 'pink', kind: 'beam', source: 'shop' },
-  { id: 'gold', kind: 'beam', source: 'season' },
-  { id: 'rainbow', kind: 'beam', source: 'shop' },
+export const SETS = [
+  { id: 'cat', product: 'shh.set.cat', krw: 5900, items: ['outfit:cat', 'paint:calico', 'beam:peach', 'deco:catears'] },
+  { id: 'dino', product: 'shh.set.dino', krw: 5900, items: ['outfit:dino', 'paint:jungle', 'beam:lime', 'deco:spikes'] },
+  { id: 'bee', product: 'shh.set.bee', krw: 5900, items: ['outfit:bee', 'paint:honey', 'beam:honey', 'deco:wings'] },
+  { id: 'wizard', product: 'shh.set.wizard', krw: 5900, items: ['outfit:wizard', 'paint:magic', 'beam:violet', 'deco:stars'] },
+  { id: 'winter', product: 'shh.set.winter', krw: 5900, items: ['outfit:winter', 'paint:snow', 'beam:ice', 'deco:antlers'] },
+  { id: 'pirate', product: 'shh.set.pirate', krw: 5900, items: ['outfit:pirate', 'paint:pirate', 'beam:ocean', 'deco:flag'] },
 ];
-export const COSMETIC_KINDS = ['outfit', 'paint', 'beam'];
-export const DEFAULT_LOOK = { outfit: 'none', paint: 'navy', beam: 'cyan' };
+export const SET_BY_ID = Object.freeze(Object.assign(Object.create(null), Object.fromEntries(SETS.map((x) => [x.id, x]))));
+
+/**
+ * 꾸미기. kind: outfit(피포 의상) · paint(기체 도색) · beam(빔 색) · deco(기체 장식). 능력치 없음.
+ * source: default · shop(낱개 상품) · set(테마 세트 상품, set = 세트 id) · starter · season · freepass
+ *         ladder(본부 지원 도장 조각, PIECE_SERIES 차례) · achievement(업적을 이루면 공짜, ach = 업적 id)
+ */
+const setOf = (key) => SETS.find((x) => x.items.includes(key))?.id;
+const C = (kind, id, source, extra = {}) => ({ id, kind, source, ...(source === 'set' ? { set: setOf(`${kind}:${id}`) } : {}), ...extra });
+export const COSMETICS = [
+  // 피포 의상
+  C('outfit', 'none', 'default'),
+  C('outfit', 'cadet', 'starter'), // 견습 비행사 모자와 고글 목도리
+  C('outfit', 'agent', 'ladder'), // 본부 우수 요원: 선글라스 + 넥타이 + 배지
+  C('outfit', 'star', 'season'), // 시즌 1: 별빛 망토와 왕관
+  C('outfit', 'flower', 'achievement', { ach: 'archive_10' }), // 꽃 화관
+  C('outfit', 'party', 'achievement', { ach: 'clear_1' }), // 생일 파티
+  C('outfit', 'knight', 'ladder'), // 꼬마 기사
+  C('outfit', 'bunny', 'shop'), // 토끼 귀 털모자
+  C('outfit', 'raincoat', 'shop'), // 노란 우비
+  C('outfit', 'chef', 'shop'), // 우주 요리사
+  C('outfit', 'astro', 'shop'), // 꼬마 우주복
+  C('outfit', 'frog', 'shop'), // 개구리 모자
+  C('outfit', 'cat', 'set'), // 냥냥 후드
+  C('outfit', 'dino', 'set'), // 공룡 후드
+  C('outfit', 'bee', 'set'), // 꿀벌
+  C('outfit', 'wizard', 'set'), // 꼬마 마법사
+  C('outfit', 'winter', 'set'), // 겨울 니트
+  C('outfit', 'pirate', 'set'), // 우주 해적 선장
+  // 기체 도색
+  C('paint', 'navy', 'default'),
+  C('paint', 'gold', 'freepass'), // 본부 프리패스 감사 선물
+  C('paint', 'chrome', 'achievement', { ach: 'form_carrier' }), // 크롬 은빛
+  C('paint', 'sunset', 'shop'),
+  C('paint', 'mint', 'shop'),
+  C('paint', 'galaxy', 'shop'),
+  C('paint', 'berry', 'shop'), // 딸기우유
+  C('paint', 'candy', 'shop'), // 사탕
+  C('paint', 'aurora', 'shop'), // 오로라
+  C('paint', 'calico', 'set'),
+  C('paint', 'jungle', 'set'),
+  C('paint', 'honey', 'set'),
+  C('paint', 'magic', 'set'),
+  C('paint', 'snow', 'set'),
+  C('paint', 'pirate', 'set'),
+  // 빔 색
+  C('beam', 'cyan', 'default'),
+  C('beam', 'gold', 'season'),
+  C('beam', 'aurora', 'achievement', { ach: 'specimens_1000' }),
+  C('beam', 'pink', 'shop'),
+  C('beam', 'rainbow', 'shop'),
+  C('beam', 'sunset', 'shop'),
+  C('beam', 'candy', 'shop'),
+  C('beam', 'peach', 'set'),
+  C('beam', 'lime', 'set'),
+  C('beam', 'honey', 'set'),
+  C('beam', 'violet', 'set'),
+  C('beam', 'ice', 'set'),
+  C('beam', 'ocean', 'set'),
+  // 기체 장식
+  C('deco', 'none', 'default'),
+  C('deco', 'crown', 'achievement', { ach: 'form_galaxy' }), // 왕관
+  C('deco', 'halo', 'ladder'), // 천사 고리
+  C('deco', 'bow', 'shop'), // 리본
+  C('deco', 'propeller', 'shop'), // 프로펠러
+  C('deco', 'catears', 'set'),
+  C('deco', 'spikes', 'set'),
+  C('deco', 'wings', 'set'),
+  C('deco', 'stars', 'set'),
+  C('deco', 'antlers', 'set'),
+  C('deco', 'flag', 'set'),
+];
+export const COSMETIC_KINDS = ['outfit', 'paint', 'beam', 'deco'];
+export const DEFAULT_LOOK = { outfit: 'none', paint: 'navy', beam: 'cyan', deco: 'none' };
 export const cosmeticKey = (kind, id) => `${kind}:${id}`;
 export const COSMETIC_BY_KEY = Object.freeze(Object.assign(Object.create(null), Object.fromEntries(COSMETICS.map((c) => [cosmeticKey(c.kind, c.id), c]))));
 
@@ -98,15 +163,24 @@ export const PRODUCTS = [
   { id: 'shh.grant.l', type: 'consumable', krw: 12000, give: { grant: 100 } },
   { id: 'shh.grant.xl', type: 'consumable', krw: 33000, give: { grant: 300 } },
   { id: 'shh.formpack', type: 'consumable', krw: 3900, give: { grant: 30, boost: 3 * 3600 } },
+  ...SETS.map((x) => ({ id: x.product, type: 'nonconsumable', krw: x.krw, give: { cosmetics: [...x.items] } })),
   { id: 'shh.outfit.bunny', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['outfit:bunny'] } },
   { id: 'shh.outfit.raincoat', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['outfit:raincoat'] } },
   { id: 'shh.outfit.chef', type: 'nonconsumable', krw: 3300, give: { cosmetics: ['outfit:chef'] } },
   { id: 'shh.outfit.astro', type: 'nonconsumable', krw: 4900, give: { cosmetics: ['outfit:astro'] } },
+  { id: 'shh.outfit.frog', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['outfit:frog'] } },
   { id: 'shh.paint.sunset', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['paint:sunset'] } },
   { id: 'shh.paint.mint', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['paint:mint'] } },
   { id: 'shh.paint.galaxy', type: 'nonconsumable', krw: 4900, give: { cosmetics: ['paint:galaxy'] } },
+  { id: 'shh.paint.berry', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['paint:berry'] } },
+  { id: 'shh.paint.candy', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['paint:candy'] } },
+  { id: 'shh.paint.aurora', type: 'nonconsumable', krw: 3300, give: { cosmetics: ['paint:aurora'] } },
   { id: 'shh.beam.pink', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['beam:pink'] } },
   { id: 'shh.beam.rainbow', type: 'nonconsumable', krw: 3300, give: { cosmetics: ['beam:rainbow'] } },
+  { id: 'shh.beam.sunset', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['beam:sunset'] } },
+  { id: 'shh.beam.candy', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['beam:candy'] } },
+  { id: 'shh.deco.bow', type: 'nonconsumable', krw: 2500, give: { cosmetics: ['deco:bow'] } },
+  { id: 'shh.deco.propeller', type: 'nonconsumable', krw: 3300, give: { cosmetics: ['deco:propeller'] } },
 ];
 export const PRODUCT_BY_ID = Object.freeze(Object.assign(Object.create(null), Object.fromEntries(PRODUCTS.map((p) => [p.id, p]))));
 

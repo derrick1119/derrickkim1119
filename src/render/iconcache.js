@@ -100,12 +100,59 @@ const COSMETIC_SWATCH = {
   'beam:pink': ['#ff78d8', '#ffd0f2'],
   'beam:gold': ['#ffc93c', '#fff0b8'],
   'beam:rainbow': ['#ff8af0', '#8ad8ff'],
+  'outfit:cat': ['#ffb066', '#ff9cc8'],
+  'outfit:dino': ['#7fe0a8', '#ffb43c'],
+  'outfit:bee': ['#ffd23f', '#2a2342'],
+  'outfit:wizard': ['#4a3ab8', '#ffd23f'],
+  'outfit:winter': ['#e8424f', '#ffffff'],
+  'outfit:pirate': ['#262338', '#ffc444'],
+  'outfit:knight': ['#d6dcef', '#e8424f'],
+  'outfit:frog': ['#6fd66a', '#ffffff'],
+  'outfit:flower': ['#ff9cc8', '#ffe066'],
+  'outfit:party': ['#7fd8ff', '#ff6fae'],
+  'paint:calico': ['#fff1dc', '#ff9a4a'],
+  'paint:jungle': ['#6fd68f', '#2e8a5a'],
+  'paint:honey': ['#ffcf2e', '#2a2342'],
+  'paint:magic': ['#3a2a9a', '#ffd23f'],
+  'paint:snow': ['#e6f4ff', '#8cc8ff'],
+  'paint:pirate': ['#8a5a3a', '#ffc444'],
+  'paint:berry': ['#ffb0cf', '#ffffff'],
+  'paint:candy': ['#ffc0e0', '#a8f0d8'],
+  'paint:aurora': ['#3ad8c8', '#a070ff'],
+  'paint:chrome': ['#d8e0f0', '#262a78'],
+  'beam:peach': ['#ff9a7a', '#ffd8c8'],
+  'beam:lime': ['#a8ff3a', '#e6ffb8'],
+  'beam:honey': ['#ffb21a', '#ffe680'],
+  'beam:violet': ['#a060ff', '#e2ccff'],
+  'beam:ice': ['#a8e8ff', '#ffffff'],
+  'beam:ocean': ['#2a7cff', '#5ff0ff'],
+  'beam:sunset': ['#ff5fa0', '#ffa040'],
+  'beam:aurora': ['#a070ff', '#3ae0c8'],
+  'beam:candy': ['#ff6fb8', '#ffffff'],
+  'deco:none': ['#352c94', '#ffc444'],
+  'deco:catears': ['#352c94', '#ff9cc8'],
+  'deco:spikes': ['#352c94', '#ffa03a'],
+  'deco:wings': ['#352c94', '#d8f4ff'],
+  'deco:stars': ['#352c94', '#ffd23f'],
+  'deco:antlers': ['#352c94', '#a8683c'],
+  'deco:flag': ['#352c94', '#262338'],
+  'deco:bow': ['#352c94', '#ff6fae'],
+  'deco:propeller': ['#352c94', '#ff5a5a'],
+  'deco:crown': ['#352c94', '#ffc444'],
+  'deco:halo': ['#352c94', '#ffe680'],
 };
 
 /** 꾸미기 2D 대체 그림: 의상 = 보라 피포 얼굴 + 모자 색, 도색 = 그 색 접시, 빔 = 그 색 빛기둥. */
 function paintCosmetic(ctx, id, size) {
-  const [a, b] = COSMETIC_SWATCH[id] || ['#8a6ad8', '#ffffff'];
-  const kind = id.split(':')[0];
+  let [a, b] = COSMETIC_SWATCH[id] || ['#8a6ad8', '#ffffff'];
+  let kind = id.split(':')[0];
+  if (kind === 'look') {
+    // 모습 묶음: 도색 색 접시 + 장식 색 점
+    const look = Object.fromEntries(id.slice(5).split(/[;,]/).map((x) => x.split('=')));
+    a = (COSMETIC_SWATCH[`paint:${look.paint}`] || COSMETIC_SWATCH['paint:navy'])[0];
+    b = (COSMETIC_SWATCH[`deco:${look.deco}`] || COSMETIC_SWATCH[`outfit:${look.outfit}`] || ['', '#ffc444'])[1];
+    kind = 'deco';
+  }
   const c = size / 2;
   ctx.lineWidth = Math.max(1.5, size * 0.035);
   ctx.strokeStyle = '#2b1a5e';
@@ -133,7 +180,7 @@ function paintCosmetic(ctx, id, size) {
       ctx.ellipse(c + s * size * 0.12, c + size * 0.08, size * 0.05, size * 0.07, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-  } else if (kind === 'paint') {
+  } else if (kind === 'paint' || kind === 'deco') {
     ctx.fillStyle = 'rgba(198,246,255,0.85)';
     ctx.beginPath();
     ctx.ellipse(c, c - size * 0.04, size * 0.17, size * 0.17, 0, Math.PI, 0);
@@ -149,6 +196,16 @@ function paintCosmetic(ctx, id, size) {
     ctx.beginPath();
     ctx.ellipse(c, c + size * 0.04, size * 0.34, size * 0.07, 0, Math.PI, 0, true);
     ctx.stroke();
+    if (kind === 'deco' && id !== 'deco:none') {
+      // 장식 자리: 돔 위의 작은 색 방울
+      ctx.fillStyle = b;
+      ctx.strokeStyle = '#2b1a5e';
+      ctx.lineWidth = Math.max(1.5, size * 0.03);
+      ctx.beginPath();
+      ctx.arc(c + size * 0.2, c - size * 0.16, size * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
   } else {
     const g = ctx.createLinearGradient(0, size * 0.3, 0, size * 0.95);
     if (id === 'beam:rainbow') ['#ff7a9a', '#ffd25a', '#7dffb0', '#6ac8ff', '#c08aff'].forEach((col, i) => g.addColorStop(i / 4, col));

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>쉿! UFO 꾸미기 미리보기</title>
+<style>html, body { margin: 0; background: #1b2150; } canvas { display: block; }</style>
+<script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
+</head>
+<body>
+<!-- 개발용: 꾸미기를 한 장의 시트로 찍는다. tools/cosmetics-sheet.mjs 가 이 페이지를 열어 #sheet 를 PNG 로 저장한다.
+     ?mode=icon&keys=outfit:cat,paint:honey,look:outfit=bee;paint=honey;beamOn=1&moods=idle,happy&size=220
+       → 상점 아이콘(줄 = 항목, 칸 = 표정). look: 항목은 ; 로 묶음(세트·미리보기 그림)
+     ?mode=game&look=outfit=bee,paint=honey,beam=honey,deco=wings&forms=0,2,5,7&moods=idle,happy&beam=1
+       → 게임 장면(농장 무대) 속 기체(줄 = 형태, 칸 = 표정). beam=1 이면 견인 빔을 켠다 -->
+<canvas id="sheet"></canvas>
+<script type="module">
+import { renderIcon3d } from '../src/render3d/studio.js';
+import { Engine } from '../src/render3d/engine.js';
+import { buildStage } from '../src/render3d/stages.js';
+import { createUfo, UFO_TILT } from '../src/render3d/ufo3d.js';
+import { makeBeamCone } from '../src/render3d/beams.js';
+
+const q = new URLSearchParams(location.search);
+const mode = q.get('mode') || 'icon';
+const list = (k, d) => (q.get(k) || d).split(',').map((x) => x.trim()).filter(Boolean);
+const moods = list('moods', 'idle');
+const t = q.has('t') ? Number(q.get('t')) : 1.2;
+const sheet = document.getElementById('sheet');
+const ctx = sheet.getContext('2d');
+const LABEL = 22;
+const GAP = 8;
+
+function label(x, y, text) {
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 14px system-ui, sans-serif';
+  ctx.fillText(text, x + 4, y + 16);
+}
+
+const errors = [];
+window.addEventListener('error', (e) => errors.push(String(e.message)));
+try {
+  if (mode === 'icon') {
+    const keys = list('keys', 'outfit:none');
+    const size = Math.min(480, Number(q.get('size')) || 220);
+    sheet.width = moods.length * (size + GAP) + GAP;
+    sheet.height = keys.length * (size + LABEL + GAP) + GAP;
+    ctx.fillStyle = '#1b2150';
+    ctx.fillRect(0, 0, sheet.width, sheet.height);
+    keys.forEach((key, r) => {
+      moods.forEach((mood, c) => {
+        const x = GAP + c * (size + GAP);
+        const y = GAP + r * (size + LABEL + GAP);
+        // 상점 카드처럼 밝은 바탕 위에
+        ctx.fillStyle = '#eef1ff';
+        ctx.fillRect(x, y + LABEL, size, size);
+        let shot = null;
+        try {
+          shot = renderIcon3d('cosmetic', key, size, { mood, t });
+        } catch (err) {
+          errors.push(`${key}: ${err.message}`);
+        }
+        if (shot) ctx.drawImage(shot, x, y + LABEL, size, size);
+        label(x, y, `${key} · ${mood}`);
+      });
+    });
+  } else {
+    const look = {};
+    for (const pair of (q.get('look') || '').split(/[;,]/)) {
+      const [k, v] = pair.split('=');
+      if (k && v) look[k] = v;
+    }
+    const forms = list('forms', '0,2,5,7').map(Number);
+    const beamOn = q.get('beam') === '1';
+    const W = Number(q.get('w')) || 360;
+    const H = Number(q.get('h')) || 300;
+    sheet.width = moods.length * (W + GAP) + GAP;
+    sheet.height = forms.length * (H + LABEL + GAP) + GAP;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, sheet.width, sheet.height);
+    const gl = document.createElement('canvas');
+    const engine = new Engine(gl);
+    engine.layout({ w: W, h: H, dpr: 2, groundY: H * 1.25, insetTop: 0 });
+    const stage = buildStage(q.get('stage') || 'farm', { w: W, h: H });
+    engine.setStage(stage);
+    stage.update(2, 1 / 60);
+    for (const [r, form] of forms.entries()) {
+      const ufo = createUfo(form, look);
+      ufo.root.rotation.x = UFO_TILT;
+      // 화면 너비의 약 45 % 로
+      ufo.root.scale.setScalar((W * 0.45) / 64 / (2 * ufo.halfWidth));
+      ufo.root.position.copy(engine.toWorld(W / 2, H * (beamOn ? 0.36 : 0.5)));
+      engine.actors.add(ufo.root);
+      let cone = null;
+      if (beamOn) {
+        cone = makeBeamCone(look.beam || 'cyan', { additive: true, t });
+        engine.actors.add(cone);
+      }
+      for (const [c, mood] of moods.entries()) {
+        ufo.root.updateMatrixWorld(true);
+        ufo.update({ t, mood, lit: 1, beam: beamOn ? 1 : 0, look: engine.camera.position.clone() });
+        ufo.update({ t: t + 0.02, mood, lit: 1, beam: beamOn ? 1 : 0, look: engine.camera.position.clone() });
+        if (cone) {
+          ufo.root.updateMatrixWorld(true);
+          const s = ufo.root.scale.x;
+          cone.position.set(0, ufo.bellyY, 0).applyMatrix4(ufo.root.matrixWorld);
+          cone.rotation.x = Math.PI;
+          cone.scale.set(ufo.halfWidth * 0.6 * s, H * 0.4 / 64, ufo.halfWidth * 0.6 * s);
+        }
+        engine.render();
+        const x = GAP + c * (W + GAP);
+        const y = GAP + r * (H + LABEL + GAP);
+        ctx.drawImage(gl, x, y + LABEL, W, H);
+        label(x, y, `form ${form} · ${mood}`);
+      }
+      engine.actors.remove(ufo.root);
+      if (cone) engine.actors.remove(cone);
+    }
+  }
+} catch (err) {
+  errors.push(String(err.stack || err));
+}
+document.body.dataset.errors = JSON.stringify(errors);
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

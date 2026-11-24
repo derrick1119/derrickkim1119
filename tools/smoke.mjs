@@ -180,6 +180,31 @@ try {
   await click(page, '.modal-mz .icon-btn');
   await page.waitForFunction(() => !window.__ufo.ui.modals.active);
 
+  // 상점 꾸미기: 세트 카드 → 장식 칸 → 미리 보기 → 테스트 결제 → 구매 완료에서 장착
+  await click(page, '.hud .sh-pill');
+  await page.waitForSelector('.modal-shop');
+  await click(page, '.sh-tabs .seg[data-sec="style"]');
+  await page.waitForSelector('.sh-sets .sh-set');
+  check('꾸미기 탭에 테마 세트 6종', (await page.locator('.sh-sets .sh-set').count()) === 6);
+  await click(page, '.sh-chip[data-tab="deco"]');
+  await page.waitForSelector('.sh-cos-grid[data-kind="deco"] .sh-cos');
+  await click(page, '.sh-cos[data-fk="cos:deco:bow"]');
+  await page.waitForSelector('.modal-cos-preview .sh-buy');
+  check('가지지 않은 꾸미기는 미리 보기부터', (await page.locator('.modal-cos-preview .sh-pv-stage .sh-cpic').count()) >= 1);
+  await click(page, '.modal-cos-preview .sh-buy');
+  await page.waitForSelector('.mz-buy .btn.primary');
+  await click(page, '.mz-buy .btn.primary');
+  await page.waitForSelector('.modal-thanks .sh-equip');
+  await click(page, '.modal-thanks .sh-equip');
+  check('산 장식을 바로 장착한다', await page.evaluate(() => window.__ufo.game.fx.monetize.look().deco === 'bow' && window.__ufo.scene.ufo3d?.deco !== 'none'));
+  await click(page, '.modal-thanks .btn.primary');
+  await page.waitForSelector('.modal-thanks', { state: 'detached' });
+  check('미리 보기가 장착 단추로 바뀐다', (await page.locator('.modal-cos-preview .sh-pv-equip').count()) === 1);
+  await click(page, '.modal-cos-preview .icon-btn');
+  await page.waitForSelector('.modal-cos-preview', { state: 'detached' });
+  await click(page, '.modal-shop .modal-head .icon-btn');
+  await page.waitForFunction(() => !window.__ufo.ui.modals.active);
+
   // 임무 성공
   await page.evaluate(() => {
     window.__ufo.game.run.fuel = 100;

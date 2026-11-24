@@ -18,7 +18,9 @@ import {
   canvasTexture,
 } from './kit.js';
 import { createPipo } from './pipo.js';
+import './outfits/index.js'; // 더 많은 피포 의상(pipo.js 의 registerOutfit 으로 더한다)
 import { BEAM_STYLES, beamColor } from './beams.js';
+import { DECO_BUILD, buildDeco } from './decos.js';
 
 /** 윗면이 카메라를 보도록 앞으로 기울이는 각도(라디안). */
 export const UFO_TILT = 0.36;
@@ -57,17 +59,19 @@ function hullSeams(ctx, w, h, dark = 'rgba(40,36,90,0.42)', light = 'rgba(255,25
 const hullTexCache = new Map();
 /**
  * 윗면 칠. 기본은 회색 그라데이션(테두리 v=0 은 조금 짙고 꼭대기 v=1 로 갈수록 밝다)이라 재질 색이 곱해진다.
- * 도색이 grad(테두리 → 꼭대기 색)나 galaxy(별·성운)를 가지면 색 그림을 그린다(재질 색은 흰색).
+ * 도색이 grad(테두리 → 꼭대기 색. 색만 늘어놓으면 고르게, [자리, 색] 이면 그 자리에)나 galaxy(별·성운)·pattern(무늬,
+ * HULL_PATTERNS)을 가지면 색 그림을 그린다(재질 색은 흰색). seams = 판 이음매(false 면 없음, [짙은 선, 밝은 선] 이면 그 색).
  */
 function hullTexture(paint = PAINTS.navy) {
-  const key = paint.grad ? paint.grad.join() : paint.galaxy ? 'galaxy' : 'grey';
+  const pattern = paint.pattern || (paint.galaxy ? 'galaxy' : '');
+  const stops = paint.grad || (paint.galaxy ? ['#24125e', '#3a2088', '#5a34b4'] : null);
+  const key = `${pattern}|${stops ? stops.join() : 'grey'}|${paint.seams ?? ''}`;
   let tex = hullTexCache.get(key);
   if (tex) return tex;
   tex = canvasTexture(512, 256, (ctx, w, h) => {
     // 캔버스 아래 = 테두리(v=0), 위 = 꼭대기(v=1)
     const g = ctx.createLinearGradient(0, h, 0, 0);
-    const stops = paint.grad || (paint.galaxy ? ['#24125e', '#3a2088', '#5a34b4'] : null);
-    if (stops) stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+    if (stops) stops.forEach((c, i) => (Array.isArray(c) ? g.addColorStop(c[0], c[1]) : g.addColorStop(i / (stops.length - 1), c)));
     else {
       g.addColorStop(0, '#b4b4c8');
       g.addColorStop(0.35, '#d6d6e4');
@@ -76,8 +80,10 @@ function hullTexture(paint = PAINTS.navy) {
     }
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
-    if (paint.galaxy) galaxyPaint(ctx, w, h);
-    if (stops) hullSeams(ctx, w, h, 'rgba(60,20,60,0.3)', 'rgba(255,255,255,0.3)');
+    if (pattern) HULL_PATTERNS[pattern](ctx, w, h);
+    if (paint.seams === false) return;
+    if (paint.seams) hullSeams(ctx, w, h, ...paint.seams);
+    else if (stops) hullSeams(ctx, w, h, 'rgba(60,20,60,0.3)', 'rgba(255,255,255,0.3)');
     else hullSeams(ctx, w, h);
   });
   tex.anisotropy = 8;
@@ -131,18 +137,458 @@ function galaxyPaint(ctx, w, h) {
   }
 }
 
+// ───────── 무늬 칠(도색 pattern) ─────────
+// 윗면 uv: u = 둘레(u 0 = 정면이라 캔버스 양 끝이 기체 정면에서 맞붙는다. 무늬는 가로로 이음매 없이 이어져야 한다),
+// v = 테두리(0, 캔버스 아래) → 꼭대기(1, 캔버스 위). v 는 윤곽 점 번호를 따라 고르게 나뉘어 캔버스의 동그라미가 선체에서는
+// 지름 방향으로 납작해진다. 보이는 곳: 바깥 비탈 v 0.05..0.36, 솟은 단의 벽 0.36..0.73(가파르고 좁다),
+// 단 위 0.73..0.85(그 안쪽은 돔·받침에 가린다). 캔버스 위쪽 = 화면 위쪽(정면에서 볼 때 무늬가 바로 선다).
+
+const TAU = Math.PI * 2;
+/** 씨앗이 있는 난수(무늬가 늘 같게). */
+function seeded(seed) {
+  let a = seed;
+  return () => (a = (a * 16807) % 2147483647) / 2147483647;
+}
+
+/** v 자리별로 캔버스 동그라미를 세로로 몇 배 늘여야 선체에서 동그랗게 보이는지(단 있는 윗면 윤곽에서 잰 값). */
+const V_STRETCH = [[0, 3.6], [0.1, 2.7], [0.2, 2.3], [0.33, 2.4], [0.38, 5], [0.7, 5], [0.76, 2.4], [0.86, 1]];
+function vStretch(v) {
+  const T = V_STRETCH;
+  if (v <= T[0][0]) return T[0][1];
+  for (let i = 1; i < T.length; i++) {
+    if (v <= T[i][0]) {
+      const [v0, k0] = T[i - 1];
+      const [v1, k1] = T[i];
+      return k0 + ((v - v0) / (v1 - v0)) * (k1 - k0);
+    }
+  }
+  return T[T.length - 1][1];
+}
+
+/**
+ * (u, v) 자리에 무늬 하나를 찍는다. draw(c) 는 원점 둘레에 가로 px 단위의 고른 좌표로 그린다(선체에서 동그랗게 보이게
+ * 세로로 k 배 늘여 찍는다). 가로로 이어 붙도록 캔버스 왼쪽·오른쪽 너머에도 한 번씩 더 찍는다.
+ */
+function stamp(ctx, w, h, u, v, draw, k = vStretch(v)) {
+  for (const dx of [-w, 0, w]) {
+    ctx.save();
+    ctx.translate(u * w + dx, h * (1 - v));
+    ctx.scale(1, k);
+    draw(ctx);
+    ctx.restore();
+  }
+}
+
+function disc(c, x, y, r) {
+  c.beginPath();
+  c.arc(x, y, r, 0, TAU);
+  c.fill();
+}
+
+/** 삼색 얼룩: 크림 바탕에 주황·밤색 고양이 얼룩(동그라미 몇 개를 겹친 덩어리, 밤색이 주황에 맞닿아 겹친다). */
+function calicoPaint(ctx, w, h) {
+  const rnd = seeded(29);
+  const patch = (u, v, r, col) => {
+    const blobs = [[0, 0, r]];
+    for (let i = 0; i < 4; i++) {
+      const a = rnd() * TAU;
+      blobs.push([Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.5, r * (0.45 + rnd() * 0.35)]);
+    }
+    stamp(ctx, w, h, u, v, (c) => {
+      c.fillStyle = col;
+      c.beginPath();
+      for (const [x, y, rr] of blobs) {
+        c.moveTo(x + rr, y);
+        c.arc(x, y, rr, 0, TAU);
+      }
+      c.fill();
+    });
+  };
+  for (const [u, v, r] of [[0.03, 0.21, 22], [0.2, 0.27, 18], [0.36, 0.19, 21], [0.53, 0.26, 19], [0.7, 0.2, 20], [0.87, 0.25, 17], [0.12, 0.78, 12], [0.45, 0.8, 12], [0.78, 0.78, 11]]) {
+    patch(u, v, r, '#f5913a');
+  }
+  for (const [u, v, r] of [[0.1, 0.29, 12], [0.27, 0.16, 10], [0.45, 0.3, 11], [0.62, 0.17, 10], [0.79, 0.3, 12], [0.94, 0.15, 9], [0.3, 0.79, 8], [0.62, 0.8, 8], [0.93, 0.79, 8]]) {
+    patch(u, v, r, '#5e3524');
+  }
+}
+
+/** 공룡 정글: 잎빛 바탕에 짙은 초록 둥근 비늘 점(큰 점 곁에 작은 점이 붙기도 한다). 점마다 위 왼쪽에 옅은 윤기. */
+function junglePaint(ctx, w, h) {
+  const rnd = seeded(5);
+  for (const [j, [v, n, r]] of [[0.15, 12, 9], [0.29, 11, 8], [0.5, 12, 4.5], [0.79, 9, 7]].entries()) {
+    for (let i = 0; i < n; i++) {
+      const u = (i + (j % 2) * 0.5 + (rnd() - 0.5) * 0.35) / n;
+      const vv = v + (rnd() - 0.5) * 0.04;
+      const rr = r * (0.75 + rnd() * 0.5);
+      const sat = rnd() < 0.55;
+      const sa = rnd() * TAU;
+      stamp(ctx, w, h, u, vv, (c) => {
+        c.fillStyle = '#23874a';
+        disc(c, 0, 0, rr);
+        if (sat) disc(c, Math.cos(sa) * rr * 1.7, Math.sin(sa) * rr * 1.7, rr * 0.4);
+        c.fillStyle = 'rgba(200,255,190,0.35)';
+        disc(c, -rr * 0.32, -rr * 0.3, rr * 0.38);
+      });
+    }
+  }
+}
+
+/** 꿀벌 줄무늬: 노란 바탕에 옅은 벌집 무늬 + 굵은 검은 띠(동심 고리 = 캔버스 가로줄). */
+function honeyPaint(ctx, w, h) {
+  // 벌집: 열 24 개(짝수라 엇갈린 줄까지 가로로 이어진다), 선체에서 정육각형으로 보이게 세로로 늘인다
+  const cols = 24;
+  const dx = w / cols;
+  const r = dx / 1.5;
+  const k = 2.4;
+  const dy = Math.sqrt(3) * r * k;
+  ctx.strokeStyle = 'rgba(196,112,0,0.3)';
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i <= cols; i++) {
+    for (let y = -dy; y < h + dy; y += dy) {
+      ctx.save();
+      ctx.translate(i * dx, y + (i % 2) * dy * 0.5);
+      ctx.scale(1, k);
+      ctx.beginPath();
+      for (let a = 0; a < 6; a++) ctx.lineTo(Math.cos((a * Math.PI) / 3) * r * 0.97, Math.sin((a * Math.PI) / 3) * r * 0.97);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // 검은 띠(위 가장자리에 래커 윤기 한 줄)
+  for (const [v0, v1] of [[0.19, 0.29], [0.47, 0.62], [0.8, 0.9]]) {
+    const y0 = h * (1 - v1);
+    const y1 = h * (1 - v0);
+    ctx.fillStyle = '#2a1d16';
+    ctx.fillRect(0, y0, w, y1 - y0);
+    ctx.fillStyle = 'rgba(255,226,160,0.2)';
+    ctx.fillRect(0, y0 + 2, w, 2);
+  }
+}
+
+/** 마법 밤하늘: 남보라 바탕에 은은한 보랏빛 안개, 별 가루, 금빛 초승달과 별. */
+function magicPaint(ctx, w, h) {
+  const rnd = seeded(41);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [u, v, r] of [[0.08, 0.3, 0.13], [0.42, 0.22, 0.15], [0.72, 0.3, 0.14]]) {
+    stamp(ctx, w, h, u, v, (c) => {
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, r * w);
+      g.addColorStop(0, 'rgba(150,80,255,0.3)');
+      g.addColorStop(1, 'rgba(150,80,255,0)');
+      c.fillStyle = g;
+      disc(c, 0, 0, r * w);
+    }, 1);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < 70; i++) {
+    const u = rnd();
+    const v = 0.04 + rnd() * 0.85;
+    const r = 0.7 + rnd() * 1.1;
+    const col = rnd() < 0.4 ? '#ffe9a0' : '#ffffff';
+    const a = 0.5 + rnd() * 0.5;
+    stamp(ctx, w, h, u, v, (c) => {
+      c.globalAlpha = a;
+      c.fillStyle = col;
+      disc(c, 0, 0, r);
+    });
+  }
+  const GOLD_HI = '#ffe58a';
+  const moon = (u, v, r, rot) =>
+    stamp(ctx, w, h, u, v, (c) => {
+      c.rotate(rot);
+      // 초승달 = 큰 동그라미 안에서 비껴 놓인 동그라미 바깥
+      c.beginPath();
+      c.arc(0, 0, r, 0, TAU);
+      c.clip();
+      c.beginPath();
+      c.rect(-2 * r, -2 * r, 4 * r, 4 * r);
+      c.arc(r * 0.55, -r * 0.25, r * 0.85, 0, TAU);
+      c.clip('evenodd');
+      c.fillStyle = '#ffc93c';
+      c.fillRect(-r, -r, 2 * r, 2 * r);
+      // 등 쪽 안에 밝은 금빛(광택)
+      c.fillStyle = GOLD_HI;
+      disc(c, -r * 0.62, r * 0.1, r * 0.22);
+    });
+  const star = (u, v, r, rot) =>
+    stamp(ctx, w, h, u, v, (c) => {
+      c.rotate(rot);
+      c.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + (k * Math.PI) / 5;
+        const rr = k % 2 ? r * 0.46 : r;
+        c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      c.closePath();
+      c.fillStyle = '#ffc93c';
+      c.fill();
+      c.fillStyle = GOLD_HI;
+      disc(c, -r * 0.08, -r * 0.1, r * 0.3);
+    });
+  for (const [u, v, r, rot] of [[0.04, 0.22, 13, -0.5], [0.3, 0.26, 12, -0.3], [0.55, 0.2, 13, -0.6], [0.8, 0.25, 12, -0.4], [0.18, 0.79, 8, -0.4], [0.68, 0.8, 8, -0.5]]) moon(u, v, r, rot);
+  for (const [u, v, r, rot] of [[0.13, 0.17, 7, 0.2], [0.2, 0.3, 5, -0.1], [0.4, 0.17, 8, 0.1], [0.45, 0.3, 5, 0.3], [0.65, 0.29, 7, -0.2], [0.9, 0.16, 8, 0.15], [0.94, 0.31, 5, 0], [0.36, 0.52, 4, 0], [0.86, 0.55, 4, 0.2], [0.42, 0.8, 6, 0.1], [0.92, 0.79, 6, -0.1]]) star(u, v, r, rot);
+}
+
+/** 눈꽃 하나(여섯 갈래, 갈래마다 가지 두 쌍). 원점 둘레, 반지름 r. */
+function snowflake(c, r, col, lw) {
+  c.strokeStyle = col;
+  c.lineWidth = lw;
+  c.lineCap = 'round';
+  c.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3 - Math.PI / 2;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    c.moveTo(0, 0);
+    c.lineTo(ca * r, sa * r);
+    for (const [t, l] of [[0.48, 0.36], [0.76, 0.22]]) {
+      const bx = ca * r * t;
+      const by = sa * r * t;
+      for (const s of [-1, 1]) {
+        const b = a + s * 0.85;
+        c.moveTo(bx, by);
+        c.lineTo(bx + Math.cos(b) * r * l, by + Math.sin(b) * r * l);
+      }
+    }
+  }
+  c.stroke();
+}
+
+/** 눈꽃: 얼음빛 → 흰 그라데이션 위에 또렷한 눈꽃(옅은 파란 그림자로 흰 바탕에서도 보인다)과 눈 가루. */
+function snowPaint(ctx, w, h) {
+  const rnd = seeded(23);
+  for (let i = 0; i < 60; i++) {
+    const u = rnd();
+    const v = 0.04 + rnd() * 0.82;
+    const r = 0.8 + rnd() * 1.2;
+    stamp(ctx, w, h, u, v, (c) => {
+      c.fillStyle = 'rgba(255,255,255,0.85)';
+      disc(c, 0, 0, r);
+    });
+  }
+  const flake = (u, v, r, rot) =>
+    stamp(ctx, w, h, u, v, (c) => {
+      c.rotate(rot);
+      // 파란 테두리를 두른 흰 눈꽃(흰 바탕·하늘빛 반사 속에서도 또렷하게)
+      snowflake(c, r, '#4f98d6', 3.6);
+      c.fillStyle = '#4f98d6';
+      disc(c, 0, 0, r * 0.2 + 1);
+      snowflake(c, r, '#ffffff', 1.9);
+      c.fillStyle = '#ffffff';
+      disc(c, 0, 0, r * 0.2);
+    });
+  for (const [u, v, r, rot] of [[0.02, 0.22, 14, 0], [0.14, 0.29, 9, 0.3], [0.24, 0.18, 12, 0.15], [0.37, 0.27, 10, 0], [0.49, 0.2, 13, 0.4], [0.62, 0.28, 10, 0.1], [0.73, 0.19, 12, 0.25], [0.86, 0.27, 10, 0.05], [0.93, 0.17, 8, 0.3], [0.08, 0.53, 4.5, 0], [0.33, 0.55, 4.5, 0.2], [0.58, 0.52, 4.5, 0], [0.83, 0.55, 4.5, 0.2], [0.2, 0.79, 8, 0.1], [0.53, 0.8, 8, 0.3], [0.8, 0.79, 8, 0]]) {
+    flake(u, v, r, rot);
+  }
+}
+
+/** 해적선: 둘레를 따라 놓인 짙은 나무 판자(판자마다 결·이음매·놋쇠 못). */
+function piratePaint(ctx, w, h) {
+  const rnd = seeded(13);
+  const tones = ['#8a4a22', '#783e1b', '#95572a', '#81451f'];
+  // 판자 경계(v). 가파른 단 벽은 선체에서 좁아지므로 v 를 넓게 잡는다
+  const edges = [0, 0.075, 0.15, 0.225, 0.3, 0.37, 0.49, 0.61, 0.73, 0.8, 0.87, 1];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const y0 = h * (1 - edges[i + 1]);
+    const y1 = h * (1 - edges[i]);
+    const vm = (edges[i] + edges[i + 1]) / 2;
+    ctx.fillStyle = tones[i % tones.length];
+    ctx.fillRect(0, y0, w, y1 - y0);
+    // 나뭇결: 둘레를 따라 정수 번 출렁이는 가는 줄(가로로 이어 붙는다)
+    ctx.strokeStyle = 'rgba(40,16,4,0.3)';
+    ctx.lineWidth = 1;
+    for (let g = 0; g < 3; g++) {
+      const yy = y0 + (y1 - y0) * (0.25 + g * 0.25);
+      const f = 2 + ((i + g) % 3);
+      const ph = rnd() * TAU;
+      const amp = (0.6 + rnd()) * Math.min(1.5, (y1 - y0) / 14);
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 4) ctx.lineTo(x, yy + Math.sin((x / w) * TAU * f + ph) * amp);
+      ctx.stroke();
+    }
+    // 판자 이음(줄마다 엇갈리게)과 이음 양쪽의 놋쇠 못
+    const off = (i % 2) * 0.5 + rnd() * 0.08;
+    const k = vStretch(vm);
+    for (let j = 0; j < 3; j++) {
+      const u = (j + off) / 3;
+      for (const dx of [-w, 0, w]) {
+        const x = u * w + dx;
+        ctx.fillStyle = 'rgba(30,12,4,0.75)';
+        ctx.fillRect(x - 1, y0, 2, y1 - y0);
+        ctx.fillStyle = 'rgba(255,214,160,0.18)';
+        ctx.fillRect(x + 1, y0, 1, y1 - y0);
+      }
+      for (const s of [-1, 1]) {
+        stamp(ctx, w, h, u + (s * 5) / w, vm, (c) => {
+          c.fillStyle = '#3a1d0c';
+          disc(c, 0.4, 0.4, 2);
+          c.fillStyle = '#f0c46a';
+          disc(c, 0, 0, 1.6);
+        }, k);
+      }
+    }
+  }
+  // 판자 사이 틈(짙은 줄 + 아래 밝은 모서리)
+  for (const v of edges.slice(1, -1)) {
+    const y = h * (1 - v);
+    ctx.fillStyle = 'rgba(28,10,2,0.85)';
+    ctx.fillRect(0, y - 1, w, 2);
+    ctx.fillStyle = 'rgba(255,210,150,0.22)';
+    ctx.fillRect(0, y + 1, w, 1);
+  }
+}
+
+/** 딸기우유: 분홍 바탕에 흰 물방울(줄마다 엇갈리게, 옅은 분홍 그림자). */
+function berryPaint(ctx, w, h) {
+  for (const [j, [v, n, r]] of [[0.06, 14, 5.5], [0.19, 13, 8], [0.32, 12, 7], [0.47, 12, 4.5], [0.61, 12, 4.5], [0.79, 10, 6.5]].entries()) {
+    for (let i = 0; i < n; i++) {
+      stamp(ctx, w, h, (i + (j % 2) * 0.5) / n, v, (c) => {
+        c.fillStyle = 'rgba(214,70,128,0.28)';
+        disc(c, 0.8, 1, r);
+        c.fillStyle = '#ffffff';
+        disc(c, 0, 0, r);
+      });
+    }
+  }
+}
+
+/** 사탕: 분홍·민트·레몬 줄 사이사이 흰 줄이 비스듬히 휘감는다(한 바퀴에 정수 번 돌아 가로로 이어진다). */
+function candyPaint(ctx, w, h) {
+  const cols = ['#ff7fb8', '#fff8f0', '#5fdcb6', '#fff8f0', '#ffdc3c', '#fff8f0'];
+  const n = 18; // 3 바퀴 × 6 줄(색 수의 배수)
+  const sw = w / n;
+  const k = 0.55; // 비스듬함(캔버스 세로 1px 에 가로 k px)
+  for (let i = -Math.ceil((k * h) / sw) - 1; i <= n; i++) {
+    const x0 = i * sw;
+    ctx.fillStyle = cols[((i % 6) + 6) % 6];
+    ctx.beginPath();
+    ctx.moveTo(x0, h);
+    ctx.lineTo(x0 + sw + 0.6, h);
+    ctx.lineTo(x0 + sw + 0.6 + k * h, 0);
+    ctx.lineTo(x0 + k * h, 0);
+    ctx.fill();
+  }
+}
+
+let auroraLayer = null;
+/**
+ * 오로라 빛 커튼(투명 바탕 한 겹): 둘레를 따라 출렁이는 세로 빛줄기(아래 초록, 위 보랏빛). 1px 기둥마다 그라데이션을 만들어
+ * 무거우므로 한 번만 그려 두고 칠·발광 지도에 덧그린다(addAurora).
+ */
+function auroraCurtains(w, h) {
+  if (auroraLayer) return auroraLayer;
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.globalCompositeOperation = 'lighter';
+  const curtain = (v0, len, f, ph, low, high, amt) => {
+    // 2px 기둥(가는 결은 그래도 남고 그리기는 절반)
+    for (let x = 0; x < w; x += 2) {
+      const p = ((x + 1) / w) * TAU;
+      // 모두 정수 번 출렁이므로 캔버스 양 끝이 맞붙는다. 둘레 대부분을 덮고 밝기만 출렁인다
+      let b = 0.42 + 0.4 * Math.sin(p * f[0] + ph) + 0.22 * Math.sin(p * f[1] + ph * 2.1) + 0.14 * Math.sin(p * f[2] + ph * 0.7);
+      b = Math.min(1, Math.max(0, b)) * (0.72 + 0.18 * Math.sin(p * 41 + ph) + 0.1 * Math.sin(p * 97 + ph * 3));
+      if (b <= 0.01) continue;
+      // 커튼 아랫단이 뱀처럼 굽이친다
+      const a = v0 + 0.03 * Math.sin(p * 3 + ph) + 0.015 * Math.sin(p * 8 + ph * 1.7);
+      const top = a + len * (0.7 + 0.3 * Math.sin(p * 5 + ph * 1.3));
+      const y0 = h * (1 - top);
+      const y1 = h * (1 - a);
+      const g = ctx.createLinearGradient(0, y1, 0, y0);
+      g.addColorStop(0, `rgba(${low},0)`);
+      g.addColorStop(0.06, `rgba(${low},${amt * b})`);
+      g.addColorStop(0.3, `rgba(${low},${amt * 0.7 * b})`);
+      g.addColorStop(0.65, `rgba(${high},${amt * 0.45 * b})`);
+      g.addColorStop(1, `rgba(${high},0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y0, 2, y1 - y0);
+    }
+  };
+  curtain(0.15, 0.24, [3, 7, 2], 0.6, '70,255,170', '170,120,255', 1);
+  curtain(0.42, 0.36, [4, 9, 2], 2.2, '100,255,200', '235,110,255', 0.85);
+  auroraLayer = cv;
+  return cv;
+}
+/** 오로라 빛 커튼을 k 세기로 빛처럼 더한다. */
+function addAurora(ctx, w, h, k) {
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = k;
+  ctx.drawImage(auroraCurtains(w, h), 0, 0, w, h);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/** 오로라: 짙은 청록 → 보라 바탕에 빛 커튼과 별 몇 개. */
+function auroraPaint(ctx, w, h) {
+  const rnd = seeded(17);
+  addAurora(ctx, w, h, 1);
+  addAurora(ctx, w, h, 0.5);
+  for (let i = 0; i < 26; i++) {
+    const u = rnd();
+    const v = 0.15 + rnd() * 0.72;
+    const r = 0.8 + rnd() * 1.1;
+    stamp(ctx, w, h, u, v, (c) => {
+      c.fillStyle = 'rgba(255,255,255,0.9)';
+      disc(c, 0, 0, r);
+    });
+  }
+}
+
+/** 크롬: 비친 하늘·땅을 흉내 낸 동심 띠는 grad 가 맡고, 여기서는 가는 결(둘레를 따라 문지른 금속 결)만 더한다. */
+function chromePaint(ctx, w, h) {
+  const rnd = seeded(31);
+  for (let i = 0; i < 90; i++) {
+    const y = rnd() * h;
+    ctx.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.08 + rnd() * 0.1})` : `rgba(30,36,52,${0.06 + rnd() * 0.08})`;
+    ctx.fillRect(0, y, w, 1);
+  }
+  // 판 이음매 양 끝의 둥근 리벳(이음매 8줄과 같은 자리)
+  for (let i = 0; i < 8; i++) {
+    for (const v of [0.12, 0.47]) {
+      stamp(ctx, w, h, (i + 0.5) / 8 + 6 / w, v, (c) => {
+        c.fillStyle = 'rgba(20,26,44,0.6)';
+        disc(c, 0.6, 0.6, 2.6);
+        c.fillStyle = '#f4f7fc';
+        disc(c, 0, 0, 2.2);
+      });
+    }
+  }
+}
+
+const HULL_PATTERNS = {
+  galaxy: galaxyPaint,
+  calico: calicoPaint,
+  jungle: junglePaint,
+  honey: honeyPaint,
+  magic: magicPaint,
+  snow: snowPaint,
+  pirate: piratePaint,
+  berry: berryPaint,
+  candy: candyPaint,
+  aurora: auroraPaint,
+  chrome: chromePaint,
+};
+/** 무늬 중 스스로 빛나는 부분(도색의 glow: true). 발광 지도(hullGloss) 위에 더한다. */
+const HULL_GLOWS = {
+  aurora: (ctx, w, h) => addAurora(ctx, w, h, 0.75),
+};
+
 const hullGlossCache = new Map();
 /**
  * 윗면의 칠한 광택(발광 지도): 바탕은 아주 짙은 제 색(그늘에서도 색이 살아 있게, 도색마다 다르다), 앞 왼쪽 비탈에는
  * 장난감 래커처럼 또렷한 흰 반사 줄 하나와 작은 점 하나. 기체는 y 축으로 돌지 않으므로 반사가 늘 왼쪽 위에 머문다.
- * u = 0 이 정면(+z), u = 0.75 가 왼쪽(−x).
+ * u = 0 이 정면(+z), u = 0.75 가 왼쪽(−x). glow = 무늬 이름이면 그 무늬의 빛나는 부분(HULL_GLOWS)도 스스로 빛난다
+ * (비친 하늘빛에 묻히지 않게).
  */
-function hullGloss(base = '#100f48') {
-  let tex = hullGlossCache.get(base);
+function hullGloss(base = '#100f48', glow = null) {
+  const key = `${base}|${glow || ''}`;
+  let tex = hullGlossCache.get(key);
   if (tex) return tex;
   tex = canvasTexture(512, 256, (ctx, w, h) => {
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);
+    if (glow) HULL_GLOWS[glow](ctx, w, h);
     const streak = (u0, u1, v, th, a) => {
       // 캔버스 아래 = 테두리(v=0)
       const y = h * (1 - v);
@@ -161,7 +607,7 @@ function hullGloss(base = '#100f48') {
     streak(0.69, 0.92, 0.25, 20, 1);
     streak(0.76, 0.9, 0.86, 13, 0.8);
   });
-  hullGlossCache.set(base, tex);
+  hullGlossCache.set(key, tex);
   return tex;
 }
 
@@ -197,9 +643,11 @@ function lacquer(color, kind = 'plain') {
 
 /**
  * 기체 도색(catalog.js 의 paint 와 같은 id). 능력치 없음. 모양은 그대로 두고 선체 재질만 바꾼다(메시를 더하지 않는다).
- * top = 윗면 색(grad 가 있으면 테두리 → 꼭대기 색 그림), under = 아랫면, bumper = 범퍼·받침, trim = 장식 테(trimKind:
- * gold 금속 | plain 래커), fin = 순찰선 날개, light = 알약 조명·청록 선 빛, pill = 켜진 알약 색, dim = 꺼진 알약 색,
- * gloss = 윗면 그늘 빛 바탕, metal = 윗면도 금속, deck = 창문 갑판 색.
+ * top = 윗면 색(grad 가 있으면 테두리 → 꼭대기 색 그림. 무늬 칠에서는 대표 색), pattern = 윗면 무늬(HULL_PATTERNS),
+ * seams = 판 이음매(false 면 없음), under = 아랫면, bumper = 범퍼·받침, trim = 장식 테(trimKind: gold 금속(은빛 색이면 은) |
+ * plain 래커), fin = 순찰선 날개, light = 알약 조명·청록 선 빛, pill = 켜진 알약 색, dim = 꺼진 알약 색,
+ * gloss = 윗면 그늘 빛 바탕, glow = 무늬의 빛나는 부분도 스스로 빛남(HULL_GLOWS), metal = 윗면도 금속(true 면 살짝,
+ * 숫자면 그 금속성), rough = 윗면 거칠기, env = 윗면에 비치는 하늘 세기, deck = 창문 갑판 색.
  */
 export const PAINTS = {
   navy: { top: HULL, under: HULL_DARK, bumper: BUMPER, trim: GOLD, trimKind: 'gold', fin: '#ec3d52', light: PAL.glow, pill: '#bffaff', dim: DIM, gloss: '#100f48', deck: tone(HULL, 0.05) },
@@ -207,6 +655,44 @@ export const PAINTS = {
   mint: { top: '#8ff2b4', under: '#3cb488', bumper: '#f6fff8', trim: '#ffffff', trimKind: 'plain', fin: '#ff8fc4', light: '#ff7fcf', pill: '#ffe2f2', dim: '#5c3550', gloss: '#0c3a22', deck: '#a6f5c6' },
   galaxy: { top: '#ffffff', galaxy: true, under: '#1d0f47', bumper: '#2b1766', trim: GOLD, trimKind: 'gold', fin: '#ff6fd0', light: '#d48cff', pill: '#f3dcff', dim: '#3c2a5c', gloss: '#1a0a3a', deck: '#3e2690' },
   gold: { top: '#ffc23a', metal: true, under: '#e09a1c', bumper: '#22216a', trim: '#262a78', trimKind: 'plain', fin: '#262a78', light: PAL.glow, pill: '#bffaff', dim: DIM, gloss: '#6a3600', deck: '#ffcf52' },
+  // 삼색 얼룩(고양이 세트): 크림 바탕에 주황·밤색 얼룩, 주황 배, 흰 테, 복숭아빛 조명
+  calico: { top: '#ffe6c2', grad: ['#ffd6a2', '#ffe3bc', '#fff0d8'], pattern: 'calico', seams: false, under: '#f4a35a', bumper: '#ffe9cc', trim: '#ffffff', trimKind: 'plain', fin: '#f5913a', light: '#ffa98a', pill: '#fff0e8', dim: '#6a4234', gloss: '#3a2416', deck: '#ffe6c8' },
+  // 공룡 정글(공룡 세트): 잎빛 초록에 짙은 둥근 비늘 점, 연한 배, 주황 테, 라임 조명
+  jungle: { top: '#64d687', grad: ['#3cbc68', '#5cd27f', '#8fe8a0'], pattern: 'jungle', seams: false, under: '#d6f4b0', bumper: '#2f9e58', trim: '#ff9a2e', trimKind: 'plain', fin: '#ff8a3d', light: '#c4ff3c', pill: '#f2ffd0', dim: '#33502a', gloss: '#0b3a1c', deck: '#7ee39a' },
+  // 꿀벌 줄무늬(꿀벌 세트): 노란 바탕에 굵은 검은 띠와 옅은 벌집 무늬, 검은 테, 호박색 조명
+  honey: { top: '#ffc928', grad: ['#ffb01a', '#ffc52c', '#ffd94e'], pattern: 'honey', seams: false, under: '#2b2018', bumper: '#ffbf22', trim: '#2b2018', trimKind: 'plain', fin: '#fff2c8', light: '#ffae1c', pill: '#fff2c8', dim: '#5a4020', gloss: '#4a2a00', deck: '#ffd03a' },
+  // 마법 밤하늘(마법사 세트): 남보라 바탕에 금빛 초승달·별, 금 테, 보랏빛 조명
+  magic: { top: '#33208a', grad: ['#22156a', '#31208c', '#472cae'], pattern: 'magic', seams: false, under: '#1c1250', bumper: '#2c1a70', trim: GOLD, trimKind: 'gold', fin: '#ffcf4a', light: '#b97cff', pill: '#efdcff', dim: '#3a2a5c', gloss: '#1a0c44', deck: '#40289a' },
+  // 눈꽃: 얼음빛 → 흰 그라데이션에 또렷한 눈꽃, 은 테, 얼음빛 조명
+  snow: { top: '#c6e6ff', grad: ['#7fc2f5', '#a8d7fb', '#d8eeff', '#ffffff'], pattern: 'snow', seams: false, under: '#86c0ec', bumper: '#f4fbff', trim: '#e4ecf6', trimKind: 'gold', fin: '#8fd2ff', light: '#86e4ff', pill: '#eefcff', dim: '#3c5a70', gloss: '#14304a', deck: '#dff2ff' },
+  // 해적선(해적 세트): 짙은 나무 판자, 금 테, 빨간 날개, 따뜻한 호박색 조명
+  pirate: { top: '#86481f', grad: ['#783e1b', '#86481f'], pattern: 'pirate', seams: false, under: '#4a2816', bumper: '#3a2012', trim: GOLD, trimKind: 'gold', fin: '#e0353c', light: '#ffb347', pill: '#fff0d0', dim: '#5c3a22', gloss: '#2a1206', deck: '#8a5432' },
+  // 딸기우유: 분홍 바탕에 흰 물방울, 흰 테, 분홍 조명
+  berry: { top: '#ff94bd', grad: ['#ff6aa4', '#ff8cbb', '#ffb0cf'], pattern: 'berry', seams: false, under: '#ff82ae', bumper: '#fff4f8', trim: '#ffffff', trimKind: 'plain', fin: '#ff5f97', light: '#ff7fc6', pill: '#ffe4f2', dim: '#6a3450', gloss: '#4a1028', deck: '#ffc0d6' },
+  // 사탕: 분홍·민트·레몬·흰 줄이 비스듬히 휘감는 사탕 칠, 흰 테, 라일락 조명
+  candy: { top: '#ffc6e0', grad: ['#ffffff', '#ffffff'], pattern: 'candy', seams: false, under: '#ff9fca', bumper: '#9eeed2', trim: '#ffffff', trimKind: 'plain', fin: '#ffeb70', light: '#c99cff', pill: '#f3e6ff', dim: '#4e3a66', gloss: '#3a1a3a', deck: '#fff3a0' },
+  // 오로라: 청록 → 보라 바탕에 출렁이는 빛 커튼과 별, 은 테, 청록 조명
+  aurora: { top: '#1d5a96', grad: ['#0a5868', '#123f80', '#2c2a8e', '#5a2cb0'], pattern: 'aurora', glow: true, seams: false, under: '#142a62', bumper: '#1d2f74', trim: '#e2eaf4', trimKind: 'gold', fin: '#56f0cf', light: '#4ff0d8', pill: '#ddfff8', dim: '#1f4a52', gloss: '#08203a', deck: '#2b4fa0' },
+  // 크롬 은빛: 비친 하늘·땅을 흉내 낸 동심 띠(살짝 푸른 은)로 하늘 앞에서도 또렷하게, 남색 테, 청록 조명
+  chrome: {
+    top: '#d6deea',
+    grad: [[0, '#3c4456'], [0.07, '#8f99ac'], [0.15, '#e8edf5'], [0.22, '#ffffff'], [0.28, '#a9b2c2'], [0.33, '#3f4759'], [0.37, '#7c8699'], [0.43, '#e2e7ef'], [0.55, '#ffffff'], [0.66, '#b6bfcd'], [0.72, '#545e72'], [0.77, '#d9dfe8'], [1, '#ffffff']],
+    pattern: 'chrome',
+    seams: ['rgba(26,34,70,0.5)', 'rgba(255,255,255,0.6)'],
+    metal: 0.18,
+    rough: 0.2,
+    env: 0.5,
+    under: '#8c92a0',
+    bumper: '#262a78',
+    trim: '#262a78',
+    trimKind: 'plain',
+    fin: '#262a78',
+    light: PAL.glow,
+    pill: '#bffaff',
+    dim: DIM,
+    gloss: '#182034',
+    deck: '#c6d0df',
+  },
 };
 
 const paintMats = new Map();
@@ -224,18 +710,19 @@ function paintMat(id, role, amt = 0) {
   let m = paintMats.get(key);
   if (m) return m;
   if (role === 'top') {
-    const colored = !!(P.grad || P.galaxy);
+    const colored = !!(P.grad || P.galaxy || P.pattern);
     m = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(colored ? (amt ? tone('#ffffff', amt * 0.5) : '#ffffff') : amt ? tone(P.top, amt) : P.top),
       map: hullTexture(P),
-      // 금빛 칠은 금속성을 조금만: 하늘이 비치면 빛이 바래 베이지가 된다. 반짝임은 투명 코팅이 맡는다
-      metalness: P.metal ? 0.32 : 0.1,
-      roughness: P.metal ? 0.26 : 0.34,
+      // 금빛 칠은 금속성을 조금만: 하늘이 비치면 빛이 바래 베이지가 된다. 반짝임은 투명 코팅이 맡는다.
+      // 크롬처럼 금속성을 숫자로 주면 그만큼(비친 하늘에 묻히지 않게 명암은 칠 그림이 맡는다)
+      metalness: typeof P.metal === 'number' ? P.metal : P.metal ? 0.32 : 0.1,
+      roughness: P.rough ?? (P.metal ? 0.26 : 0.34),
       clearcoat: 1,
       clearcoatRoughness: 0.1,
-      envMapIntensity: P.metal ? 1.1 : 0.85,
+      envMapIntensity: P.env ?? (P.metal ? 1.1 : 0.85),
       emissive: new THREE.Color('#ffffff'),
-      emissiveMap: hullGloss(P.gloss),
+      emissiveMap: hullGloss(P.gloss, P.glow ? P.pattern : null),
       emissiveIntensity: 1,
     });
   } else if (role === 'trim') {
@@ -326,7 +813,21 @@ function saucer(o, R, { pills = 10, ambers = 3, topTone = 0, emitter = true, tie
     g.add(bowl);
     g.add(pmesh(o, torusGeo(R * 0.3, R * 0.022, 6, 36), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, -R * 0.19, 0], cast: false }));
   }
-  return { group: g, sprites, amberSprites, topY: (tier ? 0.29 : 0.236) * R, bellyY: -0.27 * R };
+  /** 윗면 높이(가운데에서 반지름 r 떨어진 자리, 모델 단위). 장식을 윗면에 얹을 때 쓴다. */
+  const surfaceY = (r) => {
+    const x = Math.abs(r) / R;
+    const pts = topPts;
+    if (x >= pts[0][0]) return pts[0][1] * R;
+    for (let i = 1; i < pts.length; i++) {
+      if (pts[i][0] <= x) {
+        const [x0, y0] = pts[i - 1];
+        const [x1, y1] = pts[i];
+        return (y1 + ((x - x1) / Math.max(1e-6, x0 - x1)) * (y0 - y1)) * R;
+      }
+    }
+    return pts[pts.length - 1][1] * R;
+  };
+  return { group: g, sprites, amberSprites, topY: (tier ? 0.29 : 0.236) * R, bellyY: -0.27 * R, surfaceY };
 }
 
 /** 조종석 유리: 가운데는 거의 투명(피포가 또렷이 보이게), 가장자리로 갈수록 하늘빛이 짙어진다. */
@@ -441,13 +942,15 @@ const SPECS = [
 /**
  * 기체를 만든다.
  * @param {number} form 형태(0..7)
- * @param {{paint?: string, outfit?: string, beam?: string}} [look] paint = 도색(PAINTS), outfit = 피포 의상, beam = 빔 색(beams.js)
+ * @param {{paint?: string, outfit?: string, beam?: string, deco?: string}} [look] paint = 도색(PAINTS), outfit = 피포 의상,
+ *   beam = 빔 색(beams.js), deco = 기체 장식(decos.js)
  * @returns {{ root: THREE.Group, update(o: {t:number, mood?:string, lit?:number, beam?:number}): void,
  *             halfWidth: number, bellyY: number, topY: number, body: THREE.Group, pilot: object,
- *             setPaint(id: string): void, setOutfit(id: string): void, setBeam(id: string): void, paint: string }}
+ *             setPaint(id: string): void, setOutfit(id: string): void, setBeam(id: string): void, setDeco(id: string): void,
+ *             paint: string, deco: string }}
  *   bellyY = 빔이 나오는 자리, topY = 꼭대기(말풍선 자리). 둘 다 기울이기 전 모델 단위.
  */
-export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan' } = {}) {
+export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan', deco = 'none' } = {}) {
   const spec = SPECS[Math.min(Math.max(form, 0), SPECS.length - 1)];
   if (!PAINTS[paint]) paint = 'navy';
   // 이 기체만 쓰는 빛 재질(밝기를 매 프레임 바꾼다)
@@ -602,13 +1105,34 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
 
   const bellyY = main.bellyY;
 
+  // 장식(decos.js)을 얹을 자리
+  const anchor = {
+    form: Math.min(Math.max(form, 0), SPECS.length - 1),
+    spec,
+    R,
+    surfaceY: main.surfaceY, // 맨 아래 접시 윗면 높이(반지름 r 에서)
+    rimY: R * 0.045, // 윗면 가장자리 높이
+    mainTopY: main.topY, // 맨 아래 접시 가운데 높이
+    domeY, // 조종석 돔 바닥
+    domeR, // 돔 반지름(세로는 1.1 배)
+    domeTop: domeY + domeR * 1.1, // 돔 꼭대기
+    topY, // 기체 꼭대기(안테나 포함)
+    bellyY,
+    o, // 재질 묶음(pillMat, lightSprites 등. 도색 빛 색을 따르려면 o.light())
+    // 도색을 따르는 메시(role: top | under | bumper | trim | fin | deck). 도색을 바꾸면 재질이 함께 바뀐다
+    pmesh: (geo, role, opts, amt = 0) => pmesh(o, geo, role, opts, amt),
+    paint: () => PAINTS[o.paint], // 지금 도색 값(light·trim 색 등)
+  };
+  let decoId = 'none';
+  let decoObj = null;
+
   /** look = 피포가 눈으로 따라갈 세계 좌표(없으면 정면). */
   function update({ t = 0, mood = 'idle', lit = 1, beam = 0, look = null } = {}) {
     const L = Math.min(Math.max(lit, 0), 1);
     // 빛 번짐은 블룸이 맡으므로 조명 자체와 스프라이트는 은은하게
     o.pillMat.emissiveIntensity = 0.15 + 1.1 * L;
     o.pillMat.color.set(L > 0.3 ? PAINTS[o.paint].pill : PAINTS[o.paint].dim);
-    if (beamStyle.hue) beamColor(beamId, t, 0, undefined, o.bowlMat.emissive);
+    if (beamStyle.hue || beamStyle.grad || beamStyle.stripes) beamColor(beamId, t, 0, undefined, o.bowlMat.emissive); // 움직이는 빔은 발광부도 따라 바뀐다
     o.lineMat.opacity = 0.15 + 0.8 * L;
     o.amberMat.emissiveIntensity = 0.1 + 1.5 * L;
     o.bowlMat.emissiveIntensity = 0.15 + Math.max(beam * 1.9, L * 0.9);
@@ -636,6 +1160,33 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
       e.position.set(Math.cos(a) * R * 1.12, R * 0.02 + Math.sin(a * 2) * 0.04, Math.sin(a) * R * 0.7);
       e.rotation.y = -a;
     });
+    decoObj?.update?.({ t, mood, lit: L, beam });
+  }
+
+  /** 기체 장식을 바꾼다(decos.js). 장식은 기체마다 새로 만들고, 바꾸면 이전 것은 떼어 낸다. */
+  function setDeco(id) {
+    if (!DECO_BUILD[id]) id = 'none';
+    if (id === decoId && (decoObj || id === 'none')) return;
+    if (decoObj) {
+      body.remove(decoObj.group);
+      // 도색이 바뀌는 메시 목록에서도 뺀다
+      const gone = new Set();
+      decoObj.group.traverse((m) => gone.add(m));
+      o.painted = o.painted.filter((m) => !gone.has(m));
+      o.lightSprites = o.lightSprites.filter((m) => !gone.has(m));
+    }
+    decoObj = null;
+    decoId = id;
+    if (id === 'none') return;
+    decoObj = buildDeco(id, anchor);
+    if (!decoObj) {
+      decoId = 'none';
+      return;
+    }
+    decoObj.group.traverse((m) => {
+      if (m.isMesh) m.castShadow = false;
+    });
+    body.add(decoObj.group);
   }
 
   /** 도색을 바꾼다(선체 재질만 갈아 끼운다. 재질은 도색마다 캐시해 함께 쓰므로 지우지 않는다). */
@@ -660,6 +1211,7 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
     o.bowlMat.emissive.set(beamStyle.color);
   }
   setBeam(beam);
+  setDeco(deco);
   update({});
 
   // 기체는 높이 떠 있어 땅에 그림자를 드리우지 않는다(컨셉에도 없다)
@@ -676,10 +1228,14 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
     pilot,
     setPaint,
     setBeam,
+    setDeco,
     /** 조종사 피포의 의상을 바꾼다. */
     setOutfit: (id) => pilot.setOutfit(id),
     get paint() {
       return o.paint;
+    },
+    get deco() {
+      return decoId;
     },
   };
 }

@@ -937,6 +937,313 @@
   --sw: linear-gradient(90deg, #ff5a5a, #ffcf26, #4cd964, #3fa9ff, #a35bff);
 }
 
+/* 꾸미기 종류 고르기(세트 · 의상 · 도색 · 빔 · 장식) */
+.sh-chips {
+  display: flex;
+  gap: 6px;
+  /* 스크롤 칸은 격자 안에서 0 높이까지 줄어들 수 있으므로 높이를 붙잡는다 */
+  min-height: 50px;
+  margin: 0 calc(var(--mp, 16px) * -1);
+  padding: 2px var(--mp, 16px) 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.sh-chips::-webkit-scrollbar {
+  display: none;
+}
+.sh-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 12px 0 9px;
+  font: 800 14px/1 var(--a-font);
+  color: var(--a-ink);
+  background: #ffffff;
+  border: 2px solid var(--a-line);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--a-lip);
+  cursor: pointer;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.sh-chip small {
+  font: 700 11.5px/1 var(--a-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--a-ink-soft);
+}
+.sh-chip:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--a-lip);
+}
+.sh-chip[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--a-navy);
+  border-color: var(--a-navy);
+  box-shadow: 0 3px 0 var(--a-navy-lip);
+}
+.sh-chip[aria-pressed="true"] small {
+  color: var(--a-on-navy-soft);
+}
+.sh-chip .ico svg {
+  stroke-width: 2.6px;
+}
+
+/* 테마 세트 카드 */
+.sh-sets {
+  display: grid;
+  gap: 14px;
+}
+.sh-set-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.sh-set-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  background: radial-gradient(circle at 50% 38%, #d9ecff, #8cc0ff 78%);
+  border-radius: 22px;
+  box-shadow: inset 0 -5px 0 rgba(26, 70, 170, 0.18);
+  overflow: hidden;
+}
+.sh-set-art[data-set="cat"] {
+  background: radial-gradient(circle at 50% 38%, #fff1e0, #ffbf8a 80%);
+}
+.sh-set-art[data-set="dino"] {
+  background: radial-gradient(circle at 50% 38%, #e6ffe8, #8fe0a6 80%);
+}
+.sh-set-art[data-set="bee"] {
+  background: radial-gradient(circle at 50% 38%, #fff8d6, #ffd75a 80%);
+}
+.sh-set-art[data-set="wizard"] {
+  background: radial-gradient(circle at 50% 38%, #b9a2ff, #4b2fb0 82%);
+  box-shadow: inset 0 -5px 0 rgba(30, 10, 80, 0.3);
+}
+.sh-set-art[data-set="winter"] {
+  background: radial-gradient(circle at 50% 38%, #ffffff, #b6dcff 80%);
+}
+.sh-set-art[data-set="pirate"] {
+  background: radial-gradient(circle at 50% 38%, #9fe6ff, #2a78c8 82%);
+}
+.sh-set-art .sh-cpic {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border-radius: 0;
+}
+.sh-set-art .sh-cpic:not(.blank) .sh-swatch {
+  display: none;
+}
+.sh-set-own {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+  background: var(--a-green-fill);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+.sh-set-own svg {
+  stroke-width: 3.2px;
+}
+.sh-set.compact .sh-set-art {
+  width: 108px;
+  height: 108px;
+}
+.sh-kicker {
+  display: block;
+  margin-bottom: 3px;
+  font: 800 12px/1.2 var(--a-font);
+  color: var(--a-purple);
+}
+.sh-set-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sh-set-items li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 5px 8px 5px 5px;
+  background: #f3f6ff;
+  border-radius: 12px;
+}
+.sh-set-items li > span {
+  display: grid;
+  min-width: 0;
+}
+.sh-set-items small {
+  font: 700 11px/1.2 var(--a-font);
+  color: var(--a-ink-soft);
+}
+.sh-set-items b {
+  overflow: hidden;
+  font: 800 13px/1.25 var(--a-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-set-items .sh-cpic.mini {
+  width: 40px;
+  height: 40px;
+  background: #ffffff;
+  border-radius: 10px;
+}
+.sh-set-items.small li {
+  padding: 4px 8px 4px 4px;
+}
+.sh-set-items.small .sh-cpic.mini {
+  width: 34px;
+  height: 34px;
+}
+.sh-set-items li.me {
+  background: var(--a-yellow-tint);
+  box-shadow: inset 0 0 0 2px var(--a-yellow);
+}
+.sh-set.on {
+  border-color: var(--a-green-fill);
+  box-shadow: 0 4px 0 var(--a-green);
+}
+
+/* 세트 · 업적 칸 */
+.sh-cos[data-state="set"] .sh-cstate {
+  background: var(--a-purple);
+  box-shadow: 0 2px 0 var(--a-purple-lip);
+}
+.sh-cos[data-source="achievement"][data-state="lock"] .sh-cstate {
+  color: var(--a-ink);
+  background: var(--a-yellow-tint);
+}
+
+/* 꾸미기 미리 보기 창 */
+:root[data-skin="pop"] .modal.modal-cos-preview {
+  width: min(100%, 380px);
+}
+.sh-pv-wrap {
+  display: grid;
+  gap: 8px;
+}
+:root[data-skin="pop"] .modal-cos-preview .modal-head {
+  margin-bottom: 0;
+}
+.sh-pv-kind {
+  margin-top: -6px;
+  font: 700 13px/1.3 var(--a-font);
+  color: var(--a-ink-soft);
+}
+.sh-pv {
+  display: grid;
+  gap: 10px;
+}
+.sh-pv-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 212px;
+  background: radial-gradient(circle at 50% 30%, #e4f1ff, #9cc9ff 85%);
+  border-radius: 22px;
+  box-shadow: inset 0 -5px 0 rgba(26, 70, 170, 0.16);
+  overflow: hidden;
+}
+.sh-pv-stage .sh-cpic {
+  background: transparent;
+  border-radius: 0;
+}
+.sh-pv-ship .sh-cpic {
+  width: 200px;
+  height: 200px;
+}
+.sh-pv-stage.two .sh-pv-ship {
+  transform: translateX(-34px);
+}
+.sh-pv-close {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100px;
+  height: 100px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 3px 0 var(--a-lip);
+}
+.sh-pv-close .sh-cpic {
+  width: 96px;
+  height: 96px;
+}
+.sh-pv-stage .sh-cpic:not(.blank) .sh-swatch {
+  display: none;
+}
+.sh-pv-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 12.5px/1.35 var(--a-font);
+  color: var(--a-ink-soft);
+}
+.sh-pv-how {
+  display: grid;
+  gap: 9px;
+}
+.sh-pv-why {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 14px/1.4 var(--a-font);
+  color: var(--a-ink);
+}
+.sh-pv-ach {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #f3f6ff;
+  border-radius: 14px;
+}
+.sh-pv-ach small {
+  font: 600 13px/1.4 var(--a-font);
+  color: var(--a-ink-soft);
+}
+.sh-pv-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sh-pv-bar .sh-pbar {
+  flex: 1 1 auto;
+  width: auto;
+  height: 9px;
+}
+.sh-pv-bar b {
+  font: 800 13px/1 var(--a-font);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 장식·새 꾸미기의 색 견본(3D 그림이 오기 전) */
+.sh-cpic[data-kind="deco"] {
+  --sw: #ff8fc4;
+}
+.sh-cpic[data-kind="look"] {
+  --sw: #8cc0ff;
+}
+
 /* ── 아래: 구매 복원 · 결제 안내 ── */
 
 .sh-foot {

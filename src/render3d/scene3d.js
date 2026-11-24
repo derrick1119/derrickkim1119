@@ -228,6 +228,7 @@ export class Scene3D extends Scene {
       this.ufo3d?.setOutfit?.(look.outfit);
       this.ufo3d?.setPaint?.(look.paint);
       this.ufo3d?.setBeam?.(look.beam);
+      this.ufo3d?.setDeco?.(look.deco);
     });
     game.on('replaced', () => {
       this.ufoForm = -1; // 다른 저장본: 그 꾸미기로 기체를 다시 만든다

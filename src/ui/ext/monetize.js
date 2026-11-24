@@ -22,6 +22,12 @@ function clock(sec) {
   return hh > 0 ? `${hh}:${p(mm)}:${p(ss)}` : `${mm}:${p(ss)}`;
 }
 
+/** 'outfit:knight' → 꾸미기 이름. */
+const keyName = (key) => {
+  const [kind, id] = String(key).split(':');
+  return T(`cosmetic.${kind}.${id}`);
+};
+
 /** 단계 보상 한 줄 설명. */
 function rewardText(ui, rw) {
   const fx = ui.game.fx.monetize;
@@ -155,7 +161,11 @@ function openLadder(ui) {
             )
           : h('span', { class: 'chip', text: T('ladder.weeklyProgress', { n: Math.min(w.streak, w.days) }) }),
       ),
-      h('p', { class: 'mz-note', text: T('ladder.pieces', { a: pieces.have, b: pieces.need }) }),
+      h(
+        'p',
+        { class: 'mz-note' },
+        pieces.target ? `${T('ladder.pieces', { a: pieces.have, b: pieces.need })} · ${T('ladder.next', { name: keyName(pieces.target) })}` : T('ladder.allMade'),
+      ),
       tickets > 0 &&
         h(
           'div',
@@ -196,7 +206,7 @@ function openLadder(ui) {
 function celebrate(ui, r) {
   ui.audio.sfx('achievement');
   ui.haptics.fire('good');
-  if (r.made?.length) ui.toast(T('ladder.made'), 'good');
+  for (const key of r.made || []) ui.toast(T('ladder.made', { name: keyName(key) }), 'good');
   if (r.shinyNext) ui.toast(T('toast.shinyNext'), 'good');
   if (r.boostUntil) ui.toast(T('toast.boost', { t: formatDuration(ui.game.fx.monetize.boostLeft()) }), 'good');
 }
@@ -381,6 +391,8 @@ registerBind({
     });
     // 도장 단계에 닿으면 한 줄 알림
     game.on('monetize:ladder', ({ at }) => ui.toast(`${T('ladder.title')} ${T('ladder.at', { n: at })}!`, 'grant'));
+    // 업적으로 꾸미기를 얻으면 알림(상점 꾸미기 탭에서 바로 장착할 수 있다)
+    game.on('monetize:unlock', ({ key }) => ui.toast(T('toast.unlock', { name: keyName(key) }), 'good'));
   },
 });
 

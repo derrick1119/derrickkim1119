@@ -12,7 +12,9 @@ import {
   LADDER,
   WEEKLY,
   PIECES_PER_COSTUME,
-  PIECE_COSTUME,
+  PIECE_SERIES,
+  PIECE_GRANT_UNITS,
+  SETS,
   COSMETICS,
   COSMETIC_KINDS,
   COSMETIC_BY_KEY,
@@ -107,7 +109,9 @@ function sanitize(raw, init) {
   for (const kind of COSMETIC_KINDS) {
     const id = look[kind];
     const key = cosmeticKey(kind, id);
-    if (isKey(key) && (COSMETIC_BY_KEY[key].source === 'default' || out.owned.includes(key))) out.look[kind] = id;
+    // 업적 꾸미기는 업적 기록(게임 상태)을 봐야 알 수 있으므로 여기선 남겨 두고, look() 이 다시 확인한다
+    const src = isKey(key) ? COSMETIC_BY_KEY[key].source : null;
+    if (src === 'default' || src === 'achievement' || out.owned.includes(key)) out.look[kind] = id;
   }
   const prods = clean.obj(r.products);
   out.products = {};
@@ -189,17 +193,27 @@ export default defineFeature({
       return true;
     }
 
+    /** 조각으로 다음에 완성될 꾸미기(PIECE_SERIES 차례, 모두 가졌으면 null). */
+    const pieceTarget = () => PIECE_SERIES.find((k) => !slot().owned.includes(k)) || null;
+
+    /** 조각을 더한다. 다 모이면 차례대로 완성하고, 더 만들 것이 없으면 남는 조각을 연구비로 바꾼다. */
     function addPieces(n) {
       const s = slot();
       s.pieces += n;
       const made = [];
-      const key = cosmeticKey('outfit', PIECE_COSTUME);
-      while (s.pieces >= PIECES_PER_COSTUME && !s.owned.includes(key)) {
+      let key = pieceTarget();
+      while (key && s.pieces >= PIECES_PER_COSTUME) {
         s.pieces -= PIECES_PER_COSTUME;
         addCosmetic(key);
         made.push(key);
+        key = pieceTarget();
       }
-      return made;
+      let grant = 0;
+      if (!key && s.pieces > 0) {
+        grant = giveGrant(s.pieces * PIECE_GRANT_UNITS, 'ladder');
+        s.pieces = 0;
+      }
+      return { made, grant };
     }
 
     /** 단계 보상(도장·주간·상품 공통)을 준다. */
@@ -217,7 +231,9 @@ export default defineFeature({
       }
       if (rw.piece) {
         out.piece = rw.piece;
-        out.made = addPieces(rw.piece);
+        const pc = addPieces(rw.piece);
+        out.made = pc.made;
+        if (pc.grant) out.grant = (out.grant || 0) + pc.grant;
       }
       return out;
     }
@@ -247,6 +263,12 @@ export default defineFeature({
       game.emit('monetize:offer', { id: 'shh.formpack', form });
     });
     game.on('replaced', () => game.emit('monetize:change'));
+    // 업적 꾸미기: 업적을 이루는 순간 알려 준다(가졌는지는 owns() 가 업적 기록으로 판단)
+    game.on('achievement', ({ id }) => {
+      for (const c of COSMETICS) {
+        if (c.source === 'achievement' && c.ach === id) game.emit('monetize:unlock', { key: cosmeticKey(c.kind, c.id), ach: id });
+      }
+    });
 
     const api = {
       grantUnit: () => grantUnit(game),
@@ -513,13 +535,42 @@ export default defineFeature({
       },
 
       // ───── 꾸미기 ─────
-      look: () => ({ ...DEFAULT_LOOK, ...slot().look }),
-      pieces: () => ({ have: slot().pieces, need: PIECES_PER_COSTUME, costume: PIECE_COSTUME }),
+      /** 지금 모습(가지지 않은 것은 기본으로). */
+      look() {
+        const raw = { ...DEFAULT_LOOK, ...slot().look };
+        const out = {};
+        for (const kind of COSMETIC_KINDS) out[kind] = api.owns(kind, raw[kind]) ? raw[kind] : DEFAULT_LOOK[kind];
+        return out;
+      },
+      /** 조각: 가진 수, 한 벌에 필요한 수, 다음에 완성될 꾸미기(key, 다 가졌으면 null), 차례 전체. */
+      pieces: () => ({
+        have: slot().pieces,
+        need: PIECES_PER_COSTUME,
+        target: pieceTarget(),
+        costume: pieceTarget()?.split(':')[1] || null,
+        series: PIECE_SERIES.map((k) => ({ key: k, owned: slot().owned.includes(k) })),
+      }),
       owns(kind, id) {
         const key = cosmeticKey(kind, id);
-        return isKey(key) && (COSMETIC_BY_KEY[key].source === 'default' || slot().owned.includes(key));
+        if (!isKey(key)) return false;
+        const c = COSMETIC_BY_KEY[key];
+        if (c.source === 'default' || slot().owned.includes(key)) return true;
+        return c.source === 'achievement' && !!game.state.ach?.[c.ach];
       },
-      cosmetics: (kind) => COSMETICS.filter((c) => !kind || c.kind === kind).map((c) => ({ ...c, owned: api.owns(c.kind, c.id), equipped: api.look()[c.kind] === c.id })),
+      cosmetics: (kind) => {
+        const look = api.look();
+        return COSMETICS.filter((c) => !kind || c.kind === kind).map((c) => ({ ...c, owned: api.owns(c.kind, c.id), equipped: look[c.kind] === c.id }));
+      },
+      /** 테마 세트: 상품, 들어 있는 것(가졌는지 함께), 샀는지. */
+      sets: () =>
+        SETS.map((x) => ({
+          ...x,
+          bought: !!api.bought(x.product),
+          items: x.items.map((key) => {
+            const [kind, id] = key.split(':');
+            return { key, kind, id, owned: api.owns(kind, id) };
+          }),
+        })),
       equip(kind, id) {
         if (!COSMETIC_KINDS.includes(kind) || !api.owns(kind, id)) return false;
         slot().look[kind] = id;

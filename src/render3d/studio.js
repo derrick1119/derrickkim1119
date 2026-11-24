@@ -7,7 +7,7 @@ import { createSpecimen } from './specimens3d.js';
 import { createPipo } from './pipo.js';
 import { makeBeamCone } from './beams.js';
 
-const MAX_PX = 256;
+const MAX_PX = 480;
 let studio = null;
 
 function setup() {
@@ -78,12 +78,60 @@ function shoot(object, px, { fill = 0.86, lift = 0.18, frame = null } = {}) {
   return s.canvas;
 }
 
+/** 'outfit=bee;paint=honey;beam=honey;deco=wings;form=2;beamOn=1' → 모습 묶음. */
+function parseLook(str) {
+  const out = {};
+  for (const pair of String(str).split(/[;,]/)) {
+    const [k, v] = pair.split('=');
+    if (k && v != null) out[k.trim()] = v.trim();
+  }
+  return out;
+}
+
+/** 모습 묶음을 모두 갖춘 기체(빔을 켜면 아래로 빔 원뿔). 상점의 세트·미리보기 그림. */
+function lookShot(look, o) {
+  const t = o.t ?? 0.6;
+  const g = new THREE.Group();
+  const form = Number(look.form ?? 2);
+  const u = createUfo(form, { outfit: look.outfit, paint: look.paint, beam: look.beam, deco: look.deco });
+  u.root.rotation.x = UFO_TILT;
+  const beamOn = look.beamOn === '1';
+  u.update({ t, mood: o.mood || look.mood || 'happy', lit: 1, beam: beamOn ? 1 : 0, look: new THREE.Vector3(0, 0.4, 10) });
+  u.update({ t: t + 0.01, mood: o.mood || look.mood || 'happy', lit: 1, beam: beamOn ? 1 : 0, look: new THREE.Vector3(0, 0.4, 10) });
+  g.add(u.root);
+  g.updateMatrixWorld(true);
+  const frame = measure(u.root, new THREE.Box3());
+  if (beamOn) {
+    const belly = new THREE.Vector3(0, u.bellyY, 0).applyMatrix4(u.root.matrixWorld);
+    const len = u.halfWidth * 1.15;
+    const cone = makeBeamCone(look.beam || 'cyan', { additive: false, t });
+    cone.position.copy(belly);
+    cone.rotation.x = Math.PI;
+    cone.scale.set(u.halfWidth * 0.55, len, u.halfWidth * 0.55);
+    g.add(cone);
+    frame.min.y = Math.min(frame.min.y, belly.y - len);
+  }
+  return { object: g, opts: { frame, fill: 0.94, lift: 0.08 } };
+}
+
 /**
- * 꾸미기 아이콘의 물체와 화면 틀. id = 'outfit:bunny' | 'paint:galaxy' | 'beam:rainbow'.
- *   outfit: 의상을 입은 피포 가슴 위 모습(카메라를 본다), paint: 그 도색의 2형태 기체, beam: 그 빔을 쏘는 1형태 기체.
+ * 꾸미기 아이콘의 물체와 화면 틀. id = 'outfit:bunny' | 'paint:galaxy' | 'beam:rainbow' | 'deco:wings' | 'look:outfit=bee;paint=honey;...'.
+ *   outfit: 의상을 입은 피포 가슴 위 모습(카메라를 본다), paint: 그 도색의 2형태 기체, beam: 그 빔을 쏘는 1형태 기체,
+ *   deco: 그 장식을 단 2형태 기체, look: 모습 묶음을 모두 갖춘 기체(세트·미리보기).
  */
 function cosmeticShot(id, o) {
-  const [kind, cid] = String(id).split(':');
+  const str = String(id);
+  const cut = str.indexOf(':');
+  const kind = str.slice(0, cut);
+  const cid = str.slice(cut + 1);
+  if (kind === 'look') return lookShot(parseLook(cid), o);
+  if (kind === 'deco') {
+    const u = createUfo(2, { deco: cid });
+    u.root.rotation.x = UFO_TILT;
+    u.update({ t: o.t ?? 0.6, mood: o.mood || 'idle', lit: 1, beam: 0, look: new THREE.Vector3(0, 0.4, 10) });
+    u.update({ t: (o.t ?? 0.6) + 0.01, mood: o.mood || 'idle', lit: 1, beam: 0, look: new THREE.Vector3(0, 0.4, 10) });
+    return { object: u.root, opts: { frame: measure(u.root, new THREE.Box3()), fill: 0.92, lift: 0.1 } };
+  }
   if (kind === 'outfit') {
     const p = createPipo(1, { outfit: cid });
     const mood = o.mood || 'idle';

@@ -157,18 +157,33 @@ AdMob 이 중개자(미디에이터)가 되어 다른 네트워크의 보상형 
 | `shh.grant.l` | consumable | 소모성 | 일회성 · Consumable | ₩12,000 | — | 연구비 L |
 | `shh.grant.xl` | consumable | 소모성 | 일회성 · Consumable | ₩33,000 | — | 연구비 XL |
 | `shh.formpack` | consumable | 소모성 | 일회성 · Consumable | ₩3,900 | — | 새 형태 기념 팩(연구비 + 부스터 3시간) |
+| `shh.set.cat` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 냥냥 세트(냥냥 후드 · 삼색 얼룩 도색 · 복숭아 빔 · 고양이 귀) |
+| `shh.set.dino` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 공룡 세트(공룡 후드 · 공룡 정글 도색 · 라임 빔 · 공룡 등가시) |
+| `shh.set.bee` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 꿀벌 세트(꿀벌 옷 · 꿀벌 줄무늬 도색 · 꿀 빔 · 꿀벌 날개) |
+| `shh.set.wizard` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 마법사 세트(꼬마 마법사 · 마법 밤하늘 도색 · 보랏빛 빔 · 반짝 별 위성) |
+| `shh.set.winter` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 겨울 세트(겨울 니트 · 눈꽃 도색 · 얼음 빔 · 사슴뿔) |
+| `shh.set.pirate` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩5,900 | `cosmetics` | 해적 세트(우주 해적 선장 · 해적선 도색 · 바다 빔 · 해적 깃발) |
 | `shh.outfit.bunny` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 토끼 귀 털모자 |
 | `shh.outfit.raincoat` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 노란 우비 |
 | `shh.outfit.chef` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩3,300 | `cosmetics` | 우주 요리사 |
 | `shh.outfit.astro` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩4,900 | `cosmetics` | 꼬마 우주복 |
+| `shh.outfit.frog` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 개구리 모자 |
 | `shh.paint.sunset` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 노을 도색 |
 | `shh.paint.mint` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 민트 도색 |
 | `shh.paint.galaxy` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩4,900 | `cosmetics` | 은하 도색 |
+| `shh.paint.berry` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 딸기우유 도색 |
+| `shh.paint.candy` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 사탕 도색 |
+| `shh.paint.aurora` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩3,300 | `cosmetics` | 오로라 도색 |
 | `shh.beam.pink` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 분홍 빔 |
 | `shh.beam.rainbow` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩3,300 | `cosmetics` | 무지개 빔 |
+| `shh.beam.sunset` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 노을 빔 |
+| `shh.beam.candy` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 사탕 줄무늬 빔 |
+| `shh.deco.bow` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩2,500 | `cosmetics` | 리본 장식 |
+| `shh.deco.propeller` | nonconsumable | 비소모성 | 일회성 · Non-consumable | ₩3,300 | `cosmetics` | 프로펠러 장식 |
 
 - **권한(Entitlement)**: RevenueCat › Product catalog › Entitlements 에 `freepass`, `season`, `cosmetics` 세 개를 만들고 표대로 상품을 붙입니다.
   게임은 `freepass`·`season` 권한(만료 시각 포함)과, 상품별 거래 기록으로 복원합니다. `cosmetics` 는 「꾸미기를 하나라도 산 사람」 분석용이며 복원은 상품별 거래로 합니다.
+- 꾸미기 중 일부는 돈으로 팔지 않습니다: 업적 보상(꽃 화관·생일 파티·크롬 도색·오로라 빔·왕관), 본부 지원 도장 조각(본부 우수 요원 → 꼬마 기사 → 천사 고리 차례), 시즌 패스·프리패스·스타터 팩 선물. 스토어에 상품을 만들 필요가 없습니다.
 - **스타터 팩(`shh.starter`)은 비소모성**으로 만드세요. 스토어가 「한 번만」을 지켜 주고, 재설치 뒤 「구매 복원」으로 의상이 돌아옵니다.
 - **구글 플레이의 일회성 상품은 RevenueCat 대시보드에서 유형(Consumable / Non-consumable)을 꼭 지정**하세요. 소모성은 결제 뒤 소비되어 다시 살 수 있고, 비소모성은 계속 소유로 남습니다.
 - 안드로이드 정기 결제의 기본 요금제 ID 는 `monthly` 로 만드세요(`src/monetize/config.js` 의 `revenuecat.seasonBasePlan`). 다른 이름을 쓰면 그 값도 바꿉니다.

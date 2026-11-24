@@ -12,14 +12,14 @@
 //   restorePurchases(ui)    구매 복원(설정 화면용)
 import './shopStrings.js';
 import { POLICY_LINKS } from '../../monetize/links.js';
-import { FORMS } from '../../data/content.js';
+import { FORMS, ACHIEVEMENTS } from '../../data/content.js';
 import { formatInt } from '../../core/format.js';
 import { t, tList, formatDuration } from '../../i18n/index.js';
 import { iconURL } from '../../render/iconcache.js';
 import { h, icon, img, grantTag } from '../dom.js';
 import { addIcons } from '../icons.js';
 import { registerHud, registerBind } from '../hooks.js';
-import { PRODUCT_BY_ID, COSMETIC_KINDS, COSMETIC_BY_KEY, DEFAULT_LOOK, SEASON, cosmeticKey } from '../../features/monetize/catalog.js';
+import { PRODUCT_BY_ID, COSMETIC_KINDS, COSMETIC_BY_KEY, DEFAULT_LOOK, SEASON, SETS, cosmeticKey } from '../../features/monetize/catalog.js';
 
 addIcons({
   cart: '<path d="M2.8 4.5h2.6l2.2 9.7a1.7 1.7 0 0 0 1.7 1.3h7.6a1.7 1.7 0 0 0 1.6-1.2L20.6 8H6.4"/><circle cx="9.7" cy="19.4" r="1.5"/><circle cx="17" cy="19.4" r="1.5"/>',
@@ -31,6 +31,10 @@ addIcons({
   shelf: '<path d="M4 6.5h16M4 13h16M4 19.5h16M6 6.5v13M18 6.5v13"/><rect x="8.5" y="8.5" width="3.5" height="4.5" rx="1"/>',
   gift: '<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M3 9h18v3H3zM12 9v11M12 9c-1.5-3.5-5.5-4-5.5-1.5S10 9 12 9zM12 9c1.5-3.5 5.5-4 5.5-1.5S14 9 12 9z"/>',
   crown: '<path d="M4 17.5 3 8l5 4 4-6.5 4 6.5 5-4-1 9.5H4z"/><path d="M4.5 20.5h15"/>',
+  bow: '<path d="M12 12 4.2 7.4c-.9-.5-2 .1-2 1.1v7c0 1 1.1 1.6 2 1.1L12 12l7.8 4.6c.9.5 2-.1 2-1.1v-7c0-1-1.1-1.6-2-1.1L12 12z"/><circle cx="12" cy="12" r="2.2"/>',
+  sets: '<rect x="3.5" y="9" width="11" height="11" rx="2.4"/><path d="M8 9V6.4A2.4 2.4 0 0 1 10.4 4h7.2A2.4 2.4 0 0 1 20 6.4v7.2a2.4 2.4 0 0 1-2.4 2.4H14.5"/>',
+  trophy: '<path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0V4z"/><path d="M7.5 6H4.5v1.5A3 3 0 0 0 7.6 10.4M16.5 6h3v1.5a3 3 0 0 1-3.1 2.9M12 13.5v3.5M8.5 20h7l-1-3h-5z"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
 });
 
 /** 이용약관·개인정보처리방침 주소. 앱 출시 전에 채운다(비어 있으면 설정 화면을 안내). */
@@ -39,8 +43,9 @@ export const LEGAL_LINKS = POLICY_LINKS;
 
 const SECTIONS = ['featured', 'grant', 'style'];
 const GRANT_PACKS = ['shh.grant.s', 'shh.grant.m', 'shh.grant.l', 'shh.grant.xl'];
-const KIND_ICON = { outfit: 'shirt', paint: 'roller', beam: 'beamcone' };
-const SOURCE_LABEL = { season: 'fromSeason', starter: 'fromStarter', ladder: 'fromLadder', freepass: 'fromFreepass' };
+const KIND_ICON = { outfit: 'shirt', paint: 'roller', beam: 'beamcone', deco: 'bow', look: 'sets' };
+const SOURCE_LABEL = { season: 'fromSeason', starter: 'fromStarter', ladder: 'fromLadder', freepass: 'fromFreepass', achievement: 'fromAch', set: 'inSet' };
+const STYLE_TABS = ['sets', ...COSMETIC_KINDS];
 const CALM_SECONDS = 2.5; // 한정 제안 창: 이만큼 잠잠해야 띄운다
 const POPUP_GAP_MS = 90 * 1000; // 한정 제안 창 사이 최소 간격
 
@@ -49,6 +54,36 @@ const fxOf = (ui) => ui.game.fx?.monetize || null;
 const pkey = (id) => id.replace(/\./g, '_');
 const productName = (id) => t(`monetize.product.${pkey(id)}.name`);
 const cosName = (kind, id) => t(`monetize.cosmetic.${kind}.${id}`);
+const setName = (id) => t(`monetize.cosmetic.set.${id}`);
+
+/** 모습 묶음 → 촬영기 키('look:outfit=..;paint=..;beam=..;deco=..;form=2'). beamOn = 빔을 켠 모습. */
+function lookKey(look, form = 2, beamOn = false) {
+  const parts = COSMETIC_KINDS.map((k) => `${k}=${look[k] ?? DEFAULT_LOOK[k]}`);
+  parts.push(`form=${form}`);
+  if (beamOn) parts.push('beamOn=1');
+  return `look:${parts.join(';')}`;
+}
+/** 세트를 모두 갖춘 모습. */
+function setLook(set) {
+  const look = { ...DEFAULT_LOOK };
+  for (const key of set.items.map((x) => (typeof x === 'string' ? x : x.key))) {
+    const [kind, id] = key.split(':');
+    look[kind] = id;
+  }
+  return look;
+}
+/** 업적 진행(지금 값, 목표). */
+function achProgress(ui, id) {
+  const a = ACHIEVEMENTS.find((x) => x.id === id);
+  if (!a) return null;
+  let v = 0;
+  try {
+    v = Number(a.stat(ui.game.state)) || 0;
+  } catch {
+    v = 0;
+  }
+  return { have: Math.min(v, a.goal), need: a.goal, done: !!ui.game.state.ach?.[id] };
+}
 const priceOf = (ui, id) => ui.monetize?.price(id) || '';
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -74,7 +109,7 @@ const ctls = new WeakMap();
 function ctl(ui) {
   let c = ctls.get(ui);
   if (!c) {
-    c = { hold: 0, prevBusy: false, buying: false, queue: [], thanks: [], shown: new Set(), calmT: 0, lastPopup: -Infinity, shop: null, season: null, popup: null, hud: null, legalOpen: false };
+    c = { hold: 0, prevBusy: false, buying: false, queue: [], thanks: [], shown: new Set(), calmT: 0, lastPopup: -Infinity, shop: null, season: null, popup: null, hud: null, preview: null, styleTab: 'sets', legalOpen: false };
     ctls.set(ui, c);
   }
   return c;
@@ -167,7 +202,9 @@ function watchBlank(src, wrap) {
 
 /** 꾸미기 그림: 3D 아이콘 + (비어 있을 때) 색 견본과 종류 아이콘. */
 function cosPic(key, size, cls = '') {
-  const [kind, id] = key.split(':');
+  const cut = key.indexOf(':');
+  const kind = key.slice(0, cut);
+  const id = key.slice(cut + 1);
   const src = iconURL('cosmetic', key, size);
   const wrap = h('span', { class: `sh-cpic ${cls}`.trim(), dataset: { k: key, kind }, 'aria-hidden': 'true' }, h('i', { class: 'sh-swatch' }, icon(KIND_ICON[kind] || 'star', Math.round(size * 0.42))), img(src, size));
   watchBlank(src, wrap);
@@ -189,6 +226,8 @@ function productArt(ui, id, size = 72) {
     return h('span', { class: 'sh-art form', 'aria-hidden': 'true' }, img(iconURL('form', f ? f.form : ui.game.formIndex, size), size));
   }
   if (GRANT_PACKS.includes(id)) return h('span', { class: 'sh-art grant', 'aria-hidden': 'true' }, gems(GRANT_PACKS.indexOf(id) + 1));
+  const set = SETS.find((x) => x.product === id);
+  if (set) return h('span', { class: 'sh-art cos set', 'aria-hidden': 'true' }, cosPic(lookKey(setLook(set)), size));
   if (g.cosmetics?.length) {
     const key = id === 'shh.season' ? 'outfit:star' : g.cosmetics[0];
     return h('span', { class: `sh-art cos ${id === 'shh.season' ? 'season' : id === 'shh.freepass' ? 'free' : id === 'shh.starter' ? 'starter' : ''}`.trim(), 'aria-hidden': 'true' }, cosPic(key, size));
@@ -439,7 +478,7 @@ export function openShop(ui, section = 'featured') {
       release();
     },
   });
-  c.shop = { entry, go, refresh };
+  c.shop = { entry, go, refresh, render };
   render(false);
   ui.audio.sfx('open');
   return entry;
@@ -519,7 +558,7 @@ function freeCard(ui) {
   );
 }
 
-function featuredSection(ui) {
+function featuredSection(ui, { go } = {}) {
   const fx = fxOf(ui);
   const c = ctl(ui);
   const out = [];
@@ -529,7 +568,10 @@ function featuredSection(ui) {
     c.queue = c.queue.filter((q) => offerKey(q) !== offerKey(o));
     out.push(offerCard(ui, o));
   }
-  out.push(seasonCard(ui), freeCard(ui));
+  out.push(seasonCard(ui));
+  const set = todaySet(fx);
+  if (set) out.push(setCard(ui, set, { compact: true, go }));
+  out.push(freeCard(ui));
   return out;
 }
 
@@ -582,8 +624,28 @@ function equipToggle(ui, c) {
   ui.save();
 }
 
-function cosTile(ui, c, go) {
+/** 가지지 않은 꾸미기 칸의 상태 글자(가격 · 세트 · 업적 진행 · 조각 등). */
+function lockLabel(ui, c) {
   const fx = fxOf(ui);
+  if (c.source === 'shop') {
+    const p = fx.productFor(c.kind, c.id);
+    return { state: 'buy', label: p ? priceOf(ui, p.id) : '' };
+  }
+  if (c.source === 'set') return { state: 'set', label: S('style.inSet') };
+  if (c.source === 'achievement') {
+    const pr = achProgress(ui, c.ach);
+    return { state: 'lock', label: pr ? S('style.achShort', { a: formatInt(pr.have), b: formatInt(pr.need) }) : S('style.fromAch'), progress: pr ? pr.have / pr.need : 0 };
+  }
+  if (c.source === 'ladder') {
+    const pc = fx.pieces();
+    const key = cosmeticKey(c.kind, c.id);
+    if (pc.target === key) return { state: 'lock', label: S('style.pieces', { a: pc.have, b: pc.need }), progress: pc.have / pc.need };
+    return { state: 'lock', label: S('style.fromLadder') };
+  }
+  return { state: 'lock', label: S(`style.${SOURCE_LABEL[c.source] || 'fromSeason'}`) };
+}
+
+function cosTile(ui, c, go) {
   const name = cosName(c.kind, c.id);
   let state;
   let label;
@@ -593,58 +655,267 @@ function cosTile(ui, c, go) {
     state = c.equipped ? 'on' : 'own';
     label = S(c.equipped ? 'style.equipped' : 'style.equip');
     onClick = () => equipToggle(ui, c);
-  } else if (c.source === 'shop') {
-    const p = fx.productFor(c.kind, c.id);
-    state = 'buy';
-    label = p ? priceOf(ui, p.id) : '';
-    onClick = (e) => p && purchase(ui, p.id, e.currentTarget);
   } else {
-    state = 'lock';
-    label = S(`style.${SOURCE_LABEL[c.source] || 'fromSeason'}`);
-    if (c.source === 'season') onClick = () => openSeasonPass(ui);
-    else if (c.source === 'freepass') onClick = () => go('featured', '.sh-free');
-    else if (c.source === 'starter') {
-      onClick = () => {
-        if (fx.starterOffer()) go('featured', '.sh-offer[data-product="shh.starter"]');
-        else flash(ui, S('style.starterHint'), 'info');
-      };
-    } else if (c.source === 'ladder') {
-      const pc = fx.pieces();
-      label = S('style.pieces', { a: pc.have, b: pc.need });
-      extra = h('span', { class: 'sh-pbar' }, h('i', { style: { '--p': `${Math.min(100, (pc.have / pc.need) * 100).toFixed(0)}%` } }));
-      onClick = () => flash(ui, S('style.ladderHint', { a: pc.have, b: pc.need }), 'info');
-    }
+    const l = lockLabel(ui, c);
+    state = l.state;
+    label = l.label;
+    if (l.progress != null) extra = h('span', { class: 'sh-pbar' }, h('i', { style: { '--p': `${Math.min(100, l.progress * 100).toFixed(0)}%` } }));
+    // 가지지 않은 것은 먼저 미리 보기(내 기체에 입혀 본 모습 + 얻는 법)
+    onClick = () => openCosPreview(ui, c, go);
   }
-  const stateIcon = state === 'on' ? icon('check', 14) : state === 'lock' ? icon(c.source === 'ladder' ? 'star' : 'lock', 13) : null;
+  const stateIcon =
+    state === 'on' ? icon('check', 14) : state === 'set' ? icon('sets', 13) : state === 'lock' ? icon(c.source === 'ladder' ? 'star' : c.source === 'achievement' ? 'trophy' : 'lock', 13) : null;
   const b = h(
     'button',
     {
-      class: `sh-cos ${state === 'buy' ? 'sh-buy' : ''}`.trim(),
+      class: 'sh-cos',
       type: 'button',
-      dataset: { state, fk: `cos:${c.kind}:${c.id}` },
+      dataset: { state, fk: `cos:${c.kind}:${c.id}`, source: c.source },
       'aria-pressed': c.owned ? String(!!c.equipped) : null,
       'aria-label': `${name} · ${label}`,
       onClick: (e) => onClick?.(e),
     },
     cosPic(cosmeticKey(c.kind, c.id), 56),
     h('b', { class: 'sh-cname', text: name }),
-    h('span', { class: 'sh-cstate' }, stateIcon, h('span', { text: label }), state === 'buy' ? h('i', { class: 'sh-spin', 'aria-hidden': 'true' }) : null),
+    h('span', { class: 'sh-cstate' }, stateIcon, h('span', { text: label })),
     extra,
   );
-  if (state === 'buy' && ctl(ui).buying) b.disabled = true;
   return b;
+}
+
+/** 세트를 한 번에 입는다. */
+function wearSet(ui, set) {
+  const fx = fxOf(ui);
+  let any = false;
+  for (const key of set.items.map((x) => x.key || x)) {
+    const [kind, id] = key.split(':');
+    if (fx.owns(kind, id)) any = fx.equip(kind, id) || any;
+  }
+  if (!any) return;
+  ui.audio.sfx('buy');
+  ui.haptics.fire('good');
+  flash(ui, S('style.equippedToast', { name: setName(set.id) }), 'good');
+  ui.save();
+}
+
+/** 테마 세트 카드: 네 가지를 모두 갖춘 기체 그림, 들어 있는 것, 가격(또는 한 번에 장착). */
+function setCard(ui, set, { compact = false, go } = {}) {
+  const fx = fxOf(ui);
+  const look = fx.look();
+  const owned = set.bought || set.items.every((x) => x.owned);
+  const worn = owned && set.items.every((x) => look[x.kind] === x.id);
+  const items = h(
+    'ul',
+    { class: 'sh-set-items' },
+    set.items.map((x) =>
+      h(
+        'li',
+        { dataset: { kind: x.kind } },
+        cosPic(x.key, 40, 'mini'),
+        h('span', null, h('small', { text: t(`monetize.cosmetic.kind.${x.kind}`) }), h('b', { text: cosName(x.kind, x.id) })),
+      ),
+    ),
+  );
+  let foot;
+  if (owned) {
+    foot = h(
+      'button',
+      { class: `btn ${worn ? 'ghost' : 'primary'} wide sh-wear`, type: 'button', dataset: { fk: `wear:${set.id}` }, disabled: worn ? '' : null, onClick: () => wearSet(ui, set) },
+      icon(worn ? 'check' : 'shirt', 18),
+      S(worn ? 'style.setWorn' : 'style.wearSet'),
+    );
+  } else foot = buyButton(ui, set.product, { cls: 'wide' });
+  return h(
+    'article',
+    { class: `sh-card sh-set ${owned ? 'on' : ''} ${compact ? 'compact' : ''}`.trim(), dataset: { set: set.id, product: set.product } },
+    h(
+      'div',
+      { class: 'sh-set-top' },
+      h(
+        'span',
+        { class: 'sh-set-art', dataset: { set: set.id }, 'aria-hidden': 'true' },
+        cosPic(lookKey(setLook(set), 2, true), compact ? 104 : 124, 'set'),
+        owned ? h('i', { class: 'sh-set-own' }, icon('check', 14)) : null,
+      ),
+      h(
+        'div',
+        { class: 'sh-text' },
+        compact ? h('small', { class: 'sh-kicker', text: S('style.todaySet') }) : null,
+        h('h3', { text: setName(set.id) }),
+        h('p', { text: S('style.setLead') }),
+        compact ? h('button', { class: 'link-btn sh-more-link', type: 'button', onClick: () => go?.('style') }, S('style.moreStyle'), icon('arrow', 16)) : null,
+      ),
+    ),
+    compact ? null : items,
+    foot,
+  );
+}
+
+/** 오늘의 테마 세트(날마다 바뀐다. 이미 산 세트는 건너뛴다). 다 샀으면 null. */
+function todaySet(fx) {
+  const sets = fx.sets().filter((x) => !x.bought && !x.items.every((i) => i.owned));
+  if (!sets.length) return null;
+  const day = Math.floor(Date.parse(`${fx.today()}T00:00:00Z`) / 86400000) || 0;
+  return sets[((day % sets.length) + sets.length) % sets.length];
 }
 
 function styleSection(ui, { go }) {
   const fx = fxOf(ui);
-  const out = [h('p', { class: 'panel-hint sh-hint' }, icon('shirt', 16), h('span', { text: S('style.hint') }))];
-  for (const kind of COSMETIC_KINDS) {
-    out.push(
-      h('h3', { class: 'sec sh-sec' }, icon(KIND_ICON[kind], 18), h('span', { text: t(`monetize.cosmetic.kind.${kind}`) })),
-      h('div', { class: 'sh-cos-grid' }, fx.cosmetics(kind).map((c) => cosTile(ui, c, go))),
+  const c = ctl(ui);
+  const cur = STYLE_TABS.includes(c.styleTab) ? c.styleTab : 'sets';
+  const chips = h(
+    'div',
+    { class: 'sh-chips', role: 'group', 'aria-label': S('tabs.style') },
+    STYLE_TABS.map((id) => {
+      const list = id === 'sets' ? fx.sets() : fx.cosmetics(id);
+      const have = id === 'sets' ? list.filter((x) => x.bought || x.items.every((i) => i.owned)).length : list.filter((x) => x.owned).length;
+      return h(
+        'button',
+        {
+          class: 'sh-chip',
+          type: 'button',
+          'aria-pressed': String(id === cur),
+          dataset: { fk: `chip:${id}`, tab: id },
+          onClick: () => {
+            if (c.styleTab === id) return;
+            c.styleTab = id;
+            ui.audio.sfx('click');
+            c.shop?.render?.(false);
+          },
+        },
+        icon(id === 'sets' ? 'sets' : KIND_ICON[id], 16),
+        h('span', { text: S(`style.chips.${id}`) }),
+        h('small', { text: `${have}/${list.length}` }),
+      );
+    }),
+  );
+  const out = [h('p', { class: 'panel-hint sh-hint' }, icon('shirt', 16), h('span', { text: S('style.hint') })), chips];
+  if (cur === 'sets') out.push(h('div', { class: 'sh-sets' }, fx.sets().map((set) => setCard(ui, set, { go }))));
+  else out.push(h('div', { class: 'sh-cos-grid', dataset: { kind: cur } }, fx.cosmetics(cur).map((x) => cosTile(ui, x, go))));
+  return out;
+}
+
+/**
+ * 꾸미기 미리 보기: 지금 내 기체(형태·다른 꾸미기 그대로)에 이것만 바꿔 입힌 모습과, 얻는 법.
+ * 산 뒤에는 그 자리에서 장착할 수 있다.
+ */
+function openCosPreview(ui, item, go) {
+  const fx = fxOf(ui);
+  const c = ctl(ui);
+  if (!fx || c.preview) return null;
+  const release = hold(ui);
+  const name = cosName(item.kind, item.id);
+  const body = h('div', { class: 'sh-pv' });
+  const close = () => entry.close();
+
+  function how() {
+    const cur = fx.cosmetics(item.kind).find((x) => x.id === item.id) || item;
+    if (cur.owned) {
+      return h(
+        'button',
+        {
+          class: `btn ${cur.equipped ? 'ghost' : 'primary'} wide sh-pv-equip`,
+          type: 'button',
+          disabled: cur.equipped ? '' : null,
+          onClick: () => {
+            equipToggle(ui, cur);
+            close();
+          },
+        },
+        icon(cur.equipped ? 'check' : 'shirt', 18),
+        S(cur.equipped ? 'style.equipped' : 'style.equipNow'),
+      );
+    }
+    switch (item.source) {
+      case 'shop': {
+        const p = fx.productFor(item.kind, item.id);
+        return p ? buyButton(ui, p.id, { cls: 'wide', label: S('buyAt', { price: priceOf(ui, p.id) }) }) : null;
+      }
+      case 'set': {
+        const set = fx.sets().find((x) => x.id === item.set);
+        if (!set) return null;
+        return [
+          h('p', { class: 'sh-pv-why' }, icon('sets', 16), h('span', { text: S('style.setContains', { name: setName(set.id) }) })),
+          h(
+            'ul',
+            { class: 'sh-set-items small' },
+            set.items.map((x) => h('li', { dataset: { kind: x.kind }, class: x.key === cosmeticKey(item.kind, item.id) ? 'me' : null }, cosPic(x.key, 34, 'mini'), h('b', { text: cosName(x.kind, x.id) }))),
+          ),
+          buyButton(ui, set.product, { cls: 'wide', label: S('style.buySet', { name: setName(set.id), price: priceOf(ui, set.product) }) }),
+        ];
+      }
+      case 'achievement': {
+        const pr = achProgress(ui, item.ach);
+        return h(
+          'div',
+          { class: 'sh-pv-ach' },
+          h('p', { class: 'sh-pv-why' }, icon('trophy', 16), h('span', { text: S('style.achHint', { name: t(`ach.${item.ach}.name`) }) })),
+          h('small', { text: t(`ach.${item.ach}.desc`) }),
+          pr ? h('div', { class: 'sh-pv-bar' }, h('span', { class: 'sh-pbar' }, h('i', { style: { '--p': `${Math.min(100, (pr.have / pr.need) * 100).toFixed(0)}%` } })), h('b', { text: `${formatInt(pr.have)}/${formatInt(pr.need)}` })) : null,
+        );
+      }
+      case 'ladder': {
+        const pc = fx.pieces();
+        const key = cosmeticKey(item.kind, item.id);
+        const mine = pc.target === key;
+        const target = pc.target ? pc.target.split(':') : null;
+        return h(
+          'div',
+          { class: 'sh-pv-ach' },
+          h('p', { class: 'sh-pv-why' }, icon('star', 16), h('span', { text: S('style.ladderHint', { a: pc.have, b: pc.need }) })),
+          mine
+            ? h('div', { class: 'sh-pv-bar' }, h('span', { class: 'sh-pbar' }, h('i', { style: { '--p': `${Math.min(100, (pc.have / pc.need) * 100).toFixed(0)}%` } })), h('b', { text: `${pc.have}/${pc.need}` }))
+            : target
+              ? h('small', { text: S('style.ladderAfter', { name: cosName(target[0], target[1]) }) })
+              : null,
+        );
+      }
+      case 'season':
+        return h('button', { class: 'btn primary wide', type: 'button', onClick: () => openSeasonPass(ui) }, icon('crown', 18), S('season.more'));
+      case 'freepass':
+        return h('button', { class: 'btn primary wide', type: 'button', onClick: () => (close(), go?.('featured', '.sh-free')) }, S('style.fromFreepass'), icon('arrow', 18));
+      case 'starter':
+        return fx.starterOffer()
+          ? h('button', { class: 'btn primary wide', type: 'button', onClick: () => (close(), go?.('featured', '.sh-offer[data-product="shh.starter"]')) }, S('style.fromStarter'), icon('arrow', 18))
+          : h('p', { class: 'sh-pv-why', text: S('style.starterHint') });
+      default:
+        return null;
+    }
+  }
+
+  function render() {
+    const look = { ...fx.look(), [item.kind]: item.id };
+    const form = Math.max(0, Math.min(7, ui.game.formIndex | 0));
+    const key = cosmeticKey(item.kind, item.id);
+    body.replaceChildren(
+      h(
+        'div',
+        { class: `sh-pv-stage ${item.kind === 'outfit' ? 'two' : ''}`.trim() },
+        h('span', { class: 'sh-pv-ship' }, cosPic(lookKey(look, form, item.kind === 'beam'), 196, 'hero')),
+        item.kind === 'outfit' ? h('span', { class: 'sh-pv-close' }, cosPic(key, 96, 'hero')) : null,
+      ),
+      h('p', { class: 'sh-pv-note' }, icon('eye', 15), h('span', { text: S('style.previewNote') })),
+      h('div', { class: 'sh-pv-how' }, how()),
     );
   }
-  return out;
+
+  const root = h('div', { class: 'sh-pv-wrap' }, head(name, close, true), h('p', { class: 'sh-pv-kind', text: t(`monetize.cosmetic.kind.${item.kind}`) }), body);
+  const off = ui.game.on('monetize:change', () => requestAnimationFrame(render));
+  const offPrice = ui.monetize?.on?.('prices', render);
+  const entry = openModal(ui, root, {
+    cls: 'modal-cos-preview',
+    label: name,
+    onClose: () => {
+      off?.();
+      offPrice?.();
+      c.preview = null;
+      release();
+    },
+  });
+  c.preview = entry;
+  render();
+  ui.audio.sfx('open');
+  return entry;
 }
 
 // ───────── 시즌 패스 ─────────
@@ -947,6 +1218,7 @@ export function showThanks(ui, id, r = {}) {
   if (g.freePass) rows.push(thanksRow('gift', S('thanks.freePass')));
   if (g.season) rows.push(thanksRow('star', S('thanks.season')));
   const cos = (r.cosmetics || []).filter((k) => COSMETIC_BY_KEY[k]).map((k) => cosRow(ui, k));
+  const set = SETS.find((x) => x.product === id) || null;
   const body = h(
     'div',
     { class: 'sh-thanks' },
@@ -958,7 +1230,24 @@ export function showThanks(ui, id, r = {}) {
     amount && h('div', { class: 'sh-th-grant' }, amount),
     rows.length ? h('ul', { class: 'sh-th-list' }, rows) : null,
     cos.length ? h('ul', { class: 'sh-th-coslist' }, cos) : null,
-    h('button', { class: 'btn primary wide', type: 'button', 'data-autofocus': '', onClick: () => entry.close() }, S('thanks.ok')),
+    // 테마 세트: 네 가지를 한 번에 입고 닫기
+    set
+      ? h(
+          'button',
+          {
+            class: 'btn primary wide sh-th-wear',
+            type: 'button',
+            'data-autofocus': '',
+            onClick: () => {
+              wearSet(ui, set);
+              entry.close();
+            },
+          },
+          icon('shirt', 18),
+          S('style.wearSet'),
+        )
+      : null,
+    h('button', { class: `btn ${set ? 'ghost' : 'primary'} wide`, type: 'button', 'data-autofocus': set ? null : '', onClick: () => entry.close() }, S('thanks.ok')),
   );
   const entry = openModal(ui, body, { cls: 'modal-thanks', label: S('thanks.kicker'), onClose: release });
   ui.audio.sfx('achievement');

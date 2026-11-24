@@ -485,7 +485,7 @@ function faceMat(mood, blink) {
 // 붙이는 곳: 머리 → squash(머리와 함께 말랑하게 찌그러지고 기운다), 몸 → rig(통통 뛰는 몸), 손에 든 것 → u.
 // 얼굴을 가리지 않게 모자의 앞 가장자리는 위도 0.6 위에서 멈추고(눈썹이 0.55 까지 올라간다), 더듬이는 모자를 뚫고 나온다.
 
-/** 고를 수 있는 피포 의상(catalog.js 의 outfit 과 같은 id). */
+/** 고를 수 있는 피포 의상(catalog.js 의 outfit 과 같은 id). 다른 파일의 의상(outfits/*.js)은 registerOutfit 으로 더해진다. */
 export const PIPO_OUTFITS = ['none', 'cadet', 'agent', 'star', 'bunny', 'raincoat', 'chef', 'astro'];
 
 const OGEO = new Map();
@@ -932,6 +932,8 @@ const glintBasic = () => (whiteBasic ??= new THREE.MeshBasicMaterial({ color: ne
 /**
  * 의상 설계도. 돌려주는 값: { head, body, root: 붙일 부품들, hide: 감출 본래 부품('goggles'|'scarf'),
  *   goggles: 고글 배율(모자 위로 옮길 때), antenna: 더듬이를 올리는 높이, update(s): 매 프레임 움직임 }
+ * head = 머리(찌그러짐·기울임을 따라간다, 머리 중심 기준), body = 몸(목 높이 기준), root = 피포 전체 기준(손에 든 물건 등).
+ * update({ t, mood, y, hands, spring }): hands = [{ side, h: 손 Object3D }], spring = 더듬이 흔들림.
  */
 const OUTFIT_BUILD = {
   // 견습 비행사: 양털 테를 두른 가죽 비행모 + 귀덮개, 고글은 모자 위로, 이마 위엔 날개 배지
@@ -1277,6 +1279,70 @@ const OUTFIT_BUILD = {
     const patch = part(og('astro-patch', () => baked(discGeo(), chestMatrix(-0.6, -0.36, 0.03, compose([0, 0, 0], [0, 0, 0], [0.17, 0.17, 0.035])))), mat('#ffffff', { rough: 0.5, map: patchArt() }), 0.018);
     return { head: [helmet, ring, pods], body: [collar, patch], hide: ['goggles', 'scarf'] };
   },
+};
+
+/**
+ * 다른 파일에서 의상을 더한다(src/render3d/outfits/*.js). build() 는 OUTFIT_BUILD 의 항목과 같은 값을 돌려준다.
+ * 처음 입을 때 한 번 불리고 그 결과를 피포마다 계속 쓴다.
+ */
+export function registerOutfit(id, build) {
+  OUTFIT_BUILD[id] = build;
+  if (!PIPO_OUTFITS.includes(id)) PIPO_OUTFITS.push(id);
+}
+
+/**
+ * 의상 만들기 도구(outfits/*.js 가 쓴다). 모두 머리 반지름 1 단위.
+ *   색: SKIN, LINE(외곽선), INK, BRASS(놋쇠), KNOB(빨강), SCARF(주황), HEAD_Y(목 → 머리 중심), HS(머리 늘림 배율)
+ *   도형: og(캐시 키, 만들기), headAt(경도, 위도, 띄움) → {p, n}, surfaceMatrix(p, n, local), segGeo(a, b, 반지름),
+ *         smoothed(geo), shellGeo(축, 각|각(φ), 바깥, 안), edgeGeo(축, 각, 반지름, 굵기, 몽글 수, 세기), plateau, smooth01,
+ *         bodyR(y), slabGeo(shape, o), wrapBody(g, o), finishSlab(g), chestMatrix(각, y, 띄움, local), starShape(R, r, n),
+ *         discGeo(), part(geo, 재질, 외곽선 굵기), compose(pos, rot, scale), baked(geo, 행렬), sphere(w, h), rotTo(from, to),
+ *         YV(위 벡터), HSM(머리 늘림 행렬), crownGeo(), toqueGeo(), latheGeo, BODY_CURVE
+ *   재질: GOLD_MAT(), glintBasic(), mat(색, o), faceTexture(키, 그리기, 크기)
+ */
+export const OUTFIT_KIT = {
+  THREE,
+  mat,
+  faceTexture,
+  latheGeo,
+  mergeGeometries,
+  mergeVertices,
+  SKIN,
+  LINE,
+  INK,
+  BRASS,
+  KNOB,
+  SCARF,
+  HEAD_Y,
+  HS,
+  HSM,
+  YV,
+  BODY_CURVE,
+  og,
+  headAt,
+  surfaceMatrix,
+  segGeo,
+  smoothed,
+  shellGeo,
+  edgeGeo,
+  plateau,
+  smooth01,
+  bodyR,
+  slabGeo,
+  wrapBody,
+  finishSlab,
+  chestMatrix,
+  starShape,
+  discGeo,
+  part,
+  compose,
+  baked,
+  sphere,
+  rotTo,
+  crownGeo,
+  toqueGeo,
+  GOLD_MAT,
+  glintBasic,
 };
 
 /**
