@@ -407,7 +407,7 @@
       await X.walk(leo, PL.BOARD_X + 60, 90);
       await X.wait(0.4); chatter();
       await X.tap(() => [perch[0], perch[1] - 8, 50]);
-      await TALK.say('leo', '…우체국에서 왔구나.');
+      await TALK.say('leo', '…따라오라는 거니?');
       /* it goes on ahead, and he follows it to the cliff of cloud */
       pie.land = 0; A.sfx('whoosh');
       X.tween(pie, 'x', PL.HX + 900, 3, T.ease.in); X.tween(pie, 'y', perch[1] - 380, 3, T.ease.in).then(() => { S.pie = null; });
@@ -439,7 +439,7 @@
       pm.pose = null;
       await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
       await TALK.say('leo', '…우리 릴리가.', { slow: true });
-      await TALK.say('leo', '보러 와 줄 거지, 래.');
+      await TALK.say('leo', '…보러 와 달래.');
       await X.wait(0.8);
 
       /* ---- an answer has to go by dream; what a dream is made of comes over a few days ----
@@ -519,7 +519,7 @@
       const sq = PL.swingSeat(ps);
       await X.gift('sound', W.toScreen(sq[0], sq[1]));
       await X.wait(0.6); A.sfx('creak');
-      await TALK.say('leo', '삐걱.\n그 애가 그림으로만 타 본 그네.');
+      await TALK.say('leo', '…이 소리.\n그 애가 그림으로만 타 본 그네.');
       X.tween(S, 'swingAmp', 0, 2.4).then(() => { S.swinging = false; ps.swingA = 0; });
       await X.wait(1.6);
 

@@ -905,7 +905,7 @@
       cloud.lamp = false; cloud.look = false;
       X.cam(470, 500, 1.4, 0.8);
       await X.wait(1.2);
-      await TALK.say('cloud', '다 지키고 가는데,\n나는 아직도 몰라.');
+      await TALK.say('cloud', '다들 약속 지키고 가는데,\n나는 아직도 몰라.');
       const qbean = S.actors.find((a) => a.id === 'bean');
       if (qbean) { qbean.sit = 0; X.walk(qbean, 372, 70).then(() => { qbean.flip = false; qbean.sit = 1; }); }
       await X.walk(qleo2, cloud.x - 44, 50);

@@ -114,7 +114,7 @@
       await X.TALK.say('bram', '다 돼도 못 띄우지.\n마르타가 와야 띄우는 배라.');
       await X.TALK.say('bram', '약속했거든. 내 배 생기면\n제일 먼저 태워 주겠다고.');
       await X.TALK.say('bram', '남의 배로 나갔다가,\n그길로 못 돌아왔지. 서른둘에.');
-      await X.TALK.say('leo', '…육십 년이나요?');
+      await X.TALK.say('leo', '…그 배를, 육십 년이나요?');
       await X.TALK.say('bram', '기다리는 동안 손이 놀면,\n마음이 먼저 지치거든.');
       await X.TALK.say('bram', '자네도 뭐든 지어. 천천히.', { slow: true });
       /* a child comes up the far side of the hill, slows down when she sees them, and stops a little way off;
@@ -190,8 +190,7 @@
       await X.TALK.say('bram', '오늘로 꼭 일 년이지?');
       await X.TALK.say('leo', '…어떻게 아셨어요?');
       await X.TALK.say('bram', '자네 어머니가 부탁해 뒀네.\n일 년 되는 날, 호수에 데려가 달라고.');
-      await X.TALK.say('leo', '…엄마가요? 언제요?');
-      await X.TALK.say('bram', '오래전에. 아들 오면\n자긴 오래 못 있을 거라고.');
+      await X.TALK.say('leo', '…엄마가요?');
       await X.TALK.say('bram', '첫해엔 보는 게 더 아플 거라고.\n…따라오게.');
       /* he turns and goes first; Leo stands a moment before he follows */
       X.walk(bram, C.PLOT + 420, 80);
@@ -217,7 +216,7 @@
       await X.TALK.say('bram', '이 호수엔 두고 온 사람이 비치네.\n그 사람이 우릴 생각할 때면.');
       await X.TALK.say('bram', '나도 여기서 마르타를 육십 년 봤지.\n…곱게도 늙더군.', { slow: true });
       await X.TALK.say('bram', '손은 못 대도, 여기서 한 일은\n저기 그림자로 떨어지네.');
-      await X.TALK.say('bram', '등불을 비추면 저 창이 밝아지고,\n자네가 서면 저 부엌에도 자네 그림자가 서지.');
+      await X.TALK.say('bram', '등불을 비추면 저 창이 밝아지고,\n자네가 서면 자네 그림자도 서지.');
       await X.vcam(0, 450, 1, 1.2);   /* the bank is where his hands are: the whole of it again for the puzzle */
       T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');
       await lake.rhyme();
@@ -304,7 +303,7 @@
       await X.wait(0.8);
       await X.TALK.say('leo', '아나가 그 부엌에 혼자 있는 걸 보니까….');
       await X.TALK.say('leo', '…저도 손이 놀면 안 되겠어요.');
-      await X.TALK.say('bram', '그럼 돌부터 놓세.\n주춧돌이 기울면 집이 다 기울어.');
+      await X.TALK.say('bram', '그럼 돌부터 놓세.\n일 년 내내 기다린 돌이야.');
       await X.TALK.say('bram', '구덩이마다 깊이가 달라.\n돌 머리가 한 줄로 맞게 놓게.');
       await X.tap(() => [PL.SX[0], W.y3(PL.SX[0]) - 8, 40]);
       await X.walk(leo, PL.SX[0] - 34, 84);

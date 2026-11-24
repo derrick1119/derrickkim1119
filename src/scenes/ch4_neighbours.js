@@ -196,7 +196,7 @@
       await X.wait(1.2);
       await TALK.say('rosa', '지난번 고래 때도 저기 있었어.\n그때도 새끼만 보더라.');
       await TALK.say('leo', '구름이는… 언제부터 여기 있었어요?');
-      await TALK.say('rosa', '언제 왔는지 아무도 몰라.\n어느 날 아침에 보니 부두 끝 상자에 앉아 있더라.');
+      await TALK.say('rosa', '언제 왔는지 아무도 몰라.\n어느 날 보니 부두 끝에 앉아 있더라.');
       await TALK.say('rosa', '누굴 기다리냐고 물어도 몰라.\n그냥 저렇게 하늘만 봐.');
       await TALK.say('leo', '…혼자 기다리기엔, 너무 작네요.');
       await TALK.say('rosa', '그러니까 다들 한 번씩 들여다봐 주는 거지.\n너도 그래 줘.');
@@ -329,7 +329,7 @@
       lakeB.beat = 1;
       T.announce('릴리가 휘파람을 분다. 빈을 부르던 소리.');
       for (let i = 0; i < 2; i++) { A.note({ m: 84 + i * 3, vel: 0.24, voice: 'glass', dur: 0.6 }); await X.wait(0.5); }
-      lakeB.note = '릴리가 빈을 부른다. 물가의 빈을 눌러 대답해 주세요';
+      lakeB.note = '릴리가 빈을 불러요. 물가의 빈을 눌러 대답해 주세요';
       const beanOn = () => { const q = lakeB.things[0]; return [q.x, 200, 60]; };
       for (let i = 0; i < 2; i++) {
         await X.tap(beanOn, { screen: true });
@@ -452,7 +452,7 @@
       await TALK.say('rosa', '몇 해째 이래.\n줄무늬 차례가 자꾸 헷갈려서.');
       /* he sits down on the step with her, as he said he would */
       await X.tween(leo, 'sit', 1, 0.8, T.ease.io);
-      await TALK.say('leo', '같이 봐 둔다고 했잖아요.');
+      await TALK.say('leo', '제가 봐 둔다고 했잖아요.');
       rosa0.face = { mouth: 'smile' };
       await TALK.say('rosa', '…그랬지.\n그때 호수에서 같이 본 줄무늬, 기억나?');
       await TALK.say('leo', '네. 다 기억해요.');

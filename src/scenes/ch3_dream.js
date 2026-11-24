@@ -305,7 +305,7 @@
       bram.flip = false; bram.prop = null; leo.pose = null; leo.flip = true;
       await TALK.say('bram', '기둥 될 나무는 바다에서 건져 왔네.');
       await TALK.say('bram', '곧 바람 철이야.\n그 전에 뼈대는 세워 둬야지.');
-      await TALK.say('bram', '배 짓는 거나 집 짓는 거나, 나무 켜는 건 똑같아.\n밀 때 힘 주고, 당길 땐 쉬고.');
+      await TALK.say('bram', '배든 집이든, 나무 켜는 건 똑같아.\n밀 때 힘 주고, 당길 땐 쉬고.');
       T.announce('나무 켜기. 왼쪽과 오른쪽을 번갈아 눌러 통나무를 켠다.');
       /* the sawing place is down the slope from the plot: he walks over to the log, and Bram turns to watch */
       const SAW = PL.HX - 340;
@@ -365,7 +365,7 @@
       T.announce('집의 뼈대가 선다.');
       A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
       await X.wait(1.2);
-      await TALK.say('bram', '바람 오기 전에 섰으니,\n됐다.');
+      await TALK.say('bram', '바람 오기 전에 섰으니,\n됐네.');
       await X.wait(0.6);
       X.walk(bram, C.PLOT - 600, 80).then(() => { bram.hidden = true; });
       await X.wait(0.8);
@@ -603,7 +603,7 @@
       T.announce('아기가 깬다. 할아버지가 요람을 흔든다.');
       await X.wait(2.2);
       await TALK.say('rosa', '아이고, 울지 마라….');
-      lake.beat = 2; lake.note = '그가 자장가를 흥얼거린다. 로사를 눌러 같이 흥얼거려 주세요';
+      lake.beat = 2; lake.note = '아들이 자장가를 흥얼거려요. 로사를 눌러 같이 흥얼거려 주세요';
       const rosaAt = () => [lake.things[1].x, 150, 64];
       for (let i = 0; i < 4; i++) { await X.tap(rosaAt, { screen: true }); lake.hum = 1; X.note({ voice: 'felt', vel: 0.4 }); await X.wait(0.6); lake.hum = 0; }
       lake.note = null;
@@ -621,7 +621,7 @@
       await TALK.say('leo', '…아나도 릴리 재울 때 이 노래 불렀어요.');
       await X.gift('sound', [lake.things[1].x, 160]);
       await TALK.say('rosa', '처음부터 다시 뜨는데,\n저 줄무늬가 자꾸 헷갈려.');
-      await TALK.say('leo', '같이 떠요. 제가 같이 봐 둘게요.');
+      await TALK.say('leo', '그럼 줄무늬는 제가 봐 둘게요.');
       await X.wait(0.8);
 
       /* ---- that night: Pipi takes him where the wishes go. 구름이 is there already, under the old tree ---- */
@@ -663,7 +663,7 @@
       await X.tween(grove.vis, 'k', 1, 2.2);
       T.announce('빛 속에 그날 밤이 보인다. 창밖으로 별이 떨어지고, 잠든 릴리를 안은 아나가 눈을 감고 있다. 개지 못한 빨래가 쌓여 있다.');
       await X.wait(1.2);
-      await TALK.say('leo', '…아나가 릴리 재울 때 부르던 거야.', { slow: true });
+      await TALK.say('leo', '…그 자장가야.', { slow: true });
       await TALK.say('leo', '봤구나, 아나도.', { slow: true });
       gk.pose = (q) => { q.face = Object.assign({}, q.face, { eye: 'happy' }); };
       await TALK.say('kid', '그건 아저씨 거야.\n아저씨 생각하면서 빌었을 테니까.');

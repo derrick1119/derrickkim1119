@@ -141,7 +141,7 @@
       }
       g.restore();
       G.hintRing(g, t);
-      if (G.phase === 'pick') G.caption(g, G.i === 0 ? '아나가 "처음부터" 들려 달래요. 있었던 차례대로 실을 골라 한 줄씩 뜨세요' : '아나가 묻는다: "그다음엔?"');
+      if (G.phase === 'pick') G.caption(g, G.i === 0 ? '아나가 "처음부터" 들려 달래요. 있었던 차례대로 실을 골라 한 줄씩 뜨세요' : '아나가 물어요: "그다음엔?"');
     };
     return G;
   }
@@ -207,7 +207,7 @@
       X.age('아나, 81');
       T.announce('호수. 병상에 누운 아나가 쉰 살이 넘은 릴리의 손을 잡고 있다.');
       await X.wait(3.4);
-      await TALK.say('ana', '엄마 먼저 가서, 아빠랑 맛있는 거 해놓을게.');
+      await TALK.say('ana', '엄마 먼저 가서,\n아빠랑 맛있는 거 해 놓을게.');
       X.tween(lake.said, 'k', 0.7, 2.4);
       await TALK.say('ana', '그러니까 천천히 와.', { slow: true });
       A.motif({ voice: 'felt', vel: 0.4, beat: 0.86 });
@@ -578,7 +578,7 @@
       leo.flip = true; ana.flip = true;
       ana.pose = (o) => { o.headTilt = 0.1; o.face.eye = 'open'; };
       await TALK.say('ana', '…토마토네?');
-      await TALK.say('leo', '피피라는 꼬마랑 같이 키웠어.\n당신 오면 제일 먼저 얘기해 주기로 했거든.');
+      await TALK.say('leo', '피피라는 꼬마랑 같이 키웠어.\n제일 먼저 얘기해 주기로 했거든.');
       ana.pose = (o) => { o.headTilt = -0.06; o.face.eye = 'happy'; };
       await TALK.say('ana', '그럼 오늘 밤에 다 들려줘.\n천천히.');
       ana.pose = homeWalk;
@@ -607,7 +607,7 @@
       await X.wait(1.3);
       await TALK.say('ana', '내가 끓인 게 더 맛있는데?');
       await X.wait(0.3);
-      await TALK.say('leo', '알아. 마흔다섯 해 동안 따라 끓였어.');
+      await TALK.say('leo', '알아. 그래서 해마다 따라 끓였어.');
       X.tween(St.joy, 'k', 1, 0.7, T.ease.out);
       X.tween(St.taste, 'k', 0, 1.2, T.ease.io);
       X.notes(5, { voice: 'box', vel: 0.34 });
@@ -674,7 +674,7 @@
       const told = [   /* hers, row for row: the other side of what he watched in the lake */
         async () => { await TALK.say('ana', '그해 처음 혼자 끓였어.\n…짰지.'); await TALK.say('leo', '알아. 봤어.'); },
         async () => { await TALK.say('ana', '그 별 보면서,\n당신 생각했어.', { slow: true }); },
-        async () => { await TALK.say('ana', '그날 릴리가\n목걸이 안고 잤어.'); },
+        async () => { await TALK.say('ana', '그날 릴리가\n빈 목줄을 안고 잤어.'); },
         async () => { await TALK.say('ana', '릴리가 그러더라.\n아빠가 옆에 있었다고.', { slow: true }); await TALK.say('leo', '…응. 있었어.'); },
         async () => { await TALK.say('ana', '…그 꼬마,\n나도 보고 싶다.'); },
       ];

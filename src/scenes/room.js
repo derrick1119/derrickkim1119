@@ -419,7 +419,7 @@
   }
 
   S.select = function (id) {
-    if (S.sel || S.mode !== 'hub') return;
+    if (S.sel || S.mode !== 'hub' || T.director.busy()) return;   /* not while the room is still fading in */
     const sp = SPOT[id];
     T.audio.sfx('touch');
     S.clock.tween(S, 'hintA', 0, 0.5);
@@ -427,10 +427,13 @@
     S.sel = id;
     S.zoom.x = sp.x; S.zoom.y = sp.y;
     S.clock.tween(S.zoom, 'k', 1, 1.5, T.ease.io3);
-    S.clock.wait(0.75).then(() => {
+    /* a cut still under way would swallow this one and leave the room zoomed in for good: wait it out */
+    const go = () => {
+      if (T.director.busy()) { S.clock.wait(0.1).then(go); return; }
       const [dx, dy] = T.par(0.2);
       T.director.go(sp.scene, { x: sp.x + dx, y: sp.y + dy, color: '#f3ead8', out: 1.25, in: 1.3 });
-    });
+    };
+    S.clock.wait(0.75).then(go);
   };
 
   /* the card tucked in among the flowers on the sill: the fifth promise, in her hand */
@@ -475,11 +478,11 @@
     /* he hands on what his own mother said to him when she was dying. He takes it for a kindness, not for the truth */
     S.leo.speak = 1;
     await TALK.say('leo', '내가 어릴 적, 엄마가 돌아가실 때\n해 준 말이 있어.');
-    await TALK.say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓겠다고.');
+    await TALK.say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해 놓겠다고.');
     await TALK.say('leo', '그러니까 천천히 오라고.');
     await k.wait(0.5);
     await TALK.say('leo', '어린 내가 울까 봐 한 말이었겠지.\n그래도 그 말 덕분에 덜 무서웠어.');
-    await TALK.say('leo', '나도 먼저 가서 그렇게 해놓을게.\n당신 오면, 따뜻한 밥부터 먹게.');
+    await TALK.say('leo', '나도 먼저 가서 그렇게 해 놓을게.\n당신 오면, 따뜻한 밥부터 먹게.');
     A.pad(3, 0.14);
     const p = TALK.say('leo', '그러니까…  천천히 와.', { slow: true });
     k.wait(1.5).then(() => A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 }));
