@@ -3,9 +3,9 @@
 @font-face { font-family: 'Galmuri9'; src: url('fonts/Galmuri9.woff2') format('woff2'); }
 @font-face { font-family: 'Yeon Sung'; src: url('../../assets/fonts/yeon-sung-korean-400-normal.woff2') format('woff2'); }
 html, body { margin: 0; height: 100%; background: #0c0a14; color: #e4cc98; font-family: 'Galmuri11', sans-serif; overflow: hidden; }
-#wrap { position: absolute; inset: 0 0 44px 0; display: flex; align-items: center; justify-content: center; }
+#wrap { position: absolute; inset: 0 0 76px 0; display: flex; align-items: center; justify-content: center; }
 canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #120e1c; }
-#tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; display: flex; gap: 8px; align-items: center; justify-content: center; }
-#tabs button { font: 12px 'Galmuri11', sans-serif; color: #f8ecc0; background: #2a2036; border: 2px solid #5a2c1a; border-bottom-width: 4px; padding: 6px 14px; cursor: pointer; }
+#tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; align-content: center; }
+#tabs button { font: 12px 'Galmuri11', sans-serif; color: #f8ecc0; background: #2a2036; border: 2px solid #5a2c1a; border-bottom-width: 4px; padding: 4px 10px; cursor: pointer; }
 #tabs button.on { background: #8a1c30; border-color: #e09a28; }
 body.shot #tabs { display: none; } body.shot #wrap { inset: 0; }

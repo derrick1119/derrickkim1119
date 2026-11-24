@@ -113,3 +113,14 @@ export function logo(str, size, font, cols, o = {}) {
   let out = s.outline(o.ol === undefined ? INK : o.ol); if (o.ol2 !== undefined) out = out.outline(o.ol2);
   return out;
 }
+
+// ── 색 바꾸기 도구 ──
+export const mixc = (a, b, k) => { const r = ((a >> 16) & 255) * (1 - k) + ((b >> 16) & 255) * k, g = ((a >> 8) & 255) * (1 - k) + ((b >> 8) & 255) * k, bl = (a & 255) * (1 - k) + (b & 255) * k; return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl); };
+export const lum = c => (((c >> 16) & 255) * 0.299 + ((c >> 8) & 255) * 0.587 + (c & 255) * 0.114) / 255;
+// 스프라이트의 색을 함수로 바꾼 새 판 (판마다·이름마다 한 번만 만든다)
+const REMAP = new WeakMap();
+export function remap(s, key, fn) { let m = REMAP.get(s); if (!m) REMAP.set(s, m = new Map()); let o = m.get(key); if (!o) { o = new Spr(s.w, s.h, s.ox, s.oy); const memo = new Map(); for (let i = 0; i < s.d.length; i++) { const c = s.d[i]; if (c === -1) continue; let v = memo.get(c); if (v === undefined) memo.set(c, v = fn(c)); o.d[i] = v; } m.set(key, o); } return o; }
+// 해 쪽(오른쪽) 가장자리에 따뜻한 빛 테를 두른 판
+export function rimlit(s, col = 0xffe0a0, k = 0.62) { let m = REMAP.get(s); if (!m) REMAP.set(s, m = new Map()); let o = m.get('rim' + col); if (!o) { o = new Spr(s.w, s.h, s.ox, s.oy); o.d.set(s.d); for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { const c = s.get(x, y); if (c === -1 || c === INK) continue; if ((s.get(x + 1, y) === INK && s.get(x + 2, y) === -1) || (s.get(x + 1, y) === INK && s.get(x + 1, y - 1) === -1 && s.get(x, y - 1) === INK)) o.set(x, y, mixc(c, col, k)); } m.set('rim' + col, o); } return o; }
+// 화면 전체의 색을 함수로 바꾼다 (색 수가 적어서 표를 만들어 두고 쓴다)
+export function grade(g, fn, cache) { const im = g.getImageData(0, 0, LW, LH), u = new Uint32Array(im.data.buffer); for (let i = 0; i < u.length; i++) { const v = u[i] & 0xffffff; let o = cache.get(v); if (o === undefined) { const c = ((v & 255) << 16) | (v & 0xff00) | ((v >> 16) & 255), m = fn(c); o = ((m & 255) << 16) | (m & 0xff00) | ((m >> 16) & 255); cache.set(v, o); } u[i] = 0xff000000 | o; } g.putImageData(im, 0, 0); }

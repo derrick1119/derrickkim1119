@@ -1,8 +1,10 @@
 // 도트 시안: 네 장면을 탭으로 넘겨 본다. ?scene=battle|stage|title|sheet &shot=1 (탭 숨김) &t=초 (멈춘 시각)
 import { LW, LH } from './px.js';
-import { SCENES } from './scenes.js';
+import { SCENES as BASE } from './scenes.js';
+import { BATTLES } from './variants.js';
+const SCENES = Object.assign({}, BATTLES, BASE);
 const q = new URLSearchParams(location.search), cv = document.getElementById('cv'), g = cv.getContext('2d');
-let cur = q.get('scene') || 'battle'; if (q.get('shot')) document.body.classList.add('shot');
+let cur = q.get('scene') || 'rich'; if (!SCENES[cur]) cur = 'dusk'; if (q.get('shot')) document.body.classList.add('shot');
 const tabs = document.getElementById('tabs');
 for (const [k, sc] of Object.entries(SCENES)) { const b = document.createElement('button'); b.textContent = sc.name; b.onclick = () => { cur = k; sync(); }; b.dataset.k = k; tabs.appendChild(b); }
 function sync() { for (const b of tabs.children) b.classList.toggle('on', b.dataset.k === cur); }

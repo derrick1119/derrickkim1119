@@ -2,26 +2,26 @@
 import { LW, LH, P, INK, Spr, css, txt, wrap, draw, bayer, rng, logo, textW, tinted } from './px.js';
 import { look, LOOKS, jangseung, bannerCart, pine, sansuyu, rock, tuft, lantern } from './sprites.js';
 
-const C = (n, i = 2) => P[n][i];
-const fr = (g, x, y, w, h, col) => { g.fillStyle = typeof col === 'number' ? css(col) : col; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
+export const C = (n, i = 2) => P[n][i];
+export const fr = (g, x, y, w, h, col) => { g.fillStyle = typeof col === 'number' ? css(col) : col; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
 // 도트 판: 먹 테 · 금 테 · 안쪽 빛과 그늘
-function panel(g, x, y, w, h, o = {}) {
+export function panel(g, x, y, w, h, o = {}) {
   const fill = o.fill === undefined ? C('ink', 2) : o.fill, edge = o.edge === undefined ? C('gold', 2) : o.edge;
   fr(g, x + 1, y, w - 2, h, INK); fr(g, x, y + 1, w, h - 2, INK); fr(g, x + 1, y + 1, w - 2, h - 2, edge); fr(g, x + 2, y + 2, w - 4, h - 4, fill);
   if (o.hi !== undefined) fr(g, x + 2, y + 2, w - 4, 1, o.hi); if (o.lo !== undefined) fr(g, x + 2, y + h - 3, w - 4, 1, o.lo);
   if (o.corner !== false) for (const [cx, cy] of [[x + 1, y + 1], [x + w - 3, y + 1], [x + 1, y + h - 3], [x + w - 3, y + h - 3]]) fr(g, cx, cy, 2, 2, C('gold', 4));
 }
-function button(g, x, y, w, h, label, ramp, f = 'b') {
+export function button(g, x, y, w, h, label, ramp, f = 'b') {
   fr(g, x + 1, y, w - 2, h, INK); fr(g, x, y + 1, w, h - 2, INK); fr(g, x + 1, y + 1, w - 2, h - 2, C(ramp, 2)); fr(g, x + 1, y + 1, w - 2, 2, C(ramp, 3)); fr(g, x + 1, y + h - 4, w - 2, 3, C(ramp, 1)); fr(g, x + 2, y + 1, w - 4, 1, C(ramp, 4));
   txt(g, label, x + w / 2, y + (h - 11) / 2, { f, a: 'c', c: C('cream', 4), sh: C(ramp, 0) });
 }
 // 단청 띠: 작은 색 조각이 되풀이된다
-function dancheong(g, x, y, w, h = 4) { const cols = [C('teal', 2), C('red', 2), C('gold', 3), C('blue', 2), C('white', 3), C('red', 2)]; fr(g, x, y, w, h, C('teal', 1)); for (let i = 0; i * 6 < w; i++) { fr(g, x + i * 6, y + 1, 4, h - 2, cols[i % cols.length]); fr(g, x + i * 6 + 1, y + 1, 1, 1, C('white', 4)); } fr(g, x, y, w, 1, INK); fr(g, x, y + h - 1, w, 1, INK); }
-const coin = (g, x, y, on = true) => { fr(g, x + 2, y, 7, 11, INK); fr(g, x, y + 2, 11, 7, INK); fr(g, x + 1, y + 1, 9, 9, INK); fr(g, x + 2, y + 1, 7, 9, on ? C('gold', 3) : C('night', 2)); fr(g, x + 1, y + 2, 9, 7, on ? C('gold', 3) : C('night', 2)); if (on) { fr(g, x + 2, y + 1, 4, 1, C('gold', 4)); fr(g, x + 1, y + 2, 1, 3, C('gold', 4)); fr(g, x + 5, y + 9, 4, 1, C('gold', 1)); fr(g, x + 9, y + 5, 1, 4, C('gold', 1)); } fr(g, x + 4, y + 4, 3, 3, on ? C('gold', 0) : INK); if (on) fr(g, x + 4, y + 4, 3, 1, INK); };
+export function dancheong(g, x, y, w, h = 4) { const cols = [C('teal', 2), C('red', 2), C('gold', 3), C('blue', 2), C('white', 3), C('red', 2)]; fr(g, x, y, w, h, C('teal', 1)); for (let i = 0; i * 6 < w; i++) { fr(g, x + i * 6, y + 1, 4, h - 2, cols[i % cols.length]); fr(g, x + i * 6 + 1, y + 1, 1, 1, C('white', 4)); } fr(g, x, y, w, 1, INK); fr(g, x, y + h - 1, w, 1, INK); }
+export const coin = (g, x, y, on = true) => { fr(g, x + 2, y, 7, 11, INK); fr(g, x, y + 2, 11, 7, INK); fr(g, x + 1, y + 1, 9, 9, INK); fr(g, x + 2, y + 1, 7, 9, on ? C('gold', 3) : C('night', 2)); fr(g, x + 1, y + 2, 9, 7, on ? C('gold', 3) : C('night', 2)); if (on) { fr(g, x + 2, y + 1, 4, 1, C('gold', 4)); fr(g, x + 1, y + 2, 1, 3, C('gold', 4)); fr(g, x + 5, y + 9, 4, 1, C('gold', 1)); fr(g, x + 9, y + 5, 1, 4, C('gold', 1)); } fr(g, x + 4, y + 4, 3, 3, on ? C('gold', 0) : INK); if (on) fr(g, x + 4, y + 4, 3, 1, INK); };
 
 // ── 풍경을 굽는 도구 ──
-const ridge = (x, base, amp, f, ph) => base - amp * (0.55 * Math.sin(x * f + ph) + 0.3 * Math.sin(x * f * 2.3 + ph * 1.7) + 0.15 * Math.sin(x * f * 5.1 + ph * 0.6));
-function mountains(s, base, amp, f, ph, col, lit, haze, yEnd, o = {}) {
+export const ridge = (x, base, amp, f, ph) => base - amp * (0.55 * Math.sin(x * f + ph) + 0.3 * Math.sin(x * f * 2.3 + ph * 1.7) + 0.15 * Math.sin(x * f * 5.1 + ph * 0.6));
+export function mountains(s, base, amp, f, ph, col, lit, haze, yEnd, o = {}) {
   const R = rng((ph * 1000) | 0 || 7);
   for (let x = 0; x < s.w; x++) {
     const y0 = Math.round(ridge(x, base, amp, f, ph)), up = ridge(x + 1, base, amp, f, ph) < ridge(x, base, amp, f, ph) - 0.05;
@@ -34,42 +34,11 @@ function mountains(s, base, amp, f, ph, col, lit, haze, yEnd, o = {}) {
     if (o.trees && R() < o.trees) { const h = 2 + ((R() * 3) | 0); for (let k = 0; k < h; k++) s.hl(x - (k >> 1), x + (k >> 1), y0 - h + k + 1, o.treeCol); }
   }
 }
-function cloud(s, cx, cy, w, cols, seed) { const R = rng(seed); const t = new Spr(s.w, s.h); for (let k = 0; k < w / 5; k++) { const x = cx + (R() - 0.5) * w, r = 3 + R() * 8 * (1 - Math.abs(x - cx) / w * 1.6); t.ell(x, cy - r * 0.6, r * 1.7, Math.max(2, r), cols[1]); } for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { if (t.get(x, y) === -1) continue; if (y > cy) { t.set(x, y, -1); continue; } s.set(x, y, t.get(x, y - 1) === -1 || t.get(x, y - 2) === -1 ? cols[2] : y >= cy - 1 ? cols[0] : cols[1]); } }
-function stamp(s, spr, x, y) { s.blit(spr, Math.round(x) - spr.ox, Math.round(y) - spr.oy); }
+export function cloud(s, cx, cy, w, cols, seed) { const R = rng(seed); const t = new Spr(s.w, s.h); for (let k = 0; k < w / 5; k++) { const x = cx + (R() - 0.5) * w, r = 3 + R() * 8 * (1 - Math.abs(x - cx) / w * 1.6); t.ell(x, cy - r * 0.6, r * 1.7, Math.max(2, r), cols[1]); } for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { if (t.get(x, y) === -1) continue; if (y > cy) { t.set(x, y, -1); continue; } s.set(x, y, t.get(x, y - 1) === -1 || t.get(x, y - 2) === -1 ? cols[2] : y >= cy - 1 ? cols[0] : cols[1]); } }
+export function stamp(s, spr, x, y) { s.blit(spr, Math.round(x) - spr.ox, Math.round(y) - spr.oy); }
 
-// ───────── 1. 전투: 해 질 녘의 첫째 고개 ─────────
-let BATTLE = null;
-function bakeBattle() {
-  const s = new Spr(LW, LH), R = rng(11);
-  s.vgrad(0, 0, LW, 132, [0x2a3470, 0x3c4a94, 0x6c6cb4, 0xb884ac, 0xf0a488, 0xffd08c, 0xffeeb4]);
-  // 해와 햇무리
-  for (let y = 60; y < 132; y++) for (let x = 400; x < 540; x++) { const d = Math.hypot(x - 470, y - 100); if (d < 17) s.set(x, y, 0xfff8d8); else if (d < 21) s.set(x, y, 0xffeeb4); else if (d < 34 && bayer(x, y) > (d - 21) / 13) s.set(x, y, 0xffe8a8); }
-  cloud(s, 120, 58, 120, [0xa07cb0, 0xf4b8a0, 0xffe4c0], 3); cloud(s, 300, 44, 90, [0x8470b0, 0xd89cb0, 0xffd4c0], 5); cloud(s, 560, 62, 110, [0xa07cb0, 0xf8c0a0, 0xfff0c8], 8); cloud(s, 430, 78, 60, [0xc890a8, 0xffcc98, 0xfff4d0], 9);
-  mountains(s, 98, 20, 0.021, 1.3, 0x8c80c0, 0xc0a0cc, 0xe0a8b4, 132, { mist: 20 });
-  mountains(s, 112, 16, 0.031, 4.1, 0x5c68a8, 0x8c8cc8, 0xb890b8, 136, { mist: 16, trees: 0.12, treeCol: 0x4c5898 });
-  mountains(s, 126, 10, 0.043, 2.2, 0x2e5660, 0x5a8c64, 0x7c9c8c, 146, { mist: 10, trees: 0.3, treeCol: 0x1e4450 });
-  // 성곽과 문루 (멀리)
-  { const wx = 300, wy = 121; for (let x = wx - 50; x < wx + 60; x++) { const top = wy + Math.round(Math.sin(x * 0.05) * 2); for (let y = top; y < top + 9; y++) s.set(x, y, y === top ? 0xe4d8c0 : (x + y) % 5 === 0 ? 0x8a88a0 : 0xb8b0b0); if (x % 4 < 2) s.set(x, top - 1, 0xd0c4b4); }
-    s.rect(wx - 8, wy - 9, 22, 12, 0xa8a0a8); s.rect(wx - 1, wy - 4, 8, 9, 0x3a3c5c); s.hl(wx, wx + 5, wy - 5, 0x3a3c5c);
-    for (const [ry, hw] of [[wy - 12, 18], [wy - 19, 13]]) { s.hl(wx + 3 - hw, wx + 3 + hw, ry, 0x343858); s.hl(wx + 5 - hw, wx + 1 + hw, ry - 1, 0x4a5078); s.hl(wx + 7 - hw, wx - 1 + hw, ry - 2, 0x343858); s.set(wx + 2 - hw, ry - 1, 0x343858); s.set(wx + 4 + hw, ry - 1, 0x343858); s.set(wx + 1 - hw, ry - 2, 0xffd08c); }
-    s.rect(wx - 4, wy - 17, 15, 5, 0x9a3a3c); for (let x = wx - 3; x < wx + 11; x += 3) s.vl(x, wy - 17, wy - 13, 0x5a2030); }
-  // 들판: 멀수록 노을빛, 가까울수록 짙은 풀빛
-  s.vgrad(0, 140, LW, 150, [0xc8d070, 0xa8c85c, 0x84b84c, 0x5c9c44, 0x3c7c40, 0x2c6440]);
-  // 흙길: 가운데를 가로지르며 굽는다
-  for (let x = 0; x < LW; x++) { const cy = 214 + Math.sin(x * 0.012 + 0.5) * 12, hw = 21 + Math.sin(x * 0.03) * 4; for (let y = Math.round(cy - hw - 3); y < cy + hw + 3; y++) { const d = Math.abs(y - cy) / hw; if (d < 0.8 || bayer(x, y) > (d - 0.8) / 0.3) s.set(x, y, d < 0.45 && bayer(x + 1, y) > 0.55 ? 0xe8cc8c : y > cy + hw * 0.5 ? 0xb89460 : 0xd4b478); } }
-  // 풀·흙의 결
-  for (let i = 0; i < 1500; i++) { const x = (R() * LW) | 0, y = 142 + ((R() * 140) | 0), c0 = s.get(x, y); const isPath = c0 === 0xd4b478 || c0 === 0xe8cc8c || c0 === 0xb89460; if (isPath) { if (R() < 0.3) { s.hl(x, x + 1 + ((R() * 3) | 0), y, R() < 0.5 ? 0xc0a068 : 0xf0dca0); } } else { const up = y < 190; s.set(x, y, R() < 0.5 ? (up ? 0xe0e088 : 0x74b048) : (up ? 0x84b84c : 0x245838)); if (R() < 0.4) s.set(x, y - 1, up ? 0xe0e088 : 0x94c850); } }
-  for (let i = 0; i < 40; i++) { const x = (R() * LW) | 0, y = 150 + ((R() * 128) | 0); const c0 = s.get(x, y); if (c0 === 0xd4b478 || c0 === 0xe8cc8c) { s.hl(x, x + 2, y, 0x9a8468); s.set(x + 1, y - 1, 0xc8bca8); } }
-  // 들판 끝의 덤불과 울타리
-  for (let x = -4; x < LW; x += 7 + ((R() * 6) | 0)) { const r = 4 + R() * 4, y = 141 + R() * 2; const t = new Spr(LW, LH); t.ell(x, y, r * 1.4, r, 0x2c6c48); t.shade(1, 1); s.blit(t, 0, 0); for (let k = 0; k < 3; k++) s.set(x + ((R() - 0.5) * r * 2) | 0, y - ((R() * r) | 0), R() < 0.5 ? 0x94c850 : 0xffd24a); }
-  for (let x = 6; x < LW; x += 22) { s.rect(x, 139, 2, 10, 0x6c4630); s.vl(x, 139, 148, 0xb8844a); s.set(x, 138, 0x54301e); s.set(x + 1, 138, 0x54301e); }
-  for (const y of [141, 145]) for (let x = 0; x < LW; x++) { s.set(x, y + (Math.sin(x * 0.29) > 0.8 ? 1 : 0), x % 22 < 9 ? 0xb8844a : 0x84522c); }
-  // 풀포기·바위·나무 (들판의 고정된 것)
-  for (let i = 0; i < 120; i++) { const x = (R() * LW) | 0, y = 152 + ((R() * 126) | 0), c0 = s.get(x, y); if (c0 === 0xd4b478 || c0 === 0xe8cc8c || c0 === 0xb89460) continue; stamp(s, tuft(i), x, y); }
-  for (const [x, y, w] of [[92, 170, 12], [402, 160, 10], [540, 268, 16], [26, 262, 18], [300, 276, 10], [612, 180, 12]]) stamp(s, rock(w, x), x, y);
-  return s;
-}
-const UNITS = [
+// ───────── 1. 전투: variants.js 에서 테마별로 굽고 그린다 ─────────
+export const UNITS = [
   // [종류, x, y, 흔들림 위상]
   ['commander', 246, 216, 0], ['sword', 300, 186, 1], ['sword', 322, 194, 2], ['sword', 296, 204, 3], ['sword', 318, 212, 0.5],
   ['shield', 342, 236, 1.5], ['shield', 358, 250, 2.5], ['shield', 336, 258, 0.2],
@@ -82,14 +51,14 @@ const UNITS = [
   ['tiger', 574, 226, 0],
 ];
 const ICONS = {};
-function icon(kind) {
+export function icon(kind) {
   if (ICONS[kind]) return ICONS[kind]; const s = new Spr(26, 24, 13, 12);
   if (kind === 'arrows') { for (const [x, d] of [[5, 0], [11, 3], [17, 1], [22, 4]]) { s.line(x, 3 + d, x - 3, 17 + d, C('wood', 3)); s.set(x - 3, 18 + d, C('steel', 4)); s.set(x - 3, 19 + d, C('steel', 3)); s.set(x - 4, 18 + d, C('steel', 2)); s.set(x, 2 + d, C('red', 2)); s.set(x + 1, 3 + d, C('red', 3)); s.set(x - 1, 2 + d, C('white', 4)); } }
   else if (kind === 'drum') { const t = new Spr(26, 24); t.ell(13, 12, 9, 9, C('red', 2)); t.shade(1, 2); s.blit(t, 0, 0); s.ell(13, 12, 6, 6, C('cream', 3)); for (let y = 7; y <= 17; y++) for (let x = 8; x <= 18; x++) if (Math.hypot(x - 13, y - 12) < 3.6) s.set(x, y, y < 12 - Math.sin((x - 13) / 3.5 * 1.57) * 1.6 ? C('red', 2) : C('blue', 2)); for (const a of [0.6, 2.5, 3.8, 5.6]) s.set(Math.round(13 + Math.cos(a) * 9), Math.round(12 + Math.sin(a) * 9), C('gold', 4)); s.line(21, 2, 24, 8, C('wood', 3)); s.rect(20, 1, 2, 2, C('cream', 4)); }
   else if (kind === 'bolt') { const t = new Spr(26, 24); t.ell(12, 7, 9, 4, C('purple', 2)); t.ell(8, 8, 5, 4, C('purple', 2)); t.ell(17, 8, 6, 4, C('purple', 2)); t.shade(1, 1); s.blit(t, 0, 0); s.poly([[13, 9], [16, 9], [13, 15], [16, 15], [10, 23], [12, 16], [9, 16]], C('gold', 4)); s.line(13, 10, 11, 16, C('white', 4)); }
   ICONS[kind] = s.outline(); return ICONS[kind];
 }
-function card(g, x, y, o) {
+export function card(g, x, y, o) {
   const band = { unit: 'blue', atk: 'red', sup: 'teal' }[o.kind], w = 56, h = 70;
   fr(g, x + 2, y + 3, w, h, 'rgba(10,8,20,0.45)');
   fr(g, x + 1, y, w - 2, h, INK); fr(g, x, y + 1, w, h - 2, INK); fr(g, x + 1, y + 1, w - 2, h - 2, o.dim ? C('cream', 1) : C('cream', 3)); fr(g, x + 1, y + h - 4, w - 2, 3, C('cream', 1)); fr(g, x + 2, y + 14, w - 4, 40, o.dim ? C('cream', 0) : C('cream', 2));
@@ -104,47 +73,11 @@ function card(g, x, y, o) {
   fr(g, x - 3, y - 5, 11, 15, INK); fr(g, x - 5, y - 3, 15, 11, INK); fr(g, x - 4, y - 4, 13, 13, INK); fr(g, x - 3, y - 4, 11, 13, C('gold', 3)); fr(g, x - 4, y - 3, 13, 11, C('gold', 3)); fr(g, x - 3, y - 4, 11, 2, C('gold', 4)); fr(g, x - 3, y + 7, 11, 2, C('gold', 1)); txt(g, o.cost, x + 3, y - 4, { f: 'b', a: 'c', c: INK });
   if (o.sel) { fr(g, x - 1, y - 1, w + 2, 1, C('gold', 4)); fr(g, x - 1, y + h, w + 2, 1, C('gold', 4)); fr(g, x - 1, y, 1, h, C('gold', 4)); fr(g, x + w, y, 1, h, C('gold', 4)); }
 }
-function battle(g, t) {
-  if (!BATTLE) BATTLE = { bg: bakeBattle(), pines: [pine(1), pine(5), pine(9)], sans: sansuyu(3), sans2: sansuyu(8), cart: bannerCart(), js: [jangseung(0), jangseung(1)] };
-  const B = BATTLE; g.drawImage(B.bg.canvas(), 0, 0);
-  // 깊이 순서로: 나무·장승·인형
-  const list = [];
-  list.push({ y: 166, d: () => draw(g, B.pines[0], 56, 166) }, { y: 158, d: () => draw(g, B.pines[1], 610, 158) }, { y: 154, d: () => draw(g, B.pines[2], 452, 154) });
-  list.push({ y: 172, d: () => draw(g, B.js[0], 590, 172) }, { y: 280, d: () => draw(g, B.js[1], 620, 280) });
-  list.push({ y: 228, d: () => { draw(g, B.cart, 44, 232); } });
-  for (const [k, x, y, ph] of UNITS) list.push({ y, d: () => {
-    const s = look(k), boss = k === 'tiger', ally = !['goblin', 'ogre', 'ghost', 'tiger'].includes(k), bob = Math.sin(t * 3.2 + ph * 2) > 0.3 ? -1 : 0;
-    g.fillStyle = 'rgba(20,24,50,0.32)'; const sw = boss ? 34 : 11; g.fillRect(x - sw, y - 1, sw * 2, 3); g.fillRect(x - sw + 2, y - 2, sw * 2 - 4, 5);
-    // 맞는 순간: 한 프레임 하얗게
-    const hit = !ally && Math.floor(t * 2 + ph) % 7 === 0 && (t * 2 + ph) % 1 < 0.15;
-    draw(g, hit ? tinted(s, 0xffffff) : s, x + (hit ? 1 : 0), y + bob);
-  } });
-  list.sort((a, b) => a.y - b.y); for (const it of list) it.d();
-  // 앞쪽의 산수유 (화면 틀)
-  draw(g, B.sans, 22, 290); draw(g, B.sans2, 628, 292);
-  // 화살: 포물선으로 날아간다
-  for (let k = 0; k < 5; k++) { const p = ((t * 0.9 + k * 0.23) % 1), x0 = 176 + k * 4, x1 = 396 + k * 9, x = x0 + (x1 - x0) * p, y = 170 + k * 5 - Math.sin(p * Math.PI) * 46, dx = (x1 - x0), dy = -Math.cos(p * Math.PI) * 46 * Math.PI, a = Math.atan2(dy, dx); for (let q = 0; q < 7; q++) fr(g, x - Math.cos(a) * q, y - Math.sin(a) * q, 1, 1, q === 0 ? C('steel', 4) : q > 4 ? C('red', 3) : C('wood', 3)); }
-  // 칼바람과 불티
-  { const p = (t * 1.6) % 1; if (p < 0.35) { g.fillStyle = css(C('white', 4)); for (let a = -1.1; a < 0.9; a += 0.09) { const r = 17 + p * 10; fr(g, 344 + Math.cos(a) * r, 190 + Math.sin(a) * r, 2, 1 + (Math.abs(a) < 0.5 ? 1 : 0), a > 0.5 ? C('gold', 4) : C('white', 4)); } } }
-  for (let k = 0; k < 6; k++) { const p = (t * 1.3 + k * 0.17) % 1, a = k * 1.05; fr(g, 384 + Math.cos(a) * p * 16, 196 + Math.sin(a) * p * 12 - p * 6, 1, 1, k % 2 ? C('gold', 4) : C('white', 4)); }
-  // 무녀의 치유 빛
-  for (let k = 0; k < 5; k++) { const p = (t * 0.6 + k * 0.2) % 1; fr(g, 108 + k * 7, 222 - p * 16, 1, 1, C('teal', 4)); if (k % 2) { fr(g, 108 + k * 7 - 1, 223 - p * 16, 3, 1, C('teal', 3)); fr(g, 108 + k * 7, 222 - p * 16 - 1, 1, 3, C('teal', 3)); } }
-  // 피해 숫자
-  { const p = (t * 0.8) % 1; txt(g, '-18', 398, 160 - p * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); const p2 = (t * 0.8 + 0.5) % 1; txt(g, '-9', 428, 214 - p2 * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); txt(g, '+12', 306, 152 - p2 * 10, { f: 'b', a: 'c', c: C('teal', 4), ol: C('teal', 0) }); }
-  // 영웅의 기력 띠와 고유기 이름
-  fr(g, 232, 168, 30, 5, INK); fr(g, 233, 169, 28, 3, C('ink', 3)); fr(g, 233, 169, 22, 3, C('gold', 3)); fr(g, 233, 169, 22, 1, C('gold', 4));
-  // 두목 이름과 체력
-  panel(g, 214, 30, 212, 25, { fill: C('ink', 1), edge: C('red', 1) }); txt(g, '고개 호랑이', 320, 34, { f: 9, a: 'c', c: C('gold', 4), sh: INK }); fr(g, 222, 46, 196, 5, INK); fr(g, 223, 47, 194, 3, C('red', 0)); fr(g, 223, 47, 138, 3, C('red', 2)); fr(g, 223, 47, 138, 1, C('red', 3)); for (const k of [0.25, 0.5, 0.75]) fr(g, 223 + 194 * k, 47, 1, 3, INK);
-  // 진형 딱지
-  panel(g, 6, 30, 112, 16, { fill: C('teal', 1), edge: C('teal', 3), corner: false }); txt(g, '학익진', 11, 33, { f: 9, c: C('gold', 4) }); txt(g, '피해 +20%', 113, 33, { f: 9, a: 'r', c: C('cream', 3) });
-  panel(g, 6, 48, 112, 16, { fill: C('ink', 2), edge: C('ink', 3), corner: false }); txt(g, '방진 2단', 11, 51, { f: 9, c: C('cream', 3) }); txt(g, '방어 +10%', 113, 51, { f: 9, a: 'r', c: C('cream', 1) });
-  hud(g, t);
-}
-function hud(g, t) {
+export function hud(g, t) {
   // 위 띠
   fr(g, 0, 0, LW, 24, C('night', 1)); fr(g, 0, 0, LW, 1, C('night', 3)); dancheong(g, 0, 22, LW, 4);
   fr(g, 5, 3, 17, 17, INK); fr(g, 6, 4, 15, 15, C('blue', 2)); g.save(); g.beginPath(); g.rect(6, 4, 15, 15); g.clip(); draw(g, look('commander'), 13, 44); g.restore();
-  txt(g, '남은 병력', 26, 1, { f: 9, c: C('cream', 2) }); txt(g, '전장 19 · 대기 패 6', 26, 12, { f: 9, c: C('cream', 4) });
+  txt(g, '남은 병력', 26, 3, { f: 9, c: C('cream', 2) }); txt(g, '전장 19 · 대기 패 6', 26, 13, { f: 9, c: C('cream', 4) });
   txt(g, '첫째 고개', 172, 6, { f: 'b', c: C('gold', 4), sh: INK });
   // 길: 지나온 곳과 갈 곳
   fr(g, 232, 11, 214, 2, C('night', 3)); fr(g, 232, 11, 80, 2, C('gold', 3));
@@ -304,4 +237,4 @@ function sheet(g, t) {
     txt(g, NAMES[k], x + w / 2, y + 134, { f: 'b', a: 'c', c: C('cream', 4), sh: INK });
   });
 }
-export const SCENES = { battle: { name: '전투', draw: battle }, stage: { name: '인형극 무대 · 주막', draw: stage }, title: { name: '타이틀', draw: title }, sheet: { name: '인형 도감', draw: sheet } };
+export const SCENES = { stage: { name: '인형극 무대 · 주막', draw: stage }, title: { name: '타이틀', draw: title }, sheet: { name: '인형 도감', draw: sheet } };
