@@ -6,7 +6,8 @@
      V.close.k  the photograph comes up close (0 in her hands … 1 held up in the middle of the picture)
      V.shine.k  a little light on the two small shapes
      V.belly.k  her hand goes from the photograph to her belly
-     V.lean.k   he leans his head against hers, laughing */
+     V.lean.k   he leans his head against hers, laughing
+   The chapter may move in on it with X.vcam; the torn paper edge stays where it is. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -168,7 +169,7 @@
       return [T.lerp(h[0], -250, k), T.lerp(h[1], 318, k), T.lerp(0.085 * ZM, 1, k), T.lerp(-0.32, -0.035, k)];
     }
 
-    V.draw = function (g, t) {
+    V.draw = function (g, t, S) {
       const W = T.view.W;
       if (!V.L || V.gen !== T.gen) V.build();
       g.fillStyle = '#f3ead8'; g.fillRect(-W / 2, 0, W, 900);
@@ -216,7 +217,10 @@
         scan(g, 460, 340, t, T.ease.io(V.shine.k));
         g.restore();
       }
-      P.drawFrame(g, V.frame);
+      /* the torn edge stays put while the chapter's camera (X.vcam) moves in on the picture: undo the camera for it */
+      const c = S && S.vcam;
+      if (c && (c.z !== 1 || c.x !== 0 || c.y !== 450)) { g.save(); g.translate(c.x, c.y); g.scale(1 / c.z, 1 / c.z); g.translate(0, -450); P.drawFrame(g, V.frame); g.restore(); }
+      else P.drawFrame(g, V.frame);
     };
     return V;
   };

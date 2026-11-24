@@ -1,11 +1,13 @@
 /* The last chapter 「마중」, and the epilogue. The lake shows her saying it to Lily, and Lily saying it back;
    the bell rings; he walks down to the harbour, old, lamp in hand, the way he has for every boat, and this
-   time it is her. The little one in the pink hat turns out to be theirs: Lily's twin, who went on ahead before
-   she was born, and has kept her promise to her sister from here all along. When the white boat comes for her
-   she chooses to stay, to be the one who meets Lily. They walk home past everything he built; he cooks; at
-   night the aurora comes out over the hill; they knit the story blanket, Ana tells him what she promised Lily,
-   they set the first stone of Lily's room, and at the list on the gate he crosses off the aurora and leaves
-   growing old together to be kept slowly. Then the three of them say it to Lily. */
+   time it is her. The bell asks only what it asked the first time he stood here, 「천천히 와」, slowly: nothing
+   hard, right before she comes. The little one in the pink hat turns out to be theirs: Lily's twin, who went on
+   ahead before she was born, and has kept her promise to her sister from here all along. When the white boat
+   comes for her she chooses to stay, to be the one who meets Lily. They walk home past everything he built; he
+   cooks; at night the aurora comes out over the hill; they knit the story blanket together, a row each (his
+   story of up here, then hers of the same days down below); Ana tells him what she promised Lily, they set the
+   first stone of Lily's room, and at the list on the gate he crosses off the aurora and leaves growing old
+   together to be kept slowly. Then the three of them say it to Lily, and two small clouds hold hands in the sky. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -47,6 +49,123 @@
     }
   }
 
+  /* ---------- the story blanket, knitted by two ----------
+     Rosa said it on the quay: knit it together when Ana comes, a story to a row. He picks the yarn, in the order
+     things happened, and knits his row from the left; then she takes the needles and knits the next row back from
+     the right, in a paler run of the same yarn, telling what that same time was like down below (o.tell(i): the
+     chapter's lines). A ball out of order, and she asks if that came first.
+     o: { items: [{ name, c, icon }] in the order they happened, order (how the balls are laid out), tell(i) } */
+  function knitTwo(o) {
+    const Z = T.puzzle, ICON = Z.storyIcons, A = T.audio;
+    const N = o.items.length, order = o.order, X0 = (n) => (n - (N - 1) / 2) * 150, BY = 706;
+    const LH = 40, AH = 26, TOP = 96, HW = 200;   /* his row, her row; the blanket's half width */
+    const G = Z.make({ i: 0, rows: [], used: [], phase: 'pick', balls: 0, rest: false });
+    G.start = () => { G.clock.tween(G, 'balls', 1, 0.8); };
+    G.hit = (x, y) => { if (G.phase !== 'pick') return -1; for (let n = 0; n < N; n++) if (!G.used.includes(n) && Math.hypot(x - X0(n), y - BY) < 54) return n; return -1; };
+    function row(i, who) {
+      const r = { k: 0, item: o.items[i], who };
+      G.rows.push(r); A.sfx('knit', who === 'ana' ? 0.7 : 1);
+      return G.clock.tween(r, 'k', 1, who === 'ana' ? 1.6 : 1, T.ease.io);
+    }
+    /* one story: his row, then hers, with what she says over it */
+    async function pair(i) {
+      G.used.push(order.indexOf(i));
+      A.step(i + 3, { voice: 'felt', vel: 0.34 });
+      await row(i, 'leo');
+      await G.clock.wait(0.35);
+      await Promise.all([row(i, 'ana'), o.tell ? o.tell(i) : null]);
+    }
+    async function run() {
+      G.phase = 'tell'; G.say = ''; G.clock.tween(G, 'balls', 0, 0.5);
+      await pair(G.i); G.i++;
+      while (G.rest && G.i < N) { await G.clock.wait(0.4); await pair(G.i); G.i++; }   /* skipped: the rest, told in order */
+      if (G.i >= N) { G.phase = 'done'; A.promise(); G.finish(1.8); return; }
+      G.phase = 'pick'; G.idle = 0; G.clock.tween(G, 'balls', 1, 0.6);
+    }
+    G.tap = function (n) {
+      if (G.done || G.phase !== 'pick' || n < 0 || n >= N || G.used.includes(n)) return;
+      G.idle = 0;
+      if (order[n] !== G.i) { G.wrong('아나: "어, 그게 먼저였어?" 있었던 차례를 다시 떠올려 봐요'); return; }
+      run();
+    };
+    /* skipped: no more choosing, but every story is still told, his row and hers */
+    G.solve = function () { G.rest = true; if (G.phase === 'pick') run(); };
+    G.next = () => (G.phase === 'pick' && !G.done ? String(order.indexOf(G.i) + 1) : null);
+    G.hintAt = () => (G.phase === 'pick' && !G.done ? [X0(order.indexOf(G.i)), BY] : null);
+    G.keys = () => (G.phase === 'pick' ? 'pick' : null);
+    G.tip = () => (G.phase === 'pick' ? '실타래를 하나씩 눌러 한 줄씩 떠요' : '');
+    G.hintR = 60;
+    G.spots = () => (G.phase !== 'pick' ? [] : order.map((idx, n) => (G.used.includes(n) ? null : [n, X0(n), BY, 54])));
+    function needle(g, x, y, h, dir, col) {   /* the needle at the front of a row being knitted */
+      g.save(); g.translate(x, y + h / 2); g.rotate(dir * 0.5);
+      P.line(g, 0, -h / 2 - 16, 0, h / 2 + 16, 3.4, col);
+      P.fill(g, P.circle(0, -h / 2 - 18, 4.2), T.shade(col, -0.2));
+      g.restore();
+    }
+    G.draw = function (g, t) {
+      if (G.a < 0.005) return;
+      G.dim(g, 0.5);
+      g.save(); g.globalAlpha = G.a;
+      const full = N * (LH + AH);
+      P.fill(g, P.rr(-HW - 12, TOP - 14, HW * 2 + 24, full + 28, 12), 'rgba(251,244,226,0.16)');
+      let y = TOP;
+      G.rows.forEach((r, n) => {
+        const his = r.who === 'leo', h = his ? LH : AH, k = T.ease.out(r.k), c = his ? r.item.c : T.mix(r.item.c, '#fbf4e2', 0.55);
+        const x0 = his ? -HW : HW - HW * 2 * k;   /* he knits from the left, she knits back from the right */
+        g.save(); g.beginPath(); g.rect(x0, y, HW * 2 * k, h - 4); g.clip();
+        P.fill(g, P.rr(-HW, y, HW * 2, h - 4, 6), c);
+        g.strokeStyle = T.shade(c, -0.18); g.lineWidth = 2;
+        if (his) for (let x = -HW + 4; x < HW; x += 12) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 6, y + h - 12); g.lineTo(x + 12, y + 8); g.stroke(); }
+        else { g.fillStyle = T.shade(c, -0.16); for (let x = -HW + 6; x < HW; x += 10) for (let j = 0; j < 2; j++) { g.beginPath(); g.arc(x + (j ? 5 : 0), y + 7 + j * 9, 1.9, 0, TAU); g.fill(); } }   /* her stitch: small and close */
+        g.restore();
+        if (r.k > 0.01 && r.k < 0.99) needle(g, his ? -HW + HW * 2 * k : HW - HW * 2 * k, y, h - 4, his ? 1 : -1, his ? '#e4b85a' : '#e8a0a0');
+        if (his && k > 0.6) {
+          g.save(); g.translate(-HW - 40, y + h / 2 - 2); ICON[r.item.icon](g, t); g.restore();
+          P.text(g, r.item.name, HW + 92, y + h / 2 + 10, { size: 32, color: '#fbf4e2', alpha: T.clamp((k - 0.6) * 2.5), seed: 40 + n });
+        }
+        y += h;
+      });
+      P.line(g, -HW - 30, y + 6, HW + 30, y, 4, '#c9c3ba'); P.line(g, -HW - 26, y + 12, HW + 28, y + 8, 3, '#c9c3ba');
+      /* the yarn, one ball for each story, put away while she talks */
+      if (G.balls > 0.01) {
+        g.globalAlpha = G.a * G.balls;
+        order.forEach((idx, n) => {
+          if (G.used.includes(n)) return;
+          const it = o.items[idx], x = X0(n) + G.jig(t, n);
+          P.fill(g, P.circle(x, BY, 38), it.c);
+          g.strokeStyle = T.shade(it.c, -0.2); g.lineWidth = 2;
+          for (let k = -2; k <= 2; k++) { g.beginPath(); g.ellipse(x, BY, 34, 12 + Math.abs(k) * 5, k * 0.5, 0, TAU); g.stroke(); }
+          g.save(); g.translate(x, BY - 62); ICON[it.icon](g, t); g.restore();
+          P.text(g, it.name, x, BY + 68, { font: 'serif', size: 22, fit: 140, color: '#fbf4e2', seed: 2 });
+        });
+      }
+      g.restore();
+      G.hintRing(g, t);
+      if (G.phase === 'pick') G.caption(g, G.i === 0 ? '아나가 "처음부터" 들려 달래요. 있었던 차례대로 실을 골라 한 줄씩 뜨세요' : '아나가 묻는다: "그다음엔?"');
+    };
+    return G;
+  }
+
+  /* two small clouds, one holding the other's hand: 구름이 saw them in the second year, and here they are again at
+     the end. Nobody says what they are. Screen coordinates; a: how much they have come out */
+  function twoClouds(g, x, y, s, a, t) {
+    if (a < 0.01) return;
+    const col = '#b4bcdc', lit = '#d8f2e8';
+    g.save(); g.globalAlpha *= a; g.translate(x + Math.sin(t * 0.11) * 8, y + Math.sin(t * 0.17) * 3); g.scale(s, s);
+    P.glow(g, 0, 0, 150, '#bfe8dc', 0.12);
+    const puff = (cx, dir, sc) => {
+      g.save(); g.translate(cx, 0); g.scale(sc * dir, sc);
+      [[-22, 2, 15], [-6, -8, 18], [12, -2, 14], [-32, 8, 9]].forEach((q) => P.fill(g, P.circle(q[0], q[1], q[2]), col));
+      P.fill(g, P.rr(-40, 4, 66, 14, 7), col);
+      P.fill(g, P.ellipse(27, 7, 13, 7, -0.18), col);   /* an arm, reaching to the middle */
+      g.globalAlpha *= 0.55; P.fill(g, P.circle(-8, -14, 9), lit); P.fill(g, P.circle(-26, -4, 6), lit);   /* where the aurora catches them */
+      g.restore();
+    };
+    puff(-42, 1, 1); puff(40, -1, 0.9);
+    P.fill(g, P.circle(0, 8, 6.5), col);   /* and the two hands, held */
+    g.restore();
+  }
+
   T.stage('ch7', {
     chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
     plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 0, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1, season: 'late autumn' },   /* she comes in late autumn, as he did */
@@ -59,6 +178,15 @@
       /* the aurora he hung over the hill comes out once it is dark, a curtain at a time */
       if (S.aur) { const n = Math.floor(T.clamp(S.aur.k) * S.aur.pts.length); while (S.ps.aurora.length < n) S.ps.aurora.push(S.aur.pts[S.ps.aurora.length]); }
     },
+    /* at the very end, two small clouds in the night sky, hand in hand */
+    after(g, S) {
+      if (S.closeIn > 0.005) {   /* the quay darkening round them, so that the little lamp is the light on their faces */
+        const W = T.view.W, gr = g.createRadialGradient(0, 480, 120, 0, 480, W * 0.58);
+        gr.addColorStop(0, 'rgba(28,20,48,0)'); gr.addColorStop(1, T.rgba('#1c1430', 0.55 * S.closeIn));
+        g.fillStyle = gr; g.fillRect(-W / 2, 0, W, 900);
+      }
+      if (S.pair) twoClouds(g, S.pair.x, S.pair.y, S.pair.s, S.pair.a, T.time);
+    },
     onHill(g, h, S) {
       if (h === 1 && S.lampDown != null) K.lantern(g, S.lampDown, T.world.C.PIER_Y - 22, T.time, { bare: true, s: 0.85, lit: 1, seed: 3 });
       if (h === 1 && S.cLamp != null) K.lantern(g, S.cLamp, T.world.C.PIER_Y - 14, T.time, { bare: true, s: 0.55, lit: 1, seed: 6 });
@@ -67,7 +195,8 @@
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK, PIER = C.PIER_Y;
       const [, py] = X.place.plot(), [qx, qy] = X.place.quay();
-      S.track = null; S.swinging = false; S.lampDown = null; S.cLamp = null; S.mem = null; S.aur = null;
+      S.track = null; S.swinging = false; S.lampDown = null; S.cLamp = null; S.mem = null; S.aur = null; S.pair = null; S.closeIn = 0;
+      const real = (sec) => sec * (T.pace || 1);   /* the story's clock runs a little brisker than the music: sec of music, in its seconds */
 
       /* ---- the lake, the last time ---- */
       const lake = T.lake({ paint: T.vig.bed, leo: F.leoAt(4), said: { k: 0 }, mirror: 0.5, leoFace: { old: true }, fade: { a: 0 } });
@@ -85,7 +214,7 @@
       await X.tween(lake.said, 'k', 1, 2.2);
       /* what he said to his mother on the quay, forty-five years ago */
       await TALK.say('lily', '…응. 천천히 갈게.', { slow: true });
-      await X.wait(2.2);
+      await X.wait(2.8);
       /* the water goes dark */
       X.bed(null);
       await X.tween(lake.fade, 'a', 0, 3.6);
@@ -159,12 +288,15 @@
       S.track = null;
       X.cam(qx - 60, qy, 1.05, 0.9);
       T.announce('부두 끝은 안개뿐이다. 바다 등불이 꺼진 채 서 있다.');
-      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [0, 1, 2, 3, 2, 1]], beat: 1.05, shuffle: true });
+      /* the last question is the first one he ever heard on this quay: the four notes of 「천천히 와」, once, slowly.
+         The mist starts to go as the fourth lamp answers */
+      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3]], beat: 1.2, onRound: () => { if (S.sw) X.tween(S.sw, 'mist', 0, 2.6); } });
       const arrived = X.sail(boat, -74, 46);
       await pressed;
       /* the mist parts: one small boat, and someone in it with white hair */
       cloud.held = true;   /* she holds her lamp up for the boat, the way she always does */
-      X.bed(null); S.bedNow = null;   /* nothing now but the sea */
+      X.hush(); S.bedNow = null;   /* nothing now but the sea, until the first words */
+      A.score('reunion');
       T.announce('안개가 걷힌다. 작은 배 한 척이 천천히 들어온다. 배에 백발의 여자가 앉아 있다.');
       await X.wait(2);
       X.cam(-30, 540, 1.25, 0.5);
@@ -189,18 +321,18 @@
       X.tween(leo, 'doff', 1, 1.5, T.ease.lin);
       await X.wait(0.75);
       leo.style = F.leoBare();
-      await X.wait(1.6);
+      await X.wait(2.0);
       ana.laugh = true; ana.wet = 0.7;
       await TALK.say('ana', '…당신, 왜 이렇게 늙었어?');
       await X.wait(0.5);
       await TALK.say('leo', '같이 늙자며.', { slow: true });
       leo.wet = 0.6; ana.laugh = false; ana.wet = 0.85;
-      await X.walk(ana, leo.x - 58, 34);
+      await X.wait(0.8);
+      await X.walk(ana, leo.x - 46, 34);
       await X.wait(0.8);
       await X.tap(() => [(ana.x + leo.x) / 2, PIER - 78, 56]);
-      ana.z = 1;
-      X.gesture(leo, 'hug', { with: ana, hold: true, in: 1.4, out: 1.2 });   /* both: arms round each other, rocking a little */
-      X.gesture(ana, 'cry', { hands: 'none', hold: true, in: 1.8, out: 2.6 });   /* and she sobs into his shoulder */
+      ana.z = 0; leo.z = 1;   /* he is nearer us: his face is the one we see, and the cap in his hand on her back */
+      X.gesture(ana, 'sob-hug', { with: leo, hold: true, in: 1.4, out: 2.2, role: 'high' });   /* she sobs, bowed over him; his hand pats her back */
       await X.wait(1.4);
       T.announce('두 사람이 끌어안는다. 오래도록 아무 말이 없다.');
       bean.sit = 1;
@@ -208,21 +340,30 @@
       X.cam((ana.x + leo.x) / 2, 560, 1.95, 0.35);
       await X.wait(6.5);           /* the long quiet */
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
-      X.ungesture(ana, 'cry');   /* the sobbing eases; they go on holding each other */
-      await X.wait(2.4);
+      /* the sobbing eases; they go on holding each other */
+      X.gesture(ana, 'hug', { with: leo, hold: true, in: 2, out: 1.2, role: 'low' });
+      X.ungesture(ana, 'sob-hug');
+      /* the lullaby's first two bars are 「천천히 와」, the call: he speaks when it has been called */
+      await X.wait(real(4.44));
       /* what he told her in the hospital, forty-five years ago, the other way round */
       await TALK.say('leo', '…천천히 왔네.', { slow: true });
       await TALK.say('ana', '천천히 오라며.');
+      /* they lean back just far enough to see each other, and put their foreheads together */
+      X.gesture(ana, 'forehead', { with: leo, hold: true, in: 1.8, out: 1.2, face: 'smileTears', partnerOpts: { face: 'smileTears' } });
+      X.ungesture(ana, 'hug');
+      await X.wait(1.2);
       await TALK.say('leo', '응.\n…고마워, 천천히 와 줘서.', { slow: true });
       await X.wait(0.8);
       await TALK.say('leo', '집 지어 놨어. 마당도 있어.\n스튜도 끓여 놨고.');
-      /* what he asked his own mother on this quay, and what she told him */
-      await TALK.say('ana', '…그 말, 진짜였어?', { slow: true });
+      /* he told her so in her dream, the third year; she woke up and thought it was a dream */
+      await TALK.say('ana', '…꿈인 줄 알았는데.\n그 말, 진짜였네.', { slow: true });
+      /* and it is what his own mother told him on this quay */
       await TALK.say('leo', '나도 몰랐어.\n와 보니까 정말 있더라.');
       await X.wait(0.6);
 
       /* ---- Bean has waited as long as anyone ---- */
-      await X.ungesture(leo, 'hug');
+      await X.ungesture(ana, 'forehead');
+      leo.z = 0;
       ana.wet = 0.4; leo.wet = 0.3;
       X.cam(70, 548, 1.6, 0.8);
       bean.sit = 0; bean.wag = 1; bean.wagRate = 16; bean.z = 2; bean.run = 0.4;
@@ -258,6 +399,7 @@
       bean.sit = 0; X.walk(bean, 112, 50).then(() => { bean.flip = false; bean.sit = 1; });
       ana.pose = (o) => { o.headTilt = 0.08; o.face.eye = 'open'; o.face.mouth = 'line'; };
       X.cam(180, 540, 1.4, 0.8);
+      X.tween(S, 'closeIn', 1, 3);   /* the quay darkens a little round them: the little lamp is the light on her face */
       T.announce('아나의 눈이 등불을 든 작은 아이에게 가 멈춘다. 아이가 쓴 작은 분홍 털모자.');
       await X.wait(1.6);
       await TALK.say('ana', '…그 모자.', { slow: true });
@@ -270,7 +412,7 @@
         o.face.eye = a.wet > 0.5 ? 'happy' : 'open'; o.face.mouth = a.wet > 0.5 ? 'smile' : 'line'; o.face.tear = a.wet || 0; o.face.tearY = (t * 2) % 3;
         if (a.wet > 0.5) { o.face.well = 0.8; o.face.roll = t / 1.9; o.face.rollA = 0.8; }   /* smiling, and the tears coming */
       };
-      await X.gesture(ana, 'kneel', { with: cloud, hold: true, in: 1.7, out: 1.4 });
+      await X.gesture(ana, 'kneel', { with: cloud, hold: true, in: 1.4, out: 1.4 });
       X.gesture(ana, 'hand-on-head', { with: cloud, hold: true, in: 1.1, face: false, partnerOpts: { face: false } });   /* a hand on the hat */
       A.note({ m: 76, vel: 0.22, voice: 'glass', dur: 1.2 });
       await X.wait(1.4);
@@ -278,60 +420,83 @@
       await TALK.say('cloud', '몰라.\n처음부터 쓰고 있었어.');
       await X.wait(0.8);
 
-      /* ---- what the hat remembers: a night fifty-one years ago ---- */
-      const mem = T.twins();
-      A.theme({ voice: 'hum', vel: 0.3, beat: 0.92, left: true, at: 1.2 });   /* she used to hum it to the two of them */
+      /* ---- what the hat remembers: a night fifty-one years ago ----
+         she hummed the lullaby to the two of them; it plays the memory through, and its last bar carries her back */
+      const mem = T.twins(), BEAT = 0.92;
+      A.score('memory');
+      const humAt = T.time + 1.2;   /* when its first note sounds, in the music's seconds */
+      A.theme({ voice: 'hum', vel: 0.3, beat: BEAT, left: true, at: 1.2 });
+      const humLast = humAt + BEAT * 21.21, humEnd = humAt + BEAT * 24.75;   /* its last bar, and its end (the last two bars slow down) */
       await X.view(mem, { color: '#f3ead8', out: 1.6, in: 2 });
       X.age('아나, 30');
+      X.vcam(-30, 452, 1.05, 4);   /* the camera drifts in towards the two of them */
       T.announce('기억. 쉰한 해 전의 밤, 작은 침실. 배가 부른 아나가 레오와 침대 끝에 앉아 사진 한 장을 들여다본다. 탁자 위에는 똑같은 분홍 털모자 둘. 하나는 아직 바늘에 걸려 있다.');
       await X.wait(3.4);
       X.tween(mem.close, 'k', 1, 1.8, T.ease.io);
+      X.vcam(-120, 380, 1.12, 2.4);   /* and in on the photograph as she holds it up */
       T.announce('초음파 사진. 까만 바탕에, 작은 아기 둘이 서로를 향해 웅크리고 있다.');
       await X.wait(2.4);
       X.tween(mem.shine, 'k', 1, 1.6);
       await TALK.say('ana', '둘이 사이좋게,\n서로 아껴 주고 지켜 주렴.', { slow: true });
       X.tween(mem.shine, 'k', 0, 1.2);
+      X.vcam(-20, 470, 1.04, 2.2);   /* back to the two of them, laughing */
       await X.tween(mem.close, 'k', 0, 1.4, T.ease.io);
       X.tween(mem.belly, 'k', 1, 1.2, T.ease.io);
       X.tween(mem.lean, 'k', 1, 0.8);
       await TALK.say('leo', '…오늘만 열 번째야.');
       await TALK.say('ana', '날마다 할 거야.');
-      await X.wait(1.8);
+      X.vcam(-30, 452, 1.1, 5);
+      await X.wait(Math.max(1.8, Math.min(6, real(humLast - T.time))));   /* until the tune comes to its last bar */
       await X.view(null, { color: '#f3ead8', out: 1.6, in: 1.8 });
 
-      /* ---- back on the quay: the little one is looking up at her, head on one side ---- */
+      /* ---- back on the quay: the little one is looking up at her, head on one side ----
+         the lullaby ends as the memory goes; a moment of nothing; then the child */
+      A.score('reunion');
       X.cam(cloud.x - 24, 566, 2.2); X.camSnap();
-      A.theme({ voice: 'felt', vel: 0.24, beat: 0.9, left: true, at: 0.6 });
-      await X.wait(1.4);
+      await X.wait(real(Math.max(1.5, Math.min(5, humEnd + 1.5 - T.time))));
       await TALK.say('cloud', '…아줌마 목소리, 알아.', { slow: true });
+      A.motif({ voice: 'hum', vel: 0.24, beat: 0.9 });   /* what a child remembers of a song: how it calls */
       await TALK.say('cloud', '둘이 사이좋게,\n서로 아껴 주고 지켜 주렴.', { slow: true });
+      /* the words she said over a photograph fifty-one years ago, said back to her: her hands go to her face */
+      X.ungesture(ana, 'hand-on-head');
+      X.gesture(ana, 'cry', { hands: 'both', hold: true, in: 1, out: 1.4 });
+      await X.wait(2.8);
+      /* and come down to the child's cheek; the little one leans into it, eyes closed */
+      X.ungesture(ana, 'cry');
+      X.gesture(ana, 'cheek', { with: cloud, hold: true, in: 1.5, out: 1.2, face: 'smileTears' });
       ana.wet = 0.9;
-      await X.wait(1.2);
+      await X.wait(1.4);
       await TALK.say('ana', '…릴리 동생이구나.\n우리 둘째.', { slow: true });
+      /* the face she always pictured for her: so that is the face she has here */
+      await TALK.say('ana', '…내가 늘 그려 보던 얼굴이네.', { slow: true });
       await X.wait(1);
       leo.wet = 0.5;
-      await TALK.say('leo', '…릴리 모자랑 똑같다고만 생각했는데.', { slow: true });
+      /* he never saw her face; and the other hat, he never knew she had kept */
+      await TALK.say('leo', '…얼굴도 못 보고 보냈는데.\n여기 와 있을 줄은 몰랐어.', { slow: true });
       await TALK.say('ana', '둘이 쓰라고 똑같이 두 개 떴었어.\n하나는… 당신 몰래 서랍에 넣어 두고.');
       await X.wait(0.6);
       /* who she is, said to her, plainly and gently */
       await TALK.say('ana', '너는 릴리랑 같이\n엄마 배 속에 있었어.');
       await TALK.say('ana', '그런데 세상에 나오기 전에,\n너 혼자 먼저 왔구나.', { slow: true });
+      X.gesture(leo, 'kneel', { with: cloud, hold: true, in: 1.5, out: 1.3 });   /* he comes down to her height too */
+      await X.wait(0.8);
       await TALK.say('leo', '…내가 오기 전부터,\n여기서 기다리고 있었구나.', { slow: true });
       await X.wait(0.6);
       /* what she has been asking since the year Bram went: and he said they would find it together */
       await TALK.say('cloud', '…그럼 내 약속은 뭐야?');
       await TALK.say('leo', '…찾았네.\n언니랑 서로 지켜 주는 거.');
       await TALK.say('leo', '…호수에서 릴리 옆에 있던 게,\n너였구나.', { slow: true });
-      await TALK.say('ana', '릴리, 잘 컸어.\n무서울 땐 누가 손 잡아 준다고 했지.');
+      await TALK.say('ana', '릴리가 늘 그랬어.\n무서울 땐 누가 손 잡아 준다고.');
       await TALK.say('ana', '…네가 지켜 줬구나.', { slow: true });
       /* and with that, the promise she could not keep is kept: from here, all along */
       A.promise();
       T.announce('구름이에게 빛이 내려앉는다. 지키지 못한 약속이 지켜졌다. 등불 없는 하얀 배가 부두 끝으로 미끄러져 와서 기다린다.');
-      X.ungesture(ana, 'hand-on-head');
+      X.ungesture(ana, 'cheek'); X.ungesture(leo, 'kneel');
+      X.tween(S, 'closeIn', 0, 2.4);
       X.tween(cloud, 'kept', 1, 1.2).then(() => X.tween(cloud, 'kept', 0.25, 2.4));
-      const white = X.boat({ x: -760, hull: '#e9e2d6', lamp: false, riders: [] });
-      X.cam(70, 540, 1.5, 0.7);
-      await X.sail(white, -74, 110);
+      const white = X.boat({ x: -640, hull: '#e9e2d6', lamp: false, riders: [] });
+      X.cam(70, 540, 1.5, 0.5);
+      await X.sail(white, -74, 60);   /* it comes in slowly; nobody hurries this */
       await X.wait(1);
       cloud.flip = true;   /* she turns and looks at it a while; it has come for her */
       await X.wait(1.6);
@@ -342,13 +507,14 @@
       await TALK.say('ana', '언니는 아직 저 아래 있어.\n천천히 오라고 했어.');
       await X.wait(0.8);
       /* she takes her lamp to the end of the quay, the way she has for every boat, and looks a long while:
-         at the boat, and then down, to where the ones who come are coming from */
+         at the boat, and then down, to where the ones who come are coming from. Wide: a small child, and all that cloud */
       cloud.z = 3; ana.flip = true;
-      X.cam(30, 556, 1.9, 0.5);
+      X.cam(40, 556, 1.6, 0.5);
       bean.sit = 0; X.walk(bean, 108, 34).then(() => { bean.flip = true; bean.sit = 1; });   /* Bean goes with her */
       await X.walk(cloud, 46, 40);
       cloud.flip = true; cloud.held = true;
       X.tween(cloud, 'still', 0, 1.1, T.ease.io);
+      X.cam(30, 556, 1.1, 0.4);
       T.announce('구름이가 등불을 들고 부두 끝에 선다. 하얀 배를 한참 보다가, 구름바다 저 아래를 내려다본다.');
       await X.wait(2.6);
       cloud.down = true;
@@ -367,6 +533,9 @@
       await TALK.say('cloud', '괜찮아.\n기다리는 건 잘해.');
       await X.walk(leo, ana.x + 36, 30);
       leo.flip = true; leo.smile = true;
+      /* the first time he calls himself that to her: he goes down on one knee for it */
+      X.gesture(leo, 'kneel', { with: cloud, hold: true, in: 1.5, out: 1.3 });
+      await X.wait(0.6);
       await TALK.say('leo', '…아빠도 잘해.', { slow: true });
       await X.wait(0.6);
       await TALK.say('cloud', '언니 올 때까지,\n여기서 같이 기다릴래.');
@@ -376,8 +545,10 @@
       await X.gesture(ana, 'hug', { with: cloud, hold: true, in: 1.3 });   /* Ana holds her, and she holds on */
       A.motif({ voice: 'box', vel: 0.34, beat: 0.74 });
       T.announce('아나가 아이를 꼭 끌어안는다. 레오가 아나의 어깨에 손을 얹는다. 빈 하얀 배가 안개 속으로 돌아간다.');
-      X.sail(white, -1500, 22);
-      await X.wait(4.2);
+      /* the camera steps back: behind them the white boat goes back into the mist, empty. No star tonight */
+      X.cam(ana.x - 190, 548, 1.6, 0.3);
+      X.sail(white, -1500, 30);
+      await X.wait(5.6);
 
       /* ---- home ---- */
       const homeWalk = (o, a) => {   /* Leo's hand in one of hers, the little one's in the other */
@@ -388,7 +559,7 @@
         S.actors = S.actors.filter((a) => !folk.includes(a)); S.boats = []; S.lampDown = null; S.cLamp = null;
         leo.go = ana.go = bean.go = cloud.go = null; leo.moving = ana.moving = bean.moving = cloud.moving = false;
         T.gesture.clear(ana); T.gesture.clear(cloud); T.gesture.clear(leo);
-        ana.wet = 0; leo.shoulder = false; leo.smile = false; leo.wet = 0;
+        ana.wet = 0; leo.shoulder = false; leo.smile = false; leo.wet = 0; S.closeIn = 0; A.score(null);
         cloud.happy = false; cloud.kept = 0; cloud.down = false; bean.z = 0; bean.wagRate = null; bean.wag = 0.4;
         leo.hand = ana.hand = true; leo.flip = ana.flip = cloud.flip = false; bean.sit = 0;
         cloud.hold = true; cloud.look = true; cloud.prop = null; cloud.z = 0;
@@ -436,7 +607,7 @@
       await X.wait(1.3);
       await TALK.say('ana', '내가 끓인 게 더 맛있는데?');
       await X.wait(0.3);
-      await TALK.say('leo', '알아. 45년 동안 따라 끓였어.');
+      await TALK.say('leo', '알아. 마흔다섯 해 동안 따라 끓였어.');
       X.tween(St.joy, 'k', 1, 0.7, T.ease.out);
       X.tween(St.taste, 'k', 0, 1.2, T.ease.io);
       X.notes(5, { voice: 'box', vel: 0.34 });
@@ -488,17 +659,30 @@
       ana.up = true;
       await X.wait(3.6);
       ana.up = false;
-      /* the yarn he has been keeping for her: a stripe for every story, in the order it happened */
+      /* the yarn he has been keeping for her, the way Rosa told him: knit it together when she comes, a story to a
+         row. His stories are of up here; hers, row for row, are of the same days down below. It is also what he asked
+         of her in her dream: tell me all of it, later */
       await TALK.say('leo', '당신 오면 같이 뜨려고\n실 모아 뒀어.');
       ana.look = true;
       await TALK.say('ana', '당신이 뜨개질을 해?');
       ana.look = false;
-      await TALK.say('leo', '45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.');
-      T.announce('이야기 담요. 아나가 처음부터 들려 달라고 한다. 그 일이 있었던 차례대로 실을 골라 한 줄씩 뜬다.');
-      await X.play(T.puzzle.story({
-        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '당신 소원', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' }, { name: '지붕', c: '#e0b04a', icon: 'roof' },
-          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }, { name: '오로라', c: '#7fd8b0', icon: 'aurora' }],
-        order: [3, 0, 5, 1, 6, 2, 4],
+      await TALK.say('leo', '마흔다섯 해면 배워.\n한 줄에 이야기 하나씩 해 줄게.');
+      ana.look = true;
+      await TALK.say('ana', '그럼 한 줄씩 번갈아 뜨자.\n나도 저 아래 얘기 해 줄게.');
+      ana.look = false;
+      T.announce('이야기 담요, 둘이 뜨기. 레오가 그 일이 있었던 차례대로 실을 골라 한 줄을 뜨면, 아나가 다음 줄을 받아 뜨며 그 무렵 저 아래 이야기를 한다.');
+      const told = [   /* hers, row for row: the other side of what he watched in the lake */
+        async () => { await TALK.say('ana', '그해 처음 혼자 끓였어.\n…짰지.'); await TALK.say('leo', '알아. 봤어.'); },
+        async () => { await TALK.say('ana', '그 별 보면서,\n당신 생각했어.', { slow: true }); },
+        async () => { await TALK.say('ana', '그날 릴리가\n목걸이 안고 잤어.'); },
+        async () => { await TALK.say('ana', '릴리가 그러더라.\n아빠가 옆에 있었다고.', { slow: true }); await TALK.say('leo', '…응. 있었어.'); },
+        async () => { await TALK.say('ana', '…그 꼬마,\n나도 보고 싶다.'); },
+      ];
+      await X.play(knitTwo({
+        items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '당신 소원', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' },
+          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }],
+        order: [2, 4, 0, 3, 1],
+        tell: async (i) => { ana.look = true; await told[i](); ana.look = false; },
       }));
       ana.look = true;
       await TALK.say('ana', '…다 듣는 데 한참 걸리겠다.');
@@ -573,6 +757,9 @@
       /* and they look out to the sea of cloud, where the boats come in, a child between them */
       leo.family = ana.family = cloud.family = true;
       X.cam(FX - 30, py + 64, 1.8, 0.5);
+      /* and up in the sky, the last time: two small clouds, one holding the other's hand */
+      S.pair = { x: 330, y: 270, s: 0.9, a: 0 };
+      X.tween(S.pair, 'a', 1, 4.5);
       await X.wait(2.2);
       await TALK.say('all', '천천히 와.', { slow: true });
       X.bed(null);

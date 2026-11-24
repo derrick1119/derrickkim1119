@@ -356,7 +356,8 @@
       g.restore();
     }
     /* an unlit lamp out in the cloud sea: the boat waits in the mist before it. Resolves when the player has lit it */
-    /* o: { rounds, beat }: once lit, the bell has a question for the lamps on the pier before anyone comes in */
+    /* o: { rounds, beat, shuffle, reverse, onRound }: once lit, the bell has a question for the lamps on the pier before
+       anyone comes in (onRound(r, n) is handed to the bell: called as each question is answered) */
     X.seaLamp = function (o) { return new Promise((res) => { S.sw = Object.assign({ x: Wd().C.SEA_LAMP, k: 0, ok: false, asked: false, mist: 1, res }, o || {}); Wd().S.lamps = [S.sw]; S.idle = 0; }); };
     function lightLamp() {
       const s = S.sw;
@@ -365,7 +366,7 @@
       S.clock.tween(s, 'k', 1, 0.8, T.ease.out);
       T.audio.sfx('join');
       const open = () => { s.ok = true; S.clock.tween(s, 'mist', 0, 1.2); X.notes(3); s.res(); };
-      if (s.rounds) X.play(T.puzzle.bell({ rounds: s.rounds, beat: s.beat, shuffle: s.shuffle, reverse: s.reverse })).then(open); else open();
+      if (s.rounds) X.play(T.puzzle.bell({ rounds: s.rounds, beat: s.beat, shuffle: s.shuffle, reverse: s.reverse, onRound: s.onRound })).then(open); else open();
     }
     /* hand the scene to a puzzle until it is solved */
     X.play = async function (G) {

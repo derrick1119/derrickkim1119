@@ -428,7 +428,7 @@ T = [
     ("45년이면 배워.\n한 줄에 이야기 하나씩 해 줄게.", "Forty-five years is long enough to learn.\nOne row, one story."),
     ("…다 듣는 데 한참 걸리겠다.", "...This is going to take a while."),
     ("괜찮아.\n이제 시간 많잖아.", "That's all right.\nWe have time now."),
-    ("주춧돌", "Foundation"), ("빈이 온 날", "Bean came"), ("지붕", "The roof"), ("릴리 결혼식", "Lily's wedding"), ("토마토", "Tomatoes"), ("오로라", "Aurora"),
+    ("주춧돌", "Foundation"), ("빈이 온 날", "Bean came"), ("지붕", "The roof"), ("릴리 결혼식", "Lily's wedding"), ("토마토", "Tomatoes"),
     ("아나: \"어, 그게 먼저였어?\" 있었던 차례를 다시 떠올려 봐요", "Ana: \"Oh, did that come first?\" Think back to the order it happened"),
     ("아나가 \"처음부터\" 들려 달래요. 있었던 차례대로 실을 골라 한 줄씩 뜨세요", "Ana wants it \"from the beginning.\" Pick the yarn in the order things happened, a row at a time"),
     ("아나가 묻는다: \"그다음엔?\"", "Ana asks: \"And then?\""),
@@ -863,6 +863,21 @@ T = [
     ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
     ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
     ("머리 위 동그라미가 모두 환해지면, 그때 눌러요", "When every circle overhead is lit, press"),
+    # ---- phase 2: ch7
+    ("…꿈인 줄 알았는데.\n그 말, 진짜였네.", "...I thought it was a dream.\nSo it was true, what you said."),
+    ("…내가 늘 그려 보던 얼굴이네.", "...It's the face I always pictured."),
+    ("…얼굴도 못 보고 보냈는데.\n여기 와 있을 줄은 몰랐어.", "...We never even got to see your face.\nI never thought you'd be here."),
+    ("릴리가 늘 그랬어.\n무서울 땐 누가 손 잡아 준다고.", "Lily always used to say it.\nWhen she was scared, someone held her hand."),
+    ("알아. 마흔다섯 해 동안 따라 끓였어.", "I know. I've been copying yours for forty-five years."),
+    ("마흔다섯 해면 배워.\n한 줄에 이야기 하나씩 해 줄게.", "Forty-five years is long enough to learn.\nOne row, one story."),
+    ("그럼 한 줄씩 번갈아 뜨자.\n나도 저 아래 얘기 해 줄게.", "Then we'll take turns, a row each.\nI'll tell you how it was down there."),
+    ("그해 처음 혼자 끓였어.\n…짰지.", "That year I made it on my own for the first time.\n...It was too salty, wasn't it."),
+    ("알아. 봤어.", "I know. I saw."),
+    ("그 별 보면서,\n당신 생각했어.", "When I saw that star,\nI thought of you."),
+    ("그날 릴리가\n목걸이 안고 잤어.", "That night Lily\nfell asleep holding his collar."),
+    ("릴리가 그러더라.\n아빠가 옆에 있었다고.", "Lily told me.\nShe said her dad was right beside her."),
+    ("…응. 있었어.", "...Yes. I was."),
+    ("…그 꼬마,\n나도 보고 싶다.", "...That little boy.\nI'd like to meet him too."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.
