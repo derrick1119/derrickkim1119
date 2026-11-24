@@ -13,6 +13,7 @@ import { paintFar, paintBack, paintGround, paintFront, paintTrees } from './pain
 import { forkArt, drawForkGlow, LM_K } from './forkmap.js';
 import { icon } from '../ui/ui.js';
 import { GFX } from '../pixel/gfx.js';
+import { pxPaper, lowres } from '../pixel/paper.js';
 import { pxFieldDraw, pxWeatherFront, pxTrees, pxTree, pxShadow, pxBody, prewarmPxField } from '../pixel/battle.js';
 
 const PI = Math.PI;
@@ -193,10 +194,11 @@ export class BattleView {
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
-    if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
+    const river = q => { if (kout > 0) drawRiver(q, this.oldTer, this.theme, T, kout); drawRiver(q, this.ter, this.theme, T, kin); };
+    if (pix && ((this.ter && this.ter.river) || (kout > 0 && this.oldTer.river))) lowres(g, river); else river(g);
     // 갈림길: 흙길이 갈래로 나뉘는 바닥 그림 (닿은 뒤 걸음이 조금 더 갔으면 그 자리로 살며시 옮긴다). 고른 갈래가 싸움터면 옅어진다
     if (this.fork) { const f = this.fork, dt = opt.dt || 0; if (f.target !== undefined) f.wx += (f.target - f.wx) * Math.min(1, dt * 8); if (f.fade) f.alpha = Math.max(0, f.alpha - dt * 1.4); if (f.pick) f.pickT += dt;
-      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { g.globalAlpha = f.alpha; g.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); g.globalAlpha = 1; if (f.alpha > 0.5) drawForkGlow(g, f, ox, T); } }
+      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { const paintFork = q => { q.globalAlpha = f.alpha; q.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); q.globalAlpha = 1; }; if (pix) lowres(g, paintFork); else paintFork(g); if (f.alpha > 0.5) drawForkGlow(g, f, ox, T); } }
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
     if (pix) { /* 도트: 앞 풀숲까지 배경 겹이 그린다 */ }
     else if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
@@ -208,7 +210,7 @@ export class BattleView {
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
       if (c.revive) { g.globalAlpha = 0.85; path(g, p => { p.moveTo(c.x, c.y - 16); p.quadraticCurveTo(c.x + 7, c.y - 6, c.x + 4, c.y); p.quadraticCurveTo(c.x, c.y + 3, c.x - 4, c.y); p.quadraticCurveTo(c.x - 7, c.y - 6, c.x, c.y - 16); }, '#9fd3e8', INK, 1); g.globalAlpha = 1; g.beginPath(); g.arc(c.x, c.y - 4, 14, -PI / 2, -PI / 2 + TAU * (1 - c.t / 3)); st(g, '#4f8fb8', 2.6); }
-      else if (LEFT[c.type]) { g.globalAlpha = clamp(c.t / 2, 0, 1); drawSprite(g, leftover(LEFT[c.type]), c.x, c.y, 1, 1, ((c.x * 7 + c.y * 13) % 10 - 5) * 0.09); g.globalAlpha = 1; } // 도깨비는 헌 물건으로, 망령은 호패로 돌아간다
+      else if (LEFT[c.type]) { g.globalAlpha = clamp(c.t / 2, 0, 1); if (pix) pxPaper(g, leftover(LEFT[c.type]), c.x, c.y, 1, (c.x | 0) % 2 === 0); else drawSprite(g, leftover(LEFT[c.type]), c.x, c.y, 1, 1, ((c.x * 7 + c.y * 13) % 10 - 5) * 0.09); g.globalAlpha = 1; } // 도깨비는 헌 물건으로, 망령은 호패로 돌아간다
       else { g.globalAlpha = clamp(c.t / 3, 0, 0.6); poly(g, [c.x - 7, c.y - 1, c.x - 2, c.y - 5, c.x + 6, c.y - 3, c.x + 8, c.y + 2, c.x - 3, c.y + 4], PAPER, INK, 1); g.globalAlpha = 1; }
     }
     if (opt.rings) for (const r of opt.rings) { g.globalAlpha = 0.9; ell(g, r.x, r.y + 1, r.r * 1.35, r.r * 0.72, r.col + '55', r.col, 2.4); g.globalAlpha = 1; }
@@ -236,7 +238,7 @@ export class BattleView {
     } });
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.px) pxTree(g, it.px, it.x, it.a); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr) { if (it.al !== undefined) g.globalAlpha = it.al; if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0, it.k || 1, it.k || 1); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); g.globalAlpha = 1; } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.px) pxTree(g, it.px, it.x, it.a); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr && pix) { const a0 = it.al === undefined ? 1 : it.al, k2 = it.sy === undefined ? 1 : Math.min(1, it.sy * 1.4); if (k2 > 0.02) { g.globalAlpha = a0 * k2; pxPaper(g, it.spr, it.x, it.sy0 === undefined || it.sy !== undefined ? it.y : it.sy0, it.k || 1); g.globalAlpha = 1; } } else if (it.spr) { if (it.al !== undefined) g.globalAlpha = it.al; if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0, it.k || 1, it.k || 1); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); g.globalAlpha = 1; } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
