@@ -711,6 +711,7 @@
       await X.tween(D.lift, 'k', 1, 1.2);
       await TALK.say('leo', '할 수 있어.');
       await TALK.say('leo', '릴리랑 맛있는 거 많이 먹고, 많이 웃고,\n그 얘기 나중에 다 들려줘.');
+      await TALK.say('ana', '…응. 하나도 안 빼고.');
       X.tween(D.chalk, 'k', 1, 6, T.ease.lin);
       for (let i = 0; i < 6; i++) X.wait(i * 0.9).then(() => A.sfx('chalk', i / 6));
       await TALK.say('leo', '그 말, 진짜였어.\n나 거기서 집 짓고 있어.');

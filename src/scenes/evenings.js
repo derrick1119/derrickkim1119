@@ -124,6 +124,14 @@
     roof(g) { P.fill(g, P.poly([[-16, 6], [0, -12], [16, 6]]), '#d7a23c'); P.fill(g, P.rr(-11, 6, 22, 10, 2), '#f8eed6'); },
     bouquet(g) { [['#e58aa0', -5, -4], ['#f6f0e0', 5, -6], ['#f1c04a', 0, 3], ['#f6b6c2', -7, 5], ['#e58aa0', 7, 4]].forEach((q) => P.fill(g, P.circle(q[1], q[2], 5), q[0])); },
     tomato(g) { P.fill(g, P.circle(0, 2, 11), '#d9483a'); P.fill(g, P.poly([[-6, -8], [0, -4], [6, -8], [0, -11]]), '#5f9a52'); },
+    mobile(g, t) {   /* the star mobile over Nora's cradle: a little bar, two stars turning */
+      const a = Math.sin(t * 1.2) * 0.25;
+      g.strokeStyle = '#8a6a48'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -14); g.lineTo(0, -8); g.moveTo(-13, -8); g.lineTo(13, -8); g.stroke();
+      g.strokeStyle = 'rgba(138,106,72,0.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-11, -8); g.lineTo(-11, 0); g.moveTo(11, -8); g.lineTo(11, 4); g.stroke();
+      const star = (x, y, r, rot) => { const pts = []; for (let i = 0; i < 10; i++) { const rr = i % 2 ? r * 0.45 : r, q = rot + (i * Math.PI) / 5; pts.push([x + Math.sin(q) * rr, y - Math.cos(q) * rr]); } P.fill(g, P.poly(pts), '#f3d36b'); };
+      star(-11, 5, 6, a); star(11, 9, 5, -a);
+    },
+    moon(g) { P.fill(g, P.circle(0, 0, 11), '#e9eef8'); P.fill(g, P.circle(5, -3, 10), '#9fb4d8'); },
     aurora(g, t) { g.strokeStyle = '#7ff0c0'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); for (let i = 0; i <= 8; i++) { const x = -16 + i * 4, y = Math.sin(i * 0.9 + t) * 5; if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.stroke(); },
   };
   Z.storyIcons = ICON;   /* the last chapter knits its own blanket, for two, with the same pictures */

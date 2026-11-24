@@ -677,12 +677,13 @@
         async () => { await TALK.say('ana', '그 별 보면서,\n당신 생각했어.', { slow: true }); },
         async () => { await TALK.say('ana', '그날 릴리가\n빈 목줄을 안고 잤어.'); },
         async () => { await TALK.say('ana', '릴리가 그러더라.\n아빠가 옆에 있었다고.', { slow: true }); await TALK.say('leo', '…응. 있었어.'); },
-        async () => { await TALK.say('ana', '…그 꼬마,\n나도 보고 싶다.'); },
+        async () => { await TALK.say('ana', '노라가 처음 웃던 밤,\n천장에 별이 돌았어.'); await TALK.say('leo', '…알아. 내가 달았어.'); },
+        async () => { await TALK.say('ana', '그해 꿈에서 당신이 그랬지.\n아직은, 이라고.', { slow: true }); await TALK.say('leo', '…응. 그래서 이렇게 천천히 왔잖아.'); },
       ];
       await X.play(knitTwo({
         items: [{ name: '주춧돌', c: '#a9a39a', icon: 'stone' }, { name: '당신 소원', c: '#b8d88a', icon: 'firefly' }, { name: '빈이 온 날', c: '#f2ede4', icon: 'dog' },
-          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '빨간 토마토', c: '#d9584a', icon: 'tomato' }],
-        order: [2, 4, 0, 3, 1],
+          { name: '릴리 결혼식', c: '#f1b6c6', icon: 'bouquet' }, { name: '노라가 웃은 날', c: '#f3d36b', icon: 'mobile' }, { name: '아팠던 해', c: '#9fb4d8', icon: 'moon' }],
+        order: [2, 5, 0, 4, 3, 1],
         tell: async (i) => { ana.look = true; await told[i](); ana.look = false; },
       }));
       ana.look = true;

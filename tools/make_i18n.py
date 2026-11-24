@@ -985,6 +985,13 @@ T = [
     ("엽서로 간직하기", "Keep it as a postcard"), ("보낸 편지를 담은 엽서", "A postcard of the letter you sent"),
     ("그림으로 저장", "Save as a picture"), ("그림을 길게 눌러 저장할 수 있어요", "Press and hold the picture to save it"),
     ("바람 우체국", "Wind Post Office"),
+    # ---- read-through follow-ups: Ana answers in the ch3 dream; the story blanket's rows are hers (Nora, the year she was ill)
+    ("…응. 하나도 안 빼고.", "...Mm. Every bit of it."),
+    ("노라가 웃은 날", "The night Nora laughed"), ("아팠던 해", "The year I was ill"),
+    ("노라가 처음 웃던 밤,\n천장에 별이 돌았어.", "The night Nora first laughed,\nstars turned on the ceiling."),
+    ("…알아. 내가 달았어.", "...I know. I hung them."),
+    ("그해 꿈에서 당신이 그랬지.\n아직은, 이라고.", "That year, in my dream, you told me.\nNot yet."),
+    ("…응. 그래서 이렇게 천천히 왔잖아.", "...Mm. And so you came slowly."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

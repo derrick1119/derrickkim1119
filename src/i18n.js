@@ -370,7 +370,6 @@
  "당신 오면, 같이 보자.": "When you come, we'll watch it together.",
  "…오로라네.": "...The northern lights.",
  "같이 보자고 했잖아.": "I said we'd see them together.",
- "빨간 토마토": "Red tomatoes",
  "레오는 아내 아나 몰래, 남기고 갈 레시피를 적고 있다": "In secret from his wife Ana, Leo is writing down the recipes he will leave her",
  "노란 눈금이 초록 칸에 들면 눌러서 판자를 꺼내세요": "When the yellow bar is in the green, tap to take the plank out",
  "보고 싶어…\n레오.": "I miss you...\nLeo.",
@@ -680,7 +679,6 @@
  "그날 릴리가\n빈 목줄을 안고 잤어.": "That night Lily\nfell asleep holding Bean's collar.",
  "릴리가 그러더라.\n아빠가 옆에 있었다고.": "Lily told me.\nShe said her dad was right beside her.",
  "…응. 있었어.": "...Yes. I was.",
- "…그 꼬마,\n나도 보고 싶다.": "...That little boy.\nI'd like to meet him too.",
  "울기": "Crying",
  "안겨 흐느끼기": "Sobbing in a hug",
  "안아 주기": "Hug",
@@ -766,7 +764,14 @@
  "보낸 편지를 담은 엽서": "A postcard of the letter you sent",
  "그림으로 저장": "Save as a picture",
  "그림을 길게 눌러 저장할 수 있어요": "Press and hold the picture to save it",
- "바람 우체국": "Wind Post Office"
+ "바람 우체국": "Wind Post Office",
+ "…응. 하나도 안 빼고.": "...Mm. Every bit of it.",
+ "노라가 웃은 날": "The night Nora laughed",
+ "아팠던 해": "The year I was ill",
+ "노라가 처음 웃던 밤,\n천장에 별이 돌았어.": "The night Nora first laughed,\nstars turned on the ceiling.",
+ "…알아. 내가 달았어.": "...I know. I hung them.",
+ "그해 꿈에서 당신이 그랬지.\n아직은, 이라고.": "That year, in my dream, you told me.\nNot yet.",
+ "…응. 그래서 이렇게 천천히 왔잖아.": "...Mm. And so you came slowly."
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};
