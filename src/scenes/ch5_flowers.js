@@ -3,10 +3,14 @@
    married) has come in and will not settle until he catches it. An answer has to go by dream, and what a dream
    is made of comes to him over a few days, each thing in its own time: that afternoon Pipi's crayons (there is
    a crayon star on her envelope), some evenings later the creak of the swing when the wind finds it, and on
-   the evening before the wedding the light of 구름이's little lamp. He goes into Lily's dream, kneels by her
-   bed and hooks little fingers with her on walking beside her empty arm, and pushes her on the swing he once
-   promised her. At the wedding he walks the flower road beside her; afterwards, glad, he finds the swing still
-   the size of a six-year-old, and makes it wide enough for the Lily she is now. */
+   the evening before the wedding the light of 구름이's little lamp. She walks out with him to the end of the pier
+   and holds the lamp out over the cloud sea, and there he sends the dream down, the way the ones who come come
+   up: no lake tonight. In Lily's dream (dreamroom.js) the room she drew at six tilts until the dolls are out of
+   the door; then he kneels by her bed and hooks little fingers with her on walking beside her empty arm, and
+   pushes her on the swing he once promised her, higher. That night he hangs a garland on the list by the road.
+   At the wedding, the chapter's one lake, he walks the flower road beside her, the groom waiting at the end of
+   it; afterwards, glad, he finds the swing still the size of a six-year-old, and makes it wide enough for the
+   Lily she is now. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -25,20 +29,45 @@
     }
   }
 
+  /* a garland draped from a to b (world or view points), sagging in the middle: leaves, and flowers among them */
+  function garland(g, a, b, sag, t, s) {
+    s = s || 1;
+    const c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + sag * 2], n = Math.max(8, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / (6 * s)));
+    const at = (u) => [(1 - u) * (1 - u) * a[0] + 2 * (1 - u) * u * c[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * (1 - u) * u * c[1] + u * u * b[1]];
+    g.strokeStyle = '#5f8f52'; g.lineWidth = 2 * s; g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo(c[0], c[1], b[0], b[1]); g.stroke();
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, q = at(u), sw = Math.sin(t * 1.3 + i) * 0.3;
+      P.fill(g, P.ellipse(q[0] - 2 * s, q[1] + 1.5 * s, 4.6 * s, 2.4 * s, 0.6 + sw + (i % 2) * 1.6), i % 2 ? '#6f9f5e' : '#86b06a');
+    }
+    for (let i = 1; i < n; i += 2) { const q = at(i / n); P.fill(g, P.circle(q[0], q[1] + 1 * s, 3.4 * s), ['#e58aa0', '#f6f0e0', '#f1c04a', '#f6b6c2'][(i >> 1) % 4]); }
+    [a, b].forEach((e, j) => { P.line(g, e[0], e[1], e[0] + (j ? 2 : -2) * s, e[1] + 11 * s, 1.6 * s, '#e58aa0'); P.fill(g, P.circle(e[0], e[1], 3.8 * s), '#f1c04a'); });
+  }
+
   /* ---------- the wedding, walked ---------- */
   function wedding() {
-    const V = { dark: false, quiet: true, p: 0, held: false, until: 0, ph: 0, done: false, steps: 0, stir: 0, hug: { k: 0 }, bow: { k: 0 }, petals: [], res: null };
-    const SHORE = 470, LX = -150, LEN = 1750;
+    /* age: seconds since it opened; look: Lily looking down at her free arm; hug: Lily and her mother; bow: Leo, and
+       the groom to Ana */
+    const V = { dark: false, quiet: true, p: 0, held: false, until: 0, ph: 0, done: false, steps: 0, stir: 0, age: 0, look: { k: 0 }, hug: { k: 0 }, bow: { k: 0 }, petals: [], res: null };
+    const SHORE = 470, LX = -150, LEN = 1750, ALTAR = LX + 330 + LEN, START = 2;
     const r0 = T.rng(41);
     for (let i = 0; i < 46; i++) V.petals.push({ x: (r0() - 0.5) * 2000, y: r0() * 470, v: 26 + r0() * 30, ph: r0() * 9, c: ['#f6b6c2', '#fbe3a8', '#ffffff', '#e58aa0'][i % 4] });
     V.walked = new Promise((res) => { V.res = res; });
     /* the controls every puzzle has (puzzles.js): a tap sets him walking beside her and another stops him; nothing
-       has to be held down. → walks while it is pressed; Space / Enter is the tap */
-    V.pointer = function (type) { if (V.done) return false; if (type === 'down') V.on = !V.on; return true; };
-    V.key = function (key) { if (V.done) return false; if (key === 'ArrowRight') { V.until = T.time + 0.3; return true; } if (key === ' ' || key === 'Enter') { V.on = !V.on; return true; } return false; };
+       has to be held down. → walks while it is pressed; Space / Enter is the tap. For the first moments nothing
+       walks at all: the petals come down and everyone along the road looks up */
+    V.pointer = function (type) { if (V.done) return false; if (V.age < START) return true; if (type === 'down') V.on = !V.on; return true; };
+    V.key = function (key) {
+      if (V.done) return false;
+      const ours = key === 'ArrowRight' || key === ' ' || key === 'Enter';
+      if (V.age < START) return ours;
+      if (key === 'ArrowRight') { V.until = T.time + 0.3; return true; }
+      if (key === ' ' || key === 'Enter') { V.on = !V.on; return true; }
+      return false;
+    };
     V.want = function () { return V.done ? null : 'hold'; };
     V.update = function (dt, S) {
-      const going = !V.done && (V.on || T.time < V.until);
+      if (S.dip.a < 0.05) V.age += dt;   /* counted from when it is fully in view */
+      const going = !V.done && V.age >= START && (V.on || T.time < V.until);
       V.going = going;
       V.stir += ((going ? 1 : 0) - V.stir) * Math.min(1, dt * 2);
       if (going) {
@@ -51,10 +80,10 @@
       }
       for (const q of V.petals) { q.y += q.v * dt; q.ph += dt; if (q.y > SHORE) { q.y = -10; } }
     };
-    /* the neighbours along the road; Pipi and 구름이 together near the middle of it */
-    const guests = [[260, F.styles.villagerB, 132], [330, F.styles.villagerC, 138], [650, F.styles.kidA, 100], [700, F.styles.cloud, 94], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
+    /* the neighbours along the road; Pipi and 구름이 together near the middle of it, two more waiting where it ends */
+    const guests = [[260, F.styles.villagerB, 132], [330, F.styles.villagerC, 138], [650, F.styles.kidA, 100], [700, F.styles.cloud, 94], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1880, F.styles.villagerC, 142], [1960, F.styles.post, 140]];
     V.draw = function (g, t, S) {
-      const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2);
+      const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2) * T.clamp(V.age - START), up = T.ease.io(T.clamp(V.age / START));
       P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);   /* the road is the harbour's; the hall below it is not */
       /* ---- above: the flower road in Welcome Harbor ---- */
       const sky = g.createLinearGradient(0, 0, 0, SHORE);
@@ -72,14 +101,28 @@
         roadBush(g, x, SHORE - 34, 0.62, '#5f8f62', [['#e5758f', '#f09aac'], ['#f1c04a', '#f6f0e0'], ['#e58aa0', '#f6e0e0']][((i % 3) + 3) % 3], i + 40, t, V.stir * T.clamp(1 - Math.abs(x + 10 - LX) / 150));
         if (i % 3 === 0) K.lantern(g, x + 44, SHORE - 36, t, { s: 0.8, seed: i });
       }
+      /* where the road starts: the list on its post, with the garland he hung on it last night */
+      const sx = LX - 118 - wx;
+      if (sx > -W / 2 - 60) {
+        P.line(g, sx, SHORE - 34, sx, SHORE - 140, 6, '#8a6442');
+        g.save(); g.translate(sx, SHORE - 120); g.rotate(-0.03);
+        P.fill(g, P.box(-30, -32, 60, 66, 0.6, 7), '#f1e6cc');
+        for (let i = 0; i < 5; i++) P.line(g, -21, -21 + i * 12, -21 + [40, 33, 38, 28, 26][i], -21 + i * 12, 1.8, 'rgba(51,64,92,0.7)');
+        garland(g, [-31, -31], [31, -33], 9, t, 1.15);
+        g.restore();
+      }
       guests.forEach((q, i) => {
         const x = q[0] - wx + 120;
         if (x < -W / 2 - 80 || x > W / 2 + 80) return;
-        const near = T.clamp(1 - Math.abs(x - LX) / 420);
-        F.person(g, { x, y: SHORE - 44 - F.hipHeight(q[1], q[2]), s: q[2], style: q[1], flip: x > LX, lean: 0.06, face: { eye: 'happy', mouth: 'smile', blush: 0.2 }, armF: { a: 1.2 + near * 1.2 + Math.sin(t * 8 + i) * 0.2 * near, b: 0.4 }, armB: { a: 0.6 + near * 1.4, b: 0.4 } });
+        const near = T.clamp(1 - Math.abs(x - LX) / 420), o = { x, y: SHORE - 44 - F.hipHeight(q[1], q[2]), s: q[2], style: q[1], flip: x > LX, lean: 0.06, headTilt: 0.3 * (1 - up), face: { eye: 'happy', mouth: 'smile', blush: 0.2 } };
+        if (i === 2) { o.armF = { a: 2.5 + Math.sin(t * 9) * 0.42 * near, b: 0.25 }; o.armB = { a: 0.6 + near * 1.6, b: 0.3 }; o.y -= Math.abs(Math.sin(t * 6)) * 4 * near; }   /* Pipi, waving with all of him */
+        else if (i === 3) { o.headTilt = 0.3 * (1 - up) + 0.46 * near; o.lean = 0.1 * near; o.face = { eye: 'open', mouth: 'smile', blush: 0.24 }; o.armF = { a: 0.3, b: 0.3 }; o.armB = { a: 0.2, b: 0.3 }; }   /* 구름이 looks down into the water, at Lily */
+        else { o.armF = { a: 1.2 + near * 1.2 + Math.sin(t * 8 + i) * 0.2 * near, b: 0.4 }; o.armB = { a: 0.6 + near * 1.4, b: 0.4 }; }
+        F.person(g, o);
       });
       const bow = T.ease.io(V.bow.k);
-      const leo = { x: LX, y: SHORE - 6 - F.hipHeight(F.styles.leoHome, 190), s: 190, style: F.leoAt(2), lean: 0.05 + bow * 0.12, headTilt: bow * 0.3, face: { blush: 0.16, mouth: 'smile', eye: bow > 0.5 ? 'closed' : 'open', tear: bow * 0.8, tearY: (t * 2) % 3 } };
+      const leo = { x: LX, y: SHORE - 6 - F.hipHeight(F.styles.leoHome, 190), s: 190, style: F.leoAt(2), lean: 0.05 + bow * 0.12, headTilt: bow * 0.3, face: { blush: 0.16, mouth: 'smile' } };
+      if (bow > 0.01) T.face.set(leo, 'smileTears', bow, t);
       if (V.going) leo.walk = V.ph;
       leo.armF = { a: 0.5, b: 1.5 - bow * 0.6 };   /* an arm crooked for someone to hold */
       F.person(g, leo);
@@ -114,7 +157,7 @@
       /* pews, and the backs of the people in them */
       for (let i = -3; i < 34; i++) {
         const x = i * 66 - wx + 30;
-        if (x < -W / 2 - 40 || x > W / 2 + 40) continue;
+        if (x < -W / 2 - 40 || x > W / 2 + 40 || i * 66 + 30 > ALTAR - 90) continue;   /* none in front of the altar */
         const col = ['#5d6f8a', '#8a5578', '#3f6b70', '#6b5a48', '#9a6b43'][((i % 5) + 5) % 5];
         P.fill(g, P.rr(x - 19, SHORE - 96, 38, 62, 13), col);
         P.fill(g, P.circle(x, SHORE - 110, 14), ['#3a2b25', '#6b4a3a', '#d9d2c6', '#2a2024'][((i % 4) + 4) % 4]);
@@ -122,15 +165,31 @@
         P.fill(g, P.rr(x - 31, SHORE - 64, 62, 6, 3), '#77657a');
       }
       P.fill(g, P.box(-W / 2, SHORE - 36, W, 36, 0, 2), '#c9573f');
+      /* at the end of the aisle, under an arch of flowers, the one she is marrying: his back to them while they come,
+         and he turns as they are nearly there */
+      const gx = ALTAR - wx;
+      if (gx < W / 2 + 200) {
+        const ax = gx + 34;
+        P.line(g, ax - 70, SHORE - 36, ax - 70, SHORE - 250, 7, '#e9dcc8'); P.line(g, ax + 70, SHORE - 36, ax + 70, SHORE - 250, 7, '#e9dcc8');
+        for (let k = 0; k <= 18; k++) { const a = Math.PI + (k / 18) * Math.PI, fx = ax + Math.cos(a) * 70, fy = SHORE - 250 + Math.sin(a) * 60; P.fill(g, P.circle(fx, fy, 11), ['#9ab86a', '#e58aa0', '#f6f0e0', '#7fa86a', '#f1c04a'][k % 5]); }
+        for (let k = 0; k < 8; k++) { P.fill(g, P.circle(ax - 70 + Math.sin(k * 1.7) * 6, SHORE - 230 + k * 24, 8), ['#9ab86a', '#f6f0e0', '#e58aa0'][k % 3]); P.fill(g, P.circle(ax + 70 - Math.sin(k * 1.3) * 6, SHORE - 230 + k * 24, 8), ['#e58aa0', '#9ab86a', '#f6f0e0'][k % 3]); }
+        const turned = V.p > 0.9, gb = turned ? T.ease.io(V.bow.k) : 0;
+        const groom = { x: gx, y: SHORE - 6 - F.hipHeight(F.styles.groom, 182), s: 182, style: F.styles.groom, flip: turned, lean: 0.04, headTilt: turned ? 0.06 : -0.04, face: { blush: 0.22, mouth: 'smile', eye: turned ? 'happy' : 'open' } };
+        groom.armF = { a: 0.35, b: 0.5 }; groom.armB = { a: 0.3, b: 0.55 };   /* hands together in front, waiting */
+        if (gb > 0.01) T.pose.bow(groom, gb, t, { face: 'gentle' });   /* to her mother, and to the empty place beside her */
+        F.person(g, groom);
+      }
       /* Ana, Lily, and beside Lily's free arm the one who is not there */
       const hug = T.ease.io(V.hug.k);
       const ana = { x: LX + 180 - hug * 62, y: SHORE - 6 - F.hipHeight(F.styles.ana, 176), s: 176, style: F.anaAt(61), flip: hug > 0.4, lean: 0.05, face: { eye: 'happy', mouth: 'smile', blush: 0.24, tear: 0.6, tearY: (t * 2) % 3 } };
       const lst = F.lilyAt(31, { top: '#fbf7ec', bottom: '#fbf7ec', skirt: 44, shoe: '#fbf7ec' });
-      const lily = { x: LX + 92, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
+      const lk = T.ease.io(V.look.k);
+      const lily = { x: LX + 92, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04 + lk * 0.03, headTilt: lk * 0.42, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
+      if (lk > 0.01) T.face.set(lily, 'smileTears', lk * 0.8, t);   /* she looks down at her free arm */
       if (V.going) { ana.walk = V.ph + 0.6; lily.walk = V.ph + 0.3; }
       ana.armB = { hand: F.local(ana, lily.x + 20, lily.y - 40) };
       lily.armF = hug > 0.02 ? { hand: F.local(lily, ana.x - 6, ana.y - 60), bend: 1 } : { hand: F.local(lily, ana.x - 22, ana.y - 34) };
-      lily.armB = { a: 0.5, b: 1.5 };
+      lily.armB = { a: 0.78, b: 1.3 };   /* crooked, held a little away from her side: room for an arm in it */
       F.person(g, ana);
       const lj = F.person(g, lily);
       /* veil and flowers */
@@ -195,6 +254,47 @@
     g.restore();
   }
 
+  /* the dream going down, from the end of the pier. m: { who (Leo), fly (0..1: the three things she knows coming out
+     of the corner into his hands), k (the one light in his hands), p (drawn down past the end of the pier), sink (into
+     the cloud sea), path (her lamp's light laid down after it), E (where it goes in) } */
+  function sendDraw(g, S) {
+    const m = S.send, W = T.world, t = T.time, a = m.who;
+    const hands = a.j ? [(a.j.handF[0] + a.j.handB[0]) / 2 - 3, (a.j.handF[1] + a.j.handB[1]) / 2 - 5] : [a.x - 20, W.groundAt(a.x) - 60];
+    if (m.fly != null && m.fly < 1) {   /* on the screen: from the tray to his hands */
+      const to = W.toScreen(hands[0], hands[1]), x0 = -T.view.W / 2 + 70, k = T.ease.io(m.fly);
+      for (let i = 0; i < 3; i++) {
+        const x = T.lerp(x0 + i * 64, to[0], k), y = T.lerp(70, to[1], k) - Math.sin(k * Math.PI) * (50 + i * 34);
+        P.glow(g, x, y, 40, ['#fff3dc', '#f6dccf', '#e6ffb8'][i], 0.9); P.glow(g, x, y, 10, '#ffffff', 1); P.glow(g, T.lerp(x, x0 + i * 64, 0.08), y - 6, 18, '#fff6e0', 0.4);
+      }
+    }
+    if (!(m.k > 0.01)) return;
+    const E = m.E, p = T.ease.io(m.p || 0), sk = m.sink || 0;
+    const x = T.lerp(hands[0], E[0], p), y = T.lerp(hands[1], E[1], p) - Math.sin(p * Math.PI) * 18 + T.ease.in(sk) * 170;
+    const fade = 1 - T.clamp((sk - 0.25) / 0.75);
+    W.layer(g, 1);
+    if (m.path > 0.01) {   /* her lamp's light goes down after it, and makes a way */
+      const L = S.lampOf && S.lampOf.j ? [S.lampOf.j.handF[0], S.lampOf.j.handF[1] + 24] : [E[0] + 40, E[1] - 80];
+      for (let i = 0; i < 16; i++) {
+        const u = i / 15, px = T.lerp(L[0], E[0] - 6, u) + Math.sin(t * 1.3 + i * 0.9) * 4 * u, py = T.lerp(L[1] + 12, E[1] + 230, u * m.path);
+        P.glow(g, px, py, 30 - u * 12, '#ffe2a0', 0.46 * m.path * (1 - u * 0.55) * (0.85 + 0.15 * Math.sin(t * 3 + i)));
+      }
+    }
+    if (sk > 0.02) P.glow(g, E[0], W.surf(E[0]) + 6, 70 + sk * 150, '#fff0c8', 0.45 * Math.sin(Math.min(1, sk * 1.4) * Math.PI * 0.9));   /* where it went in */
+    P.glow(g, x, y, 62 * m.k * (1 - sk * 0.4), '#fff0b8', (0.72 + 0.2 * Math.sin(t * 3)) * fade);
+    P.glow(g, x, y, 15 * m.k, '#ffffff', 0.92 * fade);
+    g.restore();
+  }
+  /* the garland: in his hands (k 0), going up (k 0..1), and hung across the top of the list (on) */
+  function boardGarland(g, S) {
+    const q = S.garland, PL = T.plot, x = PL.BOARD_X, y = T.world.y3(x), t = T.time;
+    const n1 = [x - 25, y - 101], n2 = [x + 25, y - 103];
+    if (q.on) { garland(g, n1, n2, 8, t); return; }
+    const a = q.who && q.who.j;
+    if (!a) return;
+    const k = T.ease.io(q.k), h1 = a.handB, h2 = a.handF, lo = h1[0] < h2[0] ? [h1, h2] : [h2, h1];
+    garland(g, [T.lerp(lo[0][0], n1[0], k), T.lerp(lo[0][1], n1[1], k)], [T.lerp(lo[1][0], n2[0], k), T.lerp(lo[1][1], n2[1], k)], T.lerp(16, 8, k), t);
+  }
+
   T.stage('ch5', {
     chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「다 지킨 약속」'], next: 'ch6', pad: 3,
     plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 0, garden: 0.4, patch: 2, fruit: 1, season: 'winter' },   /* the swing is built during the first years card */
@@ -203,17 +303,20 @@
     /* after dark, a lamp in a small hand shines over the evening, not under it */
     after(g, S) {
       const c = S.lampOf, n = S.ps.night;
-      if (!c || !c.j || c.hidden || n < 0.05) return;
-      const h = c.j.handF;
-      T.world.layer(g, 1);
-      P.glow(g, h[0], h[1] + 24, 60, '#ffd98a', 0.55 * n * (c.lit == null ? 1 : c.lit));
-      g.restore();
+      if (c && c.j && !c.hidden && n >= 0.05) {
+        const h = c.j.handF;
+        T.world.layer(g, 1);
+        P.glow(g, h[0], h[1] + 24, 60, '#ffd98a', 0.55 * n * (c.lit == null ? 1 : c.lit));
+        g.restore();
+      }
+      if (S.send) sendDraw(g, S);
     },
     onHill(g, h, S) {
       if (S.roofK != null && h === T.world.hillOf(T.plot.HX)) {   /* the ridge beam, coming up the side of the house on the rope */
         const x = T.plot.HX, gy = T.world.y3(x), y = gy - 40 - 210 * S.roofK;
         P.fill(g, P.rr(x - 150, y - 8, 300, 16, 6), '#b98a5a'); P.fill(g, P.rr(x - 150, y - 8, 300, 5, 3), '#d1a676');
       }
+      if (S.garland && h === T.world.hillOf(T.plot.BOARD_X)) boardGarland(g, S);
       const m = S.pie;
       if (!m || h !== T.world.hillOf(T.plot.BOARD_X)) return;
       const t = T.time, flap = m.land ? 0 : Math.sin(t * 16), dir = m.dx == null ? 1 : m.dx;
@@ -469,109 +572,181 @@
       X.tween(cloud, 'offer', 0, 0.8);
       qleo.pose = (o) => { reading(o); o.headTilt = 0.06; o.face.eye = 'happy'; };
       await TALK.say('leo', '…고마워, 구름아.');
-      await TALK.say('cloud', '나도 같이 갈래.');
-      /* she hops down off the crates, and the three of them go along the quay to the lake */
+      await TALK.say('cloud', '내가 비춰 줄게.\n저 아래까지.');
+      /* she hops down off the crates, and the three of them go out along the pier, to the very end of it: where
+         she stands with her lamp for every boat */
       cloud.chair = 0; cloud.y = W.groundAt(cloud.x) - 22; A.sfx('step');
       await X.tween(cloud, 'y', W.groundAt(cloud.x), 0.28, T.ease.in);
-      cloud.y = null; cloud.pose = (q) => { q.armF = { hand: [12, -2] }; };
+      cloud.y = null; cloud.look = true;
+      cloud.pose = (q, a) => {
+        q.headTilt = a.down ? 0.3 : 0.04;
+        q.armF = a.held ? { a: 1.9, b: 0.5 } : { hand: [12, -2] };   /* held out over the cloud sea, the way she holds it for the boats */
+        q.armB = { a: 0.2, b: 0.3 };
+      };
       qleo.pose = null; qleo.letter = false; qbean.sit = 0;
-      X.walk(qleo, 1000, 64); X.walk(qbean, 1060, 70); X.walk(cloud, 940, 58);
-      await X.wait(2);
-
-      /* ---- the lake: the night before ---- */
-      const way = T.lakeHelp({ level: 2, who: 31, home: F.anaAt(61), leoAge: 2, friend: F.styles.cloud });
-      await X.view(way, { color: '#1b2a40' });
-      S.lampOf = null;
-      T.announce('거울 호수. 결혼식 전날 밤, 비 오는 길을 릴리가 혼자 옛집으로 걷는다. 물가의 것들을 옮기면, 그 그림자가 그 길에 닿는다.');
-      await TALK.say('leo', '…옛집으로 가는구나.', { slow: true });
-      await way.done();
-      await X.wait(1.2);
-      const eve = T.lake({ paint: T.vig.eve, leo: F.leoAt(2) });
-      await X.view(eve, { color: '#1b2a40' });
-      X.age('릴리, 31');
-      T.announce('거울 호수. 결혼식 전날 밤, 어릴 적 방에서 릴리가 잠들지 못하고 있다. 손에는 아빠 사진.');
-      await X.wait(2.6);
-      await TALK.say('leo', '…내일인데, 못 자고 있구나.');
-      S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
+      X.cam(150, 548, 1.95, 0.42);
+      X.walk(cloud, 52, 54).then(() => { cloud.flip = true; cloud.held = true; });
+      X.walk(qbean, 184, 60).then(() => { qbean.sit = 1; qbean.flip = true; });
+      await X.wait(0.7);
+      await X.walk(qleo, 108, 54);
+      qleo.flip = true;
+      X.cam(60, 566, 2.05, 0.8);
+      await X.wait(1.0);
+      cloud.down = true;   /* down, past the end of the pier, to where the cloud goes on below */
+      T.announce('부두 끝. 구름이가 다시 켜진 등불을 구름바다 위로 내민다.');
       await X.wait(1.4);
-      S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
-      T.announce('모은 꿈을 호수에 띄운다. 빛을 끌어 물속으로 보낸다.');
-      await eve.offerMote();
-      A.sfx('whoosh'); eve.beat = 2;
-      await X.wait(1.2);
+      /* he goes down on one knee at the edge, and what he has gathered comes into his hands as one light */
+      const cupped = (o) => { o.armF = { hand: [18, -13] }; o.armB = { hand: [16, -11] }; o.headTilt = 0.3; };
+      qleo.pose = cupped;
+      await X.gesture(qleo, 'kneel', { hold: true });
+      S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
+      await X.wait(1.0);
+      const E = [-104, C.PIER_Y + 62];   /* out past the end of the pier, into the cloud */
+      S.send = { who: qleo, fly: 0, k: 0, p: 0, sink: 0, path: 0, E };
+      X.spendDream(); A.sfx('join');
+      await X.tween(S.send, 'fly', 1, 1.5, T.ease.lin);
+      S.send.fly = null; X.tween(S.send, 'k', 1, 0.5); A.note({ m: 77, vel: 0.3, voice: 'glass', dur: 2 });
+      S.trayHold = false; X.tween(S.tray, 'a', 0, 1.0);
+      await X.wait(1.0);
+      /* drawn down, over the edge of the pier and into the cloud: the way the ones who come come up */
+      T.announce('모은 꿈을 부두 끝에서 구름바다 아래로 내려보낸다. 빛을 아래로 끌어 내린다.');
+      qleo.pose = (o) => { const r = T.clamp(T.ease.io(S.send.p) / 0.45); o.lean = 0.06 + r * 0.2; o.headTilt = 0.26 + r * 0.14; o.armF = { hand: [18 + r * 8, -13 + r * 27] }; o.armB = { hand: [16 + r * 8, -11 + r * 27] }; };
+      let tick = 0;
+      await X.drag({
+        axis: 'y', sign: 1, dist: 260,
+        on: (p) => { S.send.p = p; const n = Math.floor(p * 4); if (n > tick) { tick = n; A.note({ m: [77, 74, 72, 69][n - 1] || 69, vel: 0.22, voice: 'glass', dur: 1.6 }); } },
+        hint: () => { const a = qleo.j ? W.toScreen((qleo.j.handF[0] + qleo.j.handB[0]) / 2, (qleo.j.handF[1] + qleo.j.handB[1]) / 2) : W.toScreen(qleo.x - 20, C.PIER_Y - 60); return [a, W.toScreen(E[0], E[1])]; },
+      });
+      /* it sinks into the cloud, and her lamp lays its light down after it; for a while nothing sounds at all */
+      X.hush(); A.sfx('ripple');
+      qleo.pose = (o) => { cupped(o); o.armF = { hand: [20, 8] }; o.armB = { hand: [18, 10] }; o.headTilt = 0.4; };
+      X.tween(S.send, 'path', 1, 1.8);
+      await X.tween(S.send, 'sink', 1, 2.8, T.ease.lin);
+      T.announce('빛이 구름 속으로 가라앉는다. 구름이의 등불 빛이 그 뒤를 따라 아래로 길을 낸다.');
+      await X.wait(1.4);
 
       /* ---- her dream: the room she drew when she was six, and it will not keep still ---- */
       const D = T.tiltDream();
-      await X.view(D, { color: '#1b2440', out: 1.2, in: 0.4 });
+      await X.view(D, { color: '#1b2440', out: 1.4, in: 0.4 });
+      A.score('dream');
+      ps.night = 0; S.lampOf = null; S.send = null;
       T.announce('꿈. 릴리가 여섯 살 때 그린 방이 이리저리 기울어 있다.');
       A.sfx('whoosh');
       await X.tween(D.fall, 'k', 1, 3.6, T.ease.lin);
       T.announce('기울어지는 방. 왼쪽이나 오른쪽을 누르면 방이 돌고, 떠 있는 것은 모두 미끄러진다. 아빠 인형과 릴리 인형을 문으로 내보낸다.');
       await D.solve();
+      /* the room rights itself, and goes quiet: she is on her bed with his picture in her lap */
+      D.dark = false; X.hush();
       await X.tween(D.meet, 'k', 1, 1.8);
-      T.announce('방이 바로 선다. 침대에 앉은 릴리. 문으로 레오가 들어와 침대 곁에 무릎을 꿇는다.');
+      T.announce('방이 바로 선다. 침대에 앉은 릴리, 무릎에 아빠 사진. 문으로 레오가 들어와 침대 곁에 무릎을 꿇는다.');
+      const inPic = (x, z) => T.clamp(x, -T.view.W / 2 * (1 - 1 / z), T.view.W / 2 * (1 - 1 / z));   /* a camera inside a view stays within the picture */
+      X.vcam(inPic(-40, 1.15), 500, 1.15, 3.2);   /* in, between her bed and the door */
+      X.age('릴리, 31');
+      await X.wait(1.0);
       await X.tween(D.near, 'k', 1, 3.6, T.ease.io);
-      await TALK.say('lily', '…아빠?');
+      await TALK.say('lily', '…아빠?', { slow: true });
+      X.bed(2, 0.1, 'night');   /* and the music comes back, softly */
       await TALK.say('leo', '편지 받았어.\n바람에 실려 왔더라.');
+      X.tween(D.tears, 'k', 1, 1.4);
       await TALK.say('lily', '…정말? 아빠 사진 앞에 두기만 했는데.');
-      await TALK.say('lily', '내일, 아빠 자리는 그냥 비워 두려고.\n…이상하지?');
+      await TALK.say('lily', '내일, 아빠 자리는 그냥 비워 두려고.\n…이상하지?', { slow: true });
+      await X.wait(0.8);
+      X.tween(D.cheek, 'k', 1, 1.2);   /* his hand to her cheek */
       await TALK.say('leo', '아니. 그 자리, 내가 걸을게.');
-      await TALK.say('leo', '팔 한쪽만 비워 둬.');
+      X.tween(D.cheek, 'k', 0, 0.9);
+      X.tween(D.arm, 'k', 1, 1.1);   /* she looks down at her arm */
+      await TALK.say('leo', '팔 한쪽만 비워 둬.', { slow: true });
+      X.tween(D.arm, 'k', 0, 0.9);
+      await X.wait(0.4);
+      /* little fingers, on the four notes: her word comes in on the last of them */
       T.announce('둘이 새끼손가락을 건다.');
+      A.motif({ voice: 'felt', vel: 0.4, beat: 0.8 });
       await X.tween(D.hold, 'k', 1, 1.6);
       await TALK.say('lily', '…약속.', { slow: true });
       await TALK.say('leo', '약속.', { slow: true });
-      A.motif({ voice: 'felt', vel: 0.4, beat: 0.8 });
       await X.wait(1.2);
       /* the promise he made her when she was six: in her dream, the room opens onto the hilltop and the apple tree,
          and Lily as she is now sits on the swing he built while he pushes */
+      X.bed(5, 0.13, 'walk');
+      X.vcam(inPic(100, 1.15), 500, 1.15, 2.4);
       await X.tween(D.swing, 'k', 1, 2.4, T.ease.io);
       await TALK.say('leo', '그리고… 이거.');
       T.announce('꿈속, 언덕 위 사과나무에 레오가 만든 그네가 걸려 있다.');
       await X.wait(1.2);
       await TALK.say('lily', '…그네네.', { slow: true });
-      await TALK.say('leo', '아빠가 만들어 준다고 했잖아.\n…많이 늦었지.');
+      await TALK.say('leo', '아빠가 만들어 준다고 했잖아.\n…많이 늦었지.', { slow: true });
       T.announce('릴리가 그네에 앉는다. 레오가 등을 민다.');
       A.sfx('creak'); await X.wait(1.3); A.sfx('creak');
+      X.tween(D.laugh, 'k', 1, 0.4);
       await TALK.say('lily', '더 높이!');
+      /* higher, and the camera steps back to give her the sky */
+      X.tween(D.high, 'k', 1, 6, T.ease.io); X.vcam(0, 450, 1, 7);
       A.sfx('creak');
       await TALK.say('leo', '그래. 더 높이.', { slow: true });
-      A.sfx('creak'); await X.wait(1.6);
-      /* back on the hill, the same night: flowers for the road she walks tomorrow */
+      X.tween(D.laugh, 'k', 0.5, 1.5);
+      A.sfx('creak'); await X.wait(2.2); A.sfx('creak'); await X.wait(1.6);
+      /* back on the hill, the same night: flowers for the road she walks tomorrow. The dream goes white at the top
+         of a swing, so that the gladness carries over */
+      let toTop = ((((Math.PI * 1.5 - T.time * 1.7) % TAU) + TAU) % TAU / 1.7) * T.pace - 0.8;   /* she is furthest out (dreamroom.js swingHill) half-way into the white */
+      if (toTop < 0) toTop += (TAU / 1.7) * T.pace;
+      await X.wait(toTop);
       S.actors = []; S.boats = [];
-      leo = X.actor('leo', { x: PL.BOARD_X + 60, style: F.leoAt(2), flip: true, lean: 0.06 });
-      bean = X.actor('bean', { dog: true, s: 220, x: PL.BOARD_X + 185, sit: 1, flip: true, wag: 0.5 });
-      ps.night = 0.85; X.cam(px, py, 1); X.camSnap();
-      await X.view(null, { color: '#1b2440', out: 1.6, in: 1.2 });
+      leo = X.actor('leo', { x: PL.BOARD_X + 40, style: F.leoAt(2), flip: true, lean: 0.06 });
+      bean = X.actor('bean', { dog: true, s: 220, x: PL.BOARD_X + 170, sit: 1, flip: true, wag: 0.5 });
+      S.garland = { k: 0, on: false, who: leo };
+      const holding = (o) => { const k = T.ease.io(S.garland.k), up = Math.sin(Math.min(1, k * 1.25) * Math.PI / 2); o.armF = { hand: [T.lerp(13, 15, up), T.lerp(-6, -40, up)] }; o.armB = { hand: [T.lerp(9, 30, up), T.lerp(-4, -36, up)] }; o.headTilt = T.lerp(0.18, -0.24, up); o.lean = 0.04; };
+      leo.pose = holding;
+      ps.night = 0.85; X.cam(PL.BOARD_X + 34, W.y3(PL.BOARD_X) - 92, 2.6); X.camSnap();   /* close: the list, and his hands */
+      A.score(null);
+      await X.view(null, { color: '#fff6e6', out: 1.6, in: 1.6 });
       X.bed(4, 0.13, 'night');
-      T.announce('꽃길에 걸 화환을 엮는다. 꽃이 되풀이되는 차례를 보고 빈자리를 채운다.');
+      await X.wait(0.6);
       await TALK.say('leo', '내일 걸을 길에\n꽃이라도 걸어 둬야지.');
-      await X.play(T.puzzle.garland({ pattern: [0, 1, 0, 2], len: 13, gaps: [5, 7, 10, 11, 12] }));
+      T.announce('레오가 엮어 둔 꽃 화환을 길가의 팻말에 건다.');
+      await X.tap(() => [PL.BOARD_X, W.y3(PL.BOARD_X) - 100, 40]);
+      A.sfx('paper');
+      await X.tween(S.garland, 'k', 1, 1.5, T.ease.io);
+      S.garland.on = true; A.sfx('knock', 0.2); X.notes(2, { voice: 'box', vel: 0.3 });
+      leo.pose = (o) => { o.headTilt = -0.14; o.face.eye = 'happy'; };
+      bean.wag = 1.2;
+      await X.wait(2.4);
+      leo.pose = null;
 
-      /* ---- the walk ---- */
+      /* ---- the walk: the chapter's one lake ---- */
       const V = wedding();
       await X.view(V, { out: 1.4, in: 1.6 });
-
-      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르면 걷고, 한 번 더 누르면 멈춘다.');
+      A.score('wedding');
+      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 꽃길 끝에 신랑이 기다린다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르면 걷고, 한 번 더 누르면 멈춘다.');
       await V.walked;
+      /* she is there. The notes stop, and for a breath nothing sounds; she looks at the arm she kept free */
+      await X.wait(1.5);
+      X.tween(V.look, 'k', 1, 1.3);
+      await X.wait(1.0);
+      await TALK.say('lily', '…아빠, 옆에 있었지?', { pass: true, auto: 2.5 });
+      await TALK.say('leo', '응. 끝까지.', { slow: true });
+      X.tween(V.look, 'k', 0, 0.9);
+      /* she holds her mother; he bows his head; the lullaby, slowly, going on alone into the next scene */
+      const themeAt = S.clock.t, themeLen = A.theme({ voice: 'box', vel: 0.34, beat: 0.8 }) || 0;
       await X.tween(V.hug, 'k', 1, 1.2);
-      X.tween(V.bow, 'k', 1, 1.4);
-      A.theme({ voice: 'box', vel: 0.34, beat: 0.6, left: false });
-      await X.wait(4.5);
+      X.tween(V.bow, 'k', 1, 1.6);
+      await X.wait(5.0);
 
       /* ---- the swing: he did push her on it, if only in a dream. And it is still a six-year-old's swing ---- */
-      ps.night = 0;
-      leo.x = PL.TREE_X - 40; leo.flip = false; bean.x = PL.TABLE_X - 74; bean.flip = false; bean.sit = 1;
+      ps.night = 0;   /* back from the wedding; the garland is still on the list */
+      leo.x = PL.TREE_X - 40; leo.flip = false; bean.x = PL.TABLE_X - 74; bean.flip = false; bean.sit = 1; bean.wag = 0.5;
       X.cam(PL.TREE_X + 40, py + 40, 1.5); X.camSnap();
-      await X.view(null, { out: 1.4, in: 1.6 });
-      X.bed(5, 0.13, 'home');
+      S.bedNow = null;   /* nothing under the lullaby until it is done */
+      await X.view(null, { color: '#fff6e6', out: 2.0, in: 1.6 });
       const seat = () => { const q = PL.swingSeat(ps); return [q[0], q[1] - 6, 46]; };
       await X.tap(seat);
       await X.walk(leo, PL.TREE_X + 36, 60);
       leo.flip = false;
       leo.pose = (o) => { o.headTilt = 0.16; o.face.eye = 'happy'; };
-      await X.wait(1.2);
+      S.swingAmp = 0; S.swinging = true; X.tween(S, 'swingAmp', 0.14, 3);   /* a breeze has it swaying a little while he looks */
+      await X.wait(Math.max(1.2, themeAt + Math.max(0, themeLen - 2.6) * T.pace - S.clock.t));   /* after the lullaby's last bar */
       await TALK.say('leo', '…태워 줬다.\n꿈에서라도.', { slow: true });
+      A.score(null); X.bed(5, 0.13, 'home');
+      X.tween(S, 'swingAmp', 0, 1.6).then(() => { S.swinging = false; ps.swingA = 0; });
       await TALK.say('leo', '더 높이, 그러더라.\n여섯 살 때 그림처럼.');
       /* a step closer, a hand on the rope, and a look down at the seat: it is the width of a child */
       await X.walk(leo, PL.swingSeat(ps)[0] - 32, 40);
