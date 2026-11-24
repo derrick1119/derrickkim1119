@@ -3,8 +3,6 @@
 import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
-import { GFX } from '../pixel/gfx.js';
-import * as PX from '../pixel/ui.js';
 import { Battle, formation, defOf, HAND, REFILL, SQUAD_MORALE } from '../sim/battle.js';
 import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull, hiddenFight, forkDesc } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
@@ -407,10 +405,10 @@ export class RunScene {
     const am = b.army(), none = am.field === 0 && fight, pulse = none ? 0.6 + 0.4 * Math.sin(T * 8) : 1;
     g.globalAlpha = pulse; icon.people(g, 30, 31, 2, none ? RED : '#8fb6e6'); g.globalAlpha = 1;
     text(g, '남은 병력', 52, 19, { size: 13, fill: '#cfe0f4', align: 'left' });
-    text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: GFX.pixel ? 146 : 186 });
+    text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
-    text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: GFX.pixel ? 92 : 150 });
+    text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: 150 });
     line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
     line(g, [x0, cy, Math.max(x0, mx), cy], C.gilt, 2.8);
@@ -533,7 +531,7 @@ export class RunScene {
   }
   drawBar(g, b, i, live) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); { const md = b.mods, kg = Math.round((SQUAD_MORALE * md.moraleRate + md.killMorale) * 10) / 10; text(g, `무리 격파 +${kg}`, GFX.pixel ? 72 : 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); }   // 사기는 시간으로 차오르지 않는다: 무리를 물리칠 때 얻는 양을 보여 준다 text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
+    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); { const md = b.mods, kg = Math.round((SQUAD_MORALE * md.moraleRate + md.killMorale) * 10) / 10; text(g, `무리 격파 +${kg}`, 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); }   // 사기는 시간으로 차오르지 않는다: 무리를 물리칠 때 얻는 양을 보여 준다 text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });

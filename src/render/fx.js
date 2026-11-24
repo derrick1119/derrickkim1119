@@ -2,8 +2,6 @@
 import { TAU, INK, PAPER, FONT_B, text, poly, ell, rr, st, line, drawSprite, makeCanvas } from './draw.js';
 import { drawInk, MEOK } from './ink.js';
 import { inkGlyph, symbol } from './symbols.js';
-import { GFX } from '../pixel/gfx.js';
-import { pxLayer } from '../pixel/fx.js';
 
 // 빛: 색마다 한 번 구운 둥근 빛 한 장을 더해 그린다 (매번 그라데이션을 만들지 않아 가볍다)
 const GLOW = new Map();
@@ -98,7 +96,6 @@ export class Fx {
   beam(x0, y0, x1, y1, col, life = 0.25, lw = 5) { this.add({ k: 'beam', x: x0, y: y0, x1, y1, col, life, lw }); }
   drawNums(g) { const keep = this.p; this.p = keep.filter(q => q.num); this.drawLayer(g, false); this.p = keep; }
   drawLayer(g, ground, nums = true) {
-    if (GFX.pixel) return pxLayer(this, g, ground, nums);   // 도트: 같은 효과를 2배 격자에 또렷하게
     // 두목의 외침 같은 큰 꼬리표는 피해 숫자·효과보다 나중에(위에) 그린다
     // 글(피해 숫자·외침)은 다른 효과보다 나중에, 큰 꼬리표는 맨 나중에. 피해 숫자는 따로(drawNums) 말풍선 위에 그린다
     const list = ground ? this.p : this.p.filter(q => q.k !== 'text').concat(this.p.filter(q => q.k === 'text' && !q.big && !(nums === false && q.num)), this.p.filter(q => q.big));

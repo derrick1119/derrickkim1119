@@ -1,6 +1,6 @@
 // 패 그림(병력·영웅·전술), 덱 살피기(무기 끼우기 포함), 보물 살피기 — 가로 화면
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, fontCss, text, textBlock, ell, rr, rrPath, line, poly, st, clamp } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, rrPath, line, poly, st, clamp } from '../render/draw.js';
 import { ui, tapped, button, panel, brushTitle, seal, icon, C } from './ui.js';
 import { CARDS, KIND, cardVals, cardCost, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS, CLS_NAME, canEquip, setOf, setProgress } from '../data/weapons.js';
@@ -12,8 +12,6 @@ import { portrait, weaponIcon, lookOf } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { symbol } from '../render/symbols.js';
 import { sfx } from '../audio.js';
-import { GFX } from '../pixel/gfx.js';
-import * as PX from '../pixel/ui.js';
 // 패 그림 속 인형의 크기·높이 보정: 탈것은 조금 작게, 작은 영물은 크게, 날짐승은 가운데로 내린다
 const CARD_K = { knight: 0.82, cannon: 0.82, magpie: 1.55, sapsal: 1.4, samjoko: 1.35, haetae: 0.88, tiger: 0.9 }, CARD_Y = { magpie: 1.0, samjoko: 0.98 };
 
@@ -27,7 +25,6 @@ export function cardText(c, P = 1) {
 
 // 패 한 장. o: { cost, dim, P, free, text }
 export function cardFace(g, c, x, y, w, h, o = {}) {
-  if (GFX.pixel) return pxCardFace(g, c, x, y, w, h, o);
   const d = CARDS[c.id], k = KIND[d.kind], col = k.col, unit = isUnit(c), big = h >= 240, mini = w < 96, r = Math.max(5, w * 0.06), hh = big ? 46 : mini ? h * 0.16 : Math.max(26, h * 0.2), gilt = c.up || (c.lv || 1) > 1;
   g.save(); if (o.dim) g.globalAlpha *= 0.45;
   // 두꺼운 종이 패: 부드러운 그림자 위에 종이의 두께(옆면)가 비친다
@@ -74,51 +71,8 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   text(g, String(cost), ccx, ccy + 1, { size: cr * 1.25, font: FONT_B, fill: INK, stroke: o.free ? '#d6f0c0' : '#f6dc9a', lw: 3 });
   g.restore();
 }
-// ── 도트 패: 크림빛 종이에 종류 빛깔 머리띠, 먹 테 · 금 테 (시안의 패를 게임 크기로) ──
-function pxCardFace(g, c, x, y, w, h, o) {
-  const F = PX.F, d = CARDS[c.id], k = KIND[d.kind], col = k.col, unit = isUnit(c), big = h >= 240, mini = w < 96, hh = PX.H2(big ? 46 : mini ? h * 0.16 : Math.max(26, h * 0.2)), gilt = c.up || (c.lv || 1) > 1;
-  x = PX.H2(x); y = PX.H2(y); w = PX.H2(w); h = PX.H2(h);
-  g.save(); if (o.dim) g.globalAlpha *= 0.45;
-  g.save(); g.globalAlpha *= 0.35; PX.notch(g, x + 4, y + 6, w, h, '#0a0614'); g.restore();
-  PX.notch(g, x, y, w, h, PX.PINK);
-  const body = gilt ? '#fdf0c8' : PX.PC('cream', 3); F(g, x + 2, y + 2, w - 4, h - 4, gilt ? PX.PC('gold', 2) : PX.PC('cream', 1));
-  F(g, x + 4, y + 4, w - 8, h - 8, body); F(g, x + 4, y + h - 8, w - 8, 4, gilt ? '#f2dca0' : PX.PC('cream', 2));
-  // 머리띠
-  F(g, x + 4, y + 4, w - 8, hh - 4, col); F(g, x + 4, y + 4, w - 8, 2, PX.lighten(col, 0.3)); F(g, x + 4, y + hh - 4, w - 8, 4, PX.darken(col, 0.25)); F(g, x + 2, y + hh, w - 4, 2, PX.PINK); F(g, x + 4, y + hh + 2, w - 8, 2, PX.PC('gold', 2));
-  // 그림 칸
-  const ah = big ? 120 : h - hh - (mini ? 4 : 24), cy = y + hh + (big ? 66 : ah / 2 + 2), cx = x + w / 2, ss = big ? 82 : Math.min(w * (mini ? 0.56 : 0.46), ah * 0.78);
-  g.save(); g.beginPath(); g.rect(x + 4, y + hh + 4, w - 8, (big ? 126 : ah) - 2); g.clip();
-  if (unit) {
-    const gy = PX.H2(cy + ss * 0.42), gh = big ? Math.max(0, y + hh + 126 - gy) : ah; F(g, x + 4, gy, w - 8, gh, PX.PC('grass', 3)); F(g, x + 4, gy, w - 8, 2, PX.PC('grass', 4)); F(g, x + 4, gy + 6, w - 8, gh, PX.PC('grass', 2));
-    for (let i = 0; i < w / 10; i++) F(g, x + 6 + ((i * 37) % (w - 12)), gy + 2 + ((i * 13) % 4), 2, 2, PX.PC('grass', 2));
-    const lk = lookOf(d.unit, c.br), L = (CARD_K[d.unit] || 1) * (lk === d.unit ? 1 : 0.88); portrait(g, lk, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn || (branchOf(c.br) && branchOf(c.br).arm) || undefined);
-  } else { g.save(); g.globalAlpha *= 0.16; PX.disc(g, cx, cy, ss * 0.8, col); g.restore(); for (let a = 0; a < 24; a++) if (a % 2 === 0) { const q = a / 24 * TAU; F(g, cx + Math.cos(q) * ss * 0.74 - 1, cy + Math.sin(q) * ss * 0.74 - 1, 2, 2, PX.lighten(col, 0.2)); } }
-  g.restore();
-  if (!unit) { cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + 24, y + hh + 24, 26, d.sym || k.sym, col); }
-  if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) };
-    let nm = cardName(c), lvTag = null; if (!big && unit && (c.lv || 1) > 1) { g.font = fontCss(no.size, FONT_B); if (g.measureText(nm).width > no.maxW) { lvTag = c.lv + '단'; nm = nm.replace(/ \d+단$/, ''); } }
-    text(g, nm, nx, ny + 2, { ...no, fill: PX.darken(col, 0.5) }); text(g, nm, nx, ny, { ...no, fill: PX.PC('cream', 4) });
-    if (lvTag) { PX.box(g, x + 6, y + hh + 6, 34, 20, { shadow: false, fill: PX.PC('night', 2), edge: PX.PC('gold', 1) }); text(g, lvTag, x + 23, y + hh + 16, { size: 12, fill: PX.PC('gold', 4) }); } }
-  else if (unit && (c.lv || 1) > 1) { PX.box(g, x + w - 32, y + h - 22, 30, 20, { shadow: false, fill: PX.PC('night', 2) }); text(g, c.lv + '단', x + w - 17, y + h - 12, { size: 12, fill: PX.PC('gold', 4) }); }
-  if (big) {
-    PX.box(g, x + w / 2 - 36, y + hh + 130, 72, 26, { shadow: false, fill: PX.PC('cream', 4), ink: col }); text(g, k.name, x + w / 2, y + hh + 143, { size: 15, fill: col });
-    const ty0 = y + hh + (unit ? 176 : 180), tlh = unit ? 20 : 22; textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, ty0, w - (unit ? 16 : 24), tlh, { size: unit ? 15 : 16.5, fill: PX.PC('ink', 3), weight: 400, maxH: (y + h - 14 - (o.padB || 0) - tlh * 0.3) - ty0 + tlh });
-  } else if (!mini) { const ky = y + h - 14; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); { g.font = fontCss(13); const hw = g.measureText(k.name).width / 2 + 8; for (const sg of [-1, 1]) F(g, sg < 0 ? x + 12 : x + w / 2 + hw, ky - 1, w / 2 - 12 - hw, 2, PX.lighten(col, 0.45)); } }
-  // 빌드 축 딱지 · 승급 띠 · 벼린 무기 · 끼운 무기
-  if (big && d.axis && AXES[d.axis]) { const A = AXES[d.axis]; PX.box(g, x + w - 72, y + hh + 8, 64, 24, { shadow: false, fill: A.col, hi: PX.lighten(A.col, 0.25) }); text(g, A.name, x + w - 40, y + hh + 20, { size: 13.5, font: FONT_B, fill: C.cream }); }
-  if (c.br && !mini) { const bw = PX.H2(Math.min(w - 16, big ? 120 : 74)); PX.box(g, x + w / 2 - bw / 2, y + hh + 4, bw, big ? 24 : 18, { shadow: false, fill: PX.PC('wood', 0), edge: PX.PC('gold', 2) }); text(g, '승급', x + w / 2, y + hh + (big ? 16 : 13), { size: big ? 14 : 11, fill: PX.PC('gold', 4) }); }
-  if (c.tp && !mini) { const tx = x + w - 14, ty = y + hh + (c.wpn ? 36 : 14); PX.disc(g, tx, ty, 11, PX.PINK); PX.disc(g, tx, ty, 9, '#c8642a'); symbol(g, 'forge', tx, ty + 1, 13, C.cream); }
-  if (c.wpn && !mini) { const tx = x + w - 14, ty = y + hh + 14; PX.disc(g, tx, ty, 11, PX.PINK); PX.disc(g, tx, ty, 9, PX.PC('red', 2)); symbol(g, 'sword', tx, ty, 14, C.cream); }
-  // 비용 엽전
-  const cost = o.cost === undefined ? cardCost(c) : o.cost, cr = big ? 19 : mini ? Math.max(9, w * 0.15) : 14, ccx = x + cr - 3, ccy = y + cr - 3;
-  g.save(); g.globalAlpha *= 0.35; PX.disc(g, ccx + 2, ccy + 4, cr + 2, '#0a0614'); g.restore();
-  PX.disc(g, ccx, ccy, cr + 2, PX.PINK); PX.disc(g, ccx, ccy, cr - 1, o.free ? '#9bd07a' : PX.PC('gold', 3)); PX.ring(g, ccx, ccy + 1, cr - 1, o.free ? '#4c9040' : PX.PC('gold', 1), 2); PX.F(g, ccx - cr * 0.5, ccy - cr + 3, cr * 0.6, 2, o.free ? '#d6f0c0' : PX.PC('gold', 4));
-  text(g, String(cost), ccx, ccy, { size: cr * 1.25, font: FONT_B, fill: PX.PINK });
-  g.restore();
-}
 // 패 뒷면 (더미·빈 자리)
 export function cardBack(g, x, y, w, h) {
-  if (GFX.pixel) { PX.box(g, x, y, w, h, { fill: PX.PC('night', 2), edge: PX.PC('gold', 1), edge2: PX.PC('night', 1), hi: PX.PC('night', 3) }); const q = Math.min(w, h) * 0.2; for (let i = -q; i <= q; i += 2) { const hw = q - Math.abs(i); PX.F(g, x + w / 2 - hw, y + h / 2 + i, 2, 2, PX.PC('gold', 2)); PX.F(g, x + w / 2 + hw - 2, y + h / 2 + i, 2, 2, PX.PC('gold', 2)); } PX.F(g, x + w / 2 - 4, y + h / 2 - 4, 8, 8, PX.PC('gold', 3)); return; }
   const r = Math.max(3, w * 0.06), m = Math.max(2.4, w * 0.07), gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, '#3d5080'); gr.addColorStop(1, '#1f2a47');
   rr(g, x + 2, y + 3, w, h, r, 'rgba(10,8,6,0.3)'); rr(g, x, y, w, h, r, gr, '#0c1120', 2); rr(g, x + m, y + m, w - m * 2, h - m * 2, Math.max(1, r - m * 0.6), null, 'rgba(226,184,90,0.85)', 1.1);
   g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(Math.PI / 4); const q = Math.min(w, h) * 0.2; rr(g, -q, -q, q * 2, q * 2, 2, null, '#e2b85a', 1.4); rr(g, -q * 0.5, -q * 0.5, q, q, 1, 'rgba(226,184,90,0.6)'); g.restore();

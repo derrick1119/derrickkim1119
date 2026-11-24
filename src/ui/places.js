@@ -1,8 +1,5 @@
 // 길 위의 장소들: 장터 · 주막 · 갈림길 · 보물 터. 버튼만 띄우는 대신 그 장소를 종이 인형극 무대처럼 통째로 그린다.
 // 정지한 그림(하늘·집·진열대·평상)은 한 번 굽고, 물건·인형·불빛·김만 매 장면 그린다. 그 장면을 걸개그림 삼아 단청 무대틀·막·구경꾼을 두른다 (stage.js)
-import { drawScene } from '../pixel/scene.js';
-import { art } from '../pixel/paper.js';
-import { GFX } from '../pixel/gfx.js';
 import { geumjul } from '../render/geumjul.js';
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, path, st, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
@@ -175,25 +172,24 @@ export class MarketOverlay extends Overlay {
   say(s) { this.line = s; this.lineT = 0; }
   draw(g, dt) {
     const r = G.run, t = this.t; this.lineT += dt;
-    drawScene(g, marketBG());
+    g.drawImage(marketBG(), 0, 0, W, H);
     // 뒷골목을 오가는 장꾼들 (갓 쓴 이, 봇짐 진 이, 물동이 인 이)
-    art(g, g => { for (let i = 0; i < 5; i++) { const sp = 18 + i * 5, dir = i % 2 ? 1 : -1, x = dir > 0 ? ((t * sp + i * 300) % 1500) - 110 : 1390 - ((t * sp + i * 300) % 1500), y = 348 + (i % 3) * 5; walker(g, x, y, 0.62 + (i % 3) * 0.05, t * 3 + i, dir, i % 3); }
-    beams(g, 820, 150, 520, 2.1, 5, t, '255,236,190', 0.08); });
+    for (let i = 0; i < 5; i++) { const sp = 18 + i * 5, dir = i % 2 ? 1 : -1, x = dir > 0 ? ((t * sp + i * 300) % 1500) - 110 : 1390 - ((t * sp + i * 300) % 1500), y = 348 + (i % 3) * 5; walker(g, x, y, 0.62 + (i % 3) * 0.05, t * 3 + i, dir, i % 3); }
+    beams(g, 820, 150, 520, 2.1, 5, t, '255,236,190', 0.08);
     // 장사꾼: 진열대 왼쪽에서 손님을 부른다
     g.save(); g.globalAlpha = 0.35; ell(g, 164, 602, 40, 8, '#2a1a10'); g.restore(); stagePuppet(g, 'merchant', 160, 600, 1.75, t, { act: this.lineT < 1.4 ? 'talk' : 'idle', face: 1 });
     const sp = this.spots();
     for (const s of sp) {
       const it = this.items[s.i], d = describeReward(it), sel = this.sel === s.i, lift = sel ? -8 - Math.sin(t * 4) * 2 : 0, hw = s.row ? 70 : 54, top = s.row ? s.y - 104 : s.y - 160;
       if (!this.left && tapped('mk' + s.i, s.x - hw, top, hw * 2, s.y - top + 46)) { this.sel = s.i; sfx('card'); this.say(it.sold ? '그건 이미 팔렸소.' : `${d.name}! 좋은 물건이오.`); }
-      if (GFX.pixel && s.row) art(g, q => { if (it.sold) q.globalAlpha = 0.45; if (sel) glow(q, s.x, s.y - 40, 90, '255,226,150', 0.5 + 0.15 * Math.sin(t * 5)); q.translate(0, Math.round(lift / 2) * 2); good(q, it, d, s.x, s.y, s.row, t); });
-      else { g.save(); if (it.sold) g.globalAlpha = 0.45;
+      g.save(); if (it.sold) g.globalAlpha = 0.45;
       if (sel) glow(g, s.x, s.y - (s.row ? 40 : 70), 90, '255,226,150', 0.5 + 0.15 * Math.sin(t * 5));
-      g.translate(0, lift); good(g, it, d, s.x, s.y, s.row, t); g.restore(); }
+      g.translate(0, lift); good(g, it, d, s.x, s.y, s.row, t); g.restore();
       if (it.sold) stamp(g, s.x + 26, s.y - (s.row ? 40 : 76), 24, 'get', RED, -0.14);
       priceTag(g, s.x, s.row ? s.y + 26 : s.y + 26, it.price, r.gold >= it.price, it.sold, t, d.name);
     }
-    art(g, g => { motes(g, t, 240, 150, 980, 460, 26, '255,240,200', 0.5);
-    for (const x of [320, 530, 750, 960]) glow(g, x, 48, 40 + Math.sin(t * 3 + x) * 3, '255,170,90', 0.25); });
+    motes(g, t, 240, 150, 980, 460, 26, '255,240,200', 0.5);
+    for (const x of [320, 530, 750, 960]) glow(g, x, 48, 40 + Math.sin(t * 3 + x) * 3, '255,170,90', 0.25);
     // 인형극 무대: 장터 그림은 걸개그림, 앞에는 구경꾼
     stageFront(g, t, { open: openOf(t), seats: MARKET_SEATS, lamps: [300, 990] });
     // 장사꾼의 말
@@ -395,9 +391,7 @@ export class TavernOverlay extends Overlay {
   }
   draw(g, dt) {
     const r = G.run, t = this.t, by = this.by; if (this.result) this.rt = (this.rt || 0) + dt;
-    drawScene(g, tavernBG());
-    const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
-    art(g, g => {
+    g.drawImage(tavernBG(), 0, 0, W, H);
     // 창호지 불빛이 살짝 일렁인다
     glow(g, 775, 289, 130, '255,200,120', 0.22 + 0.04 * Math.sin(t * 2.3)); glow(g, 959, 289, 130, '255,200,120', 0.22 + 0.04 * Math.sin(t * 2.7 + 1));
     // 아궁이 불과 가마솥, 김
@@ -408,13 +402,13 @@ export class TavernOverlay extends Overlay {
     for (const [lx, ly] of [[868, 262], [1150, 258]]) { glow(g, lx, ly + 22, 46 + Math.sin(t * 3 + lx) * 3, '255,170,90', 0.4); line(g, [lx, ly - 8, lx, ly], '#2a1a10', 1.2); chorong(g, lx, ly, 2); }
     for (let k = 0; k < 6; k++) { const q = ((t * 0.12 + k / 6) % 1), sx = 1266 + Math.sin(q * 6 + k) * 8 - q * 30, sy = 300 - q * 180; g.globalAlpha = 0.22 * (1 - q); ell(g, sx, sy, 10 + q * 30, 7 + q * 18, '#b8b4c8'); } g.globalAlpha = 1;
     // 주모와 영웅
+    const tl = this.tale && this.tale.tale, li = tl ? Math.floor(t / 3.6) % tl.lines.length : 0;
     stagePuppet(g, 'jumo', 690, 448, 1.6, t, { act: !this.result && tl ? 'talk' : 'idle', face: 1, rodSkip: [506, 552] });
     stagePuppet(g, r.hero, 852, 452, 1.6, t, { act: this.result ? (this.rt < 0.4 ? 'tremble' : 'hop') : 'idle', face: -1 });
     // 반딧불
     for (let i = 0; i < 12; i++) { const ph = i * 2.3, x = 60 + ((i * 113) % 1160) + Math.sin(t * 0.6 + ph) * 26, y = 330 + ((i * 47) % 160) + Math.sin(t * 1.1 + ph) * 12, a = clamp(Math.sin(t * 1.6 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.6, 1.6, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 8, '255,230,140', a * 0.35); }
     // 평상 위 살림살이 (고르지 않는다)
     tavernThing(g, 'supply', 190, 518, t, true); tavernThing(g, 'study', 360, 518, t, true);
-    });
     // 인형극 무대: 달밤 주막 그림은 걸개그림, 앞에는 구경꾼
     stageFront(g, t, { open: openOf(t), seats: TAVERN_SEATS, lamps: [120, 470, 860], hop: this.result ? clamp(1 - this.rt / 1.6, 0, 1) * 0.7 : 0 });
     // 고를 것: 오른쪽 아래에 옻칠 이름판 셋을 세로로 가지런히
@@ -590,7 +584,7 @@ export class TreasureScene extends RewardOverlay {
     if (bt >= 0) { const k = (1 - clamp(bt / 0.55, 0, 1)) ** 2; z = 1 + 0.075 * k; sx = Math.sin(bt * 63) * 9 * k; sy = Math.cos(bt * 51) * 6 * k; }
     else if (c.kick > 0) { sx = Math.sin(t * 80) * 2.4 * c.kick; sy = c.kick * 1.5; }
     g.save(); g.translate(640 + sx, 430 + sy); g.scale(z, z); g.translate(-640, -430);
-    drawScene(g, treasureBG());
+    g.drawImage(treasureBG(), 0, 0, W, H);
     // 반딧불
     for (let i = 0; i < 14; i++) { const ph = i * 2.1, x = 40 + ((i * 131) % 1200) + Math.sin(t * 0.5 + ph) * 30, y = 360 + ((i * 59) % 240) + Math.sin(t * 0.9 + ph) * 14, a = clamp(Math.sin(t * 1.4 + ph), 0, 1); g.globalAlpha = a * 0.9; ell(g, x, y, 1.7, 1.7, '#fff2b0'); g.globalAlpha = 1; glow(g, x, y, 9, '255,230,140', a * 0.35); }
     // 무대 틀과 구경꾼: 함이 터지면 구경꾼들이 들썩인다
@@ -717,8 +711,7 @@ export class ForgeScene extends Overlay {
   }
   draw(g, dt) {
     const r = G.run, t = this.t; this.lineT += dt; if (this.strike > 0) this.strike -= dt;
-    drawScene(g, forgeBG());
-    art(g, g => {
+    g.drawImage(forgeBG(), 0, 0, W, H);
     // 화덕 숯불: 일렁이는 빛과 불꽃, 솟는 불티
     { const f = 0.8 + 0.2 * Math.sin(t * 11) * Math.sin(t * 6.3); glow(g, 230, 400, 180, '255,130,50', 0.5 * f); glow(g, 230, 420, 70, '255,200,100', 0.7 * f);
       for (let k = 0; k < 6; k++) { const x = 160 + k * 26, h = (30 + (k % 3) * 12) * (0.8 + 0.3 * Math.sin(t * 9 + k * 2)); path(g, p => { p.moveTo(x - 12, 452); p.quadraticCurveTo(x - 8, 452 - h * 0.6, x, 452 - h); p.quadraticCurveTo(x + 8, 452 - h * 0.6, x + 12, 452); p.closePath(); }, ['#ff7a2e', '#ffb040', '#ff9a2e'][k % 3]); }
@@ -733,7 +726,6 @@ export class ForgeScene extends Overlay {
     // 물통의 김
     for (let k = 0; k < 4; k++) { const q = ((t * 0.3 + k / 4) % 1); g.globalAlpha = 0.2 * (1 - q); ell(g, 840 + Math.sin(q * 6 + k) * 10, 556 - q * 90, 14 + q * 26, 8 + q * 12, '#d8d4dc'); } g.globalAlpha = 1;
     motes(g, t, 0, 60, 900, 500, 20, '255,190,120', 0.45);
-    });
     // 인형극 무대: 대장간 그림은 걸개그림, 앞에는 구경꾼
     stageFront(g, t, { open: openOf(t), hop: this.strike > 0 ? Math.min(1, this.strike) * 0.6 : 0 });
     // 대장장이의 말

@@ -1,7 +1,6 @@
 // 전술 패와 보물의 아이콘 — 인형과 같은 종이 오림 그림체 (가운데가 원점, 대략 ±22 안에 그린다)
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SKIN, FONT_B, st, fs, ell, rr, poly, line, path, text, paperSprite, drawSprite } from './draw.js';
 import { symbol } from './symbols.js';
-import { PXH } from '../pixel/hook.js';
 import { heroArt } from './icons_hero.js';
 import { AXIS_CARD_ART, AXIS_RELIC_ART } from './icons_axis.js';
 
@@ -554,9 +553,9 @@ function iconSprite(kind, id) {
   cache.set(key, s); return s;
 }
 // s = 1 이면 한 변이 약 50 인 아이콘
-export function cardIcon(g, id, x, y, s = 1, rot = 0) { if (PXH.paper) PXH.paper(g, iconSprite('card', id), x, y, s); else drawSprite(g, iconSprite('card', id), x, y, s, s, rot); }
-export function relicIcon(g, id, x, y, s = 1, rot = 0) { if (PXH.paper) PXH.paper(g, iconSprite('relic', id), x, y, s); else drawSprite(g, iconSprite('relic', id), x, y, s, s, rot); }
-export function miscIcon(g, id, x, y, s = 1, rot = 0) { if (PXH.paper) PXH.paper(g, iconSprite('misc', id), x, y, s); else drawSprite(g, iconSprite('misc', id), x, y, s, s, rot); }
+export function cardIcon(g, id, x, y, s = 1, rot = 0) { drawSprite(g, iconSprite('card', id), x, y, s, s, rot); }
+export function relicIcon(g, id, x, y, s = 1, rot = 0) { drawSprite(g, iconSprite('relic', id), x, y, s, s, rot); }
+export function miscIcon(g, id, x, y, s = 1, rot = 0) { drawSprite(g, iconSprite('misc', id), x, y, s, s, rot); }
 // 시작을 늦추지 않도록 아이콘은 첫 화면이 뜬 뒤 몇 장씩 나눠 굽는다 (그 전에 필요하면 그때 바로 굽는다)
 export function warmIcons() {
   const todo = [...Object.keys(CARD_ART).map(k => ['card', k]), ...Object.keys(RELIC_ART).map(k => ['relic', k]), ...Object.keys(MISC_ART).map(k => ['misc', k])];

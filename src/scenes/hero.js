@@ -68,7 +68,7 @@ export class HeroScene {
     text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col });
     if (canAlt) [HERO_TRAIT[id], HERO_TRAIT2[id]].forEach((q, n) => { const bx = 508 + n * 102, on2 = (n === 1) === alt; rr(g, bx, 380, 98, 24, 12, on2 ? col : 'rgba(60,40,20,0.08)', on2 ? INK : 'rgba(60,40,20,0.35)', 1.2); text(g, (on2 ? '✓ ' : '') + q.name, bx + 49, 392.5, { size: 13, font: FONT_B, fill: on2 ? C.cream : '#5a4a3a', maxW: 92 }); if (!on2 && tapped('alt' + n, bx, 380, 98, 24)) { if (!meta.alt) meta.alt = {}; meta.alt[id] = n === 1; save(); sfx('card'); } });
     else text(g, ml >= 2 || locked ? tr.play : '숙련 2에 두 번째 병법', 706, 392, { size: 14.5, align: 'right', fill: '#5a4a3a', weight: 400, maxW: 250 });
-    textBlock(g, tr.desc, 288, 410, 424, 17.5, { size: 14.5, align: 'left', weight: 400, maxH: 36 });
+    textBlock(g, tr.desc, 288, 412, 424, 17.5, { size: 14.5, align: 'left', weight: 400 });
     // 숙련 띠: 초상 아래, 다음 숙련까지의 매듭과 그때 받는 것
     if (!locked) { const nx = MASTERY_XP[ml], px0 = MASTERY_XP[ml - 1], k = ml >= 5 ? 1 : (xp - px0) / (nx - px0);
       rr(g, 64, 516, 178, 40, 8, '#2a1418', INK, 1.6); rr(g, 67, 519, 172, 34, 6, null, foil(g, 64, 242), 1.1);

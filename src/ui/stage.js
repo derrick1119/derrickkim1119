@@ -5,8 +5,6 @@
 import { W, H } from '../config.js';
 import { TAU, makeCanvas, clamp } from '../render/draw.js';
 import { puppet } from './theater.js';
-import { GFX } from '../pixel/gfx.js';
-import { pxStageFront, pxStageCurtain, pxRod } from '../pixel/stage.js';
 
 export const APRON = 688;                      // 무대 앞판 윗면: 막대 인형의 막대는 이 뒤로 내려간다
 export const OPEN_T = 0.6;                     // 막이 걷히는 데 걸리는 시간
@@ -196,7 +194,6 @@ export const SEATS = [
 // 무대 앞쪽: 들보 아래 그늘 · 발치 불빛 · (다 걷힌) 막 · 틀 · 등잔 · 구경꾼
 // o.open 막이 걷힌 정도 · o.seats 구경꾼 자리 · o.lamps 등잔 x 들 · o.hop 구경꾼이 들썩이는 정도(0~1) · o.dim 가장자리 어둡게
 export function stageFront(g, t, o = {}) {
-  if (GFX.pixel) { pxStageFront(g, t, Object.assign({}, o, { seats: o.seats || SEATS })); return; }
   const open = o.open === undefined ? 1 : o.open;
   // 무대 안쪽 가장자리를 눌러 가운데로 시선을 모은다
   { const vg = g.createRadialGradient(W / 2, H * 0.5, 320, W / 2, H * 0.52, 800); vg.addColorStop(0, 'rgba(6,4,10,0)'); vg.addColorStop(1, `rgba(6,4,10,${o.dim === undefined ? 0.4 : o.dim})`); g.fillStyle = vg; g.fillRect(0, 0, W, H); }
@@ -214,7 +211,6 @@ export function stageFront(g, t, o = {}) {
 // 막이 걷히는 동안: 단추·이름판까지 모두 덮는 막과 그 위의 틀
 export function stageCurtain(g, t, open) {
   if (open >= 1) return;
-  if (GFX.pixel) { pxStageCurtain(g, t, open); return; }
   for (const s of [-1, 1]) curtain(g, s, open, t);
   g.drawImage(frameArt(), 0, 0, W, H);
   // 막 사이로 새는 빛
@@ -231,7 +227,6 @@ function lamp(g, x, y, t) {
 // 따로 그린 인형(선비 …)을 받친 막대: (x, y) 몸통에서 무대 앞판 뒤로
 export function stageRod(g, x, y, s = 1, t = 0) {
   const bx = x + Math.sin(t * 2.1 + x * 0.031) * 1.5, by = APRON + 24;
-  if (GFX.pixel) { pxRod(g, x, y, bx, by); return; }
   g.save(); g.lineCap = 'round';
   g.strokeStyle = '#262a36'; g.lineWidth = 4.4 * s; g.beginPath(); g.moveTo(x, y); g.lineTo(bx, by); g.stroke();
   g.strokeStyle = '#9a7440'; g.lineWidth = 2.4 * s; g.stroke();

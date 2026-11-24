@@ -1,9 +1,7 @@
 // 즉시 모드 UI — 한지 판과 놋쇠 귀장식, 쪽빛 옻칠에 금선, 붉은 낙관
-import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, fontCss, st, fs, ell, rr, rrPath, poly, line, path, text, clamp, makeCanvas } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, st, fs, ell, rr, rrPath, poly, line, path, text, clamp, makeCanvas } from '../render/draw.js';
 import { drawInk, MEOK } from '../render/ink.js';
 import { symbol, hasSymbol } from '../render/symbols.js';
-import { GFX } from '../pixel/gfx.js';
-import * as PX from '../pixel/ui.js';
 
 export const C = { paper: PAPER, tray: '#1f2a47', ink: INK, sub: SUB, navy: NAVY, indigo: INDIGO, red: RED, redD: REDD, gold: OCHRE, teal: TEAL, grey: '#a9a394', cream: '#fbf7ec', dim: '#a4afcc', gilt: '#e2b85a' };
 
@@ -60,7 +58,6 @@ function bigCorner(g, s = 1) {
 }
 // 금빛 글자: 위는 밝은 금, 아래는 짙은 금. 먹 테두리와 옅은 빛무리
 export function goldText(g, s, x, y, o = {}) {
-  if (GFX.pixel) return pxGold(g, s, x, y, o);
   const size = o.size || 40, font = o.font || FONT_B, al = o.align || 'center';
   g.save(); g.font = `400 ${size}px ${font}`; g.textAlign = al; g.textBaseline = 'middle';
   let sc = 1; if (o.maxW) { const w = g.measureText(s).width; if (w > o.maxW) sc = o.maxW / w; }
@@ -72,18 +69,8 @@ export function goldText(g, s, x, y, o = {}) {
   g.fillStyle = o.fill || gr; g.fillText(s, 0, size * 0.04);
   g.restore();
 }
-// 도트 금빛 글자: 먹 테를 2픽셀 둘러 찍고, 위는 밝은 금·아래는 짙은 금 두 띠로 나눠 칠한다
-function pxGold(g, s, x, y, o) {
-  const size = o.size || 40, opt = { size, font: o.font || FONT_B, align: o.align || 'center', maxW: o.maxW };
-  text(g, s, x, y + 2, Object.assign({}, opt, { fill: o.stroke || '#1b1425', stroke: o.stroke || '#1b1425', lw: 6 }));
-  if (o.fill) { text(g, s, x, y, Object.assign({}, opt, { fill: o.fill })); return; }
-  text(g, s, x, y, Object.assign({}, opt, { fill: '#ffd24a' }));
-  const z = Math.round(size), band = (yy, hh) => { const p = new Path2D(); p.rect(x - 2000, yy, 4000, hh); g.clip(p); }; g.save(); band(Math.round(y / 2) * 2 + 2, z); text(g, s, x, y, Object.assign({}, opt, { fill: '#e09a28' })); g.restore();
-  g.save(); band(Math.round(y / 2) * 2 - z, Math.round(z * 0.28 / 2) * 2); text(g, s, x, y, Object.assign({}, opt, { fill: '#fff6a8' })); g.restore();
-}
 // 빛줄기: 비스듬한 빛 띠가 판 위를 천천히 지나간다 (period 초마다 한 번)
 export function shine(g, x, y, w, h, r, period = 4.2, a = 0.28, ph = 0) {
-  if (GFX.pixel) return;   // 도트: 매끈한 빛줄기는 쓰지 않는다
   const t = ((performance.now() / 1000 + ph) % period) / period, k = t * 1.6 - 0.3; if (k < -0.2 || k > 1.2) return;
   g.save(); g.beginPath(); rrPath(g, x, y, w, h, r); g.clip(); const cx = x + k * (w + h);
   const gr = g.createLinearGradient(cx - h, y, cx, y + h); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, `rgba(255,250,230,${a})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
@@ -91,7 +78,6 @@ export function shine(g, x, y, w, h, r, period = 4.2, a = 0.28, ph = 0) {
 }
 // 장식 가름선: 가운데 금빛 마름모와 양쪽으로 가늘어지는 금선
 export function divider(g, x, y, w, col = '#c9962e') {
-  if (GFX.pixel) return PX.dividerFace(g, x, y, w);
   const gr = g.createLinearGradient(x - w / 2, 0, x + w / 2, 0); gr.addColorStop(0, 'rgba(201,150,46,0)'); gr.addColorStop(0.5, col); gr.addColorStop(1, 'rgba(201,150,46,0)');
   g.fillStyle = gr; g.fillRect(x - w / 2, y - 0.8, w, 1.6); poly(g, [x - 7, y, x, y - 6, x + 7, y, x, y + 6], col, 'rgba(60,36,10,0.8)', 1); ell(g, x, y, 1.6, 1.6, '#fff4c8');
   for (const s of [-1, 1]) ell(g, x + s * 14, y, 2, 2, col);
@@ -148,7 +134,6 @@ function hudPanel(g, w, h) {
   g.fillStyle = foil(g, 0, w); g.fillRect(0, h, w, 3.4); g.fillStyle = 'rgba(255,248,220,0.55)'; g.fillRect(0, h, w, 0.8); g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, h + 3.4, w, 1.4);
 }
 export function panel(g, x, y, w, h, style = 'paper') {
-  if (GFX.pixel) return PX.panel(g, x, y, w, h, style);
   if (style === 'paper') bake(g, `p:${w}:${h}`, x, y, w, h, 26, c => paperPanel(c, w, h));
   else if (style === 'navy') bake(g, `n:${w}:${h}`, x, y, w, h, 26, c => navyPanel(c, w, h));
   else if (style === 'tray') bake(g, `t:${w}:${h}`, x, y, w, h, 6, c => trayPanel(c, w, h));
@@ -163,8 +148,6 @@ const BTN = {
 export function button(g, id, x, y, w, h, label, o = {}) {
   const name = o.style || 'indigo', sty = BTN[name], dis = !!o.disabled, light = name === 'paper' || name === 'grey';
   const hit = !dis && tapped(id, x, y, w, h), dn = !dis && isDown(id, x, y, w, h), off = dn ? 3 : 0;
-  if (GFX.pixel) { g.save(); if (dis) g.globalAlpha *= 0.55; const f = PX.buttonFace(g, x, y, w, h, name, dn), size = o.size || Math.min(36, h * 0.46), tx = x + w / 2, ty = f.yy + h / 2 - 2, tw = w - (w >= 200 && h >= 50 ? 44 : 16);
-    if (f.shadow) text(g, label, tx, ty + 2, { size, font: o.font || FONT_B, fill: f.shadow, maxW: tw }); text(g, label, tx, ty, { size, font: o.font || FONT_B, fill: name === 'grey' ? '#5a5346' : f.ink, maxW: tw }); g.restore(); if (hit && ui.sfx) ui.sfx('click'); return hit; }
   const r = o.r === undefined ? Math.min(11, h * 0.2) : Math.min(o.r, 12), yy = y + off, orn = w >= 220 && h >= 50;
   g.save(); if (dis) g.globalAlpha *= 0.55;
   for (const [d, a] of [[9, 0.08], [6, 0.11], [3, 0.14]]) rr(g, x - d * 0.4, y + 5 + d * 0.5, w + d * 0.8, h, r + d * 0.4, `rgba(10,8,20,${a})`);   // 바닥에 지는 부드러운 그림자 (흐림 효과 없이 겹쳐 그린다)
@@ -192,7 +175,6 @@ export function button(g, id, x, y, w, h, label, o = {}) {
 }
 export function iconBtn(g, id, x, y, w, h, draw, o = {}) {
   const hit = tapped(id, x, y, w, h), dn = isDown(id, x, y, w, h), off = dn ? 2 : 0;
-  if (GFX.pixel) { PX.iconFace(g, x, y, w, h, o.on, dn); draw(g, x + w / 2, y + h / 2 + off); if (hit && ui.sfx) ui.sfx('click'); return hit; }
   rr(g, x, y + 3, w, h, 7, '#8a7a58', INK, 2.2); rr(g, x, y + off, w, h, 7, foil(g, x, x + w), INK, 2.2);
   rr(g, x + 2.6, y + 2.6 + off, w - 5.2, h - 5.2, 5, o.on ? vgrad(g, y, y + h, '#f8e6ac', '#e6c978') : vgrad(g, y, y + h, '#fffaee', '#e8dcbd'), 'rgba(60,36,10,0.6)', 1);
   g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(x + 7, y + 4.4 + off, w - 14, 1.4);
@@ -201,7 +183,6 @@ export function iconBtn(g, id, x, y, w, h, draw, o = {}) {
   return hit;
 }
 export function bar(g, x, y, w, h, t, col, o = {}) {
-  if (GFX.pixel) return PX.barFace(g, x, y, w, h, t, col, o);
   rr(g, x, y, w, h, h / 2, o.back || '#0d1424', 'rgba(20,22,34,0.42)', 1); const f = clamp(t, 0, 1);
   if (f > 0.01) {
     const fw = (w - 4) * f, fx = o.right ? x + 2 + (w - 4) * (1 - f) : x + 2, ih = h - 4;
@@ -214,17 +195,15 @@ export function bar(g, x, y, w, h, t, col, o = {}) {
 // 붉은 도장: 테두리를 한 번 더 새긴 낙관. ch = 가운데에 새기는 그림 기호의 이름 (symbols.js. 기호가 아니면 글자로 찍는다 — 물음표)
 export function seal(g, x, y, s, ch, col = RED, o = {}) {
   const dk = o.dark || 'rgba(30,20,20,0.55)', r = s * 0.14, x0 = x - s / 2, y0 = y - s / 2;
-  if (GFX.pixel) { PX.sealFace(g, x, y, s, col); if (hasSymbol(ch)) symbol(g, ch, x, y + (o.dy || 0), s * (o.k || 0.76), C.cream); else text(g, ch, x, y + s * 0.04 + (o.dy || 0), { size: s * (o.k || 0.6), font: FONT_B, fill: C.cream }); return; }
   rr(g, x0, y0, s, s, r, col, dk, Math.max(1.6, s * 0.03));
   if (s >= 22) { g.save(); g.beginPath(); rrPath(g, x0, y0, s, s, r); g.clip(); g.fillStyle = 'rgba(255,255,255,0.13)'; g.fillRect(x0, y0, s, s * 0.4); g.fillStyle = 'rgba(0,0,0,0.13)'; g.fillRect(x0, y0 + s * 0.84, s, s); g.restore(); }
   g.save(); g.globalAlpha *= 0.5; rr(g, x0 + s * 0.085, y0 + s * 0.085, s * 0.83, s * 0.83, s * 0.07, null, C.cream, Math.max(0.8, s * 0.026)); g.restore();
   if (hasSymbol(ch)) symbol(g, ch, x, y + (o.dy || 0), s * (o.k || 0.76), C.cream); else text(g, ch, x, y + s * 0.04 + (o.dy || 0), { size: s * (o.k || 0.6), font: FONT_B, fill: C.cream });
 }
 // 둥근 도장 자국: 두 겹 테 안에 그림 기호 하나
-export function stamp(g, x, y, r, ch, col = RED, rot = -0.12) { if (GFX.pixel) { PX.stampFace(g, x, y, r, col); if (hasSymbol(ch)) symbol(g, ch, x, y, r * 1.28, col); else text(g, ch, x, y + r * 0.08, { size: r * 1.15, font: FONT_B, fill: col }); return; } g.save(); g.translate(x, y); g.rotate(rot); ell(g, 0, 0, r, r, 'rgba(251,247,236,0.82)', col, r * 0.1); ell(g, 0, 0, r * 0.82, r * 0.82, null, col, r * 0.04); if (hasSymbol(ch)) symbol(g, ch, 0, 0, r * 1.28, col); else text(g, ch, 0, r * 0.08, { size: r * 1.15, font: FONT_B, fill: col }); g.restore(); }
+export function stamp(g, x, y, r, ch, col = RED, rot = -0.12) { g.save(); g.translate(x, y); g.rotate(rot); ell(g, 0, 0, r, r, 'rgba(251,247,236,0.82)', col, r * 0.1); ell(g, 0, 0, r * 0.82, r * 0.82, null, col, r * 0.04); if (hasSymbol(ch)) symbol(g, ch, 0, 0, r * 1.28, col); else text(g, ch, 0, r * 0.08, { size: r * 1.15, font: FONT_B, fill: col }); g.restore(); }
 // 붓으로 한 번에 그은 제목 띠: 붓끝이 갈라지고 마른 붓 자국(비백)이 남는다
 export function brushTitle(g, x, y, w, h, label, col = INDIGO, size = 40) {
-  if (GFX.pixel) { PX.ribbon(g, x, y, w, h, col); goldText(g, label, x, y - 4, { size: Math.min(size, h * 0.62), maxW: w - 20 }); return; }
   const L = x - w / 2 - 20, Rt = x + w / 2 + 20, t = y - h / 2, b = y + h / 2;
   const body = p => { p.moveTo(L + 10, t + 5); p.quadraticCurveTo(L - 7, y - 2, L + 6, b - 3); p.quadraticCurveTo(x, b + 3, Rt - 34, b - 2); p.lineTo(Rt - 3, b - 8); p.lineTo(Rt - 27, b - h * 0.24); p.lineTo(Rt + 9, y + 3); p.lineTo(Rt - 23, y - h * 0.1); p.lineTo(Rt + 2, t + h * 0.16); p.lineTo(Rt - 30, t + 3); p.quadraticCurveTo(x, t - 3, L + 10, t + 5); p.closePath(); };
   g.save(); g.translate(2.5, 4.5); g.globalAlpha *= 0.24; path(g, body, '#1a1420'); g.restore();
@@ -241,7 +220,6 @@ export function brushTitle(g, x, y, w, h, label, col = INDIGO, size = 40) {
 
 // 옻칠 이름판: 검붉은 나무판에 금박 테와 놋쇠 못, 안에는 한지. col 이 있으면 한지 위쪽에 빛깔 띠
 export function plaque(g, x, y, w, h, o = {}) {
-  if (GFX.pixel) return PX.plaqueFace(g, x, y, w, h, o);
   const d = o.down ? 3 : 0, yy = y + d;
   rr(g, x + 3, y + 7, w, h, 10, 'rgba(6,4,10,0.45)');
   const wg = g.createLinearGradient(0, yy, 0, yy + h); wg.addColorStop(0, '#6a3a22'); wg.addColorStop(0.5, '#4a2616'); wg.addColorStop(1, '#2c160c'); rr(g, x, yy, w, h, 10, wg, '#1a0c06', 2);
@@ -255,7 +233,6 @@ export function plaque(g, x, y, w, h, o = {}) {
 
 // 두루마리: 한지 바탕에 옻칠 축, 축 끝엔 금 마개와 붉은 끈
 export function scroll(g, x, y, w, h) {
-  if (GFX.pixel) return PX.scrollFace(g, x, y, w, h);
   rr(g, x + 4, y + 7, w, h, 6, 'rgba(6,4,10,0.45)');
   const pg = g.createLinearGradient(0, y, 0, y + h); pg.addColorStop(0, '#fcf6e6'); pg.addColorStop(1, '#ecdcb8'); rr(g, x, y, w, h, 4, pg, '#5a4030', 1.8);
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.globalAlpha = 0.08; for (let i = 0; i < w * h / 600; i++) { const fx = x + ((i * 97) % w), fy = y + ((i * 53) % h); line(g, [fx, fy, fx + 8, fy + 2], i % 2 ? '#7a6040' : '#ffffff', 0.8); } g.restore();
@@ -267,7 +244,6 @@ export function scroll(g, x, y, w, h) {
 // 걸린 현판: 짙은 옻칠 판에 금박 글자와 귀장식
 export function hangSign(g, cx, y, label, o = {}) {
   const w = o.w || 300, h = o.h || 56, x = cx - w / 2;
-  if (GFX.pixel) { PX.signFace(g, cx, y, w, h, o.rope); goldText(g, label, cx, y + h / 2, { size: o.size || 26, maxW: w - 60 }); return; }
   if (o.rope !== false) for (const s of [-1, 1]) line(g, [cx + s * (w * 0.32), y - 18, cx + s * (w * 0.32), y + 4], '#2a1a10', 2.2);
   rr(g, x + 3, y + 6, w, h, 8, 'rgba(6,4,10,0.5)');
   const wg = g.createLinearGradient(0, y, 0, y + h); wg.addColorStop(0, '#2a1a20'); wg.addColorStop(1, '#120a10'); rr(g, x, y, w, h, 8, wg, '#000', 2);
@@ -278,10 +254,9 @@ export function hangSign(g, cx, y, label, o = {}) {
 
 // 말풍선: 인형 머리 위에 뜨는 한지 쪽지. (x, y) = 말하는 이의 머리 위, k = 0→1 로 톡 튀어나온다
 export function bubble(g, x, y, s, k = 1) {
-  g.save(); g.font = fontCss(16);
+  g.save(); g.font = `700 16px ${FONT}`;
   const lines = []; let cur = ''; for (const w of s.split(' ')) { const t = cur ? cur + ' ' + w : w; if (cur && g.measureText(t).width > 250) { lines.push(cur); cur = w; } else cur = t; } lines.push(cur);
   const w = Math.max(...lines.map(l => g.measureText(l).width)) + 28, h = lines.length * 21 + 15, bx = clamp(x - w / 2, 10, 1270 - w), by = y - h - 11, tx = clamp(x, bx + 14, bx + w - 14);
-  if (GFX.pixel) { g.globalAlpha *= Math.min(1, k * 1.4); const yo = (1 - Math.min(1, k)) * 10; PX.bubbleFace(g, bx, by + yo, w, h, tx, y + yo); lines.forEach((l, i) => text(g, l, bx + w / 2, by + yo + 18.5 + i * 21, { size: 16 })); g.restore(); return; }
   g.translate(tx, y); g.scale(k, k); g.translate(-tx, -y); g.globalAlpha *= Math.min(1, k * 1.4);
   const shape = (dx, dy) => { g.beginPath(); rrPath(g, bx + dx, by + dy, w, h, 9); g.moveTo(tx - 7 + dx, by + h - 1 + dy); g.lineTo(tx + dx, y + dy); g.lineTo(tx + 7 + dx, by + h - 1 + dy); g.closePath(); };
   shape(2, 3); g.fillStyle = 'rgba(40,28,16,0.24)'; g.fill();
@@ -295,7 +270,6 @@ export const icon = {
   flag(g, x, y, s = 1, col = INDIGO) { line(g, [x, y + 12 * s, x, y - 14 * s], INK, 3.4 * s); line(g, [x, y + 12 * s, x, y - 14 * s], '#7a5a40', 1.8 * s); poly(g, [x, y - 14 * s, x + 15 * s, y - 10.5 * s, x, y - 6 * s], col, INK, 1.3 * s); },
   // 엽전: 둥근 테에 네모 구멍. 꺼진 것은 빈 자리로 그린다
   coin(g, x, y, r, on = true) {
-    if (GFX.pixel) return PX.coin(g, x, y, r, on ? 'on' : 'off');
     if (!on) { ell(g, x, y, r, r, 'rgba(6,10,22,0.45)', 'rgba(154,166,196,0.5)', Math.max(1, r * 0.09)); rr(g, x - r * 0.3, y - r * 0.3, r * 0.6, r * 0.6, 1, null, 'rgba(154,166,196,0.38)', 1); return; }
     const lw = Math.max(1.1, r * 0.1);
     ell(g, x, y, r, r, '#e4b54c', INK, lw);

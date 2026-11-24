@@ -12,12 +12,6 @@ import { Fx, glow, trailImg } from './fx.js';
 import { paintFar, paintBack, paintGround, paintFront, paintTrees } from './painted.js';
 import { forkArt, drawForkGlow, LM_K } from './forkmap.js';
 import { icon } from '../ui/ui.js';
-import { GFX } from '../pixel/gfx.js';
-import { pxPaper, lowres } from '../pixel/paper.js';
-import { pxUnder, pxOver, pxZone, pxDeploy, pxForm, pxOrders, pxProj, flagPx } from '../pixel/marks.js';
-import { swingPx, tagPx, rect as prect, line as pline, LX } from '../pixel/fx.js';
-import { pxUnit } from '../pixel/units.js';
-import { pxFieldDraw, pxWeatherFront, pxTrees, pxTree, pxShadow, pxBody, prewarmPxField } from '../pixel/battle.js';
 
 const PI = Math.PI;
 // 쓰러진 자리에 남는 것
@@ -30,7 +24,7 @@ const HIT_T = 0.22, HIT_PX = 6;
 // T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
 export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   // 그슨대는 살아 있는 동안 점점 커진다
-  const lk = u.look || (u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : lookOf(u.type, u.def && u.def.br)), L = getLook(lk), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
+  const L = getLook(u.look || (u.tails !== undefined && u.tails < 9 ? 'gumiho' + Math.max(1, u.tails) : lookOf(u.type, u.def && u.def.br))), k = L.scale * (u.grown ? 1 + u.grown * (u.def && u.def.boss ? 0.045 : 0.075) : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
   if (u._dir === undefined) { u._dir = u.team === 0 ? 1 : -1; u._flipT = -9; }
@@ -60,21 +54,14 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
   if (u.def && u.def.cloak) alpha *= 0.5 + 0.12 * Math.sin(T * 3 + u.id);   // 감투 도깨비: 도깨비감투를 써서 반쯤 비친다
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
-  if (GFX.pixel) { if (!L.float && !u.jumpH) pxShadow(g, u.x + 1, u.y + 2, u.r * 1.15 * Math.min(1.8, k) * (L.gshadow ? 1.6 : 1)); }
-  else if (!L.float && !L.gshadow && !u.jumpH && !L.still) { g.fillStyle = 'rgba(70,46,22,0.2)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1.5, u.r * 1.05 * Math.min(1.6, k), u.r * 0.34 * Math.min(1.6, k), 0, 0, TAU); g.fill(); }   // 발밑의 옅은 그림자 (들판에 묻히지 않게)
-  if (L.gshadow && !GFX.pixel) { const [dx, dy, rx, ry] = L.gshadow; for (const [m, a2] of [[1.15, 0.12], [1, 0.2], [0.8, 0.18]]) { g.fillStyle = `rgba(58,38,24,${a2})`; g.beginPath(); g.ellipse(x + dx * k, u.y + dy * k, rx * k * m, ry * k * m, 0, 0, TAU); g.fill(); } }   // 땅에 닿은 그림자 (수레)
+  if (!L.float && !L.gshadow && !u.jumpH && !L.still) { g.fillStyle = 'rgba(70,46,22,0.2)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1.5, u.r * 1.05 * Math.min(1.6, k), u.r * 0.34 * Math.min(1.6, k), 0, 0, TAU); g.fill(); }   // 발밑의 옅은 그림자 (들판에 묻히지 않게)
+  if (L.gshadow) { const [dx, dy, rx, ry] = L.gshadow; for (const [m, a2] of [[1.15, 0.12], [1, 0.2], [0.8, 0.18]]) { g.fillStyle = `rgba(58,38,24,${a2})`; g.beginPath(); g.ellipse(x + dx * k, u.y + dy * k, rx * k * m, ry * k * m, 0, 0, TAU); g.fill(); } }   // 땅에 닿은 그림자 (수레)
   if (L.float || u.jumpH) { g.fillStyle = 'rgba(50,36,20,0.16)'; g.beginPath(); g.ellipse(u.x, u.y + 1, u.r * 0.9, u.r * 0.36, 0, 0, TAU); g.fill(); }
-  if (GFX.pixel) pxUnder(g, u, T, alpha);
-  else {
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
   if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
-  if (u.slow > 0) { g.globalAlpha = alpha * 0.8; ell(g, u.x, u.y + 1, u.r * 1.05, u.r * 0.46, 'rgba(143,211,232,0.5)', '#4f8fb8', 1.2); g.globalAlpha = alpha; } }
+  if (u.slow > 0) { g.globalAlpha = alpha * 0.8; ell(g, u.x, u.y + 1, u.r * 1.05, u.r * 0.46, 'rgba(143,211,232,0.5)', '#4f8fb8', 1.2); g.globalAlpha = alpha; }
   const by = y - hop * k, fl = u.flash > 0 ? (u.def && u.def.boss ? Math.min(0.35, u.flash * 0.45) : u.flash * 0.85) : 0;   // 두목은 쉴 새 없이 맞으므로 옅게만 번쩍인다 (하얗게 바래면 유령처럼 보인다)
-  if (u.root > 0 && !GFX.pixel) { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + u.id; g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, INK, 4); g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, '#5f9a4a', 2); } }
-  let top;
-  // 도트: 한 장짜리 인형을 2배로 찍는다 (걷기·치기는 그림을 바꿔 끼운다. 기울이거나 찌그러뜨리지 않는다)
-  if (GFX.pixel) top = pxBody(g, lk, u.def && u.def.wpn, x, by, dir, act > 0.25 ? 'atk' : moving && Math.sin(ph) > 0 ? 'step' : 'stand', fl, k / L.scale);
-  else {
+  if (u.root > 0) { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + u.id; g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, INK, 4); g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, '#5f9a4a', 2); } }
   const sx = dir * k * flip * sxm;
   const bl = blinking(T, u.id);
   drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, by, sx, k * sy, tilt, fl);
@@ -107,10 +94,8 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
     else if (hand === 'C') put(hold.x * 0.42, hold.y - 1.5, dir);
     else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
   }
-  top = by - L.h * k; }
+  const top = by - L.h * k;
   // ── 두목 싸움의 표시들 (sim/bossfight.js) ──
-  // 도트: 휘두른 자국과 상태 표시·띠는 도트판으로 그리고 끝낸다
-  if (GFX.pixel) { swingPx(g, mode, x, by, dir, ap, (by - top) / 2, u.team, alpha); pxOver(g, u, { x, by, top, T, alpha, ST, L, dir }); g.restore(); return; }
   if (u.open > 0) { const p = 0.55 + 0.45 * Math.sin(T * 11); g.globalAlpha = alpha * p; g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.7, u.r * 0.8, 0, 0, TAU); st(g, '#f0d264', 5); g.globalAlpha = alpha; }   // '빈틈' 글은 두목 체력 칸 아래에 쓴다
   if (u.charm > 0) { for (let i = 0; i < 2; i++) { g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, INK, 4); g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, '#e07ac0', 2.2); } }
   if (u.plague > 0) for (let i = 0; i < 3; i++) { const q = (T * 0.9 + i / 3 + u.id * 0.37) % 1; g.globalAlpha = alpha * (1 - q) * 0.9; ell(g, x + Math.sin(q * 6 + i * 2) * 7, by - 8 - q * (L.h * k), 3.4 - q * 1.6, 3.4 - q * 1.6, '#8ac04a', INK, 0.8); g.globalAlpha = alpha; }
@@ -154,7 +139,6 @@ const AMB = { pass: ['#f0d264', '#e8c24a', '#a9c47a'],   // 산수유 꽃잎과 
   grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#c08ad8', '#b8a0e0', '#8fd3c8'] };
 // 붉지 않은 원에는 무엇인지 이름을 붙인다
 const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입 — 원 밖으로', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인', swap: '자리 바꾸기', rock: '바위', fire: '불길', shoe: '신발 도둑', gallop: '내달리기', rope: '포승줄', breath: '세 머리 입김', wail: '소리 없는 울음' };
-const ICOLB = '#1b1425';
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
 // 이어 붙인 긴 그림 한 장(너비 period)을 화면에 보이는 만큼만 그린다. top 위쪽은 투명해서 건너뛴다
@@ -174,7 +158,7 @@ function strip(g, img, period, off, top) {
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.fork = null; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
-    this.seed = seed; this.theme = theme; if (GFX.pixel) prewarmPxField(theme); this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
+    this.seed = seed; this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
@@ -185,12 +169,10 @@ export class BattleView {
   draw(g, b, T, opt = {}) {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
-    if (fx.shake > 0) { if (GFX.pixel) g.translate(Math.round((Math.random() - 0.5) * fx.shake / 2) * 2, Math.round((Math.random() - 0.5) * fx.shake / 2) * 2); else g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake); }
+    if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
     // 배경은 두 벌: 'paint' 붓으로 칠한 풍경화(기본) · 'paper' 종이 디오라마. 위 띠의 단추로 바꿔 볼 수 있다
     const paint = this.style !== 'paper';
-    const pix = GFX.pixel;
-    if (pix) pxFieldDraw(g, this.theme, this.skyA, T, sc);
-    else if (paint) { strip(g, paintFar(this.theme, this.seed), FW, sc * 0.25, 0); strip(g, paintBack(this.theme), BW, sc * 0.5, 0); strip(g, paintGround(this.theme, this.seed), GW, sc, 100); }
+    if (paint) { strip(g, paintFar(this.theme, this.seed), FW, sc * 0.25, 0); strip(g, paintBack(this.theme), BW, sc * 0.5, 0); strip(g, paintGround(this.theme, this.seed), GW, sc, 100); }
     else {
       strip(g, this.far, FW, sc * 0.25, 0);
       // 큰 산과 언덕: 먼 산보다 빠르고 바닥보다 느리게 흐른다
@@ -198,18 +180,16 @@ export class BattleView {
       strip(g, this.ground, GW, sc, 200);
     }
     // 지평선의 역광: 화면에 고정된 따뜻한 빛 무리와 빛살 (종이 디오라마)
-    if (!pix) { const bl = backlight(isNight(this.theme)), k = bl.width / W; g.save(); g.globalCompositeOperation = 'screen'; if (paint) g.globalAlpha = 0.55; g.drawImage(bl, 0, 0, bl.width, 610 * k, 0, 0, W, 610); g.restore(); }
+    { const bl = backlight(isNight(this.theme)), k = bl.width / W; g.save(); g.globalCompositeOperation = 'screen'; if (paint) g.globalAlpha = 0.55; g.drawImage(bl, 0, 0, bl.width, 610 * k, 0, 0, W, 610); g.restore(); }
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
-    const river = q => { if (kout > 0) drawRiver(q, this.oldTer, this.theme, T, kout); drawRiver(q, this.ter, this.theme, T, kin); };
-    if (pix && ((this.ter && this.ter.river) || (kout > 0 && this.oldTer.river))) lowres(g, river); else river(g);
+    if (kout > 0) drawRiver(g, this.oldTer, this.theme, T, kout); drawRiver(g, this.ter, this.theme, T, kin);
     // 갈림길: 흙길이 갈래로 나뉘는 바닥 그림 (닿은 뒤 걸음이 조금 더 갔으면 그 자리로 살며시 옮긴다). 고른 갈래가 싸움터면 옅어진다
     if (this.fork) { const f = this.fork, dt = opt.dt || 0; if (f.target !== undefined) f.wx += (f.target - f.wx) * Math.min(1, dt * 8); if (f.fade) f.alpha = Math.max(0, f.alpha - dt * 1.4); if (f.pick) f.pickT += dt;
-      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { const paintFork = q => { q.globalAlpha = f.alpha; q.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); q.globalAlpha = 1; }; if (pix) lowres(g, paintFork); else paintFork(g); if (f.alpha > 0.5) { if (pix) lowres(g, q => drawForkGlow(q, f, ox, T)); else drawForkGlow(g, f, ox, T); } } }
+      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { g.globalAlpha = f.alpha; g.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); g.globalAlpha = 1; if (f.alpha > 0.5) drawForkGlow(g, f, ox, T); } }
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
-    if (pix) { /* 도트: 앞 풀숲까지 배경 겹이 그린다 */ }
-    else if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
+    if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);
       // 모서리 꽃나무: 들판 가장자리를 꾸미되 인형·표시는 가리지 않게 그 아래에 깐다
       // 싸움 중 들판 한가운데 멈춘 나무는 옅게 (붉은 원 같은 표시가 꽃빛에 묻히지 않게). 행군 중에는 그대로 흐른다
       const off2 = sc % GW; for (const p of paintTrees(this.theme)) if (p.under) for (const k of [0, 1]) { const x = p.wx - off2 + k * GW; if (x > -p.hw * 1.6 && x < W + p.hw * 1.6) { const mid = opt.march ? 0 : clamp(1 - (Math.abs(x - W / 2) - 380) / 160, 0, 1); g.globalAlpha = 1 - 0.55 * mid; drawSprite(g, p.spr, x, p.y); g.globalAlpha = 1; } }
@@ -218,7 +198,7 @@ export class BattleView {
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
       if (c.revive) { g.globalAlpha = 0.85; path(g, p => { p.moveTo(c.x, c.y - 16); p.quadraticCurveTo(c.x + 7, c.y - 6, c.x + 4, c.y); p.quadraticCurveTo(c.x, c.y + 3, c.x - 4, c.y); p.quadraticCurveTo(c.x - 7, c.y - 6, c.x, c.y - 16); }, '#9fd3e8', INK, 1); g.globalAlpha = 1; g.beginPath(); g.arc(c.x, c.y - 4, 14, -PI / 2, -PI / 2 + TAU * (1 - c.t / 3)); st(g, '#4f8fb8', 2.6); }
-      else if (LEFT[c.type]) { g.globalAlpha = clamp(c.t / 2, 0, 1); if (pix) pxPaper(g, leftover(LEFT[c.type]), c.x, c.y, 1, (c.x | 0) % 2 === 0); else drawSprite(g, leftover(LEFT[c.type]), c.x, c.y, 1, 1, ((c.x * 7 + c.y * 13) % 10 - 5) * 0.09); g.globalAlpha = 1; } // 도깨비는 헌 물건으로, 망령은 호패로 돌아간다
+      else if (LEFT[c.type]) { g.globalAlpha = clamp(c.t / 2, 0, 1); drawSprite(g, leftover(LEFT[c.type]), c.x, c.y, 1, 1, ((c.x * 7 + c.y * 13) % 10 - 5) * 0.09); g.globalAlpha = 1; } // 도깨비는 헌 물건으로, 망령은 호패로 돌아간다
       else { g.globalAlpha = clamp(c.t / 3, 0, 0.6); poly(g, [c.x - 7, c.y - 1, c.x - 2, c.y - 5, c.x + 6, c.y - 3, c.x + 8, c.y + 2, c.x - 3, c.y + 4], PAPER, INK, 1); g.globalAlpha = 1; }
     }
     if (opt.rings) for (const r of opt.rings) { g.globalAlpha = 0.9; ell(g, r.x, r.y + 1, r.r * 1.35, r.r * 0.72, r.col + '55', r.col, 2.4); g.globalAlpha = 1; }
@@ -236,35 +216,35 @@ export class BattleView {
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     // 들판의 큰 소나무: 밑동 높이로 인형들과 앞뒤를 맞추고, 뒤에 인형이나 표시(붉은 원 …)가 가려지면 옅어진다
-    const pt = pix ? pxTrees(this.theme) : null, PER = pix ? pt.period : GW, pa = this.pineA || (this.pineA = {}), off = sc % PER;
-    (pix ? pt.list : (paint ? paintTrees : scenePines)(this.theme)).forEach((p, i) => { if (p.under) return; for (let k = 0; k * PER < W + PER * 2; k++) {
-      const x = p.wx - off + k * PER; if (x < -p.hw * 1.6 || x > W + p.hw * 1.6) continue;
+    const pa = this.pineA || (this.pineA = {}), off = sc % GW;
+    (paint ? paintTrees : scenePines)(this.theme).forEach((p, i) => { if (p.under) return; for (const k of [0, 1]) {
+      const x = p.wx - off + k * GW; if (x < -p.hw * 1.6 || x > W + p.hw * 1.6) continue;
       const hid = q => q.y < p.y + 4 && q.y > p.y - p.h && Math.abs(q.x - x) < p.hw + (q.r || 0);
       const behind = !!opt.deploy || b.units.some(u => !u.dead && !(u.hidden > 0) && hid(u)) || b.zones.some(hid);
-      const key = (pix ? 'x' : paint ? 'p' : '') + i + ':' + k, a0 = pa[key] === undefined ? 1 : pa[key]; pa[key] = a0 + ((behind ? p.fade || 0.32 : 1) - a0) * 0.18;
-      list.push({ y: p.y, x, pine: p.spr, a: pa[key], px: pix ? p : null });
+      const key = (paint ? 'p' : '') + i + ':' + k, a0 = pa[key] === undefined ? 1 : pa[key]; pa[key] = a0 + ((behind ? p.fade || 0.32 : 1) - a0) * 0.18;
+      list.push({ y: p.y, x, pine: p.spr, a: pa[key] });
     } });
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.px) pxTree(g, it.px, it.x, it.a); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr && pix) { const a0 = it.al === undefined ? 1 : it.al, k2 = it.sy === undefined ? 1 : Math.min(1, it.sy * 1.4); if (k2 > 0.02) { g.globalAlpha = a0 * k2; pxPaper(g, it.spr, it.x, it.sy0 === undefined || it.sy !== undefined ? it.y : it.sy0, it.k || 1); g.globalAlpha = 1; } } else if (it.spr) { if (it.al !== undefined) g.globalAlpha = it.al; if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0, it.k || 1, it.k || 1); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); g.globalAlpha = 1; } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.pine) { g.globalAlpha = it.a; drawSprite(g, it.pine, it.x, it.y); g.globalAlpha = 1; } else if (it.spr) { if (it.al !== undefined) g.globalAlpha = it.al; if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.sy0 === undefined ? it.y : it.sy0, it.k || 1, it.k || 1); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); g.globalAlpha = 1; } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { for (const p of b.proj) if (p.kind === 'fireball' || p.kind === 'firearrow' || p.kind === 'sunfire') { const yy = p.lob ? p.y - (p.h || 0) - 10 : p.y; fx.embers(p.x, yy, 1, '#ff9a2e'); }   // 불화살·불덩이의 불티 꼬리
       this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
-    if (pix) pxWeatherFront(g, this.theme, this.skyA, T); else this.drawAmbient(g, T, opt.dt || 0, opt.march);
+    this.drawAmbient(g, T, opt.dt || 0, opt.march);
     fx.drawLayer(g, false, false);   // (피해 숫자는 장면이 말풍선까지 그린 뒤 drawNums 로)
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형·효과·피해 숫자에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
-    const tag = pix ? (x, y, s, col) => tagPx(g, x, y, s, col) : (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
+    const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
-      if (u.dead || !(u.def.prop || u.def.porter || u.def.toad) || u.hidden > 0) continue; const a = u.ai || {}, L = getLook(u.type), top = pix ? u.y - pxUnit(u.type).h * 2 : u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + (pix ? (Math.sin(T * 6) > 0 ? 2 : -2) : Math.sin(T * 6) * 4);
-      if (!rest) { if (pix) { const X = LX(u.x), Y = LX(yy); for (let i = 0; i < 7; i++) { prect(g, X - 6 + i, Y - 7 + i, 13 - i * 2, 1, ICOLB); if (i < 6) prect(g, X - 5 + i, Y - 7 + i, 11 - i * 2, 1, i === 0 ? '#fff3b0' : '#f0d264'); } } else poly(g, [u.x - 11, yy - 13, u.x + 11, yy - 13, u.x, yy], '#f0d264', INK, 2); }
+      if (u.dead || !(u.def.prop || u.def.porter || u.def.toad) || u.hidden > 0) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
+      if (!rest) poly(g, [u.x - 11, yy - 13, u.x + 11, yy - 13, u.x, yy], '#f0d264', INK, 2);
       const own = a.owner && a.owner.ai, verb = { pearl: '여의주를 깨라', mirror: '업경대를 깨라', scribe: '붓 든 사자를 잡아라', cage: '우리를 부숴라', porter: '짐꾼을 잡아라', dokbang: '방망이를 부러뜨려라', toad: '두꺼비를 지켜라', sieve: '곁에 부대를 세워라' }[u.type] || u.def.name, s = u.type === 'sieve' ? `${verb} · 체 걸기 ${Math.round(Math.min(1, (a.hold || 0) / 2.5) * 100)}%` : u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${verb}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
       tag(u.x, yy - 32, s, rest ? '#8a8474' : a.count > 0 && a.count < 5 ? RED : '#7a4a2c');
     }
     // (홀린 부대에 할 일은 두목 체력 아래 알림 칸에 쓴다. 부대 위에는 소용돌이 표시만)
     // 명부: 이름이 적힌 부대와 명부 든 사자를 먹줄로 잇는다
-    { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; if (pix) { g.save(); g.globalAlpha = 0.85; const x0 = LX(q.cx), y0 = LX(q.cy - 60), x1 = LX(sc.x), y1 = LX(sc.y - 50), n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0))), off = Math.floor(T * 13); for (let i = 0; i < n; i++) if (((i + off) % 9) < 5) { const X = Math.round(x0 + (x1 - x0) * i / n), Y = Math.round(y0 + (y1 - y0) * i / n); prect(g, X - 1, Y - 1, 3, 3, ICOLB); prect(g, X, Y, 1, 1, '#f3e7c8'); } g.restore(); } else { g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], INK, 5); line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#f3e7c8', 2.4); g.setLineDash([]); g.restore(); } } }
+    { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], INK, 5); line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#f3e7c8', 2.4); g.setLineDash([]); g.restore(); } }
     // 붉지 않은 원의 이름과 연타의 차례: 부대에 가리지 않게 원 위쪽 테두리에 단다
     { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (z.style === 'fox' || put.some(q => q[2] === s2)) continue; const busy = fx.p.some(q => q.k === 'text' && Math.abs(q.x - z.x) < 150 && Math.abs(q.y - ty) < 36), ty2 = busy ? Math.min(VIEW.y1 - 4, z.y + z.r * 0.62 + 6) : ty; put.push([z.x, ty2, s2]); tag(z.x, ty2, s2, TELE[z.style] || RED); } }   // 같은 이름표는 하나만 (여우불은 두목이 외치므로 원에는 달지 않는다)
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
@@ -272,7 +252,7 @@ export class BattleView {
     // 강림 도령이 이름을 부른 부대: 세 번째 부름까지 남은 숨 (점선 원 밖으로 떼어 놓아야 한다)
     for (const q of b.squads) if (q.call > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `이름이 불렸다 · 점선 밖으로 ${Math.ceil(q.call)}`, q.call < 2.5 ? RED : '#5a4a8a');
     g.restore();
-    if (!pix) g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
+    g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   }
   // 진형: 진을 이룬 부대들을 금빛 먹줄로 잇고, 발밑에 금빛 테를 두른다 (선 순간 크게 번쩍인다)
@@ -281,7 +261,6 @@ export class BattleView {
     let pts = sq.map(q => [q.cx, q.cy]);
     if (f.id === 'jangsa') pts.sort((a, c) => a[0] - c[0]); else if (f.id === 'bangwon' && hq) pts.sort((a, c) => Math.atan2(a[1] - hq.cy, a[0] - hq.cx) - Math.atan2(c[1] - hq.cy, c[0] - hq.cx)); else pts.sort((a, c) => a[1] - c[1]);
     const age = T - (f.t0 === undefined ? (f.t0 = T) : f.t0), flash = Math.max(0, 1 - age / 0.8), pul = 0.55 + 0.25 * Math.sin(T * 4) + flash * 0.4;
-    if (GFX.pixel) return pxForm(g, pts, f.id === 'bangwon', f.id === 'bangwon' ? hq : null, flash, pul);
     g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
     const trace = () => { g.beginPath(); pts.forEach(([x, y], i) => { if (i) g.lineTo(x, y + 18); else g.moveTo(x, y + 18); }); if (f.id === 'bangwon') g.closePath(); };
     // 땅에 스민 금빛 붓줄: 넓고 옅은 번짐 위에 가는 금줄 (선 순간만 환하게)
@@ -296,7 +275,6 @@ export class BattleView {
   // 밤과 비: 싸움터의 하늘에 따라 천천히 덮였다가 걷힌다
   drawSky(g, b, T, dt) {
     const a = this.skyA, k = Math.min(1, dt * 2.2); a.night += ((b.sky === 'night' ? 1 : 0) - a.night) * k; a.rain += ((b.sky === 'rain' ? 1 : 0) - a.rain) * k;
-    if (GFX.pixel) return;   // 도트: 밤·비는 배경 그림과 날씨가 맡는다
     if (a.night > 0.01) { const lit = b.torch > 0; g.fillStyle = `rgba(16,20,58,${(lit ? 0.12 : 0.4) * a.night})`; g.fillRect(0, 60, W, 512); if (lit) { g.fillStyle = `rgba(255,170,60,${0.09 * a.night})`; g.fillRect(0, 60, W, 512); } }
     if (a.rain > 0.01) {
       g.fillStyle = `rgba(48,58,84,${0.2 * a.rain})`; g.fillRect(0, 60, W, 512); g.globalAlpha = 0.42 * a.rain;
@@ -314,13 +292,11 @@ export class BattleView {
   }
   // 병력 패를 끌 때: 세울 수 있는 곳을 옅게 칠한다
   drawDeployZone(g, d, T) {
-    if (GFX.pixel) return pxDeploy(g, d, T);
     const x1 = d.maxX + 34, col = d.ok ? INDIGO : RED;
     g.globalAlpha = 0.1; g.fillStyle = col; g.fillRect(VIEW.x0 - 6, VIEW.y0 - 26, x1 - VIEW.x0 + 6, VIEW.y1 - VIEW.y0 + 40);
     g.globalAlpha = 0.75; g.setLineDash([12, 9]); g.lineDashOffset = -T * 30; line(g, [x1, VIEW.y0 - 26, x1, VIEW.y1 + 14], col, 3); g.setLineDash([]); g.globalAlpha = 1;
   }
   drawZone(g, z, T) {
-    if (GFX.pixel) return pxZone(g, z, T, TELE);
     if (z.kind === 'tele') {
       const col = z.ally ? INDIGO : TELE[z.style] || RED, k = clamp(z.t / z.delay, 0, 1);
       g.globalAlpha = 0.18; ell(g, z.x, z.y, z.r, z.r, col); g.globalAlpha = 0.3; ell(g, z.x, z.y, z.r * k, z.r * k, col);
@@ -364,7 +340,6 @@ export class BattleView {
     }
   }
   drawOrders(g, b, T) {
-    if (GFX.pixel) return pxOrders(g, b, T);
     for (const sq of b.squads) {
       if (sq.team !== 0 || sq.alive <= 0) continue; const o = sq.order;
       if (o.kind === 'move') { const dx = o.x - sq.cx, dy = o.y - sq.cy, d = Math.hypot(dx, dy) || 1, n = Math.floor(d / 16), ph = (T * 2) % 1; for (let i = 1; i < n; i++) { const f = (i + ph) / n, x = sq.cx + dx * f, y = sq.cy + dy * f + 8; g.globalAlpha = 0.32 * Math.sin(Math.PI * f); g.fillStyle = '#20181c'; g.beginPath(); g.ellipse(x, y, 3.2, 1.8, Math.atan2(dy, dx), 0, TAU); g.fill(); } g.globalAlpha = 1; icon.flag(g, o.x, o.y - 6, 1); }   // 옮겨 가는 길: 먹 발자국이 깃발 쪽으로 흐른다
@@ -377,7 +352,6 @@ export class BattleView {
     }
   }
   drawProj(g, p, T) {
-    if (GFX.pixel) return pxProj(g, p, T);
     if (p.lob) {
       const sh = 1 - Math.min(0.6, (p.h || 0) / 160); g.fillStyle = 'rgba(50,36,20,0.2)'; g.beginPath(); g.ellipse(p.x, p.y, 8 * sh, 4.5 * sh, 0, 0, TAU); g.fill();
       const yy = p.y - (p.h || 0) - 10, vx = (p.tx - p.sx) / p.dur, vy = (p.ty - p.sy) / p.dur - Math.cos(clamp(p.t / p.dur, 0, 1) * PI) * 120, a = Math.atan2(vy, vx);
@@ -472,7 +446,7 @@ export class BattleView {
         case 'synergy': case 'chase': case 'formation': case 'formLost': out.push(e); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
-          fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3, pxk: e.utype }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
+          fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
           // 요괴는 먹으로 번져 사라진다: 바닥에 먹 자국이 남고 먹 연기가 피어오른다
           if (e.team === 1) { fx.stain(e.x, e.y + 2, e.boss ? 2.6 : 0.6 + Math.random() * 0.35, e.boss ? 9 : 5); fx.wisp(e.x, e.y - 16, e.boss ? 8 : 2); }
           if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); fx.splat(e.x, e.y - 30, 2.8, MEOK, 1); fx.glyph(e.x, e.y - 96, 'slay', 150, JU, 1.7); sfx('boom'); } else sfx('death');
