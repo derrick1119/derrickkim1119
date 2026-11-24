@@ -372,7 +372,7 @@
     if (name === 'room' || name === 'kitchen') return 'room';
     if (name === 'home' || name === 'stew' || name === 'swing' || name === 'walk' || name === 'ending') return 'memory';
     const mood = bed ? bed.moodName : null;
-    if (ch === 7 && (mood === 'walk' || mood === 'home' || mood === 'still') && !v) return 'reunion';
+    if (ch === 9 && (mood === 'walk' || mood === 'home' || mood === 'still') && !v) return 'reunion';
     if (mood && MOOD_KIND[mood]) return MOOD_KIND[mood];
     return name === 'harbor' || /^ch\d/.test(name) ? 'harbor' : 'room';
   }

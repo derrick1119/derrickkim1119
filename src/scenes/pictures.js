@@ -272,4 +272,98 @@
     if (wh) for (let i = 0; i < 2; i++) { const life = (t * 0.9 + i * 0.5) % 1; P.fill(g, P.circle(a.x - 70 - life * 80, a.y - 150 - i * 12, 5 * (1 - life)), T.rgba('#3a3f5c', 1 - life)); }
     evening(g, '#a88f9e', '#fff0d6', 250, 560);
   };
+
+  /* ---------- the hospital room again, the year Ana is ill (chapter 7) ----------
+     The prologue's room the other way round: Ana (69) in the bed, Lily (39) asleep in the chair with her mother's
+     hand in hers, Nora asleep on a stool at the foot of the bed with her crayon drawing in her arms. The room is
+     drawn a little smaller and lower than the prologue has it, so that a strip of ceiling shows over it (the lake
+     fades the top of a picture): T.vig.WARD.ceiling is the middle of the ceiling over the bed, where the mobile's
+     shadows turn (T.mobile.thing's at), WARD.window the middle of the window, both in the picture's coordinates.
+     Night, for the lake. L.lit.mobile: the shadows' light on the ceiling. L.wake.k: Nora lifts her head and looks up
+     at them · L.look.k: Lily lifts hers · L.down.k: both of them back to sleep · L.win.k: a light come in at the
+     window and resting on Ana (the dream going in).
+     L.morning: the same room the next morning, without the lake (chapter 7 shows it as it is): Ana awake and sitting
+     up a little · L.nora.k: Nora up, leaning on the bed by her · L.turn.k: Ana turns her head to Nora · L.lily.k:
+     Lily awake, smiling through tears. */
+  const WARD = (T.vig.WARD = { Z: 0.84, DY: 150, CEIL: 232, ceiling: [124, 172], window: [-315, 436] });
+  function crayonDrawing(g, x, y, rot, s) {
+    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s);
+    P.fill(g, P.rr(-30, -22, 60, 44, 2), '#fbf6ea');
+    g.lineCap = 'round'; g.lineWidth = 2.6;
+    g.strokeStyle = '#c9573f'; g.beginPath(); g.moveTo(-20, 8); g.lineTo(-20, -4); g.lineTo(-12, -12); g.lineTo(-4, -4); g.lineTo(-4, 8); g.stroke();   /* a house */
+    g.strokeStyle = '#7fbfa4'; g.beginPath(); g.arc(10, -6, 5, 0, TAU); g.moveTo(10, -1); g.lineTo(10, 12); g.moveTo(4, 4); g.lineTo(16, 4); g.stroke();   /* someone, arms out */
+    g.strokeStyle = '#e9c45a'; g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 1.257, r = 5; g.lineTo(20 + Math.cos(a) * r, -14 + Math.sin(a) * r); } g.closePath(); g.stroke();   /* a star */
+    g.strokeStyle = '#e58aa0'; g.beginPath(); g.moveTo(-14, 16); g.quadraticCurveTo(-18, 12, -14, 10); g.quadraticCurveTo(-11, 12, -14, 16); g.moveTo(-14, 16); g.quadraticCurveTo(-10, 12, -14, 10); g.stroke();
+    g.restore();
+  }
+  function stool(g) { P.fill(g, P.rr(-288, 650, 76, 14, 5), '#b98a5a'); P.line(g, -280, 662, -286, 712, 5, '#9a6f48'); P.line(g, -220, 662, -214, 712, 5, '#9a6f48'); }
+  V_.ward = function (g, t, L) {
+    const W = T.view.W, R = T.scenes.room, Q = R.SPOTS, morn = !!L.morning, lit = (L.lit && L.lit.mobile) || 0;
+    const Z = morn ? 1 : WARD.Z, DY = morn ? 0 : WARD.DY;   /* the morning fills the screen: no lake, no ceiling to show */
+    const k = (o) => (o ? T.ease.io(T.clamp(o.k)) : 0);
+    const wake = k(L.wake), look = k(L.look), down = k(L.down), win = k(L.win), nk = k(L.nora), turn = k(L.turn), lk = k(L.lily);
+    const br = Math.sin(t * 1.1) * 0.01;
+    if (!morn) {   /* the ceiling, seen a little from below */
+      const cg = g.createLinearGradient(0, 0, 0, WARD.CEIL);
+      cg.addColorStop(0, '#2c3150'); cg.addColorStop(1, '#4a5274');
+      g.fillStyle = cg; g.fillRect(-W / 2, 0, W, WARD.CEIL + 40);
+    }
+    g.save(); g.translate(0, DY); g.scale(Z, Z);
+    R.paintStill(g, {
+      tod: morn ? 4.7 : 2,
+      inBed(g2) {
+        const st = F.anaAt(69), sitUp = morn ? 0.22 : 0;
+        const o = { x: Q.LEO.x, y: Q.LEO.y, s: 376, style: st, flip: true, noLegs: true, lean: -0.74 + sitUp + br, headTilt: morn ? 0.16 - turn * 0.12 : 0.3,
+          face: morn ? { eye: turn > 0.5 ? 'happy' : 'open', mouth: 'smile', blush: 0.16, old: true } : { eye: 'closed', mouth: win > 0.5 ? 'smile' : 'line', blush: 0.1 + 0.08 * win, old: true } };
+        o.armF = { hand: F.local(o, 58, 606) }; o.armB = { hand: F.local(o, 132, 598) };
+        const j = F.person(g2, o);
+        WARD.head = [j.head[0] * Z, DY + j.head[1] * Z];
+      },
+      atChair(g2) {
+        /* Lily, in the chair, her mother's hand in hers; asleep with her head down by the edge of the bed */
+        const st = F.lilyAt(39), up = morn ? lk : look * (1 - down);
+        const o = { x: Q.ANA.x, y: Q.ANA.y, s: 372, style: st, sit: true, lean: T.lerp(0.5, 0.12, up), headTilt: T.lerp(0.46, morn ? 0.02 : -0.22, up),
+          face: { eye: up > 0.5 ? (morn ? 'happy' : 'open') : 'closed', mouth: morn && up > 0.5 ? 'wobble' : up > 0.5 ? 'soft' : 'line', blush: 0.2, tear: morn ? 0.8 * up : 0, tearY: (t * 2) % 3, well: morn ? 0.8 * up : 0 } };
+        o.armF = { hand: F.local(o, 56, 610) }; o.armB = { hand: F.local(o, T.lerp(44, 20, up), T.lerp(616, 640, up)) };
+        F.person(g2, o);
+        /* Nora: on a stool at the foot of the bed, asleep with her head on the blanket; the next morning, up by her */
+        const ns = F.styles.nora, s = 236, hh = F.hipHeight(ns, s);
+        stool(g2);
+        if (!morn) {
+          const ny = T.smooth(T.clamp(wake * (1 - down)));
+          const n = { x: -250, y: 644, s, style: ns, sit: true, lean: T.lerp(0.98, 0.08, ny), headTilt: T.lerp(0.42, -0.5, ny), legF: { foot: [12, 14] }, legB: { foot: [9, 15] },
+            face: { eye: ny > 0.5 ? 'open' : 'closed', mouth: ny > 0.5 ? 'o' : 'line', blush: 0.32 } };
+          n.armF = { hand: F.local(n, T.lerp(-196, -226, ny), T.lerp(628, 600, ny)) }; n.armB = { hand: F.local(n, T.lerp(-204, -234, ny), T.lerp(636, 610, ny)) };
+          const nj = F.person(g2, n);
+          crayonDrawing(g2, (nj.handF[0] + nj.handB[0]) / 2 + 2, (nj.handF[1] + nj.handB[1]) / 2 + 8, T.lerp(1.1, 0.2, ny), 1.1);
+          F.person(g2, Object.assign({}, n, { only: 'armF', skip: null }));
+        } else {
+          const hop = Math.abs(Math.sin(t * 6)) * 3 * nk;
+          const n = { x: T.lerp(-250, -122, nk), y: T.lerp(644, 712 - hh - hop, nk), s, style: ns, lean: T.lerp(0.98, 0.24, nk), headTilt: T.lerp(0.42, -0.06, nk),
+            face: { eye: nk > 0.5 ? 'happy' : 'closed', mouth: nk > 0.5 ? 'open' : 'line', blush: 0.34 } };
+          if (nk < 0.5) { n.sit = true; n.legF = { foot: [12, 14] }; n.legB = { foot: [9, 15] }; }
+          n.armF = { hand: F.local(n, T.lerp(-196, -70, nk), T.lerp(628, 616, nk)) }; n.armB = { hand: F.local(n, T.lerp(-204, -84, nk), T.lerp(636, 626, nk)) };
+          if (nk >= 0.5) crayonDrawing(g2, -250, 640, -0.08, 1.1);   /* left on the stool */
+          F.person(g2, n);
+        }
+      },
+    });
+    g.restore();
+    if (!morn) {   /* where the ceiling meets the wall */
+      g.fillStyle = '#5a6286'; g.fillRect(-W / 2, WARD.CEIL - 5, W, 10);
+      g.fillStyle = 'rgba(20,24,44,0.4)'; g.fillRect(-W / 2, WARD.CEIL + 5, W, 4);
+    }
+    /* the light the mobile's shadows turn in: warm on the ceiling, a little down the wall */
+    if (lit > 0.01) { P.glow(g, WARD.ceiling[0], WARD.ceiling[1], 300, '#ffe6b8', 0.26 * lit); P.glow(g, WARD.ceiling[0], WARD.ceiling[1] + 140, 260, '#ffe2a8', 0.1 * lit); }
+    /* the light come in at the window, resting on her */
+    if (win > 0.01) {
+      const wq = WARD.window, h = WARD.head || [126, 590];
+      P.glow(g, wq[0], wq[1], 260, '#fff0c8', 0.34 * win);
+      g.save(); g.globalCompositeOperation = 'screen';
+      const gr = g.createLinearGradient(wq[0], wq[1], h[0], h[1]); gr.addColorStop(0, T.rgba('#ffe9b8', 0.26 * win)); gr.addColorStop(1, T.rgba('#ffe9b8', 0.06 * win));
+      g.fillStyle = gr; g.beginPath(); g.moveTo(wq[0] - 30, wq[1] - 150); g.lineTo(wq[0] + 60, wq[1] - 150); g.lineTo(h[0] + 90, h[1] + 30); g.lineTo(h[0] - 70, h[1] + 50); g.closePath(); g.fill();
+      g.restore();
+      P.glow(g, h[0], h[1], 110 + 8 * Math.sin(t * 1.4), '#fff2d0', 0.34 * win);
+    }
+  };
 })();
