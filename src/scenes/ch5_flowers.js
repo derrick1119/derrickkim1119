@@ -258,11 +258,12 @@
       await TALK.say('v3', '마룻대 올린다며?\n그건 혼자 못 올려.');
       await TALK.say('v2', '지붕은 원래\n동네가 같이 올리는 거야.');
       await TALK.say('kid', '이번엔 나 맨 앞!');
-      T.announce('지붕 올리기. 셋에 맞춰 눌러 다 같이 마룻대를 끌어 올린다. 이번에는 네 번.');
-      /* the ridge beam lies along the grass; everyone takes the rope on the far side of the house */
-      const pullers = [leo].concat(folk);
-      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.x = PL.HX + 190 + i * 58; }); S.roofK = 0; X.cam(PL.HX + 180, py + 10, 0.95); }, { out: 0.6, in: 0.8 });
-      await X.play(T.puzzle.heave({ pulls: 4, sway: 1, tempo: 0.58, quick: 0.94, tricks: 0.6, tease: true, gust: 0.35, beam: 300, crew: pullers, at: PL.HX, cam: X.cam, top: (k) => [PL.HX, W.y3(PL.HX) - 40 - 210 * k], raise: () => { S.roofK = null; } }));   /* the puzzle draws the beam, tipping */
+      T.announce('지붕 올리기. 모두가 숨을 모은 순간에 눌러 다 같이 마룻대를 끌어 올린다. 이번에는 네 번, 마지막은 이웃 할아버지까지.');
+      /* the ridge beam lies along the grass; everyone takes the rope in one line down the hill, Pipi at the very
+         front as he said. The old neighbour (v1) watches from the end of it, and takes hold himself for the last heave */
+      const pullers = [folk[3], leo, folk[0], folk[2], folk[4], folk[1]];
+      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.x = PL.HX + 190 + i * 58; }); folk[1].x += 50; bean.go = null; bean.x = PL.HX + 590; bean.sit = 1; bean.flip = true; S.roofK = 0; X.cam(PL.HX + 200, py + 10, 0.95); }, { out: 0.6, in: 0.8 });
+      await X.play(T.puzzle.heave({ pulls: 4, win: 0.55, hold: 0.85, wobble: 0.8, gust: 0.45, slow: { v1: 2.4 }, late: 'v1', caller: 'v1', bean, beam: 300, crew: pullers, at: PL.HX, cam: X.cam, top: (k) => [PL.HX, W.y3(PL.HX) - 40 - 210 * k], raise: () => { S.roofK = null; } }));   /* the puzzle draws the beam, coming up on its pegs */
       S.roofK = null; X.cam(px, py, 1);
       ps.stage = 4; A.sfx('knock', 0.6); X.notes(5);
       T.announce('지붕이 올라간다. 집이 다 지어졌다.');

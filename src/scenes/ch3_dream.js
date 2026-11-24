@@ -372,12 +372,12 @@
       await TALK.say('bram', '줄 가져왔네.\n혼자 끙끙대지 말고.');
       await TALK.say('kid', '나도 당길래!');
       await TALK.say('rosa', '다 같이 하면 금방이야.');
-      T.announce('다 같이 당기기. 하나, 둘, 셋 구령의 셋에 맞춰 눌러 다 함께 줄을 당긴다.');
-      /* everyone takes the rope, in a line down the hill from the fallen frame */
+      T.announce('다 같이 당기기. 모두가 숨을 모은 순간에 눌러 다 함께 줄을 당긴다.');
+      /* everyone takes the rope, in one line down the hill from the fallen frame */
       const pullers = [leo].concat(crew);
       crew[1].prop = null;
-      await X.dip(async () => { pullers.forEach((a, i) => { const j = i >> 1, r = i % 2 === 0; a.go = null; a.moving = false; a.sit = 0; a.x = r ? PL.HX + 205 + j * 60 : PL.HX - 205 - j * 60; a.flip = r; }); X.cam(PL.HX, W.y3(PL.HX) - 150, 1.0); }, { out: 0.6, in: 0.8 });
-      await X.play(T.puzzle.heave({ pulls: 3, sway: 0.55, tempo: 0.64, quick: 0.97, tricks: 0.3, crew: pullers, at: PL.HX, cam: X.cam, top: () => [PL.HX, W.y3(PL.HX) - 10 - 150 * Math.max(0.05, ps.raise)], raise: (k, sh) => { ps.raise = Math.max(0.02, k); ps.sway = -(sh || 0); S.fallen = T.clamp(1 - k * 1.5); } }));
+      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.sit = 0; a.x = PL.HX + 215 + i * 62; a.flip = true; }); X.cam(PL.HX + 250, W.y3(PL.HX) - 100, 1.2); }, { out: 0.6, in: 0.8 });
+      await X.play(T.puzzle.heave({ pulls: 3, win: 1.05, wobble: 0.25, caller: 'bram2', crew: pullers, at: PL.HX, stake: PL.HX + 140, cam: X.cam, top: (k) => [PL.HX + 119, W.y3(PL.HX) - 2 - 146 * Math.max(0.03, k)], raise: (k, sh) => { ps.raise = Math.max(0.02, k); ps.sway = -(sh || 0); S.fallen = T.clamp(1 - k * 1.5); } }));
       S.fallen = 0; ps.stage = 2; ps.raise = 0; X.cam(px, py, 1);
       A.sfx('knock', 0.4); X.notes(4);
       T.announce('뼈대가 다시 선다. 사람들이 손뼉을 친다.');

@@ -853,6 +853,15 @@ T = [
     ("별 그림 편지가 레오 손 가까이 올 때 눌러요", "Tap the letter with the star when it comes near Leo's hand"),
     ("왼쪽이나 오른쪽을 눌러 방을 돌려요", "Tap left or right to turn the room"),
     ("눌러서 릴리 곁을 걸어요. 한 번 더 누르면 멈춰요", "Tap to walk beside Lily. Tap again to stop"),
+    # ---- pulling together
+    ("영차!", "Heave!"), ("아직!", "Not yet!"), ("숨 맞추고!", "Breathe together!"), ("어이쿠!", "Whoa!"), ("빈!", "Bean!"),
+    ("마지막은 나도 잡아야지.", "I'll take hold for the last one."),
+    ("한 줄로 서서 다 같이 줄을 잡아요", "Everyone takes the rope, in one line"),
+    ("마지막 한 번은, 다 같이", "One last time, all of us"),
+    ("모두 몸을 젖히고 숨을 모으면, 그때 눌러요 · 스페이스 / 엔터", "When everyone leans back and holds their breath, press · Space / Enter"),
+    ("머리 위 동그라미가 모두 환해지면, 그때 눌러요 · 스페이스 / 엔터", "When every circle overhead is lit, press · Space / Enter"),
+    ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
+    ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.
