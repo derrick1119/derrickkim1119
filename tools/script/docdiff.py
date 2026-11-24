@@ -32,7 +32,7 @@ def rows(text):
         r.append((sec, m.group(1), m.group(2).replace("\\~", "~"), m.group(3).replace("\\|", "|").replace("\\~", "~")))
     return r
 want = {}
-base = out.read_text(encoding="utf-8") if out.is_file() else "\n".join((out / f"doc_{t}.md").read_text(encoding="utf-8") for t in ["P", "1", "2", "3", "4", "5", "6", "7", "A"])
+base = out.read_text(encoding="utf-8") if out.is_file() else "\n".join((out / f"doc_{t}.md").read_text(encoding="utf-8") for t in ["P", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A"])
 for sec, i, who, txt in rows(base):
     want[i] = (who, txt)
 got = rows(md)

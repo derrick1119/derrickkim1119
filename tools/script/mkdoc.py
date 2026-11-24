@@ -5,7 +5,7 @@ import json, sys, pathlib, re
 out = pathlib.Path(sys.argv[1])
 rows = json.loads((out / "rows.json").read_text(encoding="utf-8"))
 extra = json.loads((out / "extra.json").read_text(encoding="utf-8"))
-TITLES = {"P": "프롤로그", "1": "1장 「항구」", "2": "2장 「약속 목록」", "3": "3장 「꿈」", "4": "4장 「이웃들」", "5": "5장 「꽃길」", "6": "6장 「다 지킨 약속」", "7": "마지막 장 「마중」"}
+TITLES = {"P": "프롤로그", "1": "1장 「항구」", "2": "2장 「약속 목록」", "3": "3장 「꿈」", "4": "4장 「이웃들」", "5": "5장 「꽃길」", "6": "6장 「손주」", "7": "7장 「아직은」", "8": "8장 「다 지킨 약속」", "9": "마지막 장 「마중」"}
 LEADS = {
  "P": "병실에서 시작해 네 개의 기억, 마지막 밤, 떠나는 배까지.",
  "1": "장례를 마친 밤 아나의 부엌, 그리고 레오가 마중 나루에 닿은 날.",
@@ -13,8 +13,10 @@ LEADS = {
  "3": "기둥과 뼈대, 텃밭, 폭풍, 로사의 호수, 소원 숲, 아나의 꿈.",
  "4": "고래와 구름이, 빈이 온 날, 로사의 담요, 브램과 마르타, 로사와 아들, 첫 흰머리.",
  "5": "지붕 올리기, 릴리의 편지, 꿈의 재료 모으기, 결혼식 전날 밤의 꿈, 넓어진 그네.",
- "6": "피피의 엄마, 비 오는 기일, 아나표 스튜, 피피네의 마지막 별자리, 오로라.",
- "7": "아나가 오는 날, 구름이의 비밀, 이야기 담요, 약속 목록.",
+ "6": "세 번째 고래, 우체국으로 온 손녀 사진, 별 모빌, 아기 방 천장의 별 그림자, 피피 엄마.",
+ "7": "아나가 아픈 해. 바다에 떨어진 소원의 빛, 무서운 종소리와 빵집 아저씨, 다시 모은 꿈, 병실 호수, 아나의 꿈.",
+ "8": "비 오는 기일, 아나표 스튜, 피피네의 마지막 별자리, 오로라.",
+ "9": "아나가 오는 날, 구름이의 비밀, 이야기 담요, 약속 목록, 그리고 편지.",
 }
 KEYS = re.compile(r"\s*·\s*[^·]*(←|→|스페이스|엔터)[^·]*$")
 def cell(s):
@@ -33,9 +35,9 @@ for tag in TITLES:
         lines[r["id"]] = {"who": r["who"], "text": r["text"], "loc": r.get("loc", []), "kind": r["kind"]}
     docs[tag] = "\n".join(md)
 # the appendix: what shows only now and then, grouped by where it lives
-NICE = {"ch1_kitchen.js": "1장 부엌", "ch1_harbor.js": "1장 항구", "ch2_list.js": "2장", "ch3_dream.js": "3장", "ch4_neighbours.js": "4장", "ch5_flowers.js": "5장", "ch6_grand.js": "6장", "ch7_notyet.js": "7장", "ch8_kept.js": "8장", "ch9_welcome.js": "마지막 장",
+NICE = {"ch1_kitchen.js": "1장 부엌", "ch1_harbor.js": "1장 항구", "ch2_list.js": "2장", "ch3_dream.js": "3장", "ch4_neighbours.js": "4장", "ch5_flowers.js": "5장", "ch6_grand.js": "6장", "ch7_notyet.js": "7장", "ch8_kept.js": "8장", "ch9_welcome.js": "마지막 장", "letter.js": "마지막 장 · 편지", "mobile.js": "모빌 (6장)",
         "room.js": "프롤로그 병실", "mem_home.js": "기억: 사진", "mem_stew.js": "기억: 스튜", "mem_swing.js": "기억: 그네", "mem_walk.js": "기억: 산책", "ending.js": "프롤로그 끝",
-        "dreamroom.js": "기울어진 방 (5장)", "evenings.js": "별자리 (2장·6장)", "garden.js": "텃밭 물길 (3장·4장)", "lakehelp.js": "비 오는 길 (6장)",
+        "dreamroom.js": "기울어진 방 (5장)", "evenings.js": "별자리 (2장·8장)", "garden.js": "텃밭 물길 (3장·4장)", "lakehelp.js": "물가의 길 (4장·8장)",
         "puzzles.js": "종 · 주춧돌", "skyplaces2.js": "소원 숲 · 바람 우체국", "views.js": "호수 (2~4장)", "work.js": "손일"}
 RANGES = {"puzzles.js": [(254, "모든 퍼즐"), (362, "종"), (10**9, "주춧돌")],
           "work.js": [(179, "나무 켜기"), (659, "다 같이 당기기"), (10**9, "담요 뜨기")],
