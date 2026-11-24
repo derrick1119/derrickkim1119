@@ -407,10 +407,10 @@ export class RunScene {
     const am = b.army(), none = am.field === 0 && fight, pulse = none ? 0.6 + 0.4 * Math.sin(T * 8) : 1;
     g.globalAlpha = pulse; icon.people(g, 30, 31, 2, none ? RED : '#8fb6e6'); g.globalAlpha = 1;
     text(g, '남은 병력', 52, 19, { size: 13, fill: '#cfe0f4', align: 'left' });
-    text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
+    text(g, `전장 ${am.field}명 · 대기 패 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: GFX.pixel ? 146 : 186 });
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
-    text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: 150 });
+    text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: GFX.pixel ? 92 : 150 });
     line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
     line(g, [x0, cy, Math.max(x0, mx), cy], C.gilt, 2.8);
