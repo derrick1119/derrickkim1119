@@ -1,13 +1,17 @@
-/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The cloud whale goes by for the third
-   time since he came, as many times as his mother saw it waiting for him. Pipi and he are picking the
-   tomatoes when the bell rings, and the white-haired woman who steps off the boat is Pipi's mother: Pipi
-   still has the reddest one in his pocket. On the day he died, every year, Ana cooks his stew from his
-   notebook and he takes his pot down to the lake to cook it with her; this year her kitchen is dark, and
-   she is walking through the rain to Lily's with the makings in a basket. He lights her way from the bank.
-   At Lily's she teaches the grandchildren, and puts in something that is not in his notebook: this time he
-   is the one who learns. He crosses off the house, the cooking and the swing. Years on Pipi's father comes,
-   is shown the stars, and the three of them cross while Leo answers the bell for them. At eighty-one she
-   smiles at the place he used to watch her from. He paints an aurora to practise. */
+/* Chapter 6 「다 지킨 약속」 — years twenty-five to forty-five. The cloud whale goes by for the third time since he
+   came, as many times as his mother saw it waiting for him. In the garden (five beds now, and a fence against Bean)
+   he finds Pipi the reddest tomato, hanging in the shade behind a leaf, and Pipi pockets it; then the bell rings,
+   and the white-haired woman off the boat is Pipi's mother, who had promised to hold him again. The tomato is the
+   one he promised her. On the day he died, every year, Ana cooks his stew from his notebook and he takes his pot
+   down to the lake to cook it with her; this year her kitchen is dark, and she is walking through the rain to
+   Lily's with the makings in a basket. From the bank he lights her way, as he once walked Lily home. At Lily's she
+   teaches the grandchildren and puts in what is not in his notebook; the steam of her pot comes up out of the
+   water into his, and this time he is the one who learns. Then she looks round at the grandchild sitting up on the
+   counter, where she used to sit and watch him cook, and this time she smiles. He crosses off the house, the
+   cooking and the swing. Years on Pipi's father comes, who had promised to go and look at the stars with him, and
+   is shown the ones Pipi joined up while he waited; the white boat comes, and Leo rings the bell for them himself.
+   The smallest one is left on the pier, and he says he will help her look for hers. He paints an aurora to
+   practise. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -124,12 +128,13 @@
     g.strokeStyle = 'rgba(200,214,236,0.5)'; g.lineWidth = 1.6; g.beginPath();
     for (let i = 0; i < 24; i++) { const x = 336 + ((i * 53 + t * 40) % 230), y = 164 + ((i * 97 + t * 260) % 262); g.moveTo(x, y); g.lineTo(x - 3, y + 16); }
     g.stroke(); g.restore();
-    const b = L.beat || 0, hk = L.herb ? L.herb.k : 0, sip = T.ease.io(L.sip.k), joy = b >= 3, stirK = L.stir ? L.stir.k : 1;
+    const b = L.beat || 0, hk = L.herb ? L.herb.k : 0, sip = T.ease.io(L.sip.k), joy = b === 3, stirK = L.stir ? L.stir.k : 1;
+    const look = L.look ? T.ease.io(L.look.k) : 0, tk = b === 5 && L.tom ? L.tom.k : 0, toms = L.toms || 0;
     const herbed = T.clamp((hk - 0.55) / 0.35) + (L.herbed ? 1 : 0);
     /* Lily, laying the table */
     const ls = F.lilyAt(43);
     const lo = { x: -468, y: FLOORY - F.hipHeight(ls, 368) + (joy ? Math.sin(t * 11) * 1.5 : 0), s: 368, style: ls, lean: 0.08, headTilt: joy ? -0.04 : 0.1,
-      face: { eye: joy ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.24 } };
+      face: { eye: joy || look > 0.5 ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.24 } };
     lo.armF = { hand: F.local(lo, -394, 688) }; lo.armB = { hand: F.local(lo, -414, 694) };
     F.person(g, lo);
     P.fill(g, P.rr(-640, 694, 340, 14, 4), '#a8784e');
@@ -139,29 +144,47 @@
     P.line(g, -282, 808, -272, 790, 3, '#7fb36c'); P.line(g, -276, 810, -262, 794, 3, '#9fc77e');
     P.fill(g, P.poly([[-306, 806], [-248, 806], [-254, 824], [-300, 824]]), '#b48658');
     g.strokeStyle = '#7a5636'; g.lineWidth = 3; g.beginPath(); g.ellipse(-277, 806, 24, 22, 0, Math.PI, TAU); g.stroke();
+    /* the tomatoes she brought, in a bowl on the counter beside her: fewer of them as they go in */
+    [[-240, -2], [-222, 0], [-231, -11]].forEach((q, i) => { if (i < 3 - toms) tomato(g, q[0], COUNTER - 22 + q[1], 1.6); });
+    P.fill(g, P.poly([[-256, COUNTER - 24], [-206, COUNTER - 24], [-214, COUNTER - 10], [-248, COUNTER - 10]]), '#e9dcc3');
+    P.fill(g, P.ellipse(-231, COUNTER - 24, 25, 4), '#d8c8a8');
     /* Lily's pot on the hob, and what is in it */
     P.fill(g, P.rr(PX - 104, PY + 12, 22, 10, 5), '#a8452a'); P.fill(g, P.rr(PX + 82, PY + 12, 22, 10, 5), '#a8452a');
     P.fill(g, P.rr(PX - 84, PY - 4, 168, COUNTER - 17 - PY + 4, 16), '#c9573f');
     P.fill(g, P.ellipse(PX, PY - 2, 84, 13), '#a8452a');
     P.fill(g, P.ellipse(PX, PY - 1, 76, 10), T.mix('#b9532f', '#c8742f', T.clamp(herbed)));
+    if (toms > 0) [[-30, 2], [14, -2], [44, 3], [-52, -1]].slice(0, toms * 2).forEach((q) => P.fill(g, P.ellipse(PX + q[0], PY - 1 + q[1], 6, 3.4), '#d9483a'));
     if (herbed > 0.02) { g.save(); g.globalAlpha *= T.clamp(herbed); [[-40, 1], [-18, 4], [6, -2], [28, 3], [48, -1], [-2, 5]].forEach((q) => P.fill(g, P.circle(PX + q[0], PY - 1 + q[1], 3.2), '#6fa35c')); g.restore(); }
     for (let i = 0; i < 4; i++) { const life = (t * 0.2 + i * 0.25) % 1; P.glow(g, PX + Math.sin(t + i * 2) * 14, 520 - life * 170, 20 + life * 34, '#fff3dc', Math.sin(life * Math.PI) * 0.28); }
     /* his notebook, open on the counter beside the pot */
     g.save(); g.translate(118, COUNTER - 16); g.rotate(-0.04);
     P.fill(g, P.rr(-42, -6, 84, 8, 2), '#f6f0e0'); P.fill(g, P.rr(-44, 0, 88, 7, 3), '#d7a23c'); P.fill(g, P.rr(-2, -8, 4, 10, 1), '#b8862c'); P.fill(g, P.rr(20, -6, 5, 16, 1), '#c9573f');
     g.restore();
-    /* Ana. The ladle goes round in her hand, never further than her arm reaches; when her hand has other work it stands in the pot */
+    /* Ana. The ladle goes round in her hand, never further than her arm reaches; when her hand has other work it stands in the pot.
+       At the end (look) she straightens and looks round at the grandchild up on the counter, and smiles */
     const st = F.anaAt(73);
-    const a = { x: AX, y: FLOORY - F.hipHeight(st, 356) + (joy ? Math.sin(t * 12) * 2 : 0), s: 356, style: st, lean: 0.12, headTilt: b === 1 ? 0.2 : joy ? -0.06 : 0.08,
-      face: { eye: joy ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.22, old: true }, skip: { armF: true } };
+    const a = { x: AX, y: FLOORY - F.hipHeight(st, 356) + (joy ? Math.sin(t * 12) * 2 : 0), s: 356, style: st, lean: T.lerp(0.12, 0.03, look),
+      headTilt: T.lerp(b === 1 || b === 5 ? 0.2 : joy ? -0.06 : 0.08, -0.17 + Math.sin(t * 0.9) * 0.015, look),
+      face: { eye: joy || look > 0.4 ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.22 + 0.1 * look, old: true }, skip: { armF: true } };
     const round = [PX + Math.cos(t * 1.8) * 30, PY + 2 + Math.sin(t * 1.8) * 5], rest = [PX + 30, PY + 4];
     const tip = lerp2(rest, round, stirK), grip = [tip[0] - 58, tip[1] - 16];
     const JAR = [-80, 556], pocket = [-104, 640];
     /* the jar comes out of her apron pocket in her other hand, and she takes a pinch from it */
     const jarUp = b === 1 ? T.ease.io(T.clamp(hk / 0.18)) * (1 - T.ease.io(T.clamp((hk - 0.9) / 0.1))) : 0;
-    const handB = jarUp > 0.02 ? lerp2(pocket, JAR, jarUp) : [-98, COUNTER - 4];
+    let handB = jarUp > 0.02 ? lerp2(pocket, JAR, jarUp) : [-98, COUNTER - 4];
+    /* a tomato from the bowl, held over the pot, let go */
+    const bowl = [-226, COUNTER - 30], over2 = [-52, 512], rest0 = [-98, COUNTER - 4];
+    if (tk > 0) {
+      if (tk < 0.16) handB = lerp2(rest0, bowl, T.ease.io(tk / 0.16));
+      else if (tk < 0.38) handB = lerp2(bowl, over2, T.ease.io((tk - 0.16) / 0.22));
+      else if (tk < 0.62) handB = over2;
+      else handB = lerp2(over2, rest0, T.ease.io(T.clamp((tk - 0.62) / 0.3)));
+    }
     a.armB = { hand: F.local(a, handB[0], handB[1]) };
     const ja = F.person(g, a);
+    if (tk > 0.16 && tk < 0.46 && ja && ja.handB) tomato(g, ja.handB[0] + 4, ja.handB[1] + 2, 1.5);   /* in her hand */
+    if (tk >= 0.46 && tk < 0.64) { const u = T.ease.in((tk - 0.46) / 0.18); tomato(g, over2[0] + 4, T.lerp(over2[1] + 2, PY - 2, u), 1.5); }   /* falling */
+    if (tk >= 0.62 && tk < 0.86) { const u = (tk - 0.62) / 0.24; g.strokeStyle = T.rgba('#fff1dc', 0.6 * (1 - u)); g.lineWidth = 2; g.beginPath(); g.ellipse(over2[0] + 4, PY - 1, 8 + u * 26, 2 + u * 4, 0, 0, TAU); g.stroke(); }
     P.line(g, tip[0] - 70, tip[1] - 20, tip[0], tip[1], 6, '#b98a5a');
     if (jarUp > 0.02) {
       P.fill(g, P.rr(handB[0] - 12, handB[1] - 26, 24, 30, 6), 'rgba(226,240,236,0.92)');
@@ -181,13 +204,13 @@
         const life = (t * 1.7 + i / 7) % 1, x = hand[0] + 6 + Math.sin(i * 2.3) * 7, y = hand[1] + 12 + life * (PY - hand[1] - 12);
         P.fill(g, P.ellipse(x, y, 2.6, 1.6, i), '#6fa35c');
       }
-    } else if (b >= 2 && ja) {
+    } else if ((b === 2 || b === 3) && ja) {
       const m = F.mouth(a), up = [m[0] + 30, m[1] + 14];
       hand = lerp2([PX - 40, PY - 30], up, sip); spoon = true;
     }
     const jf = F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, hand[0], hand[1]) } }));
     if (spoon && jf && jf.handF) { const h = jf.handF; P.line(g, h[0], h[1], h[0] - 24, h[1] - 6, 3.4, '#b98a5a'); P.fill(g, P.ellipse(h[0] - 28, h[1] - 7, 7, 4), '#b98a5a'); }
-    /* the grandchildren: one up on a step stool over the notebook, one sitting on the counter */
+    /* the grandchildren: one up on a step stool over the notebook, one sitting on the counter (where she used to sit) */
     const kb = F.styles.kidB, kc = F.styles.kidC;
     P.fill(g, P.rr(112, 722, 84, 14, 4), '#c79a62'); P.line(g, 120, 734, 116, FLOORY, 6, '#a8784e'); P.line(g, 188, 734, 192, FLOORY, 6, '#a8784e'); P.line(g, 118, 780, 190, 780, 5, '#a8784e');
     const k1 = { x: 154, y: 722 - F.hipHeight(kb, 250) - (joy ? Math.abs(Math.sin(t * 6)) * 6 : 0), s: 250, style: kb, flip: true, lean: 0.16, headTilt: b >= 2 ? 0.04 : 0.26,
@@ -195,13 +218,14 @@
     k1.armB = { hand: F.local(k1, 132, COUNTER - 10) };
     F.person(g, k1);
     let h1 = [128, COUNTER - 18];
-    if (b >= 2) { const m = F.mouth(k1); h1 = lerp2(h1, [m[0] - 22, m[1] + 12], sip); }
+    if (b === 2 || b === 3) { const m = F.mouth(k1); h1 = lerp2(h1, [m[0] - 22, m[1] + 12], sip); }
     if (joy) h1 = [k1.x - 10, k1.y - 96 + Math.sin(t * 8) * 6];
     const j1 = F.person(g, Object.assign({}, k1, { only: 'armF', skip: null, armF: { hand: F.local(k1, h1[0], h1[1]) } }));
     if (b === 2 && j1 && j1.handF) { const h = j1.handF; P.line(g, h[0], h[1], h[0] + 18, h[1] - 4, 2.8, '#b98a5a'); P.fill(g, P.ellipse(h[0] + 21, h[1] - 5, 5, 3), '#b98a5a'); }
-    F.person(g, { x: 268, y: COUNTER - 24, s: 250, style: kc, flip: true, sit: true, lean: 0.1, headTilt: b === 1 ? 0.2 : 0.04,
-      legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * (joy ? 9 : 5)) * 0.4 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * (joy ? 9 : 5) + Math.PI) * 0.4 },
-      face: { eye: joy ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.3 }, armF: joy ? { a: 2.3 + Math.sin(t * 8) * 0.25, b: 0.3 } : { a: 0.7, b: 0.9 }, armB: { a: 0.4, b: 0.6 } });
+    const sw = joy ? 9 : look > 0.3 ? 3.2 : 5;
+    F.person(g, { x: 268, y: COUNTER - 24, s: 250, style: kc, flip: true, sit: true, lean: 0.1, headTilt: b === 1 ? 0.2 : T.lerp(0.04, 0.16, look),
+      legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * sw) * 0.4 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * sw + Math.PI) * 0.4 },
+      face: { eye: joy || look > 0.5 ? 'happy' : 'open', mouth: joy ? 'open' : 'smile', blush: 0.3 + 0.1 * look }, armF: joy ? { a: 2.3 + Math.sin(t * 8) * 0.25, b: 0.3 } : { a: 0.7, b: 0.9 }, armB: { a: 0.4, b: 0.6 } });
     /* evening: warm under the lamp, cool toward the edges */
     g.save(); g.globalCompositeOperation = 'multiply';
     const gr = g.createRadialGradient(PX, 330, 40, PX, 420, 700);
@@ -211,8 +235,9 @@
     P.glow(g, PX, 194, 46, '#fff2c8', 0.8);
   }
   /* his own pot on the bank beside him, on its three stones: he has brought it, as he does every year on this day */
+  const BANKPOT = () => [-T.view.W / 2 + 262, 168];
   function bankPot(g, t, L) {
-    const x = -T.view.W / 2 + 262, y = 168;
+    const [x, y] = BANKPOT();
     g.save(); g.translate(x, y); g.scale(1.1, 1.1);
     P.glow(g, 0, -2, 30, '#ffb45a', 0.5 + 0.2 * Math.sin(t * 9));
     [-17, 0, 17].forEach((dx, k) => P.fill(g, P.ellipse(dx, 2, 9, 6), k === 1 ? '#6f6a66' : '#807a74'));
@@ -222,6 +247,233 @@
     for (let k = 0; k < 3; k++) { const life = (t * 0.33 + k * 0.33) % 1; P.glow(g, Math.sin(t * 1.3 + k * 2) * 7, -44 - life * 70, 9 + life * 14, '#fff3dc', Math.sin(life * Math.PI) * 0.3); }
     g.restore();
   }
+  /* the steam of her pot, coming up out of the water (as it once did in her own kitchen) and drifting over to settle in
+     his. L.steam: { k: how far it has come (0..1), a: how much of it there is } */
+  function steamOver(g, t, L) {
+    const s = L.steam;
+    if (!s || s.a <= 0.01 || s.k <= 0.001) return;
+    const W = T.view.W, bp = BANKPOT(), p0 = [-7, 560], p1 = [-20, 150], p2 = [-W / 2 + 470, 10], p3 = [bp[0], bp[1] - 40];
+    const at = (u) => { const v = 1 - u; return [0, 1].map((i) => v * v * v * p0[i] + 3 * v * v * u * p1[i] + 3 * v * u * u * p2[i] + u * u * u * p3[i]); };
+    const n = 34;
+    for (let i = 0; i <= n; i++) {
+      const u = i / n; if (u > s.k) break;
+      const q = at(u), sway = Math.sin(t * 1.7 + i * 0.6) * 9 * Math.sin(u * Math.PI), head = T.clamp((s.k - u) * 6);
+      const r = 12 + 20 * Math.sin(u * Math.PI) * (0.8 + 0.2 * Math.sin(t * 2 + i));
+      P.glow(g, q[0] + sway, q[1], r * 1.15, '#fff3dc', 0.36 * s.a * head * (0.75 + 0.25 * Math.sin(t * 2.4 + i * 1.3)));
+    }
+    const hq = at(Math.min(1, s.k));
+    P.glow(g, hq[0], hq[1], 26, '#fff6e6', 0.4 * s.a);
+  }
+
+  /* ---------- the reddest tomato ----------
+     A close look in among the vines, at the end of summer, from behind the new fence (Bean is on the other side of
+     it). Seven tomatoes, none quite alike. The sun coming in from the left makes the ones it falls on look riper than
+     they are, and the reddest of all hangs in the shade behind a leaf, a little of it showing. Tap a leaf to lift it,
+     a tomato to pick it; Pipi says what is wrong with the others. Nothing is lost by a wrong one. */
+  const TOMS = [
+    { x: -432, y: 292, r: 36, c: '#a9c46a', say: 'raw' },
+    { x: -300, y: 452, r: 40, c: '#e8963a', sun: 1, say: 'raw' },
+    { x: -168, y: 300, r: 43, c: '#e9603a', sun: 1, say: 'sun' },
+    { x: -26, y: 474, r: 38, c: '#dc6a44', say: 'red' },
+    { x: 128, y: 318, r: 40, c: '#d6563c', say: 'red' },
+    { x: 258, y: 500, r: 35, c: '#c4c060', leaf: 0, say: 'raw' },
+    { x: 404, y: 312, r: 43, c: '#c8121e', leaf: 1 },
+  ];
+  const BEST = 6;
+  /* a leaf hangs from p (where its stalk is) toward its tip; lifted, it swings up about p */
+  const LEAVES = [{ p: [196, 446], tip: [328, 556], lift: -1.35 }, { p: [326, 224], tip: [470, 362], lift: -1.3 }];
+  const PIPI_SAYS = {
+    raw: '피피: "그건 아직 덜 빨개."',
+    sun: '피피: "그건 해가 비쳐서 빨개 보이는 거야."',
+    red: '피피: "빨갛긴 한데… 더 빨간 거 있어."',
+  };
+  function bigTomato(g, x, y, r, c, sun, t) {
+    P.fill(g, P.ellipse(x + 4, y + r * 0.95, r * 0.7, r * 0.18), 'rgba(40,60,30,0.16)');
+    if (sun) P.glow(g, x - r * 0.2, y - r * 0.2, r * 2.1, '#ffe1a0', 0.55);
+    const col = sun ? T.mix(c, '#ff9f55', 0.16) : c;
+    const body = P.ellipse(x, y, r * 1.06, r * 0.94);
+    P.fill(g, body, col);
+    g.save(); g.clip(body);
+    P.fill(g, P.ellipse(x + r * 0.3, y + r * 0.6, r * 1.15, r * 0.72), T.shade(col, sun ? -0.08 : -0.2));
+    g.strokeStyle = T.rgba(T.shade(col, -0.25), 0.5); g.lineWidth = 2;
+    for (const d of [-0.42, 0.42]) { g.beginPath(); g.moveTo(x + d * r * 0.5, y - r * 0.8); g.quadraticCurveTo(x + d * r * 1.05, y, x + d * r * 0.45, y + r * 0.85); g.stroke(); }
+    g.restore();
+    P.fill(g, P.ellipse(x - r * 0.4, y - r * 0.36, r * 0.3, r * 0.17, -0.6), `rgba(255,255,255,${sun ? 0.85 : 0.42})`);
+    if (sun) P.fill(g, P.circle(x - r * 0.2, y - r * 0.52, r * 0.07), 'rgba(255,255,255,0.9)');
+    const star = [];
+    for (let i = 0; i < 10; i++) { const an = -Math.PI / 2 + (i * Math.PI) / 5 + 0.1, rr = i % 2 ? r * 0.14 : r * 0.5; star.push([x + Math.cos(an) * rr, y - r * 0.82 + Math.sin(an) * rr * 0.5]); }
+    P.fill(g, P.poly(star), '#4f8a42');
+    P.line(g, x, y - r * 0.86, x + 3, y - r * 1.2, 4.5, '#5f8f4a');
+    void t;
+  }
+  function bigLeaf(g, p, tip, lift, k, t, seed) {
+    const ang = Math.atan2(tip[1] - p[1], tip[0] - p[0]) + lift * T.ease.out(k) + Math.sin(t * 1.4 + seed) * 0.02 + Math.sin(k * Math.PI) * 0.12, len = Math.hypot(tip[0] - p[0], tip[1] - p[1]);
+    g.save(); g.translate(p[0], p[1]); g.rotate(ang);
+    if (k < 0.98) { g.save(); g.globalAlpha *= 0.2 * (1 - k); P.fill(g, P.ellipse(len * 0.55 + 10, 22, len * 0.6, 40), '#24401c'); g.restore(); }   /* its shade on what is under it */
+    /* a leaflet: a broad, pointed oval, solid under its crayon so that what is behind it does not show through */
+    const cray = P.cray;
+    const lf = (x, y, w, h, rot, c) => {
+      g.save(); g.translate(x, y); g.rotate(rot);
+      const sh = P.soft([[-w, 0], [-w * 0.55, -h], [w * 0.35, -h * 0.9], [w * 1.05, 0], [w * 0.35, h * 0.9], [-w * 0.55, h]]);
+      P.cray = false; P.fill(g, sh, c); P.cray = cray; if (cray) P.fill(g, sh, c);
+      P.line(g, -w * 0.8, 0, w * 0.8, 0, 1.6, 'rgba(220,240,190,0.55)');
+      g.restore();
+    };
+    P.cray = false; P.line(g, 0, 0, len * 0.96, 0, 4, '#4f7f3e'); P.cray = cray;
+    for (let i = 0; i < 3; i++) {
+      const x = len * (0.26 + i * 0.25), s = 1 - i * 0.1;
+      lf(x + 22 * s, -24 * s, 34 * s, 22 * s, -0.55, i % 2 ? '#5f9a52' : '#68a458');
+      lf(x + 26 * s, 24 * s, 34 * s, 22 * s, 0.55, i % 2 ? '#68a458' : '#5f9a52');
+    }
+    lf(len * 0.98, 0, 40, 27, 0, '#6fae5e');
+    g.restore();
+  }
+  function reddest(o) {
+    const Z = T.puzzle;
+    const G = Z.make({ up: LEAVES.map(() => 0), lifted: LEAVES.map(() => false), wob: TOMS.map(() => 0), pk: 0, picked: -1, busy: false });
+    const covered = (n) => TOMS[n].leaf != null && !G.lifted[TOMS[n].leaf];
+    const leafMid = (i) => { const L = LEAVES[i]; return [T.lerp(L.p[0], L.tip[0], 0.55), T.lerp(L.p[1], L.tip[1], 0.55)]; };
+    function nearLeaf(i, x, y) {
+      const L = LEAVES[i], dx = L.tip[0] - L.p[0], dy = L.tip[1] - L.p[1], l2 = dx * dx + dy * dy;
+      const u = T.clamp(((x - L.p[0]) * dx + (y - L.p[1]) * dy) / l2), qx = L.p[0] + dx * u, qy = L.p[1] + dy * u;
+      return Math.hypot(x - qx, y - qy) < 58;
+    }
+    G.hit = function (x, y) {
+      if (G.busy) return -1;
+      for (let i = 0; i < LEAVES.length; i++) if (!G.lifted[i] && nearLeaf(i, x, y)) return 7 + i;
+      let best = -1, bd = 1e9;
+      TOMS.forEach((q, n) => { const d = Math.hypot(x - q.x, y - q.y); if (d < q.r + 20 && d < bd && !covered(n)) { bd = d; best = n; } });
+      return best;
+    };
+    function lift(i) {
+      if (G.lifted[i]) return;
+      G.lifted[i] = true; G.idle = 0; G.say = '';
+      T.audio.sfx('step-grass'); T.audio.sfx('touch');
+      G.clock.tween(G.up, i, 1, 0.7, T.ease.io);
+    }
+    G.tap = function (n) {
+      if (G.done || G.busy || n < 0) return;
+      G.idle = 0;
+      if (n >= 7) { lift(n - 7); return; }
+      if (n >= TOMS.length) return;
+      if (covered(n)) { lift(TOMS[n].leaf); return; }
+      if (n !== BEST) { G.wob[n] = 1; G.clock.tween(G.wob, n, 0, 0.7); G.wrong(PIPI_SAYS[TOMS[n].say]); return; }
+      pick();
+    };
+    function pick() {
+      G.busy = true; G.say = ''; G.picked = BEST;
+      T.audio.sfx('join'); T.audio.sfx('star', 0.7);
+      G.clock.tween(G, 'pk', 1, 1.1, T.ease.io);
+      G.finish(1.3);
+    }
+    const target = () => (covered(BEST) ? 7 + TOMS[BEST].leaf : BEST);
+    G.next = () => (G.done || G.busy ? null : String(target() + 1));
+    G.hintAt = () => { if (G.done || G.busy) return null; const n = target(); return n >= 7 ? leafMid(n - 7) : [TOMS[n].x, TOMS[n].y]; };
+    G.hintR = 58;
+    G.keys = () => (G.busy ? null : 'pick');
+    G.tip = '잎 뒤에 숨은 것도 있어요. 잎을 눌러 들춰 봐요';
+    G.spots = () => (G.busy ? [] : TOMS.map((q, n) => (covered(n) ? null : [n, q.x, q.y, q.r + 12])).concat(LEAVES.map((L, i) => (G.lifted[i] ? null : [7 + i, ...leafMid(i), 60]))));
+    /* skipped: the leaf is lifted, and the right one picked */
+    G.solve = function () { if (G.busy || G.done) return; const L = TOMS[BEST].leaf; if (!G.lifted[L]) lift(L); G.clock.wait(0.6).then(pick); };
+    G.draw = function (g, t) {
+      if (G.a < 0.005) return;
+      G.dim(g, 0.5);
+      const X0 = -560, Y0 = 118, PW = 1120, PH = 604, frame = P.rr(X0, Y0, PW, PH, 30);
+      g.save(); g.globalAlpha = G.a;
+      g.save(); g.translate(0, (1 - T.ease.out3(G.a)) * 30);
+      g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 36; g.shadowOffsetY = 12;
+      P.fill(g, frame, '#9fbf7a');
+      g.shadowColor = 'transparent';
+      g.save(); g.clip(frame);
+      /* among the vines, late in the afternoon: light from the left */
+      const bg = g.createLinearGradient(0, Y0, 0, Y0 + PH);
+      bg.addColorStop(0, '#f2e6ae'); bg.addColorStop(0.45, '#b7cf8a'); bg.addColorStop(1, '#7c9c5e');
+      g.fillStyle = bg; g.fillRect(X0, Y0, PW, PH);
+      P.glow(g, X0 + 60, Y0 + 10, 560, '#fff4c8', 0.8);
+      const r = T.rng(66);
+      for (let i = 0; i < 46; i++) {   /* the leaves behind, softer */
+        const x = X0 + r() * PW, y = Y0 + 40 + r() * (PH - 160), rot = r() * TAU, sx = 22 + r() * 26;
+        P.fill(g, P.ellipse(x + Math.sin(t * 0.9 + i) * 2, y, sx, sx * 0.5, rot), r() < 0.5 ? 'rgba(96,150,80,0.55)' : 'rgba(120,170,96,0.5)');
+      }
+      /* the stakes, with the vines tied up them and a stalk out to each tomato */
+      [-366, -96, 190, 440].forEach((sx, i) => {
+        P.line(g, sx, Y0 + 30, sx + 4, Y0 + PH - 70, 9, '#c9a878'); P.line(g, sx - 3, Y0 + 30, sx + 1, Y0 + PH - 70, 3, '#e2c99c');
+        g.strokeStyle = '#5f8f4a'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
+        for (let y = Y0 + PH - 70; y > Y0 + 40; y -= 24) { const x = sx + Math.sin(y * 0.03 + i) * 16; if (y === Y0 + PH - 70) g.moveTo(x, y); else g.lineTo(x, y); }
+        g.stroke();
+        for (let y = Y0 + 90 + i * 20; y < Y0 + PH - 120; y += 150) { g.strokeStyle = '#efe0c0'; g.lineWidth = 2.4; g.beginPath(); g.ellipse(sx + 2, y, 10, 4, 0.2, 0, TAU); g.stroke(); }
+      });
+      TOMS.forEach((q) => { const sx = [-366, -96, 190, 440].reduce((a, b) => (Math.abs(b - q.x) < Math.abs(a - q.x) ? b : a)); P.line(g, sx + 4, q.y - q.r - 30, q.x + 2, q.y - q.r * 1.1, 4, '#5f8f4a'); });
+      /* the sun, falling in a slant across the left of the picture */
+      g.save(); g.globalCompositeOperation = 'screen';
+      const beam = g.createLinearGradient(X0, Y0, X0 + 520, Y0 + PH);
+      beam.addColorStop(0, 'rgba(255,236,170,0.55)'); beam.addColorStop(1, 'rgba(255,236,170,0)');
+      g.fillStyle = beam; g.beginPath(); g.moveTo(X0, Y0); g.lineTo(X0 + 300, Y0); g.lineTo(X0 + 520, Y0 + PH); g.lineTo(X0, Y0 + PH); g.closePath(); g.fill();
+      g.restore();
+      /* the tomatoes */
+      TOMS.forEach((q, n) => {
+        if (n === G.picked) return;
+        const j = Math.sin(t * 40 + n) * 5 * G.wob[n];
+        bigTomato(g, q.x + j, q.y + Math.sin(t * 1.3 + n) * 1.5, q.r, q.c, q.sun, t);
+      });
+      LEAVES.forEach((L, i) => bigLeaf(g, L.p, L.tip, L.lift, G.up[i], t, i * 2));
+      /* the new fence along the front, and the one it was put up against */
+      const soil = g.createLinearGradient(0, Y0 + PH - 60, 0, Y0 + PH);
+      soil.addColorStop(0, '#7c9c5e'); soil.addColorStop(0.5, '#8a6a46'); soil.addColorStop(1, '#7a5636');
+      g.fillStyle = soil; g.fillRect(X0, Y0 + PH - 60, PW, 60);
+      F.dog(g, { x: 446, y: Y0 + PH - 8, s: 400, sit: 1, wag: Math.sin(t * 9) * 0.9, headTilt: -0.12 + Math.sin(t * 0.8) * 0.06, flip: true });
+      for (let x = X0 + 14; x < X0 + PW; x += 50) {
+        const y = Y0 + PH - 82 + (Math.round(x / 50) % 2) * 3;
+        P.fill(g, P.poly([[x - 11, Y0 + PH], [x - 11, y + 11], [x, y], [x + 11, y + 11], [x + 11, Y0 + PH]]), '#f1e6cc');
+        P.fill(g, P.rr(x + 6, y + 12, 5, Y0 + PH - y - 12, 2), 'rgba(160,130,96,0.3)');
+      }
+      P.fill(g, P.rr(X0, Y0 + PH - 56, PW, 9, 4), '#e2d1ac'); P.fill(g, P.rr(X0, Y0 + PH - 24, PW, 9, 4), '#e2d1ac');
+      g.restore();
+      g.strokeStyle = 'rgba(255,250,236,0.7)'; g.lineWidth = 3; g.stroke(frame);
+      g.restore();
+      /* the one picked comes away in the hand */
+      if (G.picked >= 0) {
+        const q = TOMS[G.picked], k = G.pk;
+        P.glow(g, q.x, q.y - 60 * k, 110 * (1 - k * 0.3), '#fff0c0', 0.5 * Math.sin(k * Math.PI) + 0.2);
+        g.save(); g.globalAlpha = 1 - T.clamp((k - 0.8) / 0.2);
+        bigTomato(g, q.x, q.y - 60 * k, q.r * (1 + 0.25 * Math.sin(k * Math.PI)), q.c, false, t);
+        g.restore();
+      }
+      g.restore();
+      G.hintRing(g, t);
+      G.caption(g, '제일 빨간 토마토를 골라 따 주세요');
+    };
+    void o;
+    return G;
+  }
+
+  /* the four lanterns strung from the end post to the bell: when he rings, they answer one by one, out to the boat */
+  function lineLamp(u) {
+    const PY = T.world.C.PIER_Y, A0 = [16, PY - 240], C0 = [218, PY - 186], B0 = [412, PY - 174], v = 1 - u;
+    return [v * v * A0[0] + 2 * v * u * C0[0] + u * u * B0[0], v * v * A0[1] + 2 * v * u * C0[1] + u * u * B0[1] + 16];
+  }
+  function pierLights(g, S) {
+    const lit = S.lineLit;
+    if (!lit || !lit.some((v) => v > 0.004)) return;
+    T.world.layer(g, 1);
+    [0.8, 0.6, 0.4, 0.2].forEach((u, i) => {
+      const k = lit[i]; if (k <= 0.004) return;
+      const q = lineLamp(u);
+      P.glow(g, q[0], q[1], 74 + 20 * Math.sin(T.time * 2 + i), '#ffd98a', 0.55 * k);
+      P.glow(g, q[0], q[1], 18, '#fff6dc', 0.95 * k);
+      g.save(); g.translate(q[0], T.world.C.PIER_Y + 2); g.scale(1, 0.22); P.glow(g, 0, 0, 90, '#ffd98a', 0.35 * k); g.restore();   /* its light on the boards */
+    });
+    g.restore();
+  }
+  /* the fence round the five beds, and a little gate on the near side */
+  function fence(g) {
+    const Wd = T.world, AX = T.puzzle.PATCH_X, x0 = AX - 184, x1 = AX + 176;
+    g.save(); g.globalAlpha *= 0.94;
+    const rail = (dy) => { g.strokeStyle = '#d9c7a2'; g.lineWidth = 3; g.beginPath(); for (let x = x0; x <= x1; x += 12) { const y = Wd.y3(x) + dy; if (x === x0) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke(); };
+    rail(-9); rail(-19);
+    for (let x = x0; x <= x1; x += 13) { const y = Wd.y3(x) + 3, h = x > x1 - 40 ? 22 : 25; P.fill(g, P.poly([[x - 3.6, y], [x - 3.6, y - h], [x, y - h - 4.5], [x + 3.6, y - h], [x + 3.6, y]]), '#f1e5c8'); }
+    g.restore();
+  }
 
   T.stage('ch6', {
     chapter: 6, title: ['6장', '다 지킨 약속'], end: ['6장 끝', '마지막 장 「마중」'], next: 'ch7', pad: 2, nextColor: '#161d2a',
@@ -229,11 +481,13 @@
     flags: { bramGone: true, rosaGone: true },
     build() { T.scenes.kitchen.build(); },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.3) * 0.45; },
+    onHill(g, h, S) { if (h === 3 && S.ps && S.ps.patch >= 3 && !S.ps.patchHide) fence(g); },
+    after(g, S) { pierLights(g, S); },
     script: async function (X) {
-      const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, lin = T.ease.lin;
+      const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, lin = T.ease.lin, PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
       X.cam(px + 60, py, 1); X.camSnap();
-      S.swinging = false;
+      S.swinging = false; S.lineLit = null;
       const leo = X.actor('leo', { x: PL.TABLE_X - 66, style: F.leoAt(3), chair: 1, face: { old: true } });
       const bean = X.actor('bean', { dog: true, s: 220, x: PL.TABLE_X + 118, sit: 1, wag: 0.5, flip: true });
       const tableY = () => W.y3(PL.TABLE_X) - 66;
@@ -251,7 +505,7 @@
         more();
       });
       /* and back up the hill; fn puts everyone where they are wanted */
-      const home = (fn) => X.dip(async () => { S.actors = keep0; S.boats = []; ps.night = 0; X.cam(px + 60, py, 1); if (fn) fn(); X.camSnap(); }, { out: 1, in: 1.2 });
+      const home = (fn) => X.dip(async () => { S.actors = keep0; S.boats = []; ps.night = 0; S.lineLit = null; X.cam(px + 60, py, 1); if (fn) fn(); X.camSnap(); }, { out: 1, in: 1.2 });
       const atTable = () => { leo.x = PL.TABLE_X - 66; leo.chair = 1; leo.flip = false; leo.prop = null; bean.x = PL.TABLE_X + 118; bean.flip = true; bean.sit = 1; };
       const potProp = (g, j) => { if (j && j.handF) pot(g, j.handF[0], j.handF[1]); };
       const TALK = X.TALK;
@@ -267,7 +521,7 @@
       await X.view(wh, { color: '#fff6e6', out: 1.4, in: 1.8 });
       T.announce('해 질 녘, 언덕 끝. 구름 고래가 새끼와 함께 또 지나간다. 늙은 레오와 빈이 나란히 본다.');
       await X.wait(6.5);
-      await TALK.say('leo', '벌써 세 번째 고래야, 빈.', { slow: true });
+      await TALK.say('leo', '벌써 세 번째 고래야, 빈.');
       await X.wait(0.8);
       await TALK.say('leo', '…엄마도 이걸 세 번 보면서\n날 기다렸대.', { slow: true });
       await X.wait(1.6);
@@ -275,21 +529,20 @@
       await X.years(25, 30, { age: 66, season: 'late summer' });   /* tomato time */
       await X.wait(0.6);
 
-      /* ---- the garden, grown to five beds, and a fence round it this time ---- */
+      /* ---- the garden, grown to five beds this year, and a fence round it against Bean ---- */
       const GZ = T.puzzle;
       const pipi0 = X.actor('kid', { x: GZ.PATCH_X + 275, style: F.styles.kidA, s: 100, flip: true });
       leo.chair = 0; leo.x = GZ.PATCH_X + 230; leo.flip = true; bean.x = GZ.PATCH_X + 330; bean.flip = true; bean.sit = 1;
-      ps.patchHide = true;
-      { const q = GZ.patchCam(); X.cam(q[0], q[1], GZ.PATCH_Z); X.camSnap(); }
+      ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
+      { const q = GZ.patchCam(); X.cam(q[0] + 60, q[1] + 10, GZ.PATCH_Z * 0.9); X.camSnap(); }
       await X.view(null, { color: '#fff6e6', out: 1.4, in: 1.4 });
       await TALK.say('kid', '올해는 고랑 다섯 개!\n울타리도 쳤으니까 빈은 못 들어와.');
-      await TALK.say('leo', '물은 여덟 바가지.\n두 바가지 먹는 고랑이 셋이야.');
-      T.announce('텃밭 물길 내기. 고랑이 다섯으로 늘었다. 갈림판이 셋, 기울일 판자가 넷. 물통의 빗물은 고랑들이 먹을 만큼뿐이다.');
-      await X.play(GZ.trough({ which: 2 }));
-      ps.patch = 3; ps.fruit = 1; ps.patchHide = false;
-      A.sfx('star', 0.6);
-      await TALK.say('kid', '올해 건 진짜 빨개!');
-      /* he picks the reddest one, holds it up, and it goes into his pocket */
+      A.sfx('bark', 0.3);
+      await X.wait(0.4);
+      await TALK.say('kid', '올해 건 진짜 빨개!\n제일 빨간 거, 아저씨가 골라 줘.');
+      T.announce('제일 빨간 토마토 고르기. 덩굴 사이에 토마토가 일곱 개 열려 있다. 햇빛이 드는 쪽은 더 빨개 보이고, 잎 뒤에 숨은 것도 있다.');
+      await X.play(reddest({}));
+      /* he holds it up, and it goes into his pocket */
       pipi0.hold = true;
       pipi0.pose = (o, a) => { if (a.hold) { o.armF = { a: 2.3, b: 0.4 }; o.face.eye = 'happy'; } };
       pipi0.prop = (g, j, o, a) => { if (a.hold && j.handF) tomato(g, j.handF[0], j.handF[1] - 3, 0.8); };
@@ -316,9 +569,9 @@
       });
       X.bed(1, 0.13, 'sea');
       X.toll(1); await X.wait(1.2);
-      T.announce('부두. 구름바다 안개 속에서 배 한 척이 기다린다. 바다 등불이 꺼져 있다.');
+      T.announce('부두. 구름바다 안개 속에서 배 한 척이 기다린다. 바다 등불이 꺼져 있다. 등불을 눌러 켠다.');
       await TALK.say('leo', '안개가 짙네.\n등불부터 켜 드리자.');
-      const pressed = X.seaLamp({ rounds: [[1, 2, 0, 3], [3, 1, 2, 0]], shuffle: true });
+      const pressed = X.seaLamp();
       X.sail(S.b1, -74, 62);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -341,8 +594,15 @@
       A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
       await X.wait(1.2);
       await TALK.say('pmom', '우리 피피, 여기 있었구나.', { slow: true });
+      /* what she could not do down there, and has done now */
+      await TALK.say('pmom', '…꼭 다시 안아 준다고 했는데.\n이제 지켰다.');
+      await X.tween(pipi.hug, 'k', 0.35, 0.6, T.ease.io);   /* he leans back in her arms to look at her */
+      pipi.face = { eye: 'open', mouth: 'open' };
       await TALK.say('kid', '엄마… 할머니 됐네.');
+      pm.face = { old: true, eye: 'happy', mouth: 'smile' };
       await TALK.say('pmom', '그러게. 엄마만 이렇게 늙었네.');
+      pipi.face = {};
+      await X.tween(pipi.hug, 'k', 1, 0.5, T.ease.io);
       await TALK.say('kid', '그래도 엄마 냄새는 그대로야.');
       await X.wait(0.8);
       await TALK.say('kid', '아빠는? 아빠도 잘 있어?');
@@ -362,7 +622,7 @@
       await X.wait(0.6);
       await TALK.say('pmom', '…베란다에서 키우던 거, 기억하는구나.');
       await TALK.say('kid', '빨간 거 열리면 준다고 했잖아.');
-      await TALK.say('pmom', '…다 컸네, 우리 피피.', { slow: true });
+      await TALK.say('pmom', '…다 컸네, 우리 피피.');
       await TALK.say('pmom', '…고맙습니다.\n우리 애 곁에 있어 주셔서.');
       await TALK.say('leo', '제가 도움을 받았는걸요.');
       pipi.keepFlip = false;
@@ -371,26 +631,28 @@
       X.bed(4, 0.13, 'home');
 
       /* ---- his day. Every year she makes his stew from his notebook, and he takes his pot to the lake and makes it with her ---- */
-      await X.years(30, 37, { age: 73, season: 'late autumn' });   /* the day he died */
+      await X.years(30, 37, { age: 73, season: 'late autumn' });   /* the day he went */
       T.announce('레오의 기일. 해마다 이날이면 아나는 레오의 공책을 펴 놓고 스튜를 끓이고, 레오는 냄비를 들고 호수에 내려가 같이 끓인다.');
-      await TALK.say('leo', '오늘이네, 빈.\n아나도 지금쯤 냄비 올렸겠다.');
+      await TALK.say('leo', '오늘이네, 빈.\n해마다 아나랑 같이 끓이는 날.');
       leo.chair = 0; leo.prop = potProp;
       A.sfx('knock', 0.3);
       X.walk(bean, C.PLOT + 330, 90);
       await X.walk(leo, C.PLOT + 380, 84);
       await X.wait(0.6);
-      /* her kitchen is dark this year: she is out in the rain with a basket, on her way to Lily's */
+      /* her kitchen is dark this year: she is out in the rain with a basket, on her way to Lily's. From the bank he
+         lights her way, the way he once walked Lily home from school */
       const way = T.lakeHelp({
-        level: 3, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), homeS: 160, carry: 'basket', arrive: '아나가 릴리네 집에 왔어요',
+        level: 3, len: 3000, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), homeS: 160, carry: 'basket', arrive: '아나가 릴리네 집에 왔어요',
+        from: 'house', steady: true, say: { lantern: '길이 깜깜해요. 등불을 그 위로 옮겨 주세요' },
         leoAge: 3, friend: { style: F.styles.cloud, beside: false },
         helpers: [{ kind: 'lantern', x: 210 }, { kind: 'plank', x: 340 }, { kind: 'cloud', x: 470 }],
-        obstacles: [{ x: 700, need: 'lantern' }, { x: 1100, need: 'plank' }, { x: 1660, need: ['lantern', 'cloud'] }, { x: 2200, need: 'cloud' }, { x: 2620, need: 'plank' }, { x: 3060, need: 'lantern' }],
+        obstacles: [{ x: 700, need: 'lantern' }, { x: 1300, need: ['lantern', 'cloud'] }, { x: 1980, need: ['plank', 'cloud'] }, { x: 2600, need: 'lantern' }],
       });
       await X.view(way, { color: '#1b2a40' });
       X.age('아나, 73');
       T.announce('거울 호수. 올해는 아나의 부엌이 불이 꺼져 있다. 대신 비 오는 저녁 길이 비친다. 장바구니를 든 아나가 우산도 없이 릴리네 집으로 걷는다.');
       await TALK.say('leo', '장바구니에 토마토가 한가득이네.\n…올해는 릴리네서 끓이려나 봐.');
-      await TALK.say('leo', '…또 우산 없이 나갔구나.', { slow: true });
+      await TALK.say('leo', '…또 우산 없이 나갔구나.');
       await way.done();
       await X.wait(0.6);
       await TALK.say('lily', '엄마! 이 비에 우산도 없이….');
@@ -400,17 +662,31 @@
       await X.wait(1);
 
       /* ---- the same evening, at Lily's: she teaches the grandchildren, and puts in what is not in his notebook ---- */
-      const kit = T.lake({ paint: lilyKitchen, leo: F.leoAt(3), leoFace: { old: true }, kid: F.styles.cloud, herb: { k: 0 }, stir: { k: 1 }, mine: false });
+      const kit = T.lake({ paint: lilyKitchen, leo: F.leoAt(3), leoFace: { old: true }, kid: F.styles.cloud, herb: { k: 0 }, stir: { k: 1 }, tom: { k: 0 }, look: { k: 0 }, steam: { k: 0, a: 0 }, toms: 0, mine: false });
       const kd0 = kit.draw;
-      kit.draw = function (g, t) { kd0(g, t); P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); try { bankPot(g, t, kit); } finally { P.cray = false; } };
+      kit.draw = function (g, t) { kd0(g, t); P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); try { bankPot(g, t, kit); } finally { P.cray = false; } steamOver(g, t, kit); };
       await X.view(kit, { color: '#1b2a40', out: 0.9, in: 1.1 });
-      T.announce('거울 호수. 그날 저녁, 릴리네 부엌. 아나가 레오의 공책을 펴 놓고 손주들에게 스튜 끓이는 법을 가르친다. 물가에서 레오도 제 냄비를 올려 두고 본다.');
+      A.rain(0.3, { window: true });   /* the rain on Lily's window, heard from inside */
+      T.announce('거울 호수. 그날 저녁, 릴리네 부엌. 아나가 레오의 공책을 펴 놓고 손주들에게 스튜 끓이는 법을 가르친다. 한 손주는 조리대에 걸터앉아 있다. 물가에서 레오도 제 냄비를 올려 두고 본다.');
       await X.wait(2.4);
       await TALK.say('leo', '토마토 넷, 약한 불에 오래오래.\n…내 공책 그대로네.');
-      await X.wait(0.6);
+      await X.wait(0.4);
+      /* and then not quite: two more tomatoes go in */
+      kit.beat = 5;
+      await X.tween(kit.stir, 'k', 0, 0.4, T.ease.io);
+      for (let i = 0; i < 2; i++) {
+        kit.tom.k = 0;
+        X.wait(1.0).then(() => A.sfx('bubble', 0.3 + i * 0.3));
+        await X.tween(kit.tom, 'k', 1, 1.9, lin);
+        kit.toms = i + 1;
+      }
+      kit.beat = 0; kit.tom.k = 0;
+      X.tween(kit.stir, 'k', 1, 0.5, T.ease.io);
+      await TALK.say('ana', '토마토는 넉넉히\n넣어야 맛있어.');
+      await X.wait(0.4);
       kit.beat = 1;
       await X.tween(kit.stir, 'k', 0, 0.5, T.ease.io);
-      T.announce('아나가 가져온 작은 병을 열어, 초록 풀을 한 줌 넣는다.');
+      T.announce('아나가 앞치마 주머니에서 작은 병을 꺼내, 초록 풀을 한 줌 넣는다.');
       A.sfx('step');
       await X.tween(kit.herb, 'k', 1, 4.2, lin);
       kit.herbed = true; kit.beat = 0;
@@ -418,11 +694,16 @@
       A.fragment(6);
       await TALK.say('leo', '…어? 그건 공책에 없는데.');
       await TALK.say('ana', '이건 할아버지 공책엔 없어.\n할머니가 찾아낸 거야.');
-      await TALK.say('leo', '…혼자 끓이면서 찾았구나.', { slow: true });
+      await TALK.say('leo', '…혼자 끓이면서 찾았구나.');
       await TALK.say('leo', '가르쳐 줘, 아나.', { slow: true });
-      T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라 레오의 냄비에 넣고, 물에 비친 아나의 스튜와 빛깔을 견주어 본다.');
-      await X.play(T.puzzle.taste({ answer: [0, 2] }));
-      kit.mine = true;
+      /* the water answers: the steam of her pot comes up out of it, and over, and into his */
+      T.announce('물속 부엌에서 스튜 김 한 줄기가 물 위로 피어올라, 물가에 놓인 레오의 냄비로 내려앉는다.');
+      kit.steam.a = 1;
+      A.sfx('sparkle');
+      await X.tween(kit.steam, 'k', 1, 3.6, T.ease.io);
+      kit.mine = true; A.sfx('bubble', 0.6); X.notes(3, { voice: 'glass', vel: 0.3 });
+      X.tween(kit.steam, 'a', 0, 1.4);
+      await X.wait(1.2);
       await X.card(notebook, {
         max: 18,
         run: async (c) => {
@@ -441,11 +722,23 @@
       X.tween(kit.sip, 'k', 0, 0.8);
       X.notes(3, { voice: 'pluck', vel: 0.34 });
       await X.wait(1.6);
-      await TALK.say('leo', '…이게 당신 맛이구나.', { slow: true });
-      await X.wait(1.2);
+      await TALK.say('leo', '…이게 당신 맛이구나.');
+      await X.wait(0.6);
+      /* the laughing dies down, and she looks round at the grandchild up on the counter: where she used to sit and
+         watch him cook, and the place she looked at, the first year, and stopped smiling */
+      kit.beat = 4; kit.leoFace = { mouth: 'line', old: true };
+      X.vcam(130, 590, 1.45, 3.2);
+      await X.tween(kit.look, 'k', 1, 1.8, T.ease.io);
+      T.announce('아나가 조리대에 걸터앉은 손주를 돌아본다. 이번에는 웃는다.');
+      X.notes(3, { voice: 'felt', vel: 0.32 });
+      await X.wait(2.2);
+      kit.leoFace = { eye: 'happy', mouth: 'smile', old: true, well: 0.7 };
+      await TALK.say('leo', '…이번엔 웃네.', { slow: true });
+      await X.wait(2.4);
+      A.rain(null);
       leo.prop = null; leo.x = PL.BOARD_X + 160; leo.flip = true; bean.x = PL.BOARD_X + 230; bean.flip = true; bean.sit = 1;
       X.cam(px - 40, py, 1); X.camSnap();
-      await X.view(null, { color: '#1b2a40' });
+      await X.view(null, { color: '#1b2a40', out: 1.4 });
 
       /* ---- the list ---- */
       const board = () => [PL.BOARD_X, W.y3(PL.BOARD_X) - 74, 44];
@@ -489,7 +782,6 @@
       T.announce('배에서 허리가 굽은 할아버지가 내린다. 할아버지가 피피를 보고 멈춰 선다.');
       await X.wait(1.4);
       await TALK.say('pdad', '…피피야?', { slow: true });
-      await TALK.say('pmom', '…여보.', { slow: true });
       await TALK.say('kid', '…아빠?', { slow: true });
       pipi2.hug = { k: 0 }; pd.hug = pipi2.hug;
       pipi2.pose = (o) => T.embrace(o, pipi2, pd, pipi2.hug.k, true);
@@ -498,54 +790,112 @@
       await X.walk(pipi2, pd.x + 30, 180);
       pipi2.flip = true;
       await X.tween(pipi2.hug, 'k', 1, 0.7, T.ease.out);
-      A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
-      await TALK.say('pdad', '…아빠가 너무 늦었지.', { slow: true });
+      X.notes(3, { voice: 'felt', vel: 0.28 });   /* quieter than the call his mother got: the run of these is long enough */
+      /* what he had promised, and not done in time */
+      await TALK.say('pdad', '같이 별 보러 가자고 해 놓고…\n아빠가 너무 늦었지.', { slow: true });
       await TALK.say('kid', '아니. 천천히 와서 좋았어.\n엄마가 아빠 얘기 다 해 줬어.');
-      await TALK.say('pdad', '…지갑 속 사진이랑 똑같네.', { slow: true });
+      await TALK.say('pdad', '…지갑 속 사진이랑 똑같네.');
       await X.walk(pm2, pd.x + 70, 60);
-      await TALK.say('pmom', '이제 다 모였네.');
+      await TALK.say('pmom', '…여보.\n이제 다 모였네.');
       await TALK.say('kid', '아빠, 밤 되면 보여 줄 거 있어.\n기다리면서 만든 별자리.');
       await X.wait(0.6);
       pipi2.pose = null; pd.pose = null; pipi2.hug = null; pipi2.armOver = false;
-      /* his promise to his father: the stars he joined up while he waited */
+      /* his promise to his father, and his father's to him: the stars he joined up while he waited, looked at together */
       await X.dip(async () => { ps.night = 0.9; }, { color: '#141b36', out: 1, in: 0.6 });
       T.announce('그날 밤, 부두. 피피가 아빠에게 기다리면서 만든 별자리를 하나씩 짚어 보인다.');
       await X.play(T.puzzle.stars({ rounds: [
         { name: '토마토', pts: [[0, -46], [44, -20], [44, 26], [0, 50], [-44, 26], [-44, -20], [0, -84]], edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 6]], at: [160, 320], scale: 1.25, filler: 14 },
         { name: '별똥별', pts: [[0, -50], [48, -16], [29, 40], [-29, 40], [-48, -16], [-118, -58], [-176, -92]], edges: [[0, 2], [2, 4], [4, 1], [1, 3], [3, 0], [4, 5], [5, 6]], at: [-120, 330], scale: 1.2, rot: -0.2, filler: 20 },
       ] }));
-      await TALK.say('pdad', '…이걸 다 우리 피피가?', { slow: true });
+      await TALK.say('pdad', '…이걸 다 우리 피피가?');
       await TALK.say('kid', '응. 아빠 보여 주기로 했잖아.');
       await X.wait(0.8);
-      await X.walk(pipi2, qleo2.x - 50, 160);
-      S.b2 = X.boat({ x: -900, hull: '#e9e2d6', lamp: false, riders: [] });
+
+      /* ---- the white boat. The music goes quiet while it comes in; its own small light is the brightest thing there ---- */
+      X.walk(pipi2, qleo2.x - 46, 120);
+      S.b2 = X.boat({ x: -720, hull: '#e9e2d6', lamp: false, riders: [] });
       T.announce('등불 없는 하얀 배 한 척이 구름 속에서 부두로 미끄러져 온다.');
-      await X.sail(S.b2, -74, 60);
-      await TALK.say('kid', '하얀 배 왔다.\n…우리 이제 가야 돼.');
-      await TALK.say('kid', '같이 기다리자고 했는데….\n나 먼저 가도 돼?');
+      X.hush(4);
+      X.cam(60, 500, 1.15, 0.5);
+      await X.sail(S.b2, -74, 66);
+      await X.wait(0.6);
+      /* the two of them: he goes down on one knee to be the height of the boy */
+      pipi2.flip = false;
+      X.cam((pipi2.x + qleo2.x) / 2, PIER - 84, 1.9, 0.8);
+      await X.gesture(qleo2, 'kneel', { with: pipi2, hold: true, in: 1.4, out: 1.2 });
+      await TALK.say('kid', '하얀 배 왔다.\n…우리 이제 가야 돼.', { slow: true });
+      pipi2.pose = (o) => { o.headTilt = (o.headTilt || 0) + 0.3; };   /* he asks it looking at his feet */
+      await TALK.say('kid', '같이 기다리자고 했는데….\n나 먼저 가도 돼?', { slow: true });
+      pipi2.pose = null;
+      X.gesture(qleo2, 'hand-on-head', { with: pipi2, hold: true, in: 0.9, out: 0.8 });
+      await X.wait(0.6);
       await TALK.say('leo', '그럼. 그동안 하나도 안 심심했어.\n다 지킨 거야.');
+      X.ungesture(qleo2, 'hand-on-head');
       await TALK.say('kid', '아저씨는 혼자서도 기다릴 수 있어?');
       await TALK.say('leo', '빈도 있고, 구름이도 있어.\n아나는… 늦게 올수록 좋고.');
+      X.gesture(pipi2, 'laugh', { dur: 2.2, hand: 'mouth' });   /* a giggle, in spite of everything */
+      await X.wait(1.4);
       await TALK.say('kid', '아나 아줌마 오면, 내 얘기 해 줘.\n토마토 같이 키운 거.');
       await TALK.say('leo', '응. 제일 먼저 할게.');
-      for (const [a, seat] of [[pd, -40], [pm2, -14], [pipi2, 12]]) { await X.walk(a, 24, 62); await X.board(a, S.b2, seat); a.flip = true; }
-      /* the send-off: the bell asks once more, and Leo answers it from the last lamp back */
-      X.toll(3); await X.wait(0.8);
-      T.announce('배웅. 종이 울린 차례를 거꾸로, 마지막 등불부터 대답해 떠나는 배를 보낸다.');
-      await X.play(T.puzzle.bell({ rounds: [[0, 1, 2], [0, 2, 1, 3]], reverse: true }));
-      const wave = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4 + a2.x) * 0.2, b: 0.3 }; };
-      [pd, pm2, pipi2].forEach((a) => { a.flip = false; });   /* turned round in the boat, to wave back at the quay */
-      [pd, pm2].forEach((a) => { a.pose = wave; });
-      pipi2.pose = (o, a2, t) => { o.armF = { a: 2.4 + Math.sin(t * 7) * 0.3, b: 0.2 }; o.face.eye = 'happy'; };
-      qleo2.pose = (o, a2, t) => { o.armF = { a: 2.3 + Math.sin(t * 4) * 0.2, b: 0.3 }; };
-      await TALK.say('leo', '잘 가, 피피.\n토마토는 내가 키울게.');
+      pipi2.z = 1;
+      await X.gesture(pipi2, 'hug', { with: qleo2, dur: 3.4, in: 0.8, out: 0.9 });
+      X.ungesture(qleo2, 'kneel');
+      await X.wait(0.6);
+      /* the three of them step down into it, and turn round in it to face the quay */
+      X.cam(150, 480, 1.1, 0.6);
+      for (const [a, seat, v] of [[pd, -40, 62], [pm2, -14, 62], [pipi2, 12, 84]]) { await X.walk(a, 24, v); await X.board(a, S.b2, seat); a.flip = true; }
+      [pd, pm2, pipi2].forEach((a) => { a.flip = false; });
+      await X.wait(0.6);
+      await TALK.say('kid', '아저씨, 종 쳐 줘.\n이번엔 아저씨가 물어봐.');
+      /* he rings the bell himself, the four notes of the call; at each one a lantern on the line answers, out
+         toward the boat, and Pipi puts his hand up. Nothing else is heard */
+      X.hush();
+      qleo2.ring = { k: 0 };
+      pipi2.raise = { k: 0 };
+      pipi2.pose = (o, a) => { const r = T.ease.out(a.raise.k); if (r > 0.01) o.armF = { a: T.lerp(0.6, 2.75, r), b: T.lerp(0.6, 0.15, r) }; o.face.eye = 'happy'; };
+      await X.walk(qleo2, 396, 50);
+      qleo2.flip = false;
+      qleo2.pose = (o, a) => { const r = a.ring.k; o.headTilt = -0.2; o.armF = { hand: F.local(o, 410 + r * 10, PIER - 106 - r * 8) }; };
+      X.cam(170, 478, 1.12, 0.6);
+      S.lineLit = [0, 0, 0, 0];
+      T.announce('레오가 종을 친다. 「천천히 와」의 네 음. 한 번 칠 때마다 부두의 등불이 하나씩, 배 쪽으로 켜진다.');
+      for (let i = 0; i < 4; i++) {
+        await X.tap(() => [420, PIER - 118, 44]);
+        qleo2.ring.k = 1; X.tween(qleo2.ring, 'k', 0, 0.6, T.ease.out);
+        X.toll(i, 0.5);
+        X.wait(0.35).then(() => X.tween(S.lineLit, i, 1, 0.8, T.ease.out));
+        X.wait(0.5).then(() => { pipi2.raise.k = 0; return X.tween(pipi2.raise, 'k', 1, 0.4).then(() => X.wait(0.5)).then(() => X.tween(pipi2.raise, 'k', 0, 0.7)); });
+        await X.wait(1.0);
+      }
+      await X.wait(1.6);
+      /* goodbye: he comes out from under the bell to the edge of the boards; they wave from the boat, and Pipi waves
+         till the very end */
+      qleo2.pose = () => {};
+      await X.walk(qleo2, 346, 46);
+      qleo2.flip = true;
+      pipi2.pose = (o) => { o.face.eye = 'happy'; };
+      X.gesture(pipi2, 'wave', { style: 'goodbye', hold: true, in: 0.4 });
+      X.gesture(pd, 'wave', { style: 'soft', hold: true, in: 0.8 });
+      X.gesture(pm2, 'wave', { style: 'slow', hold: true, in: 0.8 });
+      X.gesture(qleo2, 'wave', { style: 'slow', hold: true, in: 0.8 });
+      await X.wait(0.8);
+      await TALK.say('leo', '잘 가, 피피.\n토마토는 내가 키울게.', { slow: true });
+      A.score('farewell');
       X.sail(S.b2, -1500, 34);
       T.announce('하얀 배가 구름바다 너머로 멀어진다. 피피가 끝까지 손을 흔든다.');
       X.cam(-260, 452, 1, 0.4);
       await X.wait(3);
-      T.announce('밤바다 위에서 피피네 셋의 배가 빛으로 물든다. 피피가 끝까지 손을 흔든다. 배가 구름을 떠나고, 셋은 하나의 빛이 되어 하늘로 오른다.');
-      await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], { leoAge: 3, color: '#141b36', also: X.seeOff() });
+      T.announce('밤바다 위에서 피피네 셋의 배가 빛으로 물든다. 배가 구름을 떠나고, 셋은 하나의 빛이 되어 하늘로 오른다.');
+      await X.crossing([{ style: Object.assign({}, F.styles.villagerA, { top: '#6f8fa8' }), s: 140 }, { style: F.styles.villagerB, s: 128 }, { style: F.styles.kidA, s: 100 }], {
+        leoAge: 3, color: '#141b36', also: X.seeOff(),
+        /* as it lets go of the cloud, the lullaby, out to the star; the star is a fall of chimes */
+        say: async () => { A.theme({ voice: 'box', vel: 0.3, beat: 0.8 }); X.wait(3.6).then(() => A.sfx('shoot')); },
+      });
+      [pd, pm2, pipi2].forEach((a) => T.gesture.clear(a));
+      X.ungesture(qleo2, 'wave');
       qleo2.pose = null;
+      X.bed(2, 0.11, 'sea');
+      [0, 1, 2, 3].forEach((i) => X.tween(S.lineLit, i, 0, 4 + i * 0.6));
       X.cam(...X.place.quay(), 1.05, 0.5);
       await X.wait(1.4);
       await TALK.say('leo', '…이제 피피네도 갔네, 빈.', { slow: true });
@@ -560,52 +910,18 @@
       if (qbean) { qbean.sit = 0; X.walk(qbean, 372, 70).then(() => { qbean.flip = false; qbean.sit = 1; }); }
       await X.walk(qleo2, cloud.x - 44, 50);
       qleo2.flip = false;
-      qleo2.pose = (q) => { q.headTilt = 0.14; q.lean = 0.1; };
-      await X.wait(0.6);
+      await X.gesture(qleo2, 'kneel', { with: cloud, hold: true, in: 1.4 });
       await TALK.say('leo', '그럼 나랑 같이 찾아보자.\n심심하지 않게.');
       cloud.look = true;
       cloud.face = { eye: 'happy', mouth: 'smile' };
-      A.motif({ voice: 'box', vel: 0.3, beat: 0.7 });
-      await X.wait(2.2);
-      await home(() => { atTable(); leo.chair = 0; leo.x = PL.TABLE_X - 20; });
-      X.bed(4, 0.13, 'home');
-
-      /* ---- his day again, eight years on: this time the grandchildren have come to her ---- */
-      await X.years(43, 45, { age: 81, season: 'autumn' });
-      leo.prop = potProp;
-      X.walk(bean, C.PLOT + 330, 90);
-      await X.walk(leo, C.PLOT + 380, 84);
-      await X.wait(0.6);
-      const lake = T.lake({
-        paint: T.vig.grand, leo: F.leoAt(3), shore: true, leoFace: { eye: 'happy', old: true },
-        rhText: '등불은 창에, 냄비는 아나의 화구에, 레오는 아나가 앉던 조리대 자리에. 좌우로 끌어 점선에 맞춰 보세요',
-        things: [{ kind: 'lamp', x: 300, at: [-428, 300] }, { kind: 'pot', x: -250, at: [24, 548] }, { kind: 'leo', x: 120, at: [-330, 588], flip: false, lockFlip: false }],
-      });
-      await X.view(lake, { color: '#1b2a40' });
-      X.age('아나, 81');
-      T.announce('거울 호수. 기일 저녁, 아나의 부엌. 올해는 손주들이 할머니 부엌으로 왔다. 레오의 공책이 펼쳐져 있다.');
-      T.announce('물그림자 맞추기. 등불은 창에, 냄비는 아나의 냄비에, 레오는 조리대의 그 자리에.');
-      await lake.rhyme();
-      await X.wait(1.2);
-      lake.beat = 1; lake.note = '아나가 스튜를 젓는다. 레오의 냄비를 눌러 같이 저어 주세요';
-      for (let i = 0; i < 3; i++) { await X.tap(() => [lake.things[1].x, 186, 56], { screen: true }); A.sfx('bubble', i / 3); X.note({ voice: 'pluck', vel: 0.34 }); await X.wait(0.4); }
-      lake.note = null;
-      await X.wait(0.6);
-      lake.beat = 2;
-      T.announce('아나가 조리대의 그 자리를 돌아본다. 이번에는 웃는다.');
-      X.notes(3, { voice: 'felt', vel: 0.32 });
+      A.note({ m: 76, vel: 0.2, voice: 'glass', dur: 2.4 });   /* the lullaby has only just finished: one small note */
       await X.wait(2.4);
-      await TALK.say('leo', '…이번엔 웃네.', { slow: true });
-      await X.tap(() => [40, 560, 130], { screen: true });
-      if (!lake.rip.length || T.time - lake.rip[lake.rip.length - 1].t > 0.3) lake.touch(40, 560);
-      X.notes(3, { voice: 'felt', vel: 0.3 });
-      await X.wait(4);
+      A.score(null);
 
-      /* ---- the one that needs a night sky ---- */
-      leo.prop = null; leo.x = PL.TREE_X - 30; leo.flip = false; ps.night = 1; bean.x = PL.BOARD_X - 70; bean.flip = false; bean.sit = 1; ps.spot = [PL.TREE_X - 30];
-      X.cam(px + 150, py + 44, 1.25); X.camSnap();
-      await X.view(null, { color: '#1b2a40' });
+      /* ---- two years on: the one that needs a night sky ---- */
+      await home(() => { atTable(); leo.chair = 0; leo.x = PL.TREE_X - 30; leo.flip = false; ps.night = 1; bean.x = PL.BOARD_X - 70; bean.flip = false; bean.sit = 1; ps.spot = [PL.TREE_X - 30]; X.cam(px + 150, py + 44, 1.25); });
       X.bed(5, 0.14, 'night');
+      await X.years(43, 45, { age: 81, season: 'autumn' });
       leo.pose2 = 1;
       const look = leo.pose;
       leo.pose = (o, a, t) => { if (a.onSwing) return look(o, a, t); o.headTilt = -0.3; if (S.paintG) o.armF = { a: 2.5 + Math.sin(t * 2.2) * 0.3, b: 0.2 }; };

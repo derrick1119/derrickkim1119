@@ -868,6 +868,20 @@ T = [
     ("방이 꽉 막혔어요. 한 번 전으로 되돌려요", "The room is stuck. It turns back one move"),
     ("…아빠, 옆에 있었지?", "...Dad, you were beside me, right?"),
     ("응. 끝까지.", "Yes. All the way."),
+    # ---- phase 2: ch6
+    ("올해 건 진짜 빨개!\n제일 빨간 거, 아저씨가 골라 줘.", "This year's are really red!\nYou pick the reddest one, Mister."),
+    ("제일 빨간 토마토를 골라 따 주세요", "Pick the reddest tomato"),
+    ("잎 뒤에 숨은 것도 있어요. 잎을 눌러 들춰 봐요", "Some are hiding behind the leaves. Tap a leaf to lift it"),
+    ('피피: "그건 아직 덜 빨개."', 'Pippi: "That one\'s not red enough yet."'),
+    ('피피: "그건 해가 비쳐서 빨개 보이는 거야."', 'Pippi: "That one only looks red because the sun\'s on it."'),
+    ('피피: "빨갛긴 한데… 더 빨간 거 있어."', 'Pippi: "It\'s red, but... there\'s a redder one."'),
+    ("…꼭 다시 안아 준다고 했는데.\n이제 지켰다.", "...I said I'd hold you again, didn't I.\nNow I have."),
+    ("오늘이네, 빈.\n해마다 아나랑 같이 끓이는 날.", "It's today, Bean.\nThe day Ana and I cook it together, every year."),
+    ("길이 깜깜해요. 등불을 그 위로 옮겨 주세요", "The way is dark. Move the lantern over it"),
+    ("토마토는 넉넉히\n넣어야 맛있어.", "Plenty of tomatoes,\nthat's what makes it good."),
+    ("같이 별 보러 가자고 해 놓고…\n아빠가 너무 늦었지.", "I said we'd go and look at the stars together...\nand I took so long, didn't I."),
+    ("…여보.\n이제 다 모였네.", "...Love.\nWe're all together now."),
+    ("아저씨, 종 쳐 줘.\n이번엔 아저씨가 물어봐.", "Ring the bell for us, Mister.\nThis time you ask."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

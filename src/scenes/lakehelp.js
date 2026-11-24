@@ -17,6 +17,10 @@
      o.homeS                      the size of the one at the door (a grown-up walker's own size; 188 when a child walks home)
      o.arrive                     the line when she gets there (릴리가 집에 왔어요)
      o.carry: 'basket'            a market basket in her hand instead of Bean's collar
+     o.from: 'house'              she sets out from a house (its windows dark) instead of the school gate
+     o.steady                     a grown-up who is not frightened: where the way is not ready she only stops and looks
+                                  (no shiver, no clutching); in the heavy rain a hand goes up over her head
+     o.say                        { kind or 'kind+kind': line } in place of the usual captions where she waits
      o.leo / o.leoAge             who walks the bank above her; o.speed her pace (1)
      o.friend                     a small one who walks the bank too, a little behind him: a style, or { style, s, beside }.
                                   When the walker stops afraid (in the dark, in the rain) she goes and stands over her, and a
@@ -149,6 +153,7 @@
     const homeWho = o.home === false ? null : o.home && o.home.skin ? o.home : F.anaAt(41);
     /* the one at the door is drawn to the same scale as the one coming home: a child comes up to her chest */
     const homeS = o.homeS || (wst.kid ? 188 : ws), ARRIVE = o.arrive || named('릴리가 집에 왔어요'), CARRY = o.carry || null;
+    const SAYS = Object.assign({}, SAY, o.say || {}), STEADY = !!o.steady;
     const leo = { x: L.x - 110, ph: 0, moving: false, style: o.leo || F.leoAt(o.leoAge == null ? 1 : o.leoAge) };
     const fo = o.friend, fr = (V.friend = fo ? { x: L.x - 190, ph: 0, moving: false, flip: false, near: 0, come: false, style: fo.skin ? fo : fo.style, s: (!fo.skin && fo.s) || 104, beside: fo.skin ? true : fo.beside !== false } : null);
     V.fright = function (on) { L.hold = !!on; };
@@ -568,7 +573,13 @@
       }
       for (const h of houses) drawHouse(g, h);
       /* the school she has come from, and home, with its door open */
-      { const x = sx_(SCHOOL); if (x < W / 2 + 40 && x + 470 > -W / 2) {
+      if (o.from === 'house') { const x = sx_(SCHOOL + 150); if (x < W / 2 + 40 && x + 300 > -W / 2) {   /* her own house, the lights out */
+        g.fillStyle = '#6f647e'; g.fillRect(x, GROUND - 270, 280, 270); P.fill(g, P.poly([[x - 16, GROUND - 268], [x + 140, GROUND - 350], [x + 296, GROUND - 268]]), '#3d3658');
+        P.fill(g, P.rr(x + 170, GROUND - 214, 70, 64, 3), '#2a3052'); P.fill(g, P.rr(x + 30, GROUND - 214, 70, 64, 3), '#2a3052');
+        g.fillStyle = 'rgba(150,160,200,0.25)'; g.fillRect(x + 203, GROUND - 214, 4, 64); g.fillRect(x + 63, GROUND - 214, 4, 64);
+        P.fill(g, P.rr(x + 112, GROUND - 118, 60, 118, 4), '#3a3352'); P.fill(g, P.circle(x + 162, GROUND - 58, 3), '#c9b27a');
+        P.fill(g, P.rr(x + 104, GROUND - 4, 76, 6, 2), '#7d7390');
+      } } else { const x = sx_(SCHOOL); if (x < W / 2 + 40 && x + 470 > -W / 2) {
         g.fillStyle = '#6b6a8e'; g.fillRect(x, GROUND - 330, 330, 330); P.fill(g, P.poly([[x - 16, GROUND - 328], [x + 165, GROUND - 400], [x + 346, GROUND - 328]]), '#3a3d62');
         D_clock(g, x + 165, GROUND - 350); for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) P.fill(g, P.rr(x + 22 + i * 78, GROUND - 300 + j * 110, 46, 64, 3), j ? '#2a3052' : '#cfe0f2');
         g.fillStyle = '#3b3f5c'; for (let k = 0; k < 9; k++) g.fillRect(x + 340 + k * 14, GROUND - 70, 5, 70); g.fillRect(x + 336, GROUND - 74, 130, 6);
@@ -709,7 +720,7 @@
       const onPlank = helpers.some((h) => h.kind === 'plank' && Math.abs(h.x - L.x) < 85);
       const hop = m === 'happy' && L.moving ? Math.abs(Math.sin(L.ph)) * 4 : 0;
       const calm = fr && fr.beside ? T.ease.io(fr.near) : 0;   /* someone is standing with her */
-      const shiver = (m === 'huddle' || m === 'scared' ? Math.sin(t * 34) * 0.9 : 0) * (1 - 0.75 * calm);
+      const shiver = (m === 'huddle' || m === 'scared') && !STEADY ? Math.sin(t * 34) * 0.9 * (1 - 0.75 * calm) : 0;
       const y = GROUND - F.hipHeight(st, L.s) - (onPlank ? 5 : 0) - hop;
       /* the friend's shadow from the bank: a small girl at her back, a hand on her. Faint; it comes and goes */
       if (calm > 0.01) {
@@ -724,6 +735,8 @@
       const o = { x: s + shiver, y, s: L.s, style: st, lean: 0.06, headTilt: 0.14, face: { blush: 0.3 } };
       if (L.moving) o.walk = L.ph;
       if (V.finished) { o.face = { eye: 'happy', mouth: 'open', blush: 0.4 }; o.headTilt = -0.05; o.armB = { a: 2.3 + Math.sin(t * 9) * 0.25, b: 0.3 }; }
+      else if (m === 'scared' && STEADY) { o.lean = 0.02; o.headTilt = -0.06 + Math.sin(t * 0.7) * 0.05; o.face = { eye: 'open', mouth: 'line', blush: 0.2 }; }   /* she stops, and looks into the dark */
+      else if (m === 'huddle' && STEADY) { o.lean = 0.16; o.headTilt = 0.32; o.face = { eye: 'open', mouth: 'line', blush: 0.2 }; }
       else if (m === 'scared') { o.lean = -0.08; o.headTilt = 0.02; o.face = { eye: 'open', mouth: 'line', blush: 0.2 }; }
       else if (m === 'huddle') { o.lean = 0.26; o.headTilt = 0.5; o.face = { eye: 'closed', mouth: 'line', blush: 0.2 }; }
       else if (m === 'edge') { o.lean = 0.16; o.headTilt = 0.55; o.face = { eye: 'open', mouth: 'line', blush: 0.24 }; }
@@ -734,7 +747,8 @@
       /* the collar: held out as she walks, hugged close when she is frightened or cold, looked at where Bean waited */
       const chest = [s + 6 * u + Math.sin(o.lean) * 14, y - 13 * u];
       if (!V.finished) {
-        if (m === 'scared' || m === 'huddle') { o.armF = { hand: F.local(o, chest[0] + 2, chest[1]) }; o.armB = { hand: F.local(o, chest[0] - 1, chest[1] + 3) }; }
+        if (STEADY) { if (m === 'huddle') o.armB = { a: 2.75, b: 1.75 }; }   /* a hand over her head against the rain */
+        else if (m === 'scared' || m === 'huddle') { o.armF = { hand: F.local(o, chest[0] + 2, chest[1]) }; o.armB = { hand: F.local(o, chest[0] - 1, chest[1] + 3) }; }
         else if (m === 'sad') { o.armF = { hand: F.local(o, s + 10 * u + Math.sin(o.lean) * 20, y - 20 * u) }; o.armB = { hand: F.local(o, s + 8 * u + Math.sin(o.lean) * 20, y - 18 * u) }; }
         else if (m === 'edge') o.armF = { a: 0.55, b: 0.3 };
       }
@@ -749,7 +763,7 @@
       if (j && j.head) {
         const hx = j.head[0], hy = j.head[1];
         g.save(); g.lineCap = 'round';
-        if (m === 'scared' || m === 'huddle') {   /* a shiver */
+        if ((m === 'scared' || m === 'huddle') && !STEADY) {   /* a shiver */
           g.strokeStyle = T.rgba('#f0f4ff', 0.75 * (1 - 0.7 * calm)); g.lineWidth = 2;
           for (const d of [-1, 1]) for (let k = 0; k < 2; k++) { const x = s + d * (30 + k * 8), y0 = y - 46 + k * 10, w = Math.sin(t * 30 + k) * 2; g.beginPath(); g.moveTo(x + w, y0); g.quadraticCurveTo(x + d * 4 - w, y0 + 7, x + w, y0 + 14); g.stroke(); }
         }
@@ -853,7 +867,7 @@
       if (V.started && !V.finished) {
         const q = nextObs(), waiting = q && !L.moving && !met(q) && q.waited > 0.6;
         let line = o.caption || lv.caption;
-        if (waiting) { const miss = q.needs.filter((k) => !has(q, k)); line = SAY[miss.length > 1 ? miss.join('+') : miss[0]] || SAY[miss[0]]; }
+        if (waiting) { const miss = q.needs.filter((k) => !has(q, k)); line = SAYS[miss.length > 1 ? miss.join('+') : miss[0]] || SAYS[miss[0]]; }
         else if (bean() && bean().run > 0) line = named('빈의 그림자가 릴리 곁을 따라 걸어요');
         T.band(g, 1);
         P.text(g, waiting || V.auto ? line : T.puzzle.withKeys(line, 'move'), 0, 866, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.95, glow: 'rgba(8,12,22,0.9)', fit: W - 120 });
