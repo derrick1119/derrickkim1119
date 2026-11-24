@@ -5,11 +5,11 @@ import { BATTLES } from './variants.js';
 import { STYLES } from './styles.js';
 import { LIVE, live } from './live.js';
 const SCENES = Object.assign({ live: { name: '시간 × 날씨', draw: live } }, STYLES, BATTLES, BASE);
-const CTRL = [['시간', 'time', [['dawn', '새벽'], ['day', '낮'], ['dusk', '노을'], ['night', '달밤'], ['auto', '▶ 하루 흐름']]], ['날씨', 'weather', [['clear', '맑음'], ['rain', '비'], ['storm', '뇌우'], ['snow', '눈'], ['fog', '안개'], ['leaves', '낙엽']]], ['외곽선', 'outline', [['0', '먹선만'], ['1', '흰 테']]]];
+const CTRL = [['시간', 'time', [['dawn', '새벽'], ['day', '낮'], ['dusk', '노을'], ['night', '달밤'], ['auto', '▶ 하루 흐름']]], ['날씨', 'weather', [['clear', '맑음'], ['rain', '비'], ['storm', '뇌우'], ['snow', '눈'], ['fog', '안개'], ['leaves', '낙엽']]], ['외곽선', 'outline', [['1', '흰 테'], ['0', '먹선만']]]];
 const OLD = [['도트 스타일', ['tall', 'soft', 'tiny', 'paper', 'onebit', 'mini']], ['색감', ['rich', 'ink', 'mini4']], ['그 밖', ['stage', 'title', 'sheet']]];
 const q = new URLSearchParams(location.search), cv = document.getElementById('cv'), g = cv.getContext('2d');
 let cur = q.get('scene') || 'live'; if (!SCENES[cur]) cur = 'live'; if (q.get('shot')) document.body.classList.add('shot');
-if (q.get('time')) LIVE.time = q.get('time'); if (q.get('weather')) LIVE.weather = q.get('weather'); LIVE.outline = q.get('outline') === '1'; LIVE.auto = q.get('auto') === '1';
+if (q.get('time')) LIVE.time = q.get('time'); if (q.get('weather')) LIVE.weather = q.get('weather'); LIVE.outline = q.get('outline') !== '0'; LIVE.auto = q.get('auto') === '1';
 const tabs = document.getElementById('tabs'), el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
 for (const [label, key, opts] of CTRL) { const row = el('div', 'grp'); row.appendChild(el('span', '', label)); for (const [v, name] of opts) { const b = el('button', '', name); b.dataset.c = key + ':' + v; b.onclick = () => { cur = 'live'; if (key === 'time') { LIVE.auto = v === 'auto'; if (v !== 'auto') LIVE.time = v; } else if (key === 'weather') LIVE.weather = v; else LIVE.outline = v === '1'; sync(); }; row.appendChild(b); } tabs.appendChild(row); }
 const more = el('button', 'more', '이전 시안 ▾'); more.onclick = () => { document.body.classList.toggle('old'); more.textContent = document.body.classList.contains('old') ? '이전 시안 ▴' : '이전 시안 ▾'; fit(); }; { const row = el('div', 'grp'); row.appendChild(more); tabs.appendChild(row); }

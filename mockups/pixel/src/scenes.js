@@ -3,6 +3,8 @@ import { LW, LH, P, INK, Spr, css, txt, wrap, draw, bayer, rng, logo, textW, tin
 import { look, LOOKS, jangseung, bannerCart, pine, sansuyu, rock, tuft, lantern } from './sprites.js';
 
 export const C = (n, i = 2) => P[n][i];
+// 흰 테를 두른 인형 (도트 시안의 기본)
+const WLK = new Map(); export const wlook = k => { let v = WLK.get(k); if (!v) WLK.set(k, v = look(k).outline(0xffffff)); return v; };
 export const fr = (g, x, y, w, h, col) => { g.fillStyle = typeof col === 'number' ? css(col) : col; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
 // 도트 판: 먹 테 · 금 테 · 안쪽 빛과 그늘
 export function panel(g, x, y, w, h, o = {}) {
@@ -28,6 +30,7 @@ export function mountains(s, base, amp, f, ph, col, lit, haze, yEnd, o = {}) {
     for (let y = y0; y < yEnd; y++) {
       const d = y - y0; let c = col;
       if (up && d < 7 && bayer(x, y) > d / 7) c = lit; else if (!up && d < 3 && bayer(x, y) > 0.7) c = lit;
+      if (o.snow) { const cap = o.snow + ((x * 7 + (ph * 10 | 0)) % 3) + (Math.sin(x * 0.11 + ph) > 0.4 ? 2 : 0); if (d < cap - 1) c = d === 0 || up ? o.snowCol : o.snowSh; else if (d < cap + 2 && bayer(x, y) > 0.5 + (d - cap) * 0.2) c = up ? o.snowCol : o.snowSh; }
       const hz = (y - (yEnd - (o.mist || 14))) / (o.mist || 14); if (hz > 0 && bayer(x, y) < hz) c = haze;
       s.set(x, y, c);
     }
@@ -153,7 +156,7 @@ function crowd(kind, far) {
   return o;
 }
 function stage(g, t) {
-  if (!STAGE) STAGE = { bg: bakeStage(), crowd: [0, 1, 2, 3, 4].map(k => crowd(k, false)), far: [0, 1, 2, 3, 4].map(k => crowd(k, true)), lan: [lantern('red'), lantern('blue')], hero: look('commander'), jumo: look('jumo') };
+  if (!STAGE) STAGE = { bg: bakeStage(), crowd: [0, 1, 2, 3, 4].map(k => crowd(k, false)), far: [0, 1, 2, 3, 4].map(k => crowd(k, true)), lan: [lantern('red'), lantern('blue')], hero: wlook('commander'), jumo: wlook('jumo') };
   const S = STAGE; g.save(); g.scale(2, 2);
   g.drawImage(S.bg.canvas(), 0, 0);
   // 초롱과 불빛 (띠로 번지는 빛)
@@ -234,9 +237,9 @@ function sheet(g, t) {
   const keys = Object.keys(NAMES);
   keys.forEach((k, i) => {
     const big = k === 'tiger', col = i % 7, row = Math.floor(i / 7), x = 12 + col * 89 + (big ? 0 : 0), y = 34 + row * 158, w = big ? 172 : 83;
-    if (big) { panel(g, 368, 192, 264, 152, { fill: C('ink', 2), edge: C('red', 1) }); fr(g, 370, 300, 260, 22, C('grass', 1)); fr(g, 370, 300, 260, 1, C('grass', 2)); g.save(); g.translate(506, 316); g.scale(2, 2); draw(g, look(k), 0, Math.sin(t * 3) > 0.3 ? -1 : 0); g.restore(); txt(g, NAMES[k] + ' · 두목', 500, 326, { f: 'b', a: 'c', c: C('gold', 4), sh: INK }); return; }
+    if (big) { panel(g, 368, 192, 264, 152, { fill: C('ink', 2), edge: C('red', 1) }); fr(g, 370, 300, 260, 22, C('grass', 1)); fr(g, 370, 300, 260, 1, C('grass', 2)); g.save(); g.translate(506, 316); g.scale(2, 2); draw(g, wlook(k), 0, Math.sin(t * 3) > 0.3 ? -1 : 0); g.restore(); txt(g, NAMES[k] + ' · 두목', 500, 326, { f: 'b', a: 'c', c: C('gold', 4), sh: INK }); return; }
     panel(g, x, y, w, 152, { fill: C('ink', 2), edge: i > 7 ? C('red', 1) : C('gold', 1) }); fr(g, x + 2, y + 108, w - 4, 22, C('grass', 1)); fr(g, x + 2, y + 108, w - 4, 1, C('grass', 2));
-    g.save(); g.translate(x + w / 2 + (i > 7 ? 4 : -4), y + 124); g.scale(2, 2); draw(g, look(k), 0, Math.sin(t * 3 + i) > 0.3 ? -1 : 0); g.restore();
+    g.save(); g.translate(x + w / 2 + (i > 7 ? 4 : -4), y + 124); g.scale(2, 2); draw(g, wlook(k), 0, Math.sin(t * 3 + i) > 0.3 ? -1 : 0); g.restore();
     txt(g, NAMES[k], x + w / 2, y + 134, { f: 'b', a: 'c', c: C('cream', 4), sh: INK });
   });
 }

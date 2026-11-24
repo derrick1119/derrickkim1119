@@ -38,9 +38,10 @@ export function bake(th, o = {}) {
   { const { x: sx, y: sy, r, c } = th.sun; for (let y = sy - r - 20; y < 132; y++) for (let x = sx - r - 20; x < sx + r + 20; x++) { const d = Math.hypot(x - sx, y - sy); if (d < r) s.set(x, y, th.sun.moon && (Math.hypot(x - sx + 6, y - sy + 5) < 4 || Math.hypot(x - sx - 7, y - sy - 6) < 3) ? 0xe8dca0 : c[0]); else if (d < r + 4) s.set(x, y, c[1]); else if (d < r + 17 && bayer(x, y) > (d - r - 4) / 13) s.set(x, y, c[2]); } }
   if (o.rich) { cumulus(s, 130, 74, 150, 24, [0x8c70a8, 0xd898a8, 0xf8c4a8, 0xfff0d0, 0xffd89c], 3); cumulus(s, 318, 52, 90, 14, [0x7868a8, 0xc890ac, 0xf0b8b0, 0xffe4d0, 0xffd0a0], 5); cumulus(s, 580, 70, 120, 20, [0x9474a8, 0xe8a0a0, 0xffcc9c, 0xfff6d8, 0xffe8a8], 8); cumulus(s, 410, 90, 60, 9, [0xb080a8, 0xf0a890, 0xffd098, 0xfff8dc, 0xfff0b8], 9); }
   else for (const [x, y, w, cols] of th.clouds) cloud(s, x, y, w, cols, (x * 7) | 0);
-  mountains(s, 98, 20, 0.021, 1.3, th.m1[0], th.m1[1], th.m1[2], 132, { mist: 20 });
-  mountains(s, 112, 16, 0.031, 4.1, th.m2[0], th.m2[1], th.m2[2], 136, { mist: 16, trees: 0.12, treeCol: th.m2[3] });
-  mountains(s, 126, 10, 0.043, 2.2, th.m3[0], th.m3[1], th.m3[2], 146, { mist: 10, trees: 0.3, treeCol: th.m3[3] });
+  const SN = th.snow ? { snow: 4, snowCol: th.snow[0], snowSh: th.snow[1] } : {};
+  mountains(s, 98, 20, 0.021, 1.3, th.m1[0], th.m1[1], th.m1[2], 132, Object.assign({ mist: 20 }, SN, th.snow ? { snow: 7 } : {}));
+  mountains(s, 112, 16, 0.031, 4.1, th.m2[0], th.m2[1], th.m2[2], 136, Object.assign({ mist: 16, trees: 0.12, treeCol: th.m2[3] }, SN));
+  mountains(s, 126, 10, 0.043, 2.2, th.m3[0], th.m3[1], th.m3[2], 146, Object.assign({ mist: 10, trees: 0.3, treeCol: th.m3[3] }, SN, th.snow ? { snow: 2 } : {}));
   { const wx = 300, wy = 121, Wc = th.wall; for (let x = wx - 50; x < wx + 60; x++) { const top = wy + Math.round(Math.sin(x * 0.05) * 2); for (let y = top; y < top + 9; y++) s.set(x, y, y === top ? Wc[0] : (x + y) % 5 === 0 ? Wc[1] : Wc[2]); if (x % 4 < 2) s.set(x, top - 1, Wc[3]); }
     s.rect(wx - 8, wy - 9, 22, 12, Wc[4]); s.rect(wx - 1, wy - 4, 8, 9, Wc[5]); s.hl(wx, wx + 5, wy - 5, Wc[5]);
     for (const [ry, hw] of [[wy - 12, 18], [wy - 19, 13]]) { s.hl(wx + 3 - hw, wx + 3 + hw, ry, Wc[6]); s.hl(wx + 5 - hw, wx + 1 + hw, ry - 1, Wc[7]); s.hl(wx + 7 - hw, wx - 1 + hw, ry - 2, Wc[6]); s.set(wx + 2 - hw, ry - 1, Wc[6]); s.set(wx + 4 + hw, ry - 1, Wc[6]); s.set(wx + 1 - hw, ry - 2, Wc[8]); }
@@ -53,7 +54,7 @@ export function bake(th, o = {}) {
   for (let x = -4; x < LW; x += 7 + ((R() * 6) | 0)) { const r = 4 + R() * 4, y = 141 + R() * 2; const t = new Spr(LW, LH); t.ell(x, y, r * 1.4, r, th.bush[0]); s.blit(t, 0, 0); for (let k = 0; k < 3; k++) s.set(x + ((R() - 0.5) * r * 2) | 0, y - ((R() * r) | 0), R() < 0.5 ? th.bush[1] : th.bush[2]); }
   for (let x = 6; x < LW; x += 22) { s.rect(x, 139, 2, 10, th.fence[0]); s.vl(x, 139, 148, th.fence[1]); s.set(x, 138, th.fence[2]); s.set(x + 1, 138, th.fence[2]); }
   for (const y of [141, 145]) for (let x = 0; x < LW; x++) s.set(x, y + (Math.sin(x * 0.29) > 0.8 ? 1 : 0), x % 22 < 9 ? th.fence[1] : th.fence[3]);
-  const fix = sp => (th.sun.moon ? remap(sp, 'night', nightTint) : sp);
+  const fix = sp => { const o = th.sun.moon ? remap(sp, 'night', nightTint) : sp; return th.sprFix ? th.sprFix(o) : o; };
   for (let i = 0; i < 120; i++) { const x = (R() * LW) | 0, y = 152 + ((R() * 126) | 0); if (isPath(s.get(x, y))) continue; stamp(s, fix(tuft(i)), x, y); }
   if (o.rich) for (const [fx, fy, col] of [[150, 258, 0xffffff], [200, 164, 0xffd24a], [372, 270, 0xfcb0b8], [470, 170, 0xffffff], [560, 196, 0xffd24a], [70, 190, 0xfcb0b8], [286, 160, 0xffffff]]) for (let k = 0; k < 9; k++) { const x = fx + ((R() - 0.5) * 30) | 0, y = fy + ((R() - 0.5) * 12) | 0; if (isPath(s.get(x, y))) continue; s.set(x, y, col); s.set(x, y + 1, th.spk[3]); if (k % 3 === 0) s.set(x + 1, y, mixc(col, 0xffe0a0, 0.5)); }
   for (const [x, y, w] of [[92, 170, 12], [402, 160, 10], [540, 268, 16], [26, 262, 18], [300, 276, 10], [612, 180, 12]]) stamp(s, fix(rock(w, x)), x, y);
@@ -115,7 +116,7 @@ export function makeBattle(o) {
     panel(g, 214, 30, 212, 25, { fill: C('ink', 1), edge: C('red', 1) }); txt(g, '고개 호랑이', 320, 34, { f: 9, a: 'c', c: C('gold', 4), sh: INK }); fr(g, 222, 46, 196, 5, INK); fr(g, 223, 47, 194, 3, C('red', 0)); fr(g, 223, 47, 138, 3, C('red', 2)); fr(g, 223, 47, 138, 1, C('red', 3)); for (const k of [0.25, 0.5, 0.75]) fr(g, 223 + 194 * k, 47, 1, 3, INK);
     panel(g, 6, 30, 112, 16, { fill: C('teal', 1), edge: C('teal', 3), corner: false }); txt(g, '학익진', 11, 33, { f: 9, c: C('gold', 4) }); txt(g, '피해 +20%', 113, 33, { f: 9, a: 'r', c: C('cream', 3) });
     panel(g, 6, 48, 112, 16, { fill: C('ink', 2), edge: C('ink', 3), corner: false }); txt(g, '방진 2단', 11, 51, { f: 9, c: C('cream', 3) }); txt(g, '방어 +10%', 113, 51, { f: 9, a: 'r', c: C('cream', 1) });
-    useLook(o.spr ? k => fix(o.spr(k)) : o.fx ? k => fix(look(k)) : null, o.cardDy || 0, o.portDy || 0); hud(g, t); useLook(null);
+    useLook(o.fxu ? k => o.fxu(look(k)) : o.spr ? k => fix(o.spr(k)) : o.fx ? k => fix(look(k)) : null, o.cardDy || 0, o.portDy || 0); hud(g, t); useLook(null);
     if (o.lut) grade(g, o.lut, lutCache);
     if (o.after) o.after(g, t);
   };
