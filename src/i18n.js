@@ -692,7 +692,8 @@
  "모두 몸을 젖히고 숨을 모으면, 그때 눌러요 · 스페이스 / 엔터": "When everyone leans back and holds their breath, press · Space / Enter",
  "머리 위 동그라미가 모두 환해지면, 그때 눌러요 · 스페이스 / 엔터": "When every circle overhead is lit, press · Space / Enter",
  "아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요": "Someone was still catching their breath. Press when every circle is lit.",
- "괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요": "That's all right. This time everyone will hold their breath a little longer."
+ "괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요": "That's all right. This time everyone will hold their breath a little longer.",
+ "머리 위 동그라미가 모두 환해지면, 그때 눌러요": "When every circle overhead is lit, press"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};
