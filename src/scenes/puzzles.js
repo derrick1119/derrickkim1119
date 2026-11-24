@@ -104,8 +104,9 @@
       /* step 2: a short line at the top, what to do */
       const s = C.tipA > 0.01 ? tipText() : '';
       if (s) {
-        /* kept clear of the dream tray (top left) and the skip (top right); a long line goes onto two */
-        const V = T.view, al = a * C.tipA, y = 58, maxW = Math.max(520, V.W - 540), tx = T.tr(s);
+        /* kept clear of the dream tray (top left) and the skip (top right); a long line goes onto two. If the thing
+           to touch is up there itself, the line moves down above the caption (once, and stays there) */
+        const V = T.view, al = a * C.tipA, maxW = Math.max(520, V.W - 540), tx = T.tr(s);
         MC.font = P.font('serif', 23);
         let lines = [tx];
         if (MC.measureText(tx).width > maxW - 80) {
@@ -114,6 +115,8 @@
           if (best > 0) lines = [tx.slice(0, best), tx.slice(best + 1)];
         }
         const w = Math.min(maxW, Math.max(...lines.map((l) => MC.measureText(l).width)) + 80), h = 22 + lines.length * 32;
+        if (!C.tipLow && o.hintAt) { const q = o.hintAt(); if (q && q[1] < 200 && Math.abs(q[0]) < w / 2 + 70) C.tipLow = true; }
+        const y = C.tipLow ? 772 - h : 58;
         g.save(); g.globalAlpha *= al;
         const box = P.rr(-w / 2, y - 27, w, h, 27);
         P.fill(g, box, 'rgba(14,20,32,0.6)');

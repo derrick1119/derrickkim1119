@@ -429,7 +429,7 @@
           g.save(); g.globalAlpha = ca; T.band(g, 1); g.restore();
           P.text(g, T.puzzle.withKeys(cap, 'move'), 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94 * ca, glow: 'rgba(8,12,22,0.9)' });
         }
-        if (C) { C.glow(g, t, 1, 44); C.draw(g, t); }
+        if (C) { C.glow(g, t, 1, 62); C.draw(g, t); }   /* a ring wider than the dotted shape it points at */
       } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }
     const draw0 = L.draw;
