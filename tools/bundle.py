@@ -5,11 +5,14 @@ Usage:  python3 tools/bundle.py [--release] [output.html]
 
 Inlines assets/fonts/fonts.css and every <script src> of index.html, so the
 result can be double-clicked, e-mailed or uploaded on its own. Default output
-is dist/take-your-time.html (dist/ is not tracked).
+is dist/take-your-time.html (dist/ is not tracked). The fuller hand the epilogue
+loads for the player's letter (assets/fonts/hand-letter.woff2) goes in as a
+data: URI in place of its path.
 
 --release leaves the test menu (src/devmenu.js) out, and writes to
 dist/take-your-time-release.html unless another path is given.
 """
+import base64
 import pathlib
 import re
 import sys
@@ -30,8 +33,13 @@ def main():
     def css(m):
         return "<style>\n" + (ROOT / m.group(1)).read_text(encoding="utf-8") + "</style>"
 
+    letter = ROOT / "assets" / "fonts" / "hand-letter.woff2"
+    letter_uri = "data:font/woff2;base64," + base64.b64encode(letter.read_bytes()).decode("ascii") if letter.exists() else None
+
     def js(m):
         src = (ROOT / m.group(1)).read_text(encoding="utf-8")
+        if letter_uri:
+            src = src.replace("'assets/fonts/hand-letter.woff2'", "'" + letter_uri + "'")
         # a literal closing tag inside a script would end it early
         return "<script>\n" + src.replace("</script", "<\\/script") + "</script>"
 

@@ -1000,6 +1000,7 @@
     const key = null;   /* the concept painting is a reference, not the title */
     if (key) keyArt(g, key, a);
     else { g.fillStyle = T.rgba('#0f1522', 0.8 * a); g.fillRect(-W / 2, 0, W, V.H); }
+    if (T.letter) T.letter.sill(g, a);   /* once a letter has gone up from below: a small paper bird on the sill */
     const ta = T.clamp(a * 1.6 - 0.6);
     /* on the painting the words are dark ink on a light sky; on the night room, light on dark */
     const C1 = key ? '#3a2d55' : '#f3ead8', C2 = key ? '#5b4a78' : '#e9dcc0', C3 = key ? '#6b5c84' : '#c9cfdb', glow = key ? 'rgba(255,246,240,0.85)' : null;

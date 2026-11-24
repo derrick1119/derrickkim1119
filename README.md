@@ -124,6 +124,19 @@ N년째에 아나는 36+N살, 릴리는 그보다 서른 살 어립니다. 레�
 
 제목 화면 아래의 「장 바로 가기」로 어느 장이든 따로 볼 수 있습니다 (키보드는 `1`~`7`).
 
+### 에필로그: 편지 한 줄 (쓰지 않아도 됩니다)
+
+마지막 "천천히 와." 뒤, 끝 카드 전에 화면이 저 아래 산 사람들의 세상으로 내려갑니다(`src/scenes/letter.js`).
+「저 아래, 어느 밤」. 열린 창가의 책상, 빈 종이 한 장과 연필, 아무도 없는 방입니다.
+창 너머 밤하늘에 "편지는 바람을 타고 간대요. / 먼저 간 사람에게도, 곁에 있는 사람에게도."가 떠오르고,
+플레이어는 종이에 한두 줄(60자까지) 쓰거나 「쓰지 않고 넘어가기」를 누릅니다(Esc). 보내기는 Ctrl/Cmd+Enter도 됩니다.
+보내면 열린 창으로 들어온 바람이 종이를 두 번 접어 종이새으로 만들고, 종이새은 창밖으로 나가 달 옆 구름 속으로 들어갑니다.
+새벽의 바람 우체국에서 늙은 집배원이 그것을 받아 들고, 읽지 않고 가만히 들여다본 뒤 "꼭 전해 주겠네." 하고 우편함 칸 하나에 넣어 줍니다.
+그다음 편지를 담은 엽서(1080×1350)를 「그림으로 저장」할 수 있고(아이폰·앱 안 브라우저에서는 그림을 길게 눌러 저장), 끝 카드는 예전 그대로입니다.
+글은 어디에도 보내지 않습니다. 이 기기에 마지막 편지 하나만 남고(`localStorage`의 `tyt-letter`), 그 뒤로는 제목 화면 병실 창턱에 작은 종이새이 앉아 있습니다.
+글은 진짜 `<textarea>`에 쓰므로 한글 입력기, 휴대폰 자판, 화면 낭독기가 그대로 됩니다. 좁거나 낮은 화면에서는 종이 대신 화면 위쪽 카드에서 씁니다.
+`index.html#letter`로 에필로그만 따로 볼 수 있습니다.
+
 ## 퍼즐
 
 장마다 그 장면에서 손이 실제로 할 법한 일이 작은 퍼즐로 들어 있습니다.
@@ -252,6 +265,7 @@ src/scenes/views.js        거울 호수(물결 고리, 물그림자 퍼즐 포�
 src/scenes/skyplaces.js    구름 위의 곳들: 꽃 핀 나무 아래 벤치(overlook), 빛의 폭포(falls)
 src/scenes/skyplaces2.js   구름 위의 곳들 둘째: 소원 숲(grove, 소원 찾기와 빛 흘려보내기), 바람 우체국(post), 구름 고래(whales)
 src/scenes/ch2_list.js … ch7_welcome.js   2장부터 마지막 장까지의 대본
+src/scenes/letter.js       에필로그: 플레이어의 편지 한 줄, 종이새, 새벽의 바람 우체국, 엽서 (제목 화면 창턱의 종이새도)
 tools/subset_fonts.py      글꼴을 쓰는 글자만 남겨 fonts.css로 묶기
 tools/make_i18n.py         영어 번역 표에서 src/i18n.js 만들기
 tools/bundle.py            게임 전체를 HTML 파일 하나로 묶기
@@ -260,7 +274,7 @@ tools/bundle.py            게임 전체를 HTML 파일 하나로 묶기
 주소 끝에 이름을 붙이면 그 장면부터 볼 수 있습니다.
 프롤로그는 `#hub`, `#night`, `#dawn`, `#final`, `#home`, `#stew`, `#swing`, `#walk`, `#ending`,
 1장은 `#kitchen`, `#sea`, `#quay`, `#street`, `#hills`, `#house`, `#top`,
-2장부터는 `#ch2` … `#ch7`입니다.
+2장부터는 `#ch2` … `#ch7`, 에필로그(편지)는 `#letter`입니다.
 구름 위의 곳들은 `#place:overlook`, `#place:falls`, `#place:grove`, `#place:post`, `#place:whales`로 따로 볼 수 있습니다.
 
 화면에 나오는 글자를 바꾸면 글꼴 묶음을 다시 만들어야 합니다.
@@ -343,6 +357,12 @@ python3 assets/audio/make_samples.py /tmp/tyt-sound-src
 손글씨는 나눔손글씨 펜(Nanum Pen Script), 본문은 고운바탕(Gowun Batang)에서
 필요한 글자만 남긴 것입니다. 둘 다 SIL Open Font License 1.1을 따르며,
 전문은 `assets/fonts/OFL-*.txt`에 있습니다.
+
+에필로그에서 플레이어가 쓰는 편지는 어떤 글자든 올 수 있어서, 같은 나눔손글씨 펜을 훨씬 넓게 자른
+`assets/fonts/hand-letter.woff2`(「TYT Letter」, 약 450 KB: 한글 11,172자 전부와 자모, ASCII, 문장부호)를 따로 둡니다.
+에필로그가 열릴 때만 `FontFace`로 읽고, 읽기 전에는 기존 손글씨와 시스템 글꼴이 대신합니다.
+`tools/subset_fonts.py`가 `fonts.css`와 함께 만들며, 같은 OFL을 따릅니다(`assets/fonts/OFL-NanumPenScript.txt`).
+여러 파일로 올릴 때는 이 파일도 함께 올려야 합니다. `tools/bundle.py`로 만드는 단일 파일에는 data: URI로 들어갑니다.
 
 ## 새 조각: 물가의 손, 별똥별, 하늘의 두 곳
 

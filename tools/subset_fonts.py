@@ -7,6 +7,11 @@ Reads every string in index.html and src/, keeps printable ASCII plus whatever
 else appears there, and writes assets/fonts/fonts.css with both subsets inlined
 as data: URIs (one small file, and it loads anywhere the page does).
 Run it again whenever on-screen text changes. Needs: pip install fonttools brotli
+
+It also writes assets/fonts/hand-letter.woff2: a much fuller cut of the hand
+("TYT Letter": all 11,172 Hangul syllables, the jamo, ASCII and the punctuation
+the face has) for the letter the player writes in the epilogue, which can hold
+any word. The epilogue loads it only when it opens (src/scenes/letter.js).
 """
 import base64
 import io
@@ -56,6 +61,32 @@ def make(src, text, family):
     )
 
 
+def make_letter(src):
+    """The hand for words the game cannot know in advance. No hinting: it is only ever drawn large.
+    The source's own timestamp is kept, so the file comes out the same every time."""
+    font = TTFont(src, recalcTimestamp=False)
+    have = font.getBestCmap()
+    keep = [c for c in have if 0x20 <= c < 0x7F or 0xAC00 <= c <= 0xD7A3 or 0x3131 <= c <= 0x318E
+            or c in (0xA9, 0xB0, 0xD7, 0x2018, 0x2019, 0x201C, 0x201D, 0x20A9) or 0xFF01 <= c <= 0xFF5E]
+    opts = subset.Options()
+    opts.flavor = "woff2"
+    opts.layout_features = ["*"]
+    opts.notdef_outline = True
+    opts.hinting = False
+    sub = subset.Subsetter(opts)
+    sub.populate(unicodes=keep)
+    sub.subset(font)
+    for rec in font["name"].names:   # a Modified Version: no Reserved Font Name
+        if rec.nameID in (1, 3, 4, 16):
+            rec.string = "TYT Letter"
+        elif rec.nameID == 6:
+            rec.string = "TYTLetter"
+    font.flavor = "woff2"
+    out = ROOT / "assets" / "fonts" / "hand-letter.woff2"
+    font.save(out)
+    print(f"TYT Letter: {out.stat().st_size / 1024:.1f} KB, {len(keep)} characters -> assets/fonts/hand-letter.woff2")
+
+
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
@@ -71,6 +102,7 @@ def main():
     css += make(sys.argv[2], text, "TYT Batang")
     (out / "fonts.css").write_text(css, encoding="utf-8")
     print(f"{len(text)} characters kept -> assets/fonts/fonts.css")
+    make_letter(sys.argv[1])
 
 
 if __name__ == "__main__":

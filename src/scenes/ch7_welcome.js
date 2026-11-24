@@ -7,7 +7,8 @@
    cooks; at night the aurora comes out over the hill; they knit the story blanket together, a row each (his
    story of up here, then hers of the same days down below); Ana tells him what she promised Lily, they set the
    first stone of Lily's room, and at the list on the gate he crosses off the aurora and leaves growing old
-   together to be kept slowly. Then the three of them say it to Lily, and two small clouds hold hands in the sky. */
+   together to be kept slowly. Then the three of them say it to Lily, and two small clouds hold hands in the sky.
+   Before the end card, the epilogue in letter.js: the player's own letter, if they want to write one. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -763,8 +764,10 @@
       await X.wait(2.2);
       await TALK.say('all', '천천히 와.', { slow: true });
       X.bed(null);
-      A.theme({ voice: 'box', vel: 0.36, beat: 0.66, left: true });
+      const tuneEnd = performance.now() + A.theme({ voice: 'box', vel: 0.36, beat: 0.66, left: true }) * 1000;
       await X.wait(3.2);
+      /* and below, if the player wants: a letter of their own, which the wind takes up (letter.js) */
+      if (T.letter) await T.letter.epilogue(X, { tuneEnd });
       X.end();
     },
   });
