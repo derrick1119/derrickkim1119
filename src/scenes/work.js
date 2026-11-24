@@ -813,23 +813,27 @@
 
   /* Knit the stripes of the old blanket from memory: the pattern shows, then is put away, and the rows are knitted
      a colour at a time. A wrong colour unravels the row and the pattern shows again, briefly.
-     o: { at: () => screen [x, y, scale], rounds: [[colour index, …], …], show: seconds } */
+     o: { at: () => screen [x, y, scale], rounds: [[colour index, …], …], show: seconds (or one per round: [4, 3]),
+          wrong: the line when a colour is wrong (a voice of its own, if it likes), reshow: seconds it shows again then,
+          peek(g, round, t): draw what is shown instead of the paper card, in the puzzle's own frame (the card was
+          the box -260..-90, -260..-60) } */
   const YARN = ['#e9c45a', '#c9573f', '#7fb0c9', '#f6efe0'];
   Z.knit = function (o) {
     const G = make({ r: 0, i: 0, phase: 'show', peek: 0, rows: [] });
     const seq = () => o.rounds[Math.min(G.r, o.rounds.length - 1)];
     async function show(sec) { G.phase = 'show'; G.peek = 1; await G.clock.wait(sec); G.clock.tween(G, 'peek', 0, 0.6); G.phase = 'knit'; G.idle = 0; }
-    G.start = () => show(o.show || 3);
+    const showFor = (r) => (Array.isArray(o.show) ? o.show[Math.min(r, o.show.length - 1)] : o.show || 3);
+    G.start = () => show(showFor(0));
     const ball = (n) => { const a = o.at(), s = a[2]; return [a[0] + (n - 1.5) * 110 * s, a[1] + 150 * s]; };
     G.hit = (x, y) => { let best = -1, bd = Math.max(54, 50 * o.at()[2]); for (let n = 0; n < 4; n++) { const q = ball(n), d = Math.hypot(x - q[0], y - q[1]); if (d < bd) { bd = d; best = n; } } return best; };
     G.tap = function (n) {
       if (G.phase !== 'knit' || n > 3) return;
       G.idle = 0;
-      if (n !== seq()[G.i]) { G.wrong('그 줄이 아니에요. 한 번 더 보여 줄게요'); G.rows = []; G.i = 0; show(1.6); return; }
+      if (n !== seq()[G.i]) { G.wrong(o.wrong || '그 줄이 아니에요. 한 번 더 보여 줄게요'); G.rows = []; G.i = 0; show(o.reshow || 1.6); return; }
       G.say = ''; G.rows.push(n); G.i++; T.audio.sfx('crayon'); T.audio.step(G.i + G.r * 4, { voice: 'felt', vel: 0.34 });
       if (G.i >= seq().length) {
         G.phase = 'pause'; G.r++;
-        G.clock.wait(1.1).then(() => { if (G.r >= o.rounds.length) { T.audio.promise(); G.finish(1.2); } else { G.rows = []; G.i = 0; show(o.show || 3); } });
+        G.clock.wait(1.1).then(() => { if (G.r >= o.rounds.length) { T.audio.promise(); G.finish(1.2); } else { G.rows = []; G.i = 0; show(showFor(G.r)); } });
       }
     };
     G.next = () => (G.phase === 'knit' && !G.done ? String(seq()[G.i] + 1) : null);
@@ -844,7 +848,8 @@
       const a = o.at(), s = a[2], sq = seq();
       g.save(); g.globalAlpha = G.a; g.translate(a[0], a[1]); g.scale(s, s);
       /* the old blanket, held up for a moment */
-      if (G.peek > 0.01) { g.save(); g.globalAlpha = G.a * G.peek; P.fill(g, P.rr(-260, -260, 170, 200, 10), '#fbf4e2'); sq.forEach((c, i) => P.fill(g, P.rr(-250, -250 + i * (180 / sq.length), 150, 180 / sq.length - 4, 4), YARN[c])); P.text(g, '그 애의 담요', -175, -36, { font: 'serif', size: 20, color: '#33405c' }); g.restore(); }
+      if (G.peek > 0.01 && o.peek) { g.save(); g.globalAlpha = G.a * G.peek; o.peek(g, Math.min(G.r, o.rounds.length - 1), t); g.restore(); }
+      else if (G.peek > 0.01) { g.save(); g.globalAlpha = G.a * G.peek; P.fill(g, P.rr(-260, -260, 170, 200, 10), '#fbf4e2'); sq.forEach((c, i) => P.fill(g, P.rr(-250, -250 + i * (180 / sq.length), 150, 180 / sq.length - 4, 4), YARN[c])); P.text(g, '그 애의 담요', -175, -36, { font: 'serif', size: 20, color: '#33405c' }); g.restore(); }
       /* the new one, on the needles */
       P.fill(g, P.rr(-60, -260, 200, 200, 10), 'rgba(251,244,226,0.25)');
       G.rows.forEach((c, i) => P.fill(g, P.rr(-50, -250 + i * (180 / sq.length), 180, 180 / sq.length - 4, 4), YARN[c]));

@@ -863,6 +863,20 @@ T = [
     ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
     ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
     ("머리 위 동그라미가 모두 환해지면, 그때 눌러요", "When every circle overhead is lit, press"),
+    # ---- phase 2: ch4
+    ("…아까 누가 손 잡아 줬어.", "...Someone held my hand, earlier."),
+    ("…이 아줌마, 따뜻하다.", "...She's warm, this lady."),
+    ("로사: \"아이고, 나랑 똑같이 헷갈리네.\" 담요를 한 번 더 봐요", "Rosa: \"Oh dear, you mix them up just like I do.\" Look at the blanket again"),
+    ("자네, 나랑 배터 좀 같이 가 주겠나.\n오늘이 그 사람 생일이야.", "Would you come down to the slip with me?\nIt's her birthday today."),
+    ("서른둘에 두고 왔는데,\n올해 아흔여덟이야.", "I left her when I was thirty-two.\nShe's ninety-eight this year."),
+    ("마르타가 배 띄울 때마다\n불러 주던 노래야.", "Marta used to sing it\nevery time a boat went in."),
+    ("언제가 되든,\n제일 먼저 태워 줄 거야.", "Whenever it is,\nshe'll be the first one aboard."),
+    ("누가 오는구나.\n레오, 등불 좀 켜 줘.", "Someone's coming.\nLeo, light the lamp for them."),
+    ("마르타, 99", "Marta, 99"),
+    ("사진 보면서 약속했거든요.\n언젠가 엄마 얼굴, 꼭 한 번 보겠다고.", "I made a promise, looking at that photo.\nThat one day I'd see your face, just once."),
+    ("구름아.\n너도 기다리는 사람 있을 거야.", "Cloudy.\nYou'll have someone you're waiting for, too."),
+    ("아저씨 머리에… 하얀 거.", "There's something white... in your hair."),
+    ("같이 늙자고 했거든.", "We said we'd grow old together."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

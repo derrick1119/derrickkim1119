@@ -55,6 +55,16 @@
   }
   const notes = (g, x, y, t, a) => { for (let i = 0; i < 3; i++) { const life = (t * 0.5 + i / 3) % 1; g.save(); g.globalAlpha = a * Math.sin(life * Math.PI); g.translate(x + i * 22 + Math.sin(t * 2 + i) * 8, y - life * 90); P.fill(g, P.ellipse(0, 0, 7, 5.4, -0.3), '#5a4a6a'); P.line(g, 6, 0, 6, -20, 2.4, '#5a4a6a'); g.restore(); } };
 
+  /* Rosa's blanket, in the yarns and the stripes she knits it again with in chapter 4 (ch4_neighbours.js) */
+  const YARN = ['#e9c45a', '#c9573f', '#7fb0c9', '#f6efe0'], STRIPES = [2, 0, 3, 1, 0, 2];
+  function stripes(g, x, y, w, h, n, r) {
+    g.save(); g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); g.clip();
+    for (let i = 0; i < n; i++) { g.fillStyle = YARN[STRIPES[i]]; g.fillRect(x, y + (i * h) / n, w, h / n + 0.6); }
+    g.strokeStyle = 'rgba(90,60,40,0.22)'; g.lineWidth = 1.2;
+    for (let k = 1; k < 7; k++) { g.beginPath(); g.moveTo(x + (k * w) / 7, y); g.lineTo(x + (k * w) / 7, y + h); g.stroke(); }
+    g.restore();
+  }
+
   /* ---------- Rosa's son, an old man now, rocking his own grandchild ---------- */
   /* beats: 0 he dozes · 1 the baby cries, he rocks · 2 he hums, and so does she · 3 asleep · 4 the blanket */
   V_.rosa = function (g, t, L) {
@@ -77,7 +87,7 @@
     else { g.strokeStyle = '#2b2024'; g.lineWidth = 2; g.beginPath(); g.moveTo(-54, -100); g.quadraticCurveTo(-50, -97, -46, -100); g.stroke(); }
     /* the blanket over the child, once he has laid it there */
     const bk = L.cover ? T.ease.io(L.cover.k) : 0;
-    if (bk > 0.02) { g.globalAlpha = bk; P.fill(g, P.rr(-82, -94, 140, 34, 12), '#e9c45a'); for (let i = 0; i < 6; i++) P.line(g, -74 + i * 22, -90, -74 + i * 22, -64, 1.6, 'rgba(160,110,40,0.5)'); }
+    if (bk > 0.02) { g.globalAlpha = bk; stripes(g, -84, -86, 146, 62, 6, 10); }   /* spread over the child and down the cradle's side: all six stripes */
     g.restore();
     /* her yarn, where she has left it */
     if (lit.yarn > 0.01) { g.save(); g.globalAlpha = 0.8 * lit.yarn; P.fill(g, P.circle(-36, FLOOR - 18, 20), '#e9c45a'); P.line(g, -44, FLOOR - 40, -20, FLOOR - 6, 3, '#9a8a7a'); P.line(g, -30, FLOOR - 42, -46, FLOOR - 4, 3, '#9a8a7a'); g.restore(); }
@@ -90,8 +100,8 @@
       legF: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.1 }, legB: { a: Math.PI / 2 - 0.3, b: Math.PI / 2 }, face: { eye: b === 0 || hum ? 'closed' : look ? 'happy' : 'open', mouth: hum ? 'open' : look ? 'smile' : 'line', blush: 0.16, old: true }, skip: { armF: true } };
     a.armB = { hand: F.local(a, 190, FLOOR - 90) };
     F.person(g, a);
-    P.fill(g, P.rr(146, FLOOR - 112, 128, 44, 14), bk > 0.5 ? '#b9a98e' : '#c8b07a');
-    for (let i = 0; i < 5; i++) P.line(g, 156 + i * 24, FLOOR - 108, 156 + i * 24, FLOOR - 72, 1.4, 'rgba(120,90,50,0.4)');
+    if (bk > 0.5) P.fill(g, P.rr(146, FLOOR - 112, 128, 44, 14), '#b9a98e');
+    else stripes(g, 146, FLOOR - 112, 128, 44, 4, 14);   /* folded across his knees: the first four stripes show */
     const rx = -36 + rock * 120, ry = FLOOR - 120;
     F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, b >= 1 && b < 4 ? rx : 170, b >= 1 && b < 4 ? ry : FLOOR - 100) } }));
     if (hum) notes(g, 150, 440, t, 1);
@@ -124,31 +134,66 @@
   };
 
   /* ---------- Lily, on the back step, with Bean's collar ---------- */
-  /* beats: 0 crying · 1 she whistles, twice · 2 she laughs, wet-eyed, the collar held close */
+  /* beats: 0 crying · 1 she whistles, twice · 2 she laughs, wet-eyed, the collar held close ·
+     3 her mother comes out and sits down beside her (L.ana.k: the door opens, she comes out, sits, puts an arm
+     round her). Above the yard, in the evening sky, two small clouds holding hands (seen in chapter 2) */
+  function twinClouds(g, x, y, t, a) {
+    if (a < 0.01) return;
+    const bob = Math.sin(t * 0.35) * 3, c = '#fff8f2', sh = '#f0d4dc';
+    g.save(); g.globalAlpha *= a; g.translate(x, y + bob);
+    P.glow(g, 0, -4, 130, '#fff0e6', 0.3);
+    /* two small clouds side by side, the same size, the near edge of each running into the other's: holding hands */
+    for (const f of [-1, 1]) {
+      const cx = f * 34;
+      P.fill(g, P.ellipse(cx, 6, 38, 9), sh);
+      [[cx - f * 22, -1, 12], [cx - f * 6, -11, 16], [cx + f * 11, -6, 13], [cx + f * 25, 0, 9], [cx, 2, 16]].forEach((q) => P.fill(g, P.circle(q[0], q[1], q[2]), c));
+    }
+    P.fill(g, P.ellipse(0, 3, 13, 6), c);   /* where the two run into each other */
+    g.restore();
+  }
   V_.lilyBean = function (g, t, L) {
     const W = T.view.W, lit = L.lit || {}, b = L.beat || 0;
+    const ak = b >= 3 && L.ana ? T.clamp(L.ana.k) : 0, seg = (u, a0, a1) => T.smooth(T.clamp((u - a0) / (a1 - a0)));
     const sky = g.createLinearGradient(0, 0, 0, 600); sky.addColorStop(0, '#8d96c6'); sky.addColorStop(1, '#f2c49c');
     g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 900);
+    twinClouds(g, -130, 262, t, 0.9);
     /* the fence, the grass, the apple tree that is only a sapling here */
     g.fillStyle = '#c9b089'; for (let x = -W / 2; x < W / 2; x += 46) g.fillRect(x, 470, 30, 170);
     g.fillRect(-W / 2, 510, W, 12); g.fillRect(-W / 2, 590, W, 12);
     g.fillStyle = '#7fa66a'; g.fillRect(-W / 2, 620, W, 300); g.fillStyle = '#8fb67a'; g.fillRect(-W / 2, 620, W, 16);
     K.tree(g, -380, 640, 1.1, '#5f8a5a', '#4f7a4a', '#3f6a3a', Math.sin(t * 0.7));
-    /* the house wall, the door, the step, and the porch light */
-    P.fill(g, P.rr(120, 150, W / 2, 690, 0), '#e9dcc3'); P.fill(g, P.rr(200, 400, 130, 230, 6), '#5a8fa0'); P.fill(g, P.circle(312, 520, 6), '#e3b64f');
-    P.fill(g, P.rr(170, 630, 190, 30, 4), '#bdb1a0'); P.fill(g, P.rr(150, 660, 230, 30, 4), '#ada192');
+    /* the house wall, the door (it opens when her mother comes out), the steps, and the porch light */
+    const open = seg(ak, 0, 0.22);
+    P.fill(g, P.rr(120, 150, W / 2, 690, 0), '#e9dcc3');
+    if (open > 0.01) { P.fill(g, P.rr(200, 400, 130, 230, 6), '#f6d7a4'); P.glow(g, 265, 540, 190, '#ffd9a0', 0.55 * open); }
+    P.fill(g, P.rr(200, 400, 130 * (1 - 0.78 * open), 230, 6), '#5a8fa0'); P.fill(g, P.circle(200 + 112 * (1 - 0.78 * open), 520, 6), '#e3b64f');
+    P.fill(g, P.rr(170, 630, 330, 30, 4), '#bdb1a0'); P.fill(g, P.rr(150, 660, 370, 30, 4), '#ada192');
     P.fill(g, P.rr(370, 360, 26, 36, 6), '#5d5066');
     if (lit.lamp > 0.01) { P.glow(g, 383, 380, 160, '#ffd98a', 0.85 * lit.lamp); P.fill(g, P.rr(373, 368, 20, 22, 5), T.rgba('#fff0b8', lit.lamp)); }
     /* Bean's bowl, still out, and his ball in the grass */
     P.fill(g, P.ellipse(110, 690, 34, 10), '#c9573f'); P.fill(g, P.ellipse(110, 686, 26, 6), '#7a3438');
     if (lit.ball > 0.01) { g.save(); g.globalAlpha = lit.ball; P.fill(g, P.circle(-150, 700, 18), '#e3b64f'); P.line(g, -164, 694, -136, 706, 2, '#c99a2a'); g.restore(); }
     /* Lily */
-    const st = F.lilyAt(11, { knit: F.KNIT }), cry = b === 0, wh = b === 1, laugh = b >= 2;   /* still in her knitted hat from the walk home */
-    const a = { x: 250, y: 620, s: 290, style: st, flip: true, sit: true, lean: cry ? 0.36 : 0.08, headTilt: cry ? 0.42 : wh ? -0.12 : 0.06,
-      legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.05 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 }, face: { eye: cry ? 'closed' : laugh ? 'happy' : 'open', mouth: wh ? 'open' : laugh ? 'smile' : 'line', blush: 0.3, tear: cry || laugh ? 0.8 : 0, tearY: (t * 2) % 3 } };
+    const st = F.lilyAt(11, { knit: F.KNIT }), cry = b === 0, wh = b === 1, laugh = b >= 2, held = seg(ak, 0.78, 1);   /* still in her knitted hat from the walk home */
+    const a = { x: 250, y: 620, s: 290, style: st, flip: true, sit: true, lean: cry ? 0.36 : 0.08 - 0.12 * held, headTilt: cry ? 0.42 : wh ? -0.12 : 0.06 + 0.06 * held,
+      legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.05 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 }, face: { eye: cry ? 'closed' : laugh ? 'happy' : 'open', mouth: wh ? 'open' : laugh ? 'smile' : 'line', blush: 0.3 + 0.08 * held, tear: cry || laugh ? 0.8 - 0.3 * held : 0, tearY: (t * 2) % 3 } };
     const collar = [a.x - 40, a.y - 56];
     a.armF = { hand: F.local(a, collar[0] + (wh ? 30 : 0), collar[1] - (wh ? 40 : 0)) }; a.armB = { hand: F.local(a, collar[0] + 8, collar[1] + 8) };
+    /* her mother: out of the door, a step to the side, down onto the step beside her, an arm round her shoulders */
+    let mo = null;
+    if (ak > 0.01) {
+      const ms = F.anaAt(41, { bottom: '#8a6f86' }), s = 300, hh = F.hipHeight(ms, s), sit = seg(ak, 0.5, 0.82), mx = T.lerp(300, 338, seg(ak, 0.3, 0.6));
+      mo = { x: mx, y: T.lerp(630 - hh, 624, sit), s, style: ms, flip: true, lean: 0.06 + 0.12 * sit, headTilt: 0.16 + 0.08 * held, face: { eye: held > 0.5 ? 'happy' : 'open', mouth: 'smile', blush: 0.22 } };
+      const fF = [T.lerp(mx - 4, mx - 96, sit), T.lerp(630, 690, sit)], fB = [T.lerp(mx + 6, mx - 80, sit), T.lerp(630, 688, sit)];
+      mo.legF = { foot: F.local(mo, fF[0], fF[1]) }; mo.legB = { foot: F.local(mo, fB[0], fB[1]) };
+      mo.armF = held > 0.01 ? { hand: F.local(mo, T.lerp(mx - 40, a.x + 12, held), T.lerp(mo.y - 20, a.y - 66, held)) } : { a: 0.25, b: 0.4 };
+      mo.armB = { hand: F.local(mo, T.lerp(mx + 14, 392, sit), T.lerp(mo.y + 30, 624, sit)) };   /* the other hand on the step, on the side away from Lily */
+      g.save(); g.globalAlpha = seg(ak, 0.1, 0.34);
+      F.person(g, Object.assign({}, mo, held > 0.01 ? { skip: { armF: true } } : null));
+      g.restore();
+    }
     F.person(g, a);
+    if (mo && held > 0.01) F.person(g, Object.assign({}, mo, { only: 'armF', skip: null }));   /* her arm across Lily's back */
     g.strokeStyle = '#c4523f'; g.lineWidth = 6; g.beginPath(); g.ellipse(collar[0] + 4, collar[1] + 4, 20, 12, 0.3, 0, TAU); g.stroke();
     P.fill(g, P.circle(collar[0] + 20, collar[1] + 12, 4), '#e3b64f');
     if (wh) for (let i = 0; i < 2; i++) { const life = (t * 0.9 + i * 0.5) % 1; P.fill(g, P.circle(a.x - 70 - life * 80, a.y - 150 - i * 12, 5 * (1 - life)), T.rgba('#3a3f5c', 1 - life)); }
