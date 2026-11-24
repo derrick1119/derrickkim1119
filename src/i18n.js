@@ -78,7 +78,6 @@
  "자네가 켠 나무, 잘 말랐구먼.": "The timber you sawed has dried nicely.",
  "배 거들어 준 품은 갚아야지.\n뼈대, 오늘 올리세.": "I owe you for the boat.\nWe'll put your frame up today.",
  "네. 바람 오기 전에요.": "Yes. Before the wind comes.",
- "…옛집으로 가는구나.": "...She's going to the old house.",
  "…또 우산 없이 나갔구나.": "...Out without an umbrella again.",
  "등불": "Lamp",
  "구름": "Cloud",
@@ -340,14 +339,12 @@
  "보러 와 줄 거지, 래.": "\"You'll come and see, won't you?\"",
  "우체국 다녀왔어?\n누구 편지야?": "Were you at the post office?\nWho's it from?",
  "릴리 편지. 결혼한대.\n…대답을 해 주고 싶은데.": "A letter from Lily. She's getting married.\n...I'd like to answer her.",
- "…내일인데, 못 자고 있구나.": "...It's tomorrow, and you can't sleep.",
  "…아빠?": "...Dad?",
  "편지 받았어.\n바람에 실려 왔더라.": "I got your letter.\nThe wind brought it.",
  "내일, 아빠 자리는 그냥 비워 두려고.\n…이상하지?": "Tomorrow, I'm going to leave your place empty.\n...Is that strange?",
  "아니. 그 자리, 내가 걸을게.": "No. I'll walk in it.",
  "…약속.": "...Promise.",
  "약속.": "Promise.",
- "방이 꽉 막혔어요. 꿈이 처음으로 돌아가요": "The room is stuck. The dream starts over",
  "빈의 공도 같이 내보내 주세요. 왼쪽·오른쪽을 눌러 방을 돌려요": "Bean's ball goes out too. Tap left or right to turn the room",
  "…네. 코 하나 안 빠뜨리고요.": "...I will. Without dropping a stitch.",
  "이번엔 내가 켤래.\n아저씨가 가르쳐 준 대로.": "I'll light them this time.\nThe way you showed me.",
@@ -576,7 +573,6 @@
  "그건 네가 기다릴 때 드는 거잖아.": "But that's the one you hold when you wait.",
  "괜찮아.\n금방 또 켜져.": "It's okay.\nIt lights up again.",
  "…고마워, 구름아.": "...Thank you, Cloudy.",
- "나도 같이 갈래.": "I'm coming too.",
  "…태워 줬다.\n꿈에서라도.": "...I gave her a ride.\nEven if it was only in a dream.",
  "더 높이, 그러더라.\n여섯 살 때 그림처럼.": "\"Higher,\" she said.\nJust like in her drawing, when she was six.",
  "근데 이건 여섯 살 자리네.\n다 큰 우리 릴리는 못 앉겠다.": "But this is a six-year-old's seat.\nMy grown-up Lily would never fit.",
@@ -693,7 +689,11 @@
  "머리 위 동그라미가 모두 환해지면, 그때 눌러요 · 스페이스 / 엔터": "When every circle overhead is lit, press · Space / Enter",
  "아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요": "Someone was still catching their breath. Press when every circle is lit.",
  "괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요": "That's all right. This time everyone will hold their breath a little longer.",
- "머리 위 동그라미가 모두 환해지면, 그때 눌러요": "When every circle overhead is lit, press"
+ "머리 위 동그라미가 모두 환해지면, 그때 눌러요": "When every circle overhead is lit, press",
+ "내가 비춰 줄게.\n저 아래까지.": "I'll light it for you.\nAll the way down.",
+ "방이 꽉 막혔어요. 한 번 전으로 되돌려요": "The room is stuck. It turns back one move",
+ "…아빠, 옆에 있었지?": "...Dad, you were beside me, right?",
+ "응. 끝까지.": "Yes. All the way."
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

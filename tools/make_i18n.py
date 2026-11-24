@@ -863,6 +863,11 @@ T = [
     ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
     ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
     ("머리 위 동그라미가 모두 환해지면, 그때 눌러요", "When every circle overhead is lit, press"),
+    # ---- phase 2: ch5
+    ("내가 비춰 줄게.\n저 아래까지.", "I'll light it for you.\nAll the way down."),
+    ("방이 꽉 막혔어요. 한 번 전으로 되돌려요", "The room is stuck. It turns back one move"),
+    ("…아빠, 옆에 있었지?", "...Dad, you were beside me, right?"),
+    ("응. 끝까지.", "Yes. All the way."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

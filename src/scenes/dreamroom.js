@@ -1,54 +1,15 @@
 /* Take Your Time — Lily's dream, the night before her wedding.
-   In the lake: Lily at twenty-seven, awake in the room she grew up in, the dress hanging on the wardrobe.
-   In the dream: that room as she drew it when she was six, and it will not keep still. Turn it, and
-   whatever is loose in it slides until something stops it. Two paper dolls, her father and her, have to
-   leave by the door together; the last time, Bean's ball goes with them. Then the room rights itself. */
+   Leo sends it down from the end of the pier under 구름이's little lamp (ch5_flowers.js); it comes to Lily, who is
+   thirty-one, as the room she drew when she was six, and the room will not keep still. Turn it, and whatever is
+   loose in it slides until something stops it. Two paper dolls, her father and her, have to leave by the door
+   together; the last time, Bean's ball goes with them (the same ball as on her back step, chapter 4). If the room
+   jams, the crayon arrow she drew by the door spins back and the room goes back one turn, never to the start.
+   After each room, the faint sound of a crayon from beyond the door. Then the room rights itself: she is on her
+   bed with her father's picture in her lap, and he comes in at the door. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
   const TAU = Math.PI * 2;
-  const V_ = T.vig;
-
-  /* ---------- the lake: the night before ---------- */
-  V_.eve = function (g, t, L) {
-    const W = T.view.W, FL = 822, b = L.beat || 0;
-    g.fillStyle = '#5d5a7e'; g.fillRect(-W / 2, 0, W, 900);
-    g.fillStyle = '#545174'; g.fillRect(-W / 2, 560, W, FL - 560);
-    g.fillStyle = '#3d3a5c'; g.fillRect(-W / 2, FL, W, 900 - FL);
-    /* the window, and the moon in it */
-    P.fill(g, P.rr(-470, 170, 230, 260, 6), '#2a3352');
-    P.fill(g, P.circle(-310, 238, 22), '#f6efd8'); P.glow(g, -310, 238, 90, '#f6efd8', 0.35);
-    g.strokeStyle = '#8c86a8'; g.lineWidth = 8; g.strokeRect(-470, 170, 230, 260); g.beginPath(); g.moveTo(-355, 170); g.lineTo(-355, 430); g.stroke();
-    /* the wardrobe and the dress on it */
-    P.fill(g, P.rr(210, 230, 230, FL - 230, 6), '#6f5a68');
-    P.line(g, 246, 250, 404, 250, 3, '#c9c3ba');
-    P.fill(g, P.soft([[325, 250], [292, 300], [300, 380], [262, 640], [390, 640], [352, 380], [360, 300]]), '#fbf7ec');
-    P.glow(g, 325, 450, 150, '#fff6e6', 0.25);
-    /* on the wall above her bed: her drawing, kept all these years */
-    g.save(); g.translate(-60, 300); g.rotate(-0.04);
-    P.fill(g, P.rr(-70, -52, 140, 104, 3), '#fbf4e2');
-    P.crayon(g, [[-40, 30], [-40, -6], [-50, -6], [-20, -32], [10, -6], [0, -6], [0, 30], [-40, 30]], '#c9573f', 3, 2, 1);
-    P.crayon(g, [[22, 30], [22, -8], [44, -8], [44, 30]], '#3f6f9a', 3, 4, 1);
-    P.crayon(g, [[30, -8], [36, -22]], '#d7a23c', 3, 6, 1);
-    g.restore();
-    /* the bed, and Lily sitting up in it with the lamp on */
-    P.fill(g, P.rr(-300, FL - 150, 400, 150, 14), '#8a6a7c');
-    P.fill(g, P.rr(-292, FL - 172, 384, 44, 16), '#f1e6f0');
-    const lamp = L.lit && L.lit.lamp != null ? L.lit.lamp : 1;
-    P.fill(g, P.rr(150, FL - 200, 60, 200, 4), '#5d4a5a');
-    P.fill(g, P.poly([[156, FL - 280], [204, FL - 280], [214, FL - 236], [146, FL - 236]]), '#f4d9a8');
-    P.glow(g, 180, FL - 250, 200, '#ffd98a', 0.55 * lamp);
-    const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
-    const lily = { x: -40, y: FL - 150, s: 330, style: ls, sit: true, flip: true, lean: 0.08, headTilt: b ? 0.3 : 0.1, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: b > 1 ? 'closed' : 'open', mouth: b > 1 ? 'smile' : 'line', blush: 0.2 } };
-    lily.armF = { hand: F.local(lily, lily.x - 70, lily.y - 70) }; lily.armB = { hand: F.local(lily, lily.x - 50, lily.y - 60) };
-    F.person(g, lily);
-    /* the picture of her father in her hands */
-    g.save(); g.translate(lily.x - 64, lily.y - 76); g.rotate(-0.2);
-    P.fill(g, P.rr(-20, -26, 40, 52, 3), '#7a5a3e'); P.fill(g, P.rr(-15, -21, 30, 42, 2), '#e9dcc0');
-    P.fill(g, P.circle(0, -6, 7), '#d7a23c'); P.fill(g, P.rr(-8, 2, 16, 14, 4), '#c9443a');
-    g.restore();
-    void t;
-  };
 
   /* ---------- the boards ----------
      '#' a piece of furniture, 'O' the door, D her father, L Lily, B Bean's ball. Upright, things fall down. */
@@ -97,9 +58,11 @@
   function doll(g, kind, s, a) {
     g.save(); g.scale(s, s); g.globalAlpha *= a;
     g.shadowColor = 'rgba(40,30,70,0.35)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
-    if (kind === 'B') {
-      P.fill(g, P.circle(0, 12, 16), '#f4f0e6'); g.shadowColor = 'transparent';
-      g.save(); g.beginPath(); g.arc(0, 12, 16, 0, TAU); g.clip(); P.fill(g, P.rr(-18, 6, 36, 10, 2), '#c9443a'); g.restore();
+    if (kind === 'B') {   /* Bean's ball: the yellow one with the seam, as it lay in the grass by her back step */
+      P.fill(g, P.circle(0, 12, 16), '#e3b64f'); g.shadowColor = 'transparent';
+      g.strokeStyle = '#c99a2a'; g.lineWidth = 2.2; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-13, 4); g.quadraticCurveTo(0, 14, 13, 20); g.stroke();
+      P.fill(g, P.ellipse(-6, 5, 5, 3, -0.5), 'rgba(255,248,220,0.45)');
       g.restore(); return;
     }
     const dad = kind === 'D';
@@ -160,13 +123,17 @@
   }
 
   T.tiltDream = function () {
-    const D = { dark: true, mood: 'night', chord: 2, fall: { k: 0 }, meet: { k: 0 }, near: { k: 0 }, hold: { k: 0 }, room: { k: 1 }, swing: { k: 0 }, gq: null };
+    /* fall, meet, near, hold, swing: the scene's own tweens. tears: she smiles through them; arm: she looks down at
+       her free arm; cheek: his hand to her cheek; high: the swing goes higher; laugh: she laughs on it */
+    const D = { dark: true, mood: 'night', chord: 2, fall: { k: 0 }, meet: { k: 0 }, near: { k: 0 }, hold: { k: 0 }, room: { k: 1 }, swing: { k: 0 },
+      tears: { k: 0 }, arm: { k: 0 }, cheek: { k: 0 }, high: { k: 0 }, laugh: { k: 0 }, gq: null };
     const dreamy = makeDreamy();
-    let B = null, round = -1, r = 0, ang = 0, pos = [], anim = null, busy = false, idle = 0, say = '', sayT = 0, outN = 0, sparkle = 0;
+    let B = null, round = -1, r = 0, ang = 0, pos = [], anim = null, busy = false, idle = 0, say = '', sayT = 0, outN = 0, sparkle = 0, rewind = 0;
+    let hist = [];   /* the room as it was before each turn, so that a jam goes back one turn only */
     const OX = 0, OY = 430, tw = [];
     const fade = (to, dur) => new Promise((res) => { tw.push({ from: D.room.k, to, dur, t: 0, res }); });
     function load(i) {
-      round = i; B = parse(BOARDS[i]); r = 0; ang = 0; outN = 0;
+      round = i; B = parse(BOARDS[i]); r = 0; ang = 0; outN = 0; hist = [];
       pos = settle(B, B.toks.map((q) => q.p), 0).pos;
       anim = null; busy = false; idle = 0;
     }
@@ -187,6 +154,7 @@
     function turn(dr) {
       if (!D.gq || D.gq.done || busy) return;
       busy = true; idle = 0; say = '';
+      hist.push({ r, ang, pos: pos.map((p) => (p ? p.slice() : null)) });
       const from = ang, to = ang + dr * (Math.PI / 2), r2 = (r + (dr > 0 ? 1 : 3)) % 4;
       T.audio.sfx('whoosh'); T.audio.sfx('creak');
       anim = { kind: 'turn', t: 0, dur: 0.46, from, to, r2 };
@@ -197,6 +165,14 @@
       anim = { kind: 'slide', t: 0, dur: 0.1 + far * 0.075, before, after: res.pos, moved: res.moved };
       if (res.moved.some((m) => m)) T.audio.sfx('step');
     }
+    /* jammed: the crayon arrow by the door spins the wrong way round, and the room, with everything in it, goes back
+       to how it was one turn ago (a peak, not a punishment) */
+    function undo() {
+      const h = hist.pop();
+      if (!h) { fade(0, 0.7).then(() => { if (skipping) return; load(round); return fade(1, 0.7); }); return; }
+      rewind = 1; T.audio.sfx('crayon'); T.audio.sfx('whoosh');
+      anim = { kind: 'undo', t: 0, dur: 0.9, from: ang, to: h.ang, before: pos, after: h.pos, h };
+    }
     function afterSlide() {
       const left = anim.after;
       anim.moved.forEach((m, i) => { if (m < 0) { outN++; T.audio.step(outN * 2 + round, { voice: 'glass', vel: 0.36 }); sparkle = 1; } });
@@ -204,6 +180,7 @@
       if (pos.every((p) => !p)) {
         T.audio.promise(); busy = true;
         fade(0, 0.9).then(() => {
+          T.audio.sfx('crayon');   /* from beyond the door, very small: whoever drew this room is drawing still */
           if (skipping) return;
           if (round + 1 < BOARDS.length) { load(round + 1); return fade(1, 0.9); }
           D.gq.done = true; busy = false; D.gq.res();
@@ -211,19 +188,23 @@
         return;
       }
       if (plan(B, r, pos) == null) {
-        say = '방이 꽉 막혔어요. 꿈이 처음으로 돌아가요'; sayT = 2.4; busy = true; stuckN++;
-        fade(0, 0.7).then(() => { if (skipping) return; load(round); return fade(1, 0.7); });
+        say = '방이 꽉 막혔어요. 한 번 전으로 되돌려요'; sayT = 2.4; busy = true; stuckN++;
+        undo();
         return;
       }
       busy = false;
     }
     D.update = function (dt) {
-      idle += dt; sayT = Math.max(0, sayT - dt); sparkle = Math.max(0, sparkle - dt * 1.4);
+      idle += dt; sayT = Math.max(0, sayT - dt); sparkle = Math.max(0, sparkle - dt * 1.4); rewind = Math.max(0, rewind - dt * 0.9);
       if (D.gq && D.gq.coach) D.gq.coach.update(dt);
       for (let i = tw.length - 1; i >= 0; i--) { const q = tw[i]; q.t += dt; D.room.k = T.lerp(q.from, q.to, T.ease.io(T.clamp(q.t / q.dur))); if (q.t >= q.dur) { tw.splice(i, 1); q.res(); } }
       if (!anim) return;
       anim.t += dt;
       if (anim.kind === 'turn') { const k = T.ease.io(T.clamp(anim.t / anim.dur)); ang = T.lerp(anim.from, anim.to, k); if (anim.t >= anim.dur) { ang = anim.to; r = anim.r2; afterTurn(); } }
+      else if (anim.kind === 'undo') {
+        ang = T.lerp(anim.from, anim.to, T.ease.io(T.clamp(anim.t / anim.dur)));
+        if (anim.t >= anim.dur) { const h = anim.h; ang = h.ang; r = h.r; pos = h.pos; outN = pos.filter((p) => !p).length; anim = null; busy = false; }
+      }
       else if (anim.t >= anim.dur) afterSlide();
     };
     D.pointer = function (type, x, y) {
@@ -253,6 +234,11 @@
         const [gx, gy] = GV[r], n = Math.abs(m);
         return [a[0] + gx * n * k, a[1] + gy * n * k, 1 - T.clamp((k - 0.7) / 0.3)];
       }
+      if (anim && anim.kind === 'undo') {   /* going back: each one drifts back to where it was, and one that went out comes back in */
+        const a = anim.before[i], b = anim.after[i], k = T.ease.io(T.clamp(anim.t / anim.dur));
+        if (!b) return null;
+        return a ? [T.lerp(a[0], b[0], k), T.lerp(a[1], b[1], k), 1] : [b[0], b[1], k];
+      }
       const p = pos[i];
       return p ? [p[0], p[1], 1] : null;
     }
@@ -275,6 +261,14 @@
       const arch = new Path2D(); arch.moveTo(-24, 34); arch.lineTo(-24, -14); arch.arc(0, -14, 24, Math.PI, 0); arch.lineTo(24, 34); arch.closePath();
       g.fillStyle = '#ffe7b0'; g.fill(arch); g.lineWidth = 6; g.strokeStyle = '#a8735a'; g.stroke(arch);
       for (let j = 0; j < 5; j++) P.fill(g, P.circle(-14 + (j % 3) * 14 + Math.sin(t + j) * 2, 26 - Math.floor(j / 3) * 10, 4), ['#e58aa0', '#f6f0e0', '#f1c04a', '#f6b6c2', '#e58aa0'][j]);
+      /* beside it, the round arrow she drew in crayon; when the room jams it shines and spins back the wrong way */
+      g.save(); g.translate(34, -30); g.rotate(-rewind * rewind * TAU * 0.75);
+      if (rewind > 0.01) P.glow(g, 0, 0, 34, '#fff0c8', rewind);
+      const ring = []; for (let j = 0; j <= 12; j++) { const a = -2.6 + (j / 12) * 4.4; ring.push([Math.cos(a) * 11, Math.sin(a) * 11]); }
+      P.crayon(g, ring, '#3f7fc2', 3, 13 + round, 1);
+      const ea = 1.8, ex = Math.cos(ea) * 11, ey = Math.sin(ea) * 11;
+      P.crayon(g, [[ex - 7, ey - 3], [ex, ey], [ex + 1, ey - 8]], '#3f7fc2', 3, 17 + round, 1);
+      g.restore();
       g.restore();
       /* the dolls, which always stand the way the room is falling */
       B.toks.forEach((tk, i) => {
@@ -310,8 +304,9 @@
         g.strokeStyle = '#a8735a'; g.lineWidth = 9; g.strokeRect(150, 300, 150, 364);
         for (let j = 0; j < 8; j++) P.fill(g, P.circle(170 + (j % 3) * 50 + Math.sin(t + j) * 4, 640 - Math.floor(j / 3) * 16, 6), ['#e58aa0', '#f6f0e0', '#f1c04a', '#f6b6c2'][j % 4]);
         P.fill(g, P.rr(-470, 540, 360, 130, 18), '#b48ab0'); P.fill(g, P.rr(-462, 518, 344, 40, 16), '#fbf4ee');
-        const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' }), hk = T.ease.io(D.hold.k);
-        const lily = { x: -250, y: 540, s: 300, style: ls, sit: true, lean: 0.06 + hk * 0.1, headTilt: 0.12 - hk * 0.16, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: hk > 0.6 ? 'closed' : 'open', mouth: 'smile', blush: 0.26 } };
+        const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' }), hk = T.ease.io(D.hold.k), ak = T.ease.io(D.arm.k);
+        const lily = { x: -250, y: 540, s: 300, style: ls, sit: true, lean: 0.06 + hk * 0.1 + ak * 0.04, headTilt: 0.12 - hk * 0.16 + ak * 0.34, legF: { a: Math.PI / 2 - 0.1, b: 0.1 }, legB: { a: Math.PI / 2 - 0.16, b: 0.14 }, face: { eye: hk > 0.6 ? 'closed' : 'open', mouth: 'smile', blush: 0.26 } };
+        if (D.tears.k > 0.01) T.face.set(lily, 'smileTears', D.tears.k * (1 - hk * 0.5), t);   /* she smiles, and her eyes fill */
         /* he comes in at the door, walks to her bedside and goes down on one knee there, so that his face is level with
            hers: four steps (the feet keep pace with the floor), then the front foot steps on and the back knee goes down */
         const FLOOR = 664, u = 3, KX = -104, WX = -58, wk = T.clamp(D.near.k / 0.72), kk = T.ease.io(T.clamp((D.near.k - 0.72) / 0.28));
@@ -327,9 +322,16 @@
         const sh = (o) => { const ou = o.s / 100, sx = o.flip ? -1 : 1; return [o.x + sx * ou * (Math.sin(o.lean) * 26 + 1.2), o.y + ou * (1.5 - Math.cos(o.lean) * 26)]; };
         const s1 = sh(lily), s2 = sh(leo), M = [(s1[0] + s2[0]) / 2, (s1[1] + s2[1]) / 2 + 14], lap = [lily.x + 42, lily.y - 4];
         lily.armF = { hand: F.local(lily, T.lerp(lap[0], M[0] - 6, hk), T.lerp(lap[1], M[1], hk)) };
-        lily.armB = { hand: F.local(lily, lap[0] - 6, lap[1] + 2) };
+        lily.armB = { hand: F.local(lily, lap[0] - 6 + ak * 10, lap[1] + 2 - ak * 14) };   /* the arm she will leave free: she looks at it */
         if (hk > 0.01) leo.armF = { hand: F.local(leo, T.lerp(s2[0] + 4, M[0] + 6, hk), T.lerp(s2[1] + 80, M[1], hk)) };
-        F.person(g, lily);
+        const ck = T.ease.io(D.cheek.k);
+        if (ck > 0.01) T.pose.pair('cheek', leo, lily, ck, t);   /* as he says no: his hand to her cheek, and she leans into it */
+        const lj = F.person(g, lily);
+        /* his picture in her lap, the one she sets the letter in front of */
+        g.save(); g.translate(lj.handB[0] + 6, lj.handB[1] - 4); g.rotate(0.28 - ak * 0.2);
+        P.fill(g, P.rr(-17, -22, 34, 44, 3), '#7a5a3e'); P.fill(g, P.rr(-13, -18, 26, 36, 2), '#e9dcc0');
+        P.fill(g, P.circle(0, -5, 6), '#d7a23c'); P.fill(g, P.rr(-7, 2, 14, 12, 4), '#c9443a');
+        g.restore();
         g.save(); g.globalAlpha *= T.clamp(D.near.k * 4); P.glow(g, leo.x, leo.y - 40, 120, '#fff0c8', 0.3); F.person(g, leo); g.restore();
         if (hk > 0.6) {   /* hooked */
           const a = T.clamp((hk - 0.6) / 0.4);
@@ -361,13 +363,14 @@
       for (let i = 0; i < 16; i++) P.fill(g, P.circle(-330 + r() * 470, 170 + r() * 170, 60 + r() * 34), ['#6f9f5e', '#7fb06a', '#5f8f52'][i % 3]);
       for (let i = 0; i < 12; i++) P.fill(g, P.circle(-310 + r() * 430, 200 + r() * 150, 8), '#d9483a');
       /* the swing, and Lily on it; he pushes from behind */
-      const a = Math.sin(t * 1.7) * 0.34, piv = [70, 316], L = 300;
+      const a = Math.sin(t * 1.7) * (0.34 + 0.2 * T.ease.io(D.high.k)), piv = [70, 316], L = 300;   /* 더 높이: it goes higher */
       const seat = [piv[0] + Math.sin(a) * L, piv[1] + Math.cos(a) * L];
       g.strokeStyle = '#d8c4a0'; g.lineWidth = 4;
       g.beginPath(); g.moveTo(piv[0] - 34, piv[1] + 4); g.lineTo(seat[0] - 34, seat[1]); g.moveTo(piv[0] + 34, piv[1] - 4); g.lineTo(seat[0] + 34, seat[1]); g.stroke();
       const ls = F.lilyAt(31, { top: '#e9e0f0', bottom: '#e9e0f0' });
       const lily = { x: seat[0] - 4, y: seat[1] - 6, s: 250, style: ls, sit: true, flip: true, lean: -a * 0.6, headTilt: -0.2, legF: { a: Math.PI / 2 - 0.5 - a, b: 0.3 }, legB: { a: Math.PI / 2 - 0.6 - a, b: 0.34 }, face: { eye: 'happy', mouth: 'open', blush: 0.3 } };
       lily.armF = { hand: F.local(lily, seat[0] - 28, seat[1] - 120) }; lily.armB = { hand: F.local(lily, seat[0] + 30, seat[1] - 116) };
+      if (D.laugh.k > 0.01) { T.pose.laugh(lily, D.laugh.k, t); lily.face.mouth = 'laugh'; }   /* out loud, the way she did at six */
       F.person(g, lily);
       P.fill(g, P.rr(seat[0] - 46, seat[1] - 4, 92, 10, 4), '#b98a5a');
       /* he stands his ground behind her, feet planted: only his weight goes into it. He leans in as the seat comes
