@@ -12,6 +12,7 @@ import { Spr, P, INK, mixc, lum } from './px.js';
 import { LOOKS, getLook } from '../render/sprites.js';
 import { ARMS as WARMS, WEAPONS as WDATA } from '../data/weapons.js';
 import { doll as paperDoll, dokkaebi as paperDok } from '../render/figures.js';
+import { BOSSES } from './bosses.js';
 
 const WHITE_EDGE = 0xffffff;
 export const PX_K = 2;
@@ -35,6 +36,7 @@ function ramp(col) {
   r = [dark(2), dark(1), v, light(1), light(2)]; RAMPS.set(v, r); reg(r); return r;
 }
 const c = (col, i = 2) => ramp(col)[i];
+export { ramp, c, OSpr, like, shade, merge, part, plain, cropAll, edged, handTiger };
 
 // ───────── 판: 시안의 좌표(인형 판 52×54, 발밑 22,49)를 그대로 쓰되 둘레에 여유를 둔 판 ─────────
 class OSpr extends Spr {
@@ -669,8 +671,9 @@ export function pxUnit(lookKey, wpn) {
   if (isHand(d)) { const f = handDoll(lookKey, wpn); r = { stand: f.stand, step: f.step, atk: f.atk }; }
   else {
     const base = wpn ? pxUnit(lookKey) : null;   // 큰 그림은 무기를 바꿔도 같은 판
-    const s = base ? base.stand : HAND_BODY[lookKey] ? HAND_BODY[lookKey]() : autoDoll(lookKey);
-    r = { stand: s, step: s, atk: s };
+    if (base) r = { stand: base.stand, step: base.step, atk: base.atk };
+    else if (BOSSES[lookKey]) { const f = BOSSES[lookKey](); r = { stand: f[0], step: f[1] || f[0], atk: f[2] || f[0] }; }
+    else { const s = HAND_BODY[lookKey] ? HAND_BODY[lookKey]() : autoDoll(lookKey); r = { stand: s, step: s, atk: s }; }
   }
   r.h = heightOf(r.stand); r.k = PX_K;
   CACHE.set(key, r); return r;
@@ -679,4 +682,8 @@ function heightOf(s) { for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x+
 const FLIP = new WeakMap();
 export function pxFlip(spr) { let f = FLIP.get(spr); if (!f) { f = spr.flipped(); FLIP.set(spr, f); } return f; }
 export const pxKeys = () => Object.keys(LOOKS);
+// 비교용: 종이 그림을 그대로 구운 옛 판
+const AUTO = new Map();
+export const pxAuto = k => { let s = AUTO.get(k); if (!s) AUTO.set(k, s = autoDoll(k)); return s; };
+export const pxHandBody = k => !!(BOSSES[k] || HAND_BODY[k]);
 export const pxIsHand = key => isHand(LOOKS[key]);
