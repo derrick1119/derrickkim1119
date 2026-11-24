@@ -283,7 +283,7 @@
       await X.tween(lake.reach, 'k', 0, 1);
       await X.TALK.say('leo', '…이걸로 뭘 하는데요?');
       await X.TALK.say('bram', '그 사람이 아는 냄새 하나, 아는 소리 하나,\n길을 비춰 줄 빛 하나.');
-      await X.TALK.say('bram', '셋이 다 모이면, 그 사람 꿈에\n딱 한 번 다녀올 수 있네.');
+      await X.TALK.say('bram', '셋이 다 모이면, 그 사람 꿈에\n한 번 다녀올 수 있네.');
       await X.wait(0.6);
       lake.leoFace = { eye: 'open', mouth: 'open' };
       await X.TALK.say('leo', '꿈에서는… 닿아요?');

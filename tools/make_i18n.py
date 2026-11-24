@@ -145,7 +145,7 @@ T = [
     ("저 김, 담아 두게.\n아나 씨가 아는 냄새니까.", "Keep that steam.\nIt's a smell Ana knows."),
     ("…이걸로 뭘 하는데요?", "...What do I do with it?"),
     ("그 사람이 아는 냄새 하나, 아는 소리 하나,\n길을 비춰 줄 빛 하나.", "A smell they know, a sound they know,\nand a light to show the way."),
-    ("셋이 다 모이면, 그 사람 꿈에\n딱 한 번 다녀올 수 있네.", "Gather all three, and you can go\ninto their dream. Just the once."),
+    ("셋이 다 모이면, 그 사람 꿈에\n한 번 다녀올 수 있네.", "Gather all three, and you can go\ninto their dream, once."),
     ("꿈에서는… 닿아요?", "In a dream... can I reach her?"),
     ("손도 잡고, 말도 하지.\n깨고 나면 꿈인 줄 알겠지만.", "You can hold hands. Talk.\nShe'll wake thinking it was only a dream."),
     ("나 다녀온 날, 마르타가\n웃으면서 깨더군. 여기서 다 봤지.", "The morning after I went, Marta woke up smiling.\nI saw it all from here."),
