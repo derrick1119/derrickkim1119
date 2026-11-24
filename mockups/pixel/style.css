@@ -3,10 +3,14 @@
 @font-face { font-family: 'Galmuri9'; src: url('fonts/Galmuri9.woff2') format('woff2'); }
 @font-face { font-family: 'Yeon Sung'; src: url('../../assets/fonts/yeon-sung-korean-400-normal.woff2') format('woff2'); }
 html, body { margin: 0; height: 100%; background: #0c0a14; color: #e4cc98; font-family: 'Galmuri11', sans-serif; overflow: hidden; }
-#wrap { position: absolute; inset: 0 0 100px 0; display: flex; align-items: center; justify-content: center; }
+body { display: flex; flex-direction: column; }
+#wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
 canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #120e1c; }
-#tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; justify-content: center; align-content: center; }
-#tabs .grp { display: flex; gap: 5px; align-items: center; } #tabs .grp span { font-size: 12px; color: #e09a28; margin-right: 2px; }
-#tabs button { font: 12px 'Galmuri11', sans-serif; color: #f8ecc0; background: #2a2036; border: 2px solid #5a2c1a; border-bottom-width: 4px; padding: 3px 8px; cursor: pointer; }
-#tabs button.on { background: #8a1c30; border-color: #e09a28; }
-body.shot #tabs { display: none; } body.shot #wrap { inset: 0; }
+#tabs { flex: none; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: center; padding: 6px 8px; max-height: 42vh; overflow: auto; }
+#tabs .grp { display: flex; gap: 4px; align-items: center; flex: none; } #tabs .grp span { font-size: 12px; color: #e09a28; margin-right: 2px; white-space: nowrap; }
+#tabs button { font: 12px 'Galmuri11', sans-serif; color: #f8ecc0; background: #2a2036; border: 2px solid #5a2c1a; border-bottom-width: 4px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+#tabs button.on { background: #8a1c30; border-color: #e09a28; } #tabs button.now { border-color: #e09a28; } #tabs button.more { background: none; border-color: #3c3050; color: #b89468; }
+#tabs .oldg { display: none; } body.old #tabs .oldg { display: flex; }
+/* 높이가 낮은 화면(휴대폰 가로): 탭을 한 줄로 두고 옆으로 민다 */
+@media (max-height: 520px) { #tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overflow-y: hidden; padding: 4px 8px; gap: 4px 14px; } }
+body.shot #tabs { display: none; }

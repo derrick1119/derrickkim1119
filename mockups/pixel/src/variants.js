@@ -23,7 +23,7 @@ export const TH = {
     field: [0x2c5c68, 0x26525e, 0x1e4654, 0x183c4a, 0x123240, 0x0e2836], path: [0x4c5674, 0x647090, 0x3a4462, 0x44506c, 0x7884a4, 0x343c58, 0x5c6884],
     spk: [0x3c7478, 0x1e4654, 0x2c6466, 0x0a2030, 0x4c8880], bush: [0x143c48, 0x3c7478, 0x8cb8d0], fence: [0x2a2c4c, 0x586088, 0x1a1c36, 0x3c4470] },
 };
-const nightTint = c => { const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255; if (r > 215 && g > 170 && b < 150) return c; return (Math.min(255, Math.round(r * 0.5 + 10)) << 16) | (Math.min(255, Math.round(g * 0.58 + 18)) << 8) | Math.min(255, Math.round(b * 0.78 + 46)); };
+export const nightTint = c => { const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255; if (r > 215 && g > 170 && b < 150) return c; return (Math.min(255, Math.round(r * 0.5 + 10)) << 16) | (Math.min(255, Math.round(g * 0.58 + 18)) << 8) | Math.min(255, Math.round(b * 0.78 + 46)); };
 
 // 뭉게구름 (고퀄 판): 둥근 덩이를 겹치고 위는 밝게, 아래는 그늘, 해 쪽 테는 따뜻하게
 function cumulus(s, cx, cy, w, h, cols, seed) {
@@ -73,20 +73,21 @@ const FOE = ['goblin', 'ogre', 'ghost', 'tiger'];
 export function makeBattle(o) {
   let B = null; const th = TH[o.theme], night = !!th.sun.moon, lutCache = new Map();
   const fix = sp => (o.fx ? o.fx(sp) : night ? remap(sp, 'night', nightTint) : o.rich ? rimlit(sp) : sp);
+  const pfix = sp => (o.fxp ? o.fxp(fix(sp)) : fix(sp)), ufix = sp => (o.fxu ? o.fxu(fix(sp)) : fix(sp));   // 소품만 · 인형만 덧입히는 것
   return (g, t) => {
     if (!B) B = { bg: o.bg ? o.bg() : bake(th, o), pines: [pine(1), pine(5), pine(9)], sans: sansuyu(3), sans2: sansuyu(8), cart: bannerCart(), js: [jangseung(0), jangseung(1)], rays: o.rich ? rays(th) : null, frame: o.rich ? frameArt() : null };
-    g.drawImage(B.bg.canvas(), 0, 0); if (o.mid) o.mid(g);
+    g.drawImage(B.bg.canvas(), 0, 0); if (o.mid) o.mid(g, t, B);
     const shadowCol = night ? 'rgba(4,6,24,0.4)' : o.rich ? 'rgba(52,36,96,0.34)' : 'rgba(20,24,50,0.32)';
     // 길게 눕는 그림자 (고퀄 판): 해 반대쪽으로 기울여 찍는다
     const longShadow = (sp, x, y) => { if (!o.rich) return; g.save(); g.translate(Math.round(x), Math.round(y)); g.transform(1, 0, 1.15, -0.42, 0, 0); g.globalAlpha = 0.36; g.drawImage(tinted(sp, 0x241a50).canvas(), -sp.ox, -sp.oy); g.restore(); };
     const dropSh = (sp, x, y) => { g.save(); g.globalAlpha = 0.26; draw(g, tinted(fix(sp), 0x2a2036), x + 3, y + 3); g.restore(); };
     const list = [];
-    [[B.pines[0], 56, 166], [B.pines[1], 610, 158], [B.pines[2], 452, 154], [B.js[0], 590, 172], [B.js[1], 620, 280], [B.cart, 44, 232]].forEach(([sp, x, y]) => list.push({ y, sh: () => (o.drop ? dropSh(sp, x, y) : longShadow(sp, x, y)), d: () => draw(g, fix(sp), x, y) }));
+    [[B.pines[0], 56, 166], [B.pines[1], 610, 158], [B.pines[2], 452, 154], [B.js[0], 590, 172], [B.js[1], 620, 280], [B.cart, 44, 232]].forEach(([sp, x, y]) => list.push({ y, sh: () => (o.drop ? dropSh(sp, x, y) : longShadow(sp, x, y)), d: () => draw(g, pfix(sp), x, y) }));
     for (const [k, x, y, ph] of UNITS) { const s0 = (o.spr || look)(k), boss = k === 'tiger', ally = !FOE.includes(k);
       list.push({ y, sh: () => { if (o.drop) dropSh(s0, x, y); else if (o.rich) longShadow(s0, x, y); else { g.fillStyle = shadowCol; const sw = boss ? 34 : 11; g.fillRect(x - sw, y - 1, sw * 2, 3); g.fillRect(x - sw + 2, y - 2, sw * 2 - 4, 5); } },
-        d: () => { const bob = Math.sin(t * 3.2 + ph * 2) > 0.3 ? -1 : 0, hit = !ally && Math.floor(t * 2 + ph) % 7 === 0 && (t * 2 + ph) % 1 < 0.15; if (o.rich) { g.fillStyle = shadowCol; const sw = boss ? 30 : 9; g.fillRect(x - sw, y - 1, sw * 2, 2); } draw(g, hit ? tinted(fix(s0), 0xffffff) : fix(s0), x + (hit ? 1 : 0), y + bob); } }); }
+        d: () => { const bob = Math.sin(t * 3.2 + ph * 2) > 0.3 ? -1 : 0, hit = !ally && Math.floor(t * 2 + ph) % 7 === 0 && (t * 2 + ph) % 1 < 0.15; if (o.rich) { g.fillStyle = shadowCol; const sw = boss ? 30 : 9; g.fillRect(x - sw, y - 1, sw * 2, 2); } draw(g, hit ? tinted(ufix(s0), 0xffffff) : ufix(s0), x + (hit ? 1 : 0), y + bob); } }); }
     list.sort((a, b) => a.y - b.y); for (const it of list) it.sh(); for (const it of list) it.d();
-    draw(g, fix(B.sans), 22, 290); draw(g, fix(B.sans2), 628, 292);
+    draw(g, pfix(B.sans), 22, 290); draw(g, pfix(B.sans2), 628, 292);
     // 달밤: 등불과 도깨비불
     if (night) {
       const glow = (x, y, r, col) => { g.fillStyle = col; for (const k of [1, 0.66, 0.36]) { g.beginPath(); g.arc(x, y, r * k, 0, 7); g.fill(); } };
@@ -108,7 +109,7 @@ export function makeBattle(o) {
       g.drawImage(B.frame.canvas(), 0, 0);
       const vg = g.createLinearGradient(0, 24, 0, 284); vg.addColorStop(0, 'rgba(40,30,90,0.20)'); vg.addColorStop(0.25, 'rgba(40,30,90,0)'); vg.addColorStop(0.8, 'rgba(40,30,90,0)'); vg.addColorStop(1, 'rgba(30,20,70,0.28)'); g.fillStyle = vg; g.fillRect(0, 24, LW, 260);
     }
-    if (o.over) o.over(g, t);
+    if (o.over) o.over(g, t, B);
     { const p = (t * 0.8) % 1, p2 = (t * 0.8 + 0.5) % 1; txt(g, '-18', 398, 160 - p * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); txt(g, '-9', 428, 214 - p2 * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); txt(g, '+12', 306, 152 - p2 * 10, { f: 'b', a: 'c', c: C('teal', 4), ol: C('teal', 0) }); }
     { const gy = 168 + (o.gaugeDy || 0); fr(g, 232, gy, 30, 5, INK); fr(g, 233, gy + 1, 28, 3, C('ink', 3)); fr(g, 233, gy + 1, 22, 3, C('gold', 3)); fr(g, 233, gy + 1, 22, 1, C('gold', 4)); }
     panel(g, 214, 30, 212, 25, { fill: C('ink', 1), edge: C('red', 1) }); txt(g, '고개 호랑이', 320, 34, { f: 9, a: 'c', c: C('gold', 4), sh: INK }); fr(g, 222, 46, 196, 5, INK); fr(g, 223, 47, 194, 3, C('red', 0)); fr(g, 223, 47, 138, 3, C('red', 2)); fr(g, 223, 47, 138, 1, C('red', 3)); for (const k of [0.25, 0.5, 0.75]) fr(g, 223 + 194 * k, 47, 1, 3, INK);
