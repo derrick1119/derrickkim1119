@@ -3,6 +3,8 @@
 import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack, iga } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
+import { GFX } from '../pixel/gfx.js';
+import * as PX from '../pixel/ui.js';
 import { Battle, formation, defOf, HAND, REFILL, SQUAD_MORALE } from '../sim/battle.js';
 import { G, act, loseWeapon, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP, pendingPromos, seeFoe, chName, chFull, hiddenFight, forkDesc } from '../state.js';
 import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay, beastPlay } from '../data/story.js';
@@ -531,7 +533,7 @@ export class RunScene {
   }
   drawBar(g, b, i, live) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); { const md = b.mods, kg = Math.round((SQUAD_MORALE * md.moraleRate + md.killMorale) * 10) / 10; text(g, `무리 격파 +${kg}`, 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); }   // 사기는 시간으로 차오르지 않는다: 무리를 물리칠 때 얻는 양을 보여 준다 text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
+    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); { const md = b.mods, kg = Math.round((SQUAD_MORALE * md.moraleRate + md.killMorale) * 10) / 10; text(g, `무리 격파 +${kg}`, GFX.pixel ? 72 : 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); }   // 사기는 시간으로 차오르지 않는다: 무리를 물리칠 때 얻는 양을 보여 준다 text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });

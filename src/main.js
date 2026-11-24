@@ -89,7 +89,7 @@ function frame(ts) {
 }
 
 async function boot() {
-  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1')]); } catch (e) { /* 폰트 없이 진행 */ }
+  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1'), ...['16px Galmuri7', '20px Galmuri9', '24px Galmuri11', '700 24px Galmuri11', '30px Galmuri14'].map(f => document.fonts.load(f, '가A1'))]); } catch (e) { /* 폰트 없이 진행 */ }
   load(); preloadLooks(); warmIcons();
   const q = new URLSearchParams(location.search);
   window.__game = { nav, inp, run: () => G.run };
