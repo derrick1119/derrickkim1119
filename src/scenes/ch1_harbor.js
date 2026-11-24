@@ -912,6 +912,7 @@
     const t = T.time;
     T.blit(g, S.spr.slip, x, y + 2);
     /* (no lamp of its own: the street lamp at 572 already stands by the first house) */
+    if (S.hook && S.hook.flags.bramOut) return;   /* a later chapter has him elsewhere by his boat (chapter 4 sits him on its side) */
     /* Bram at the bow, driving one more nail */
     const wave = S.bram.wave, swing = wave > 0.1 ? 0 : Math.max(0, Math.sin(t * 5.6));
     const st = F.styles.bram, s = 142, bx = x + 232;
