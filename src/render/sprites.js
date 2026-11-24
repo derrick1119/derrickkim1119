@@ -486,7 +486,10 @@ export const baseWeapon = type => (ARMS[type] ? ARMS[type].base : null);
 export function preloadLooks() { for (const k of Object.keys(LOOKS)) getLook(k); for (const k of Object.keys(WDATA)) getWeapon(k); }
 
 // 인형 초상 (패·정보창용): 몸 + 머리 + 손에 든 무기
+// 도트 그림이 켜져 있으면 초상도 도트로 (pixel/battle.js 가 채운다. 서로 불러들이는 고리를 피하려고 갈고리로 둔다)
+export const PORTRAIT = { px: null };
 export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false) {
+  if (PORTRAIT.px) return PORTRAIT.px(g, type, x, y, s, t, bob, wpn);
   const L = getLook(type), k = s * L.scale, yy = y - (bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0), h = L.hold, bl = shut || (t > 0 && blinking(t, type.length));
   drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, yy, k, k);
   if (L.head) drawSprite(g, bl && L.blink ? L.blink : L.head, x, yy + (bob ? Math.sin(t * 5) * 0.5 * s : 0), k, k);
