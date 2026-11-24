@@ -126,6 +126,7 @@
     tomato(g) { P.fill(g, P.circle(0, 2, 11), '#d9483a'); P.fill(g, P.poly([[-6, -8], [0, -4], [6, -8], [0, -11]]), '#5f9a52'); },
     aurora(g, t) { g.strokeStyle = '#7ff0c0'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); for (let i = 0; i <= 8; i++) { const x = -16 + i * 4, y = Math.sin(i * 0.9 + t) * 5; if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.stroke(); },
   };
+  Z.storyIcons = ICON;   /* the last chapter knits its own blanket, for two, with the same pictures */
   Z.story = function (o) {
     const G = make({ i: 0, rows: [], used: [] });
     const order = o.order, X0 = (n) => (n - (order.length - 1) / 2) * 124, BY = 706;
