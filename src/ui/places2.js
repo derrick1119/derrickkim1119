@@ -1,6 +1,8 @@
 // 길 위의 새 장소들: 무당집 · 서당 · 투전판 · 의병 모집소 · 숨은 길.
 // 장터·주막·대장간처럼 그 장소를 붓으로 칠한 한 장면으로 통째로 그린다 (정지한 그림은 한 번 굽고, 불빛·천·연기·인형만 매 장면). 장면은 인형극 무대의 걸개그림이 된다 (stage.js).
 // 고를 것은 오른쪽 아래 옻칠 이름판, 떠나는 단추는 왼쪽 아래, 한 일의 결과는 위쪽 두루마리에 잠깐 뜬다.
+import { drawScene } from '../pixel/scene.js';
+import { art } from '../pixel/paper.js';
 import { W, H } from '../config.js';
 import { TAU, INK, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, poly, line, path, makeCanvas, rng, clamp, easeOutBack } from '../render/draw.js';
 import { part, curve, P, R as RECT, E } from '../render/figures.js';
@@ -147,8 +149,8 @@ class PlaceScene extends Overlay {
   scene() {}
   draw(g, dt) {
     const r = G.run, t = this.t, cf = this.cfg; this.lineT += dt; if (this.joy > 0) this.joy -= dt;
-    g.drawImage(cf.bg(), 0, 0, W, H);
-    this.scene(g, t, dt);
+    drawScene(g, cf.bg());
+    art(g, q => this.scene(q, t, dt));
     // 인형극 무대: 장면은 걸개그림, 둘레엔 단청 틀과 막, 앞에는 구경꾼
     stageFront(g, t, { open: openOf(t), seats: cf.seats, lamps: cf.lamps, hop: this.joy > 0 ? Math.min(1, this.joy) * 0.7 : 0 });   // 좋은 일이 생기면 구경꾼이 들썩인다
     if (this.line) bubble(g, this.line, cf.bub[0], cf.bub[1], cf.bub[2], this.lineT);

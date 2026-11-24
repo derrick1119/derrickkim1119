@@ -2,6 +2,7 @@
 // 지형지물(바위·돌담·목책)·길가의 집·갈림길 푯말처럼 아직 따로 찍지 않은 것들에 쓴다
 import { Spr, INK, lum } from './px.js';
 import { downsample, medianCut, peelLight } from './units.js';
+import { GFX } from './gfx.js';
 
 const SS = 4, CACHE = new WeakMap();
 const d2 = (a, b) => { const dr = ((a >> 16) & 255) - ((b >> 16) & 255), dg = ((a >> 8) & 255) - ((b >> 8) & 255), db = (a & 255) - (b & 255); return dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11; };
@@ -26,8 +27,15 @@ export function pxPaper(g, spr, x, y, k = 1, flip = false) {
 }
 // 붓으로 그리는 것(개울·갈림길 바닥)을 반 해상도 판에 그린 뒤 2배로 키워 도트처럼 보이게 한다
 let LOW = null;
+// 반 해상도 판에 그리는 동안 도트 인형(초상)은 판에 넣지 않고 줄 세워 두었다가, 판을 옮긴 뒤 제 해상도로 찍는다 (인형이 흐려지지 않게)
+export const LOWQ = { on: false, main: null, q: [] };
 export function lowres(g, fn) {
+  if (LOWQ.on) { fn(g); return; }
   if (!LOW) { LOW = document.createElement('canvas'); LOW.width = 640; LOW.height = 360; }
-  const l = LOW.getContext('2d'); l.setTransform(1, 0, 0, 1, 0, 0); l.clearRect(0, 0, 640, 360); l.save(); l.scale(0.5, 0.5); fn(l); l.restore();
+  const l = LOW.getContext('2d'); l.setTransform(1, 0, 0, 1, 0, 0); l.globalAlpha = 1; l.clearRect(0, 0, 640, 360); l.save(); l.scale(0.5, 0.5);
+  LOWQ.on = true; LOWQ.main = g; try { fn(l); } finally { LOWQ.on = false; l.restore(); }
   g.save(); g.imageSmoothingEnabled = false; g.drawImage(LOW, 0, 0, 1280, 720); g.restore();
+  const q = LOWQ.q; LOWQ.q = []; for (const f of q) f();
 }
+// 도트일 때만 반 해상도로 (붓 그림이면 그대로)
+export const art = (g, fn) => (GFX.pixel ? lowres(g, fn) : fn(g));

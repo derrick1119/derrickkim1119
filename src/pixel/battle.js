@@ -1,5 +1,6 @@
 // 도트 전장: 배경 겹(하늘·산·들판)과 날씨, 인형 한 장을 2배로 찍는다 (화면 1280×720 = 도트 640×360)
 import { tinted } from './px.js';
+import { LOWQ } from './paper.js';
 import { pxUnit, pxFlip, pxKeys } from './units.js';
 import { pxField, drawPxWeather, prewarmPxField } from './field.js';
 export { prewarmPxField };
@@ -33,6 +34,7 @@ export function pxBody(g, lookKey, wpn, x, y, dir, frame, fl, grow = 1) {
 }
 // 패·인형극·도감의 초상: 정수 배율로만 키운다
 export function pxPortrait(g, lookKey, x, y, s, t = 0, bob = false, wpn) {
+  if (LOWQ.on) { const m = LOWQ.main, sv = m.getTransform().multiply(new DOMMatrix().scale(2, 2).multiply(g.getTransform())), a0 = g.globalAlpha; LOWQ.q.push(() => { m.save(); m.setTransform(sv); m.globalAlpha = a0; pxPortrait(m, lookKey, x, y, s, t, bob, wpn); m.restore(); }); return; }
   const P = pxUnit(lookKey, wpn), sp = P.stand, n = Math.max(1, Math.ceil(s * 1.5 - 0.15)), yy = y - (bob ? Math.round(Math.abs(Math.sin(t * 5)) * 3 * s) : 0);
   g.save(); g.imageSmoothingEnabled = false; g.drawImage(sp.canvas(), Math.round(x - sp.ox * n), Math.round(yy - sp.oy * n), sp.w * n, sp.h * n); g.restore();
 }
