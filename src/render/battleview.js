@@ -13,7 +13,7 @@ import { paintFar, paintBack, paintGround, paintFront, paintTrees } from './pain
 import { forkArt, drawForkGlow, LM_K } from './forkmap.js';
 import { icon } from '../ui/ui.js';
 import { GFX } from '../pixel/gfx.js';
-import { pxFieldDraw, pxWeatherFront, pxTrees, pxTree, pxShadow, pxBody } from '../pixel/battle.js';
+import { pxFieldDraw, pxWeatherFront, pxTrees, pxTree, pxShadow, pxBody, prewarmPxField } from '../pixel/battle.js';
 
 const PI = Math.PI;
 // 쓰러진 자리에 남는 것
@@ -165,7 +165,7 @@ function strip(g, img, period, off, top) {
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.fork = null; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
-    this.seed = seed; this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
+    this.seed = seed; this.theme = theme; if (GFX.pixel) prewarmPxField(theme); this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }

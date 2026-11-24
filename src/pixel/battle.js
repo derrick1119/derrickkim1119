@@ -1,7 +1,8 @@
 // 도트 전장: 배경 겹(하늘·산·들판)과 날씨, 인형 한 장을 2배로 찍는다 (화면 1280×720 = 도트 640×360)
 import { tinted } from './px.js';
 import { pxUnit, pxFlip } from './units.js';
-import { pxField, drawPxWeather } from './field.js';
+import { pxField, drawPxWeather, prewarmPxField } from './field.js';
+export { prewarmPxField };
 import { PORTRAIT } from '../render/sprites.js';
 import { GFX } from './gfx.js';
 
