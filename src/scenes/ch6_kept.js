@@ -225,7 +225,7 @@
 
   T.stage('ch6', {
     chapter: 6, title: ['6장', '다 지킨 약속'], end: ['6장 끝', '마지막 장 「마중」'], next: 'ch7', pad: 2, nextColor: '#161d2a',
-    plot: { stage: 4, stones: 4, board: true, table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 2, fruit: 1 },
+    plot: { stage: 4, stones: 4, board: true, table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 2, fruit: 1, season: 'spring' },
     flags: { bramGone: true, rosaGone: true },
     build() { T.scenes.kitchen.build(); },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.3) * 0.45; },
@@ -272,7 +272,7 @@
       await TALK.say('leo', '…엄마도 이걸 세 번 보면서\n날 기다렸대.', { slow: true });
       await X.wait(1.6);
       X.tween(wh.sun, 'k', 0.6, 8);
-      await X.years(25, 30, { age: 66 });
+      await X.years(25, 30, { age: 66, season: 'late summer' });   /* tomato time */
       await X.wait(0.6);
 
       /* ---- the garden, grown to five beds, and a fence round it this time ---- */
@@ -371,7 +371,7 @@
       X.bed(4, 0.13, 'home');
 
       /* ---- his day. Every year she makes his stew from his notebook, and he takes his pot to the lake and makes it with her ---- */
-      await X.years(30, 37, { age: 73 });
+      await X.years(30, 37, { age: 73, season: 'late autumn' });   /* the day he died */
       T.announce('레오의 기일. 해마다 이날이면 아나는 레오의 공책을 펴 놓고 스튜를 끓이고, 레오는 냄비를 들고 호수에 내려가 같이 끓인다.');
       await TALK.say('leo', '오늘이네, 빈.\n아나도 지금쯤 냄비 올렸겠다.');
       leo.chair = 0; leo.prop = potProp;
@@ -465,7 +465,7 @@
       await X.wait(0.8);
 
       /* ---- years on: Pipi's father, and then nobody is left for them to wait for ---- */
-      await X.years(37, 43, { age: 79 });
+      await X.years(37, 43, { age: 79, season: 'winter' });
       let pipi2, pm2, pd, qleo2, cloud;
       X.toll(0);
       await quay(() => {
@@ -571,7 +571,7 @@
       X.bed(4, 0.13, 'home');
 
       /* ---- his day again, eight years on: this time the grandchildren have come to her ---- */
-      await X.years(43, 45, { age: 81 });
+      await X.years(43, 45, { age: 81, season: 'autumn' });
       leo.prop = potProp;
       X.walk(bean, C.PLOT + 330, 90);
       await X.walk(leo, C.PLOT + 380, 84);

@@ -481,7 +481,7 @@
   /* ---------- the painted concept look ----------
      The frame, blurred and laid back over itself (a soft painterly glow), a wash from lilac above to
      peach below, warm light where the scene says it comes from, watercolour paper, and motes in the air. */
-  let bA = null, bB = null, wcTile = null, mote = null;
+  let bA = null, bB = null, wcTile = null;
   function makeWash() {
     const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
     const g = c.getContext('2d'), r = T.rng(77);
@@ -503,48 +503,69 @@
     const ga = bA.getContext('2d'), gb = bB.getContext('2d');
     if (!T.artLite) ga.globalCompositeOperation = 'copy', ga.drawImage(c, 0, 0, aw, ah);
     if (!T.artLite) { gb.globalCompositeOperation = 'copy'; gb.drawImage(bA, 0, 0, bw, bh); }   /* a quarter, then a sixteenth: a cheap wide blur */
-    const cur = T.director.cur, light = (cur && cur.light && cur.light()) || [V.W * 0.22, 210, 520];
+    const cur = T.director.cur, v = cur && cur.view, L = P.lookNow();
+    const light = (v && v.light && v.light()) || (cur && cur.light && cur.light()) || [V.W * 0.22, 210, 520];
     const K = cur && cur.gradeK ? T.clamp(cur.gradeK()) : 1;
     if (K < 0.02) return;
     const lite = T.artLite;
     g.save();
     g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true;
     /* softness without fog: the blurred copy deepens and glows at once (soft-light), with only a little lift (screen) */
-    if (!lite) { g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.55 * K; g.drawImage(bB, 0, 0, cw, ch); }
-    /* the palette: plum above, rose in the middle, warm gold low down (one pass) */
-    g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.66 * K;
+    if (!lite && L.bloom > 0.01) { g.globalCompositeOperation = 'soft-light'; g.globalAlpha = L.bloom * K; g.drawImage(bB, 0, 0, cw, ch); }
+    /* the place's palette (src/look.js): its colour above, in the middle and low down (one pass) */
+    g.globalCompositeOperation = 'soft-light'; g.globalAlpha = L.gA * K;
     const gr = g.createLinearGradient(0, 0, 0, ch);
-    gr.addColorStop(0, '#6c50b8'); gr.addColorStop(0.5, '#e87c86'); gr.addColorStop(1, '#ffad5c');
+    gr.addColorStop(0, L.g0); gr.addColorStop(0.5, L.g1); gr.addColorStop(1, L.g2);
     g.fillStyle = gr; g.fillRect(0, 0, cw, ch);
+    /* the memories all lie on the same warm drawing paper */
+    if (L.paper > 0.01) { g.globalCompositeOperation = 'multiply'; g.globalAlpha = L.paper * K; g.setTransform(V.ps * 2, 0, 0, V.ps * 2, 0, 0); g.fillStyle = P.paper(); g.fillRect(0, 0, V.W / 2 + 2, V.H / 2 + 2); }
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = K;
     g.setTransform(V.ps, 0, 0, V.ps, (V.W / 2) * V.ps, 0);
     /* the light */
-    P.glow(g, light[0], light[1], light[2], '#ffc98c', 0.34);
-    P.glow(g, light[0], light[1], light[2] * 0.35, '#fff0d4', 0.26);
+    P.glow(g, light[0], light[1], light[2], L.glow, L.glowA);
+    P.glow(g, light[0], light[1], light[2] * 0.35, L.core, L.coreA);
     /* motes drifting in it, from one sprite */
-    if (!mote) { mote = document.createElement('canvas'); mote.width = mote.height = 32; const mg = mote.getContext('2d'), mr = mg.createRadialGradient(16, 16, 0, 16, 16, 16); mr.addColorStop(0, 'rgba(255,244,224,1)'); mr.addColorStop(0.4, 'rgba(255,244,224,0.45)'); mr.addColorStop(1, 'rgba(255,244,224,0)'); mg.fillStyle = mr; mg.fillRect(0, 0, 32, 32); }
+    const n = Math.round(26 * L.motes), mote = n > 0 ? moteOf(L.mote) : null;
     g.globalCompositeOperation = 'screen';
     const r = T.rng(31);
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < n; i++) {
       const sp = 0.3 + r() * 0.7, ph = r() * 6.28, x = -V.W / 2 + ((r() * V.W + t * 9 * sp) % V.W), y = 900 - ((r() * 900 + t * 14 * sp) % 940), rad = 4 + sp * 6;
       g.globalAlpha = K * (0.35 + 0.25 * Math.sin(t * 1.3 + ph));
       g.drawImage(mote, x + Math.sin(t * 0.5 + ph) * 18 - rad, y - rad, rad * 2, rad * 2);
     }
     g.restore();
   };
+  /* a mote sprite for each colour a place asks for */
+  const moteSprites = new Map();
+  function moteOf(col) {
+    let c = moteSprites.get(col);
+    if (c) return c;
+    if (moteSprites.size > 16) moteSprites.clear();
+    c = document.createElement('canvas'); c.width = c.height = 32;
+    const mg = c.getContext('2d'), mr = mg.createRadialGradient(16, 16, 0, 16, 16, 16);
+    mr.addColorStop(0, T.rgba(col, 1)); mr.addColorStop(0.4, T.rgba(col, 0.45)); mr.addColorStop(1, T.rgba(col, 0));
+    mg.fillStyle = mr; mg.fillRect(0, 0, 32, 32);
+    moteSprites.set(col, c);
+    return c;
+  }
+  /* the look of the place on the screen (src/look.js), or the harbour's own colours where there is none */
+  const LOOK0 = { g0: '#6c50b8', g1: '#e87c86', g2: '#ffad5c', gA: 0.66, bloom: 0.55, glow: '#ffc98c', glowA: 0.34, core: '#fff0d4', coreA: 0.26, motes: 1, mote: '#fff4e0', vig: 0.28, vigC: '#3d2a55', grain: 0.15, paper: 0 };
+  P.lookNow = () => (T.look && T.look.now ? T.look.now() : LOOK0);
 
   P.finish = function (g) {
     const V = T.view;
     const art = T.artOn && T.artOn();
-    if (P.vignette > 0.01 || art) {
+    /* the painted look takes the vignette and grain of the place (src/look.js); the crayon look keeps the scene's own */
+    const L = art ? P.lookNow() : null, va = L ? L.vig : P.vignette, grain = L ? L.grain : P.grainAmt;
+    if (va > 0.01) {
       const gr = g.createRadialGradient(0, 450, 300, 0, 450, Math.hypot(V.W / 2, 450) * 1.05);
-      const vc = art ? '#3d2a55' : P.vignetteColor, va = art ? Math.max(0.28, Math.min(P.vignette, 0.4)) : P.vignette;
+      const vc = L ? L.vigC : P.vignetteColor;
       gr.addColorStop(0, T.rgba(vc, 0));
       gr.addColorStop(1, T.rgba(vc, va));
       g.fillStyle = gr;
       g.fillRect(-V.W / 2, 0, V.W, V.H);
     }
-    if (P.grainAmt > 0.01) {
+    if (grain > 0.01) {
       if (!grainTile) grainTile = makeGrain();
       if (grainGen !== T.gen) {
         /* scale the grain with the backing store so it keeps the same apparent size */
@@ -558,7 +579,7 @@
       g.save();
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalCompositeOperation = 'overlay';
-      g.globalAlpha = P.grainAmt;
+      g.globalAlpha = grain;
       g.fillStyle = grainPat;
       g.fillRect(0, 0, T.canvas.width, T.canvas.height);
       g.restore();

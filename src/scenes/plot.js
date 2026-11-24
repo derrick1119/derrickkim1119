@@ -10,6 +10,7 @@
   /* the house wears the family's colours: his mustard, her coral, Lily's blue */
   const SPEC = { w: 236, h: 150, roofH: 92, roof: 'hip', wall: '#f8eed6', roofC: '#d7a23c', door: { x: 72, c: '#c9573f' }, win: [[-96, -116, 50, 60, 1, true], [-26, -116, 50, 60, 1, true]], chim: -58, seed: 151 };
 
+  const GARDEN = ['#f1c04a', '#e58aa0', '#f6f0e0'];
   const PL = (T.plot = { HX, BOARD_X, LAMP_X, TABLE_X, TREE_X, ROOM_X, PROMISES, SX: [HX - 104, HX - 36, HX + 36, HX + 104], spr: {} });
 
   PL.build = function () {
@@ -38,11 +39,13 @@
       food: { show: false, drop: 1, fill: 1, color: '#b9532f', burnt: false, herb: false, glow: 0 },
       tree: 0, swing: 0, swingW: 0, swingA: 0, lantern: 1, night: 0, aurora: [], room2: 0, garden: 0, patch: 0, fruit: 1,
       sway: 0, overcast: 0, seats: null,
+      season: null,   /* 0..4 round the year (0 spring, 1 summer, 2 autumn, 3 winter) or a name; null keeps the old look (src/look.js) */
     }, o || {});
   };
 
   PL.draw = function (g, ps) {
-    const y3 = T.world.y3, t = T.time;
+    const y3 = T.world.y3, t = T.time, DT = T.detail;
+    const SZ = ps.season != null && T.season ? T.season.paint() : null, f = SZ && SZ.f, snow = f ? f.snow : 0;
     /* stakes and string, until the walls hide them */
     if (ps.stage < 3) {
       const xa = HX - 126, xb = HX + 126;
@@ -56,18 +59,24 @@
     /* long grass round the edges */
     const r = T.rng(19);
     g.lineCap = 'round';
+    /* in its season: fresh in spring, straw in autumn, a few stalks through the snow; flowers spring into summer */
+    const gc = SZ ? SZ.c.grass : '#6b9a72', gc2 = SZ ? SZ.c.grass2 : '#9ab86a', fl = SZ ? f.flowers : 1;
     for (let i = 0; i < 46; i++) {
       const gx = HX - 190 + r() * 520, h = 10 + r() * 20, sw = Math.sin(t * 1.4 + i) * 4, y = y3(gx) + 3;
       if (ps.stage >= 1 && Math.abs(gx - HX) < 124) { r(); continue; }
-      g.strokeStyle = i % 3 ? '#6b9a72' : '#9ab86a'; g.lineWidth = 2 + r();
-      g.beginPath(); g.moveTo(gx, y); g.quadraticCurveTo(gx + sw * 0.4, y - h * 0.6, gx + sw, y - h); g.stroke();
-      if (i % 8 === 0) P.fill(g, P.circle(gx + sw, y - h, 3.4), ['#f6f0e0', '#f1c04a', '#e58aa0'][i % 3]);
+      const lw = 2 + r();
+      if (snow > 0.05 && (i % 5) / 5 < snow * 0.9) continue;
+      const hh = h * (1 - snow * 0.45);
+      g.strokeStyle = i % 3 ? gc : gc2; g.lineWidth = lw;
+      g.beginPath(); g.moveTo(gx, y); g.quadraticCurveTo(gx + sw * 0.4, y - hh * 0.6, gx + sw, y - hh); g.stroke();
+      if (i % 8 === 0 && fl > 0.3) P.fill(g, P.circle(gx + sw, y - hh, 3.4), ['#f6f0e0', '#f1c04a', '#e58aa0'][i % 3]);
     }
     /* round stones from the beach set down to sit on: ps.seats = [x, …] */
     if (ps.seats) ps.seats.forEach((x, i) => {
       const y = y3(x) + 3;
       P.fill(g, P.soft([[x - 21, y + 2], [x - 20, y - 14], [x - 8, y - 25], [x + 10, y - 24], [x + 21, y - 12], [x + 22, y + 2]]), i % 2 ? '#b3ada4' : '#c2bcb2');
       P.fill(g, P.soft([[x - 13, y - 17], [x - 4, y - 23], [x + 9, y - 21], [x - 2, y - 16]]), 'rgba(255,255,255,0.28)');
+      if (snow > 0.02) DT.snowCap(g, x + 1, y - 22, 36, snow);
     });
     /* foundation stones */
     const SX = [HX - 104, HX - 36, HX + 36, HX + 104];
@@ -75,6 +84,7 @@
       const x = SX[i], y = y3(x);
       P.fill(g, P.soft([[x - 22, y + 4], [x - 18, y - 10], [x, y - 15], [x + 18, y - 11], [x + 23, y + 4]]), i % 2 ? '#cdbfae' : '#d9cdbd');
       P.fill(g, P.soft([[x - 16, y - 8], [x, y - 14], [x + 12, y - 10], [x, y - 6]]), 'rgba(255,255,255,0.3)');
+      if (snow > 0.02 && ps.stage < 3) DT.snowCap(g, x, y - 12, 36, snow);
     }
     /* the house */
     const gy = y3(HX) + 3;
@@ -86,10 +96,16 @@
     else if (ps.stage === 3) T.blit(g, PL.spr.half, HX, gy);
     else if (ps.stage >= 4) {
       T.blit(g, PL.spr.full, HX, gy);
+      if (snow > 0.02) DT.snowRoof(g, SPEC, HX, gy, snow);
       for (let i = 0; i < 4; i++) { const life = (t * 0.12 + i * 0.25) % 1; P.glow(g, HX - 58 + Math.sin(t * 0.7 + i * 2) * (5 + life * 16) + life * 20, gy - 250 - life * 100, 12 + life * 22, '#fff6ea', Math.sin(life * Math.PI) * 0.3); }
-      if (ps.garden > 0.01) { g.save(); g.globalAlpha = ps.garden; [-150, -128, 136].forEach((dx, i) => K.bush(g, HX + dx, y3(HX + dx) + 2, 0.7, '#5f8f62', ['#f1c04a', '#e58aa0', '#f6f0e0'])); g.restore(); }
+      if (ps.garden > 0.01) { g.save(); g.globalAlpha = ps.garden; [-150, -128, 136].forEach((dx) => { if (SZ) DT.bush(g, HX + dx, y3(HX + dx) + 2, 0.7, '#5f8f62', GARDEN, SZ); else K.bush(g, HX + dx, y3(HX + dx) + 2, 0.7, '#5f8f62', GARDEN); }); g.restore(); }
     }
-    if (ps.patch && T.puzzle.patchDraw) T.puzzle.patchDraw(g, ps);
+    if (ps.patch && T.puzzle.patchDraw) {   /* the tomatoes keep the seasons too: young in spring, full in summer, gone over in winter */
+      const fr = ps.fruit;
+      if (f) ps.fruit = (fr == null ? 1 : fr) * T.clamp(0.35 + 0.65 * f.leaves - 0.2 * f.turn) * (1 - 0.92 * snow);
+      T.puzzle.patchDraw(g, ps);
+      ps.fruit = fr;
+    }
     if (T.detail && T.detail.on()) {   /* the painted look adds the painting's own furniture: a mailbox by the list, a bench facing the sea */
       T.detail.mailbox(g, BOARD_X - 46, y3(BOARD_X - 46) + 4, 1);
       T.detail.bench(g, 4540, y3(4540) + 4, 1);
@@ -105,6 +121,7 @@
         P.line(g, -18, ly, -18 + w, ly, 1.6, 'rgba(51,64,92,0.7)');
         if (ps.cross[i] > 0.01) P.line(g, -21, ly + 1, -21 + (w + 6) * ps.cross[i], ly - 1, 1.6, '#b54a36');
       }
+      if (snow > 0.02) DT.snowCap(g, 0, -28, 54, snow);
       g.restore();
     }
     /* his lantern from the boat */
@@ -119,6 +136,7 @@
       P.line(g, x - 30, top + 4, x - 36, y + 2, 5, '#8a6442'); P.line(g, x + 30, top + 4, x + 36, y + 2, 5, '#8a6442');
       P.fill(g, P.box(x - 44, top - 4, 88, 8, 0.6, 3), '#b98a5a');
       [-66, 66].forEach((dx, i) => P.fill(g, P.box(x + dx - 15, y - 30, 30, 32, 0.8, 5 + i), '#c79a62'));
+      if (snow > 0.02) { if (!ps.food.show) DT.snowCap(g, x, top - 5, 86, snow); DT.snowCap(g, x - 66, y - 31, 30, snow); DT.snowCap(g, x + 66, y - 31, 30, snow); }
       const f = ps.food;
       if (f.show) {
         const fy = top - 4 - (1 - T.ease.out3(T.clamp(f.drop))) * (f.fall == null ? 300 : f.fall), a = T.clamp(f.drop * 3);
@@ -138,13 +156,19 @@
     if (ps.tree > 0.01) {
       const k = ps.tree, x = TREE_X, y = y3(x), s = 0.5 + 1.1 * k;
       const q = ps.swing > 0.01 ? swingGeo(ps) : null;
+      const lv = f ? f.leaves : 1, leaf = f ? T.season.leaf('#5f9a6a', 2, SZ) : '#5f9a6a';
       if (q) {   /* a limb that leaves the trunk, goes up through the leaves and out over the slope */
         g.strokeStyle = '#6b4f52'; g.lineCap = 'round'; g.lineWidth = 8;
         g.beginPath(); g.moveTo(x + 1, y - 46 * s); g.quadraticCurveTo(x + 24 * s, y - 116 * s, q.x1 + 12, q.top - 3); g.stroke();
-        P.fill(g, P.ellipse(q.x1 + 17, q.top - 9, 12, 7, -0.4), '#5f9a6a'); P.fill(g, P.ellipse(q.x1 + 3, q.top - 13, 10, 6, 0.5), '#4f8a62');
+        if (lv > 0.01) { g.save(); g.globalAlpha *= Math.min(1, lv * 1.5); P.fill(g, P.ellipse(q.x1 + 17, q.top - 9, 12, 7, -0.4), leaf); P.fill(g, P.ellipse(q.x1 + 3, q.top - 13, 10, 6, 0.5), f ? T.shade(leaf, -0.1) : '#4f8a62'); g.restore(); }
+        if (snow > 0.02) DT.snowCap(g, q.x1 + 4, q.top - 7, 26, snow);
       }
-      K.tree(g, x, y, s, '#5f9a6a', '#4f8a62', '#6b4f52', Math.sin(t * 0.8));
-      if (k > 0.75) { const rr = T.rng(4); for (let i = 0; i < 9; i++) P.fill(g, P.circle(x - 36 * s + rr() * 72 * s, y - 62 * s - rr() * 60 * s, 4.4), '#c9433a'); }
+      /* the apple tree keeps the seasons: blossom, leaves, apples, bare branches */
+      if (SZ) DT.tree(g, x, y, s, '#5f9a6a', '#4f8a62', '#6b4f52', Math.sin(t * 0.8), 2, SZ);
+      else K.tree(g, x, y, s, '#5f9a6a', '#4f8a62', '#6b4f52', Math.sin(t * 0.8));
+      const apples = f ? (f.fruit ? '#c9433a' : f.leaves > 0.9 && f.blossom < 0.1 ? '#9bb54e' : null) : '#c9433a';
+      if (k > 0.75 && apples) { const rr = T.rng(4); for (let i = 0; i < 9; i++) P.fill(g, P.circle(x - 36 * s + rr() * 72 * s, y - 62 * s - rr() * 60 * s, apples === '#c9433a' ? 4.4 : 3.6), apples); }
+      if (k > 0.75 && f && f.leafFall > 0.3) [[-30, 3], [22, 5], [44, 2]].forEach((d) => P.fill(g, P.circle(x + d[0] * s, y3(x + d[0] * s) + d[1] - 2, 4), '#b8443a'));   /* windfalls in the grass */
       if (q) {
         const dx = Math.sin(ps.swingA) * 16;
         g.save(); g.globalAlpha = ps.swing;

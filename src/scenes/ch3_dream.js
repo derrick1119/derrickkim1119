@@ -177,7 +177,7 @@
 
   T.stage('ch3', {
     chapter: 3, title: ['3장', '꿈'], end: ['3장 끝', '4장 「이웃들」'], next: 'ch4', pad: 2,
-    plot: { stage: 1, stones: 4, board: true, table: true },
+    plot: { stage: 1, stones: 4, board: true, table: true, season: 'late autumn' },
     build() { T.scenes.kitchen.build(); T.scenes.home.build(); },
     onHill(g, h, S) { if (h === T.world.hillOf(T.plot.HX)) fallen(g, S); },
     sky(g, S) { clouds(g, S); },
@@ -207,7 +207,7 @@
       leo.pose = (o, a, t) => { if (!a.moving && !a.push && !a.sit) { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = 0.1; } };
       X.title();
       await X.wait(4.2);
-      await X.years(1, 3, { age: 39 });
+      await X.years(1, 3, { age: 39, season: 'spring' });   /* the seedlings come up in spring, and the storms with it */
 
       /* ---- the saw ---- */
       const bram = X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.08 });

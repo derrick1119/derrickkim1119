@@ -80,7 +80,7 @@
 
   T.stage('ch4', {
     chapter: 4, title: ['4장', '이웃들'], end: ['4장 끝', '5장 「꽃길」'], next: 'ch5', pad: 1, nextColor: '#fff6e6',
-    plot: { stage: 2, stones: 4, board: true, table: true, tree: 0.1, patch: 1, fruit: 0.3 },
+    plot: { stage: 2, stones: 4, board: true, table: true, tree: 0.1, patch: 1, fruit: 0.3, season: 'spring' },
     build() { T.scenes.kitchen.build(); },
     onHill(g, h, S) {
       if (h !== 1) return;
@@ -111,7 +111,7 @@
         { id: 'cloud', style: F.styles.cloud, s: 96, at: 'leo', dx: 150, sit: true, face: { blush: 0.24 },
           pose: (q, t) => { q.lean = 0.14; q.headTilt = -0.1 + Math.sin(t * 0.5) * 0.03; q.legF = { foot: [13, 9] }; q.legB = { foot: [10, 10] }; q.armF = { hand: [12, -4] }; q.armB = { hand: [10, -2] }; } },
       ] });
-      await X.years(3, 5, { age: 41, during: (d) => X.tween(ps, 'tree', 0.25, d) });
+      await X.years(3, 5, { age: 41, season: 'summer', during: (d) => X.tween(ps, 'tree', 0.25, d) });
       wh.pass({ from: 0.14, dur: 96 });
       /* however long they talk, the whales are still in sight: past the middle they slow, they do not stop */
       let onHead = true;
@@ -309,7 +309,7 @@
       await TALK.say('leo', '…내년엔 울타리부터 치자.');
       await X.dip(async () => { leo.x = PL.HX + 90; bean.x = PL.HX + 150; bean.sit = 1; pipi.x = PL.HX - 250; X.cam(px, py, 1); X.camSnap(); });
       /* walls, year after year, with a dog under his feet */
-      await X.years(5, 9, { age: 45, during: (d) => { X.tween(ps, 'tree', 0.4, d); X.wait(d * 0.5).then(() => { ps.stage = 3; A.sfx('knock', 0.5); }); } });
+      await X.years(5, 9, { age: 45, season: 'autumn', during: (d) => { X.tween(ps, 'tree', 0.4, d); X.wait(d * 0.5).then(() => { ps.stage = 3; A.sfx('knock', 0.5); }); } });
 
       /* ---- Rosa's porch: on his way down into the town he finds her pulling the blanket out again ---- */
       const PORCH = 2070;
@@ -483,6 +483,7 @@
          steps off it has only ever seen her in a photograph; as a boy he promised himself he would see her face ---- */
       let rosa, son;
       await quay(10, 15, () => {
+        X.season('winter');   /* a winter boat: she has a blanket to put round him */
         S.camK = 2;
         cloud = X.cloudKid({ lamp: true, lampHand: 'F', look: true });   /* on her crates, a lamp for whoever is coming */
         rosa = X.actor('rosa', { x: 990, style: F.styles.rosa, s: 140, flip: true, lamp: true, lampHand: 'F' });
