@@ -15,3 +15,5 @@ python3 tools/script/mkdoc.py /tmp/script        # 장별 표 → doc_*.md, line
 - `relines.py`: 대사를 고칠 때 씁니다. 코드의 문장과 번역표(`tools/make_i18n.py`)의 한국어를 한 번에 바꿉니다.
   `[{"old": "옛 문장", "new": "새 문장" 또는 null(대사 삭제), "en": "English"}]` 형식의 JSON을 받습니다.
   바꾼 뒤에는 `python3 tools/make_i18n.py`와 `tools/subset_fonts.py`를 다시 돌립니다.
+
+모음집 문서를 고친 뒤에는 문서를 마크다운으로 내보내고 `python3 tools/script/docdiff.py <내보낸 파일> docs/SCRIPT.md`로 바뀐 줄(고침·추가·삭제)만 뽑습니다.

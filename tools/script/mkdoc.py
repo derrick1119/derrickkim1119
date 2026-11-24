@@ -36,7 +36,10 @@ for tag in TITLES:
 NICE = {"ch1_kitchen.js": "1장 부엌", "ch1_harbor.js": "1장 항구", "ch2_list.js": "2장", "ch3_dream.js": "3장", "ch4_neighbours.js": "4장", "ch5_flowers.js": "5장", "ch6_kept.js": "6장", "ch7_welcome.js": "마지막 장",
         "room.js": "프롤로그 병실", "mem_home.js": "기억: 사진", "mem_stew.js": "기억: 스튜", "mem_swing.js": "기억: 그네", "mem_walk.js": "기억: 산책", "ending.js": "프롤로그 끝",
         "dreamroom.js": "기울어진 방 (5장)", "evenings.js": "별자리 (2장·6장)", "garden.js": "텃밭 물길 (3장·4장)", "lakehelp.js": "비 오는 길 (6장)",
-        "puzzles.js": "종 · 주춧돌", "skyplaces2.js": "소원 숲 · 바람 우체국", "views.js": "호수", "work.js": "나무 켜기 · 다 같이 당기기 · 담요"}
+        "puzzles.js": "종 · 주춧돌", "skyplaces2.js": "소원 숲 · 바람 우체국", "views.js": "호수 (2~4장)", "work.js": "손일"}
+RANGES = {"puzzles.js": [(254, "모든 퍼즐"), (362, "종"), (10**9, "주춧돌")],
+          "work.js": [(179, "나무 켜기"), (659, "다 같이 당기기"), (10**9, "담요 뜨기")],
+          "skyplaces2.js": [(900, "소원 숲 (3장)"), (10**9, "바람 우체국 (5장)")]}
 MENU = {"프롤로그", "눌러서 이어하기 · ", "처음부터 시작하기", "화면을 눌러 시작", "소리를 켜면 더 좋아요", "장 바로 가기", "스페이스 / 엔터",
         "← → 로 고르고 스페이스로", "스페이스로 고르고 ← → 로 옮겨요", "건너뛰기", "처음 보는 풀"}
 SKIPF = {"ui.js", "core.js", "audio.js", "stage.js"}
@@ -46,12 +49,18 @@ done = set()
 for e in extra:
     f = e["loc"].split(":")[0].split("/")[-1]
     t = e["text"]
-    if f in SKIPF or t in MENU or t in done or re.fullmatch(r"[^,]+, \d+", t) or (len(t.replace(" ", "")) <= 2 and not re.search(r"[!?.]", t)):
+    shown_t = cell(t)
+    if f in SKIPF or t in MENU or shown_t in done or re.fullmatch(r"[^,]+, \d+", t) or (len(t.replace(" ", "")) <= 2 and not re.search(r"[!?.]", t)):
         continue
-    done.add(t)
+    done.add(shown_t)
     n += 1
     i = f"A-{n:03d}"
+    ln = int(e["loc"].split(":")[1])
     where = NICE.get(f, "퍼즐 공통")
+    # files that hold several puzzles: name the one by where the line sits
+    for fn, cuts in RANGES.items():
+        if f == fn:
+            where = next(name for upto, name in cuts if ln <= upto)
     ap.append(f"| {i} | {where} | {cell(t)} |")
     lines[i] = {"who": where, "text": t, "loc": [e["loc"]], "kind": "extra"}
 docs["A"] = "\n".join(ap)
