@@ -466,6 +466,24 @@
     for (let i = 0; i < 26; i++) { const x = -534 + ((i * 53 + t * 40) % 212), y = 164 + ((i * 97 + t * 260) % 252); g.moveTo(x, y); g.lineTo(x - 3, y + 16); }
     g.stroke(); g.restore();
   }
+  /* a clear night in the window, roofs against it, and a star falling across it, over and over (the night she wished on it) */
+  function starNight(g, t) {
+    g.save(); g.beginPath(); g.rect(-534, 164, 212, 252); g.clip();
+    const sky = g.createLinearGradient(0, 164, 0, 416); sky.addColorStop(0, '#121838'); sky.addColorStop(1, '#3a3f70');
+    g.fillStyle = sky; g.fillRect(-534, 164, 212, 252);
+    const r = T.rng(5);
+    for (let i = 0; i < 18; i++) { const x = -530 + r() * 204, y = 170 + r() * 150, s = 1 + r() * 1.3, ph = r() * 6; g.globalAlpha = 0.45 + 0.45 * Math.sin(t * (0.8 + r()) + ph); P.fill(g, P.circle(x, y, s), '#fff6e0'); }
+    const u = (t * 0.28) % 1, a = Math.sin(T.clamp(u * 1.4) * Math.PI), sx = -350 - u * 170, sy = 188 + u * 96;
+    g.globalAlpha = a; g.lineCap = 'round';
+    g.strokeStyle = 'rgba(255,240,210,0.35)'; g.lineWidth = 7; g.beginPath(); g.moveTo(sx + 70, sy - 39); g.lineTo(sx, sy); g.stroke();
+    g.strokeStyle = 'rgba(255,248,232,0.9)'; g.lineWidth = 3; g.beginPath(); g.moveTo(sx + 60, sy - 33); g.lineTo(sx, sy); g.stroke();
+    P.glow(g, sx, sy, 22, '#fff6e0', 0.95); P.fill(g, P.circle(sx, sy, 3.4), '#ffffff');
+    g.globalAlpha = 1;
+    g.fillStyle = '#1b1f3a'; g.fillRect(-534, 352, 70, 64); g.fillRect(-470, 330, 60, 86); g.fillRect(-400, 362, 78, 54);
+    g.fillStyle = '#ffd98a'; g.fillRect(-452, 350, 9, 11); g.fillRect(-372, 376, 9, 11);
+    g.fillStyle = '#8f846e'; g.fillRect(-432, 164, 8, 252);
+    g.restore();
+  }
   function daylight(g) { g.fillStyle = '#bcd3ea'; g.fillRect(-534, 164, 212, 252); g.fillStyle = '#e9d9a8'; g.fillRect(-534, 352, 70, 64); g.fillRect(-470, 330, 60, 86); g.fillRect(-400, 362, 78, 54); g.fillStyle = '#f3e7cc'; g.fillRect(-432, 164, 8, 252); }
   const book = (g, x, y, rot) => { g.save(); g.translate(x, y); g.rotate(rot); P.fill(g, P.rr(-36, -9, 72, 8, 2), '#f6f0e0'); P.fill(g, P.rr(-38, -14, 76, 7, 3), '#d7a23c'); P.fill(g, P.rr(-38, -3, 76, 6, 3), '#b8862c'); P.fill(g, P.rr(12, -14, 6, 17, 1), '#c9573f'); g.restore(); };
 
@@ -517,9 +535,10 @@
     }
     night(g, T.mix('#5d6a92', '#7d7890', (lit.lamp || 0) * 0.6 + (lit.leo || 0) * 0.25), T.mix('#e9dcc2', '#ffe9c2', lit.lamp || 0));
   };
-  /* three years on: work, the child, the nights. i picks one of three evenings. */
+  /* three years on: work, the child, the nights. i picks one of three evenings. L.wish: the window is a clear night
+     with a star falling across it, and she (with the child asleep on her, i 1) lifts her face to it, eyes shut */
   V_.tired = function (g, t, L) {
-    T.blit(g, bg()); rain(g, t);
+    T.blit(g, bg()); if (L.wish) starNight(g, t); else rain(g, t);
     const i = L.i || 0, st = F.anaAt(39), br = Math.sin(t * 1.0) * 0.012;
     if (i === 0) {
       /* still working at the counter, long after bedtime */
@@ -533,7 +552,7 @@
       /* the child asleep on her, the washing still to fold */
       P.fill(g, P.poly([[-180, FLOORY], [-80, FLOORY], [-92, FLOORY - 56], [-168, FLOORY - 56]]), '#e9dcc3');
       P.fill(g, P.soft([[-172, FLOORY - 54], [-150, FLOORY - 86], [-110, FLOORY - 78], [-90, FLOORY - 54]]), '#f6f0e0');
-      const a = { x: -360, y: FLOORY - 34, s: 372, style: st, sit: true, lean: -0.12 + br, headTilt: -0.12, legF: { a: Math.PI / 2 - 0.04, b: 0.08 }, legB: { a: Math.PI / 2 - 0.1, b: 0.16 }, face: { eye: 'open', mouth: 'line', blush: 0.12 } };
+      const a = { x: -360, y: FLOORY - 34, s: 372, style: st, sit: true, lean: -0.12 + br, headTilt: L.wish ? -0.3 : -0.12, legF: { a: Math.PI / 2 - 0.04, b: 0.08 }, legB: { a: Math.PI / 2 - 0.1, b: 0.16 }, face: { eye: L.wish ? 'closed' : 'open', mouth: 'line', blush: 0.12 } };
       a.armF = { hand: F.local(a, a.x + 86, a.y - 44) }; a.armB = { a: 0.4, b: 0.6 };
       F.person(g, a);
       const ls = F.lilyAt(9);
@@ -625,14 +644,15 @@
 
   /* ---------- the dream: their first flat, as she remembers it ---------- */
   /* o: { chalk: {k}, near: {k} (he comes to sit by her), lift: {k} (she looks up), fall: {k} (falling into it),
-     settle: {k} (the room stops drifting) }. Nothing in a dream stays put: the room sways, the air is full of
+     settle: {k} (the room stops drifting), only: the names of the things that float loose (default all five:
+     cup, book, photo, clock, plant) }. Nothing in a dream stays put: the room sways, the air is full of
      slow lights, and the things of the flat float loose until they are put back (D.gather). */
   T.dream = function (o) {
     const D = Object.assign({ dark: true, mood: 'night', chord: 2, chalk: { k: 0 }, near: { k: 0 }, lift: { k: 0 }, lean: { k: 0 }, fall: { k: 0 }, settle: { k: 0 }, items: null, gq: null }, o);
     const ITEMS = [
       { name: 'cup', home: [-436, 600], f: [-40, 330] }, { name: 'book', home: [-330, 486], f: [60, 450] },
       { name: 'photo', home: [-200, 452], f: [-30, 560] }, { name: 'clock', home: [-470, 444], f: [-600, 330] }, { name: 'plant', home: [-150, 618], f: [-620, 600] },
-    ];
+    ].filter((it) => !(o && o.only) || o.only.includes(it.name));
     let off = null, gen = -1;
     const ZM = 1.38, ZC = [-300, 520], ZS = [-110, 470];
     const toScr = (x, y) => [(x - ZC[0]) * ZM + ZS[0], (y - ZC[1]) * ZM + ZS[1]];
@@ -772,7 +792,7 @@
       if (!q || q.done) return false;
       if (q.coach.key(key)) return true;
       const n = +key - 1;
-      if (n >= 0 && n < 5) { q.focus = -1; put(n); return true; }
+      if (n >= 0 && n < D.items.length) { q.focus = -1; put(n); return true; }
       /* ← → go round the things still adrift, left to right; Space / Enter sends home the one the ring is on */
       const free = D.items.map((it, i) => i).filter((i) => !D.items[i].done).sort((a, b) => itemAt(D.items[a], T.time)[0] - itemAt(D.items[b], T.time)[0]);
       if (key === 'ArrowLeft' || key === 'ArrowRight' || ((key === ' ' || key === 'Enter') && q.focus < 0)) {

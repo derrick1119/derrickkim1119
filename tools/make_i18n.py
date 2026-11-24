@@ -957,6 +957,13 @@ T = [
     ("구름아.\n너도 기다리는 사람 있을 거야.", "Cloudy.\nYou'll have someone you're waiting for, too."),
     ("아저씨 머리에… 하얀 거.", "There's something white... in your hair."),
     ("같이 늙자고 했거든.", "We said we'd grow old together."),
+    # ---- phase 2: ch3
+    ("이 배 띄우는 날,\n밧줄 좀 잡아 주게.", "The day this boat goes in the water,\ngive me a hand with the rope."),
+    ("…엉덩이 다 젖었어.", "...My bottom's all wet."),
+    ("그럼 저기 흘려보내.\n저 물, 아래까지 간대.", "Then float it down there.\nThey say that water goes all the way down."),
+    ("빛을 끌어다 개울물에 놓아 주세요", "Drag the light into the stream"),
+    ("레오 손의 빛을 끌어다 개울물에 놓아요", "Drag the light in Leo's hands into the stream"),
+    ("다음 날 아침", "The next morning"),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

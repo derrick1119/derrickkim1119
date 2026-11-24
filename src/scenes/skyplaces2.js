@@ -3,6 +3,12 @@
                            as small lights, and each one hums the tune its wisher had in mind; a stream of light runs
                            through the grass and pours over the edge. V.find() -> Promise: the player listens to the
                            low lights and picks the one humming Ana's lullaby; it drops into Leo's hands.
+                           Optional: o.echo (the id of someone there who hums the lullaby along with it, softly and an
+                           octave up, whenever it sings); V.vis = { k, paint(g, t) } (a round picture opening above the
+                           light in his hands as k goes to 1); V.release() -> Promise: what he has gathered for a dream
+                           comes together in his hands, the player lays it in the stream (drag, tap the water, or
+                           Space / Enter), and it runs down with the water and over the edge. A spot 'root' sits under
+                           the tree.
      T.place('post', o)    바람 우체국. A tall post office of pigeonholes built into a cliff of cloud. Letters people
                            write to the ones who have gone (left by a photo, burned, kept in a drawer) come in on the
                            wind and flutter about like birds; magpies on the roof, an old postmaster at the counter.
@@ -123,6 +129,8 @@
     walkers(V);
     V.answer = o.answer == null ? 2 : o.answer;
     V.t = 0; V.idle = 0;
+    V.vis = { k: 0, paint: null };   /* a picture opening in the light in his hands */
+    V.echoT = -99;   /* when o.echo last began humming along */
     let G = null;   /* the layout for the width we were last drawn at */
     function layout() {
       const W = T.view.W;
@@ -181,6 +189,7 @@
       const SS = spline(STREAM, 14).map((p, i, a) => [p[0], p[1], T.lerp(5, 26, i / (a.length - 1))]);
       G = { W, TX, TY, trunk, limbs, tips, leafy, main, cand, amb, STREAM, SS, EDGE: W * 0.36 };
       V.spots.leo = [-W * 0.25, GY, 'ground']; V.spots.kid = [-W * 0.25 + 78, GY, 'ground']; V.spots.ground = V.spots.leo;
+      V.spots.root = [TX - 116, GY - 8, 'ground'];   /* under the old tree, by the stream */
       return G;
     }
     V.layout = layout;
@@ -323,7 +332,13 @@
       c.song = V.t;
       let at = 0;
       for (const n of c.phr) { A.note({ m: n[0], at, vel: vel || 0.36, voice: 'hum', dur: Math.max(0.55, n[1] * BEAT * 1.15) }); at += n[1] * BEAT; }
+      /* someone small under the tree knows that one, and hums it with the light: a breath late, an octave up, softly */
+      if (o.echo && c.right && V.actor(o.echo)) {
+        V.echoT = V.t + 0.12; at = 0.12;
+        for (const n of c.phr) { A.note({ m: n[0] + 12, at, vel: (vel || 0.36) * 0.4, voice: 'hum', dur: Math.max(0.5, n[1] * BEAT) }); at += n[1] * BEAT; }
+      }
     }
+    V.echoing = () => !!o.echo && V.t - V.echoT < phraseLen(LULLABY) + 0.4 && V.t >= V.echoT;
     V.find = function () {
       V.finding = true; V.picked = null; V.tries = 0; V.idle = 0; V.focus = -1; V.noteKeys = 'pick';
       V.note = '빛을 눌러 들어 보세요. 아나가 릴리에게 불러 주던 노래를 찾아요';
@@ -351,7 +366,25 @@
       return best;
     }
     let hov = -1, hovT = 0;
+    function motePointer(type, x, y) {
+      const m = V.mote, sp = T.par(0.6), ix = x - sp[0], iy = y - sp[1];
+      if (V.coach && V.coach.pointer(type, x, y)) return true;
+      const onMote = Math.hypot(ix - m.x, iy - m.y) < 72, near = streamNear(ix, iy);
+      if (m.phase === 'hold') {
+        if (type === 'move') { T.cursor(onMote ? 'grab' : near[1] < 40 ? 'pointer' : 'default'); return onMote; }
+        if (type === 'down' && onMote) { m.phase = 'drag'; V.idle = 0; T.cursor('grabbing'); return true; }
+        if (type === 'down' && near[1] < 40) { drop(near[0]); return true; }   /* a tap on the water: it goes there */
+        return false;
+      }
+      if (m.phase === 'drag') {
+        V.idle = 0;
+        if (type === 'move') { m.x = ix; m.y = iy; return true; }
+        if (type === 'up' || type === 'down') { if (near[1] < 48) drop(near[0]); else m.phase = 'back'; T.cursor('default'); return true; }
+      }
+      return false;
+    }
     V.pointer = function (type, x, y) {
+      if (V.mote) return motePointer(type, x, y);
       if (!V.finding || V.picked) { hov = -1; return false; }
       if (V.coach && V.coach.pointer(type, x, y)) return true;
       if (type === 'down') V.focus = -1;
@@ -361,6 +394,12 @@
       return false;
     };
     V.key = function (key) {
+      if (V.mote) {
+        if (V.mote.phase !== 'hold') return false;
+        if (V.coach && V.coach.key(key)) return true;
+        if (key === ' ' || key === 'Enter') { drop(dropAt()); return true; }
+        return false;
+      }
       if (!V.finding || V.picked) return false;
       if (V.coach && V.coach.key(key)) return true;
       if (key >= '1' && key <= '4') { V.focus = -1; tap(+key - 1); return true; }
@@ -374,11 +413,105 @@
       if (act) { tap(V.focus); return true; }
       return false;
     };
-    V.want = () => (V.finding && !V.picked ? 'key:' + (V.answer + 1) : V.finding ? 'busy' : null);
-    V.hintAt = () => (V.finding && !V.picked ? candScreen(V.answer) : null);
+    V.want = () => (V.mote ? (V.mote.phase === 'hold' ? 'key:Enter' : 'busy') : V.finding && !V.picked ? 'key:' + (V.answer + 1) : V.finding ? 'busy' : null);
+    V.hintAt = () => {
+      if (V.mote) { if (V.mote.phase !== 'hold') return null; const q = layout().SS[dropAt()], sp = T.par(0.6); return [q[0] + sp[0], q[1] + sp[1]]; }
+      return V.finding && !V.picked ? candScreen(V.answer) : null;
+    };
     /* where the light is in his hands (for the dream tray to fly from) */
     V.heldAt = () => { const h = V.held; if (!h) return [0, 450]; const sp = T.par(0.6); return [h.x + sp[0], h.y + sp[1]]; };
     V.letGo = () => { if (V.held) V.held.out = true; };
+
+    /* ---------- laying a dream in the stream ----------
+       The three things he has gathered fly in from the corner where the stage keeps them and come together in his
+       hands as one light. Laid in the water (dragged there, or the water tapped, or Space / Enter), it runs down with
+       the stream, past the tree and over the edge, and falls down the side of the island into the cloud. Let go
+       anywhere else, it drifts back to his hands. Nothing can go wrong. Everything here is in the island's own space
+       (the parallax at 0.6, as the actors are drawn). */
+    const MCOL = ['#fff3dc', '#ffc9d6', '#d8ff9a'];   /* scent, sound, light: as the tray shows them */
+    function streamNear(x, y) {   /* the nearest point of the stream to (x, y): [index, how far outside the water] */
+      const SS = layout().SS;
+      let bi = 0, bd = 1e9;
+      SS.forEach((q, i) => { const d = Math.hypot(x - q[0], y - q[1]) - q[2] * 0.6; if (d < bd) { bd = d; bi = i; } });
+      return [bi, bd];
+    }
+    const handsAt = () => (V.hands ? [V.hands[0], V.hands[1] - 10] : [-T.view.W * 0.25 + 20, GY - 150]);
+    const dropAt = () => { const h = handsAt(); return streamNear(h[0] + 120, h[1] + 30)[0]; };   /* the nearest water, a step in front of him */
+    function drop(i) {
+      const m = V.mote;
+      if (!m || (m.phase !== 'hold' && m.phase !== 'drag' && m.phase !== 'back')) return;
+      m.phase = 'fly'; m.t0 = V.t; m.from = [m.x, m.y]; m.i = i;
+      V.note = null; V.noteKeys = null; V.idle = 0;
+      if (V.coach) V.coach.end();
+      AU().sfx('whoosh');
+    }
+    V.release = function () {
+      V.mote = { phase: 'gather', t0: V.t, x: 0, y: 0, i: 0, f: 0, gk: 0, trail: [], sung: 0 };
+      V.idle = 0;
+      V.coach = T.puzzle.coach({ idle: () => V.idle, live: () => !!V.mote && V.mote.phase === 'hold', hintAt: () => V.hintAt(), r: 46, tip: '레오 손의 빛을 끌어다 개울물에 놓아요', solve: () => drop(dropAt()) });
+      return new Promise((res) => { V.relRes = res; });
+    };
+    function moteUpdate(dt) {
+      const m = V.mote, A = AU(), SS = layout().SS;
+      if (!m) return;
+      const hand = handsAt();
+      if (m.phase === 'gather') {
+        m.gk = T.clamp((V.t - m.t0) / 1.9); m.x = hand[0]; m.y = hand[1];
+        if (m.gk >= 1) { m.phase = 'hold'; V.idle = 0; V.note = '빛을 끌어다 개울물에 놓아 주세요'; V.noteKeys = 'act'; A.sfx('sparkle'); }
+      } else if (m.phase === 'hold') { m.x = hand[0]; m.y = hand[1]; }
+      else if (m.phase === 'back') {
+        const k = Math.min(1, dt * 5); m.x += (hand[0] - m.x) * k; m.y += (hand[1] - m.y) * k;
+        if (Math.hypot(hand[0] - m.x, hand[1] - m.y) < 3) m.phase = 'hold';
+      } else if (m.phase === 'fly') {
+        const k = T.clamp((V.t - m.t0) / 0.8), e = T.ease.io(k), q = SS[m.i];
+        m.x = T.lerp(m.from[0], q[0], e); m.y = T.lerp(m.from[1], q[1], e) - Math.sin(k * Math.PI) * 46;
+        if (k >= 1) { m.phase = 'flow'; m.f = m.i; m.t0 = V.t; A.sfx('ripple'); A.note({ m: 69, vel: 0.22, voice: 'glass', dur: 2 }); }
+      } else if (m.phase === 'flow') {
+        m.f = Math.min(SS.length - 1, m.f + dt * (12 + 10 * (m.f / SS.length)));   /* it quickens toward the edge */
+        const i = Math.floor(m.f), q = SS[i], q2 = SS[Math.min(SS.length - 1, i + 1)], k = m.f - i;
+        m.x = T.lerp(q[0], q2[0], k); m.y = T.lerp(q[1], q2[1], k) - 3 + Math.sin(V.t * 6) * 1.5;
+        const n = Math.floor((m.f / (SS.length - 1)) * 4);   /* the lullaby, a note at a time, as it goes */
+        if (n > m.sung && n < 4) { m.sung = n; A.note({ m: LULLABY[n][0], vel: 0.2, voice: 'glass', dur: 2 }); }
+        if (m.f >= SS.length - 1) { m.phase = 'fall'; m.t0 = V.t; A.sfx('whoosh'); A.note({ m: 72, vel: 0.24, voice: 'glass', dur: 3 }); }
+      } else if (m.phase === 'fall') {
+        const k = T.clamp((V.t - m.t0) / 1.5), u = k * k, E = SS[SS.length - 1];
+        const P0 = [E[0], E[1]], P1 = [E[0] + 30, E[1] + 12], P2 = [E[0] + 34, E[1] + 110], P3 = [E[0] + 30, 940], v = 1 - u;
+        m.x = v * v * v * P0[0] + 3 * v * v * u * P1[0] + 3 * v * u * u * P2[0] + u * u * u * P3[0];
+        m.y = v * v * v * P0[1] + 3 * v * v * u * P1[1] + 3 * v * u * u * P2[1] + u * u * u * P3[1];
+        if (k >= 1) { m.phase = 'gone'; m.t0 = V.t; A.note({ m: 65, vel: 0.2, voice: 'bell', dur: 3 }); }
+      } else if (m.phase === 'gone' && V.t - m.t0 > 1.1) { const r = V.relRes; V.relRes = null; V.mote = null; V.coach = null; if (r) r(); return; }
+      if (m.phase === 'flow' || m.phase === 'fall' || m.phase === 'fly') { m.trail.push([m.x, m.y, V.t]); if (m.trail.length > 24) m.trail.shift(); }
+    }
+    function moteDraw(g, t) {
+      const m = V.mote;
+      if (!m) return;
+      const sp = T.par(0.6), W = T.view.W;
+      g.save(); g.globalCompositeOperation = 'screen';
+      if (m.phase === 'gather') {   /* the three, from the corner, on arcs into his hands; then one light */
+        for (let i = 0; i < 3; i++) {
+          const k = T.ease.io(T.clamp((m.gk - i * 0.12) / 0.64)), x0 = -W / 2 + 70 + i * 64 - sp[0], y0 = 70 - sp[1];
+          if (k >= 1) continue;
+          const x = T.lerp(x0, m.x, k), y = T.lerp(y0, m.y, k) - Math.sin(k * Math.PI) * 90;
+          P.glow(g, x, y, 26, MCOL[i], 0.8); P.fill(g, P.circle(x, y, 3.2), '#ffffff');
+        }
+      }
+      for (const q of m.trail) { const a = T.clamp(1 - (V.t - q[2]) / 0.9); if (a > 0) P.glow(g, q[0], q[1], 10 + 10 * a, '#ffe9b8', 0.45 * a); }
+      const gone = m.phase === 'gone' ? T.clamp((V.t - m.t0) / 1.1) : 0, born = m.phase === 'gather' ? T.clamp((m.gk - 0.6) / 0.4) : 1;
+      const a = born * (1 - gone);
+      if (a > 0.01) {
+        const pulse = 0.85 + 0.15 * Math.sin(t * 4), r = (m.phase === 'flow' ? 30 : 38) * pulse;
+        P.glow(g, m.x, m.y, r * 2.6, '#ffd796', 0.45 * a); P.glow(g, m.x, m.y, r, '#fff1cc', 0.9 * a);
+        for (let i = 0; i < 3; i++) { const an = t * 2.2 + (i * TAU) / 3, ox = Math.cos(an) * 13, oy = Math.sin(an) * 6; P.glow(g, m.x + ox, m.y + oy, 9, MCOL[i], 0.9 * a); }
+        P.fill(g, P.circle(m.x, m.y, 4.5), T.rgba('#ffffff', a));
+      }
+      if (m.phase === 'gone') { const E = layout().SS[layout().SS.length - 1]; P.glow(g, E[0] + 30, 900, 220 * (0.4 + gone), '#ffe9c8', 0.5 * Math.sin(gone * Math.PI)); }
+      g.restore();
+      /* left alone with it in his hands: a finger shows the way to the water */
+      if (m.phase === 'hold' && V.idle > 3) {
+        const q = layout().SS[dropAt()];
+        P.fingerHint(g, [[m.x, m.y], [T.lerp(m.x, q[0], 0.5), Math.min(m.y, q[1]) - 30], [q[0], q[1]]], (t * 0.5) % 1, T.clamp((V.idle - 3) / 1.2), '#fff6e0');
+      }
+    }
 
     V.update = function (dt) {
       V.t += dt; V.idle += dt;
@@ -409,9 +542,14 @@
         if (k >= 1) { pk.phase = 'held'; A.sfx('join'); A.note({ m: 81, vel: 0.2, voice: 'glass', dur: 3 }); const r = V.foundRes; V.foundRes = null; V.finding = false; if (r) r(); }
       }
       if (pk && pk.phase === 'held' && V.held) { const to = V.hands || [V.held.x, V.held.y]; V.held.x = to[0]; V.held.y = to[1] - 8; if (V.held.out) V.held.a = Math.max(0, V.held.a - dt * 1.4); }
+      moteUpdate(dt);
       /* Leo looks up at the lights, reaches for the one that comes down, and holds it */
       if (leo && !leo.pose) leo.pose = (q, t) => {
-        const p = V.picked;
+        const p = V.picked, m = V.mote;
+        if (m && m.phase !== 'gather' && m.phase !== 'hold' && m.phase !== 'back') {   /* it has left his hands: he watches it go */
+          q.headTilt = m.phase === 'flow' || m.phase === 'fly' ? 0.12 : 0.04; q.face = Object.assign({}, q.face, { eye: 'open', mouth: 'smile' });
+          return;
+        }
         if (p && (p.phase === 'fall' || p.phase === 'held')) { q.armF = { a: 1.05, b: 1.25 }; q.armB = { a: 0.95, b: 1.3 }; q.headTilt = p.phase === 'held' ? 0.12 : -0.1; q.face = Object.assign({}, q.face, { eye: p.phase === 'held' ? 'happy' : 'open' }); return; }
         if (p && p.phase === 'hum') { q.armF = { hand: F.local(q, lightPos(layout().cand[p.i], V.t)[0], lightPos(layout().cand[p.i], V.t)[1] + 30) }; q.headTilt = -0.36; return; }
         q.headTilt = -0.26 + Math.sin(t * 0.5) * 0.05;
@@ -496,11 +634,30 @@
       /* the one in his hands */
       const h = V.held;
       if (h && h.a > 0.01) { g.save(); g.globalAlpha = h.a; husk(g, h.x, h.y, C[V.answer].col, 1.1, t, 9); steam(g, h.x, h.y - 16, t, 0.8); g.restore(); }
+      /* and what it holds: a round picture opening above it */
+      const vk = T.ease.io(T.clamp(V.vis.k));
+      if (vk > 0.01 && V.vis.paint && h) {
+        const R = 124 * vk, cx = h.x + 8, cy = h.y - 44 - 156 * vk;
+        g.save(); g.globalCompositeOperation = 'screen';
+        g.strokeStyle = T.rgba('#ffe2b0', 0.4 * vk); g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(h.x, h.y - 18); g.quadraticCurveTo(h.x - 10, (h.y + cy) / 2, cx, cy + R * 0.9); g.stroke();
+        P.glow(g, cx, cy, R * 1.6, '#ffd796', 0.4 * vk);
+        g.restore();
+        g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+        g.fillStyle = '#1b2440'; g.fillRect(cx - R, cy - R, R * 2, R * 2);
+        g.translate(cx, cy); V.vis.paint(g, t, R);
+        g.restore();
+        const rim = g.createRadialGradient(cx, cy, R * 0.7, cx, cy, R);
+        rim.addColorStop(0, 'rgba(255,226,176,0)'); rim.addColorStop(1, T.rgba('#ffe2b0', 0.8 * vk));
+        g.fillStyle = rim; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+        g.globalAlpha = 0.7 * vk; g.strokeStyle = '#fff3da'; g.lineWidth = 2.2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke(); g.globalAlpha = 1;
+      }
+      moteDraw(g, t);
       g.restore();
       if (V.finding && !V.picked && V.coach) {   /* the help, on the screen (the lights' places already have the parallax in them) */
         V.coach.glow(g, t, 1, 44);
         if (V.focus >= 0) { const q = candScreen(V.focus); T.puzzle.focusRing(g, q[0], q[1], 40, t, 1); }
       }
+      if (V.mote && V.mote.phase === 'hold' && V.coach) V.coach.glow(g, t, 1, 46);
       V.blit(g, 'front', 1.2, Math.sin(t * 0.3) * 4);
       for (const f of flies) if (f.front) { const a = 0.5 + 0.5 * Math.sin(t * 2 + f.ph * 3); P.glow(g, f.x * 1.1, f.y + 20, 14, '#e8ffb0', 0.5 * a); P.glow(g, f.x * 1.1, f.y + 20, 3, '#ffffff', 0.8 * a); }
       if (V.fade.a < 1) { g.fillStyle = T.rgba('#151a36', 1 - V.fade.a); g.fillRect(-W / 2, 0, W, 900); }

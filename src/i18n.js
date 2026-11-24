@@ -168,7 +168,6 @@
  "됐네. 이제 뭘 올려도\n안 기울어.": "There. Whatever goes on top now,\nit won't lean.",
  "다음은 기둥이네요.": "Posts next.",
  "그 애 오면, 다 뜬 걸로 덮어 줄 거야.\n다 커서, 발도 안 덮이겠지만.": "When he comes, I'll tuck him in with the finished one.\nHe's so big now, it won't even cover his feet.",
- "호수 가 보자.\n밤에는 더 잘 보여.": "Let's go to the lake.\nYou see better at night.",
  "아줌마, 엄청 피곤해 보여….": "She looks so tired....",
  "오늘 가야겠다.\n꿈에서라도 좀 쉬게.": "I'll go tonight.\nSo she can rest, even if it's only in a dream.",
  "십 년에 한 번 지나가는 고래야.\n난 여기서 일곱 번째 보네.": "The whale comes by once every ten years.\nThis is my seventh.",
@@ -406,7 +405,6 @@
  "이렇게 가까이 보이는데…\n닿지는 않는구나.": "She looks so close...\nand I can't reach her.",
  "곧 바람 철이야.\n그 전에 뼈대는 세워 둬야지.": "The storm season's coming.\nWe want the frame up before it does.",
  "그 손 좀 빌리세.\n배 판자 휘는 건 혼자선 어려워.": "Lend me those hands.\nBending planks is hard work alone.",
- "마르타 오는 날,\n이 배 띄우는 것 좀 거들어 주게.": "The day Marta comes,\nhelp me put this boat in the water.",
  "바람 오기 전에 섰으니,\n됐다.": "Up before the wind.\nThat'll do.",
  "아저씨, 토마토 씨앗.\n엄마랑 베란다에서 키우던 거야.": "Mister, tomato seeds.\nMom and I grew them on our balcony.",
  "빨간 거 열리면 엄마 주기로 했는데…\n그 전에 내가 여기 왔어.": "I said I'd give her the first red one...\nbut I came here before it was ripe.",
@@ -742,7 +740,13 @@
  "사진 보면서 약속했거든요.\n언젠가 엄마 얼굴, 꼭 한 번 보겠다고.": "I made a promise, looking at that photo.\nThat one day I'd see your face, just once.",
  "구름아.\n너도 기다리는 사람 있을 거야.": "Cloudy.\nYou'll have someone you're waiting for, too.",
  "아저씨 머리에… 하얀 거.": "There's something white... in your hair.",
- "같이 늙자고 했거든.": "We said we'd grow old together."
+ "같이 늙자고 했거든.": "We said we'd grow old together.",
+ "이 배 띄우는 날,\n밧줄 좀 잡아 주게.": "The day this boat goes in the water,\ngive me a hand with the rope.",
+ "…엉덩이 다 젖었어.": "...My bottom's all wet.",
+ "그럼 저기 흘려보내.\n저 물, 아래까지 간대.": "Then float it down there.\nThey say that water goes all the way down.",
+ "빛을 끌어다 개울물에 놓아 주세요": "Drag the light into the stream",
+ "레오 손의 빛을 끌어다 개울물에 놓아요": "Drag the light in Leo's hands into the stream",
+ "다음 날 아침": "The next morning"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

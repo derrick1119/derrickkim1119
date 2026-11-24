@@ -1,12 +1,100 @@
 /* Chapter 3 「꿈」 — three years on. Bram shows him how to saw and warns that the season of storms is
-   coming; the frame goes up just in time, and the first storm brings it down in a night. In the morning
-   the whole town comes up the hill with a rope. Rosa asks him to look in the lake with her, at the son she
-   left as a baby with his blanket unfinished, an old man now. That night Pipi takes him to the grove where
-   the wishes made on shooting stars hang as lights, and one of them is humming Ana's lullaby. Then the
-   lake shows Ana worn out, and he spends the one dream he has on her. */
+   coming; Leo lends a hand with Bram's boat, and in return the frame goes up just in time. The first storm
+   brings it down in a night, and he sits in the rain beside it. In the morning the whole town comes up the
+   hill with a rope, and when it stands again the smallest of them sits down hard in the wet grass. Rosa asks
+   him to look in the lake with her, at the son she left as a baby with his blanket unfinished, an old man
+   now (the chapter's one visit to the lake). That night Pipi takes him to the grove where the wishes made on
+   shooting stars hang as lights; one of them is humming Ana's lullaby, and 구름이, sitting under the tree,
+   hums it too. In the light is the night Ana wished on it, worn out, with Lily asleep on her. He lays the one
+   dream he has in the grove's stream, and it runs down over the edge to her; the dream closes on her
+   kitchen in the morning. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
+  const SLIP = 900;   /* Bram's boat on its slip, down by the harbour */
+
+  /* a hand laid on something in the world while the body does whatever else it is doing (kneeling): played after
+     the other gestures, so the hand finds the point wherever they have put the shoulder. opts.at: [x, y] */
+  if (T.gesture && !T.gesture.defs['ch3-touch']) {
+    T.gesture.def('ch3-touch', {
+      in: 1.3, out: 0.9, dur: Infinity,
+      pose(o, k, t, c) { if (!c.opts.at) return; T.pose.leanToReach(o, 'F', c.opts.at, k, 0.6); T.pose.reach(o, 'F', c.opts.at, k); o.headTilt = (o.headTilt || 0) + 0.16 * k; },
+    });
+  }
+
+  /* the plank they lay round the open bow of Bram's boat: straight from the steam, then pressed round the ribs
+     (S.plank.k); once the dip has gone by, the bow is closed (S.plank.shut) */
+  const HULL = [[-176, -124], [-186, -96], [-150, -52], [-40, -40], [80, -42], [164, -62], [206, -140], [176, -132], [0, -122]];
+  function plank(g, S) {
+    const p = S.plank;
+    if (!p) return;
+    const t = T.time, y = T.world.groundAt(SLIP) + 2, k = T.ease.io(T.clamp(p.k || 0));
+    g.save(); g.translate(SLIP, y);
+    if (p.shut) {
+      g.save(); g.clip(P.soft(HULL));
+      g.fillStyle = '#b9774a'; g.fillRect(100, -152, 124, 124);
+      g.strokeStyle = 'rgba(70,40,20,0.3)'; g.lineWidth = 2;
+      for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(-190, -112 + i * 15); g.quadraticCurveTo(0, -100 + i * 15, 210, -128 + i * 13); g.stroke(); }
+      g.restore();
+      g.restore();
+      return;
+    }
+    /* straight and pale from the steam box, then bent dark against the ribs */
+    const x0 = 100, x1 = 214, ya = T.lerp(-142, -114, k), yb = T.lerp(-150, -131, k), yc = T.lerp((ya + yb) / 2, -106, k);
+    g.lineCap = 'round';
+    g.strokeStyle = '#6a4630'; g.lineWidth = 11; g.beginPath(); g.moveTo(x0, ya + 1.5); g.quadraticCurveTo(156, yc + 1.5, x1, yb + 1.5); g.stroke();
+    g.strokeStyle = T.mix('#e6c79c', '#c28a58', k); g.lineWidth = 8; g.beginPath(); g.moveTo(x0, ya); g.quadraticCurveTo(156, yc, x1, yb); g.stroke();
+    /* still steaming from the box; a puff when it goes on */
+    const st = 0.55 * (1 - k * 0.6) + (p.puff || 0);
+    for (let i = 0; i < 6; i++) {
+      const life = (t * 0.5 + i / 6) % 1, sx = T.lerp(x0 + 10, x1 - 10, (i + 0.5) / 6) + Math.sin(t * 1.3 + i) * 6;
+      P.glow(g, sx, T.lerp(ya, yb, (i + 0.5) / 6) - 8 - life * 60, 12 + life * 22, '#fff6ea', Math.sin(life * Math.PI) * 0.5 * st);
+    }
+    g.restore();
+  }
+  /* the frame, black against a flash of lightning while it is going over (screen space, drawn over the flash) */
+  let black = null, blackOf = null;
+  function frameBlack(g, S, a) {
+    const PL = T.plot, ps = S.ps, L = PL.spr && PL.spr.frame, Wd = T.world;
+    if (!L || !ps || a < 0.01 || !(ps.stage === 2 || (ps.stage === 1 && ps.raise > 0.01))) return;
+    if (blackOf !== L.c) {
+      black = document.createElement('canvas'); black.width = L.c.width; black.height = L.c.height;
+      const x = black.getContext('2d'); x.drawImage(L.c, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#121624'; x.fillRect(0, 0, black.width, black.height);
+      blackOf = L.c;
+    }
+    Wd.layer(g, 1);
+    g.globalAlpha = a; g.translate(PL.HX, Wd.y3(PL.HX) + 3);
+    if (ps.sway) g.transform(1, 0, ps.sway, 1, 0, 0);
+    if (ps.stage === 1) g.scale(1, ps.raise);
+    g.drawImage(black, L.x0, L.y0, L.w, L.h);
+    g.restore();
+  }
+  /* first light after the storm: a warmth coming up into the thinning cloud (screen space, over the scene) */
+  function dawn(g, S) {
+    const k = S.dawn || 0, W = T.view.W;
+    if (k < 0.01) return;
+    g.save(); g.globalCompositeOperation = 'screen';
+    const gr = g.createLinearGradient(0, 0, 0, 900);
+    gr.addColorStop(0, T.rgba('#3a3050', 0.3 * k)); gr.addColorStop(0.45, T.rgba('#c98a6a', 0.32 * k)); gr.addColorStop(0.75, T.rgba('#ffcf9a', 0.2 * k)); gr.addColorStop(1, 'rgba(255,207,154,0)');
+    g.fillStyle = gr; g.fillRect(-W / 2, 0, W, 900);
+    g.restore();
+  }
+  /* the morning after the dream, with no lake and no bank: the dream closes, and it is her kitchen in the light */
+  function morning() {
+    const V = { dark: false, mood: 'walk', chord: 0, open: { k: 0 } };
+    V.draw = function (g, t) {
+      const W = T.view.W;
+      T.vig.morning(g, t);
+      /* the white of the dream, going */
+      const k = 1 - T.ease.io(T.clamp(V.open.k));
+      if (k > 0.01) { g.fillStyle = T.rgba('#fff6e6', 0.85 * k); g.fillRect(-W / 2, 0, W, 900); }
+      const vg = g.createRadialGradient(0, 450, 380, 0, 450, 980);
+      vg.addColorStop(0, 'rgba(255,246,230,0)'); vg.addColorStop(1, 'rgba(255,240,214,0.55)');
+      g.fillStyle = vg; g.fillRect(-W / 2, 0, W, 900);
+    };
+    V.update = function () {};
+    return V;
+  }
 
   /* the frame, blown down into the grass */
   function fallen(g, S) {
@@ -14,7 +102,7 @@
     if (k < 0.01) return;
     const x0 = PL.HX - 150, y = W.y3(PL.HX);
     g.save(); g.globalAlpha = k;
-    [[0, 6, 250, -0.05], [30, 2, 230, 0.08], [-20, 10, 200, -0.12], [140, 4, 180, 0.4], [60, 12, 160, -0.3]].forEach((b) => {
+    [[0, 6, 250, -0.05], [30, 2, 230, 0.08], [-20, 10, 200, -0.12], [140, 4, 180, 0.4], [60, 12, 160, -0.3], [190, 9, 112, -0.03]].forEach((b) => {   /* the last, a beam thrown clear, by where he kneels */
       g.save(); g.translate(x0 + b[0], y + b[1] - 6); g.rotate(b[3]); P.fill(g, P.rr(0, -7, b[2], 13, 4), '#b98a5a'); P.fill(g, P.rr(0, -7, b[2], 4, 2), '#d1a676'); g.restore();
     });
     g.restore();
@@ -125,7 +213,15 @@
       }
       g.restore();
     }
-    if (S.flash > 0.01) { g.fillStyle = T.rgba('#f4f6ff', S.flash * 0.85); g.fillRect(-W / 2, 0, W, 900); }
+    dawn(g, S);
+    /* the flash: white where the bolt comes down, less of it away from there; whatever is standing between goes black against it */
+    if (S.flash > 0.01) {
+      const bx = S.bolt ? Wd.toScreen(S.bolt.wx, 0)[0] : 0;
+      const fl = g.createRadialGradient(bx, 160, 40, bx, 360, W * 0.85);
+      fl.addColorStop(0, T.rgba('#f6f8ff', Math.min(1, S.flash * 1.05))); fl.addColorStop(0.45, T.rgba('#eaefff', S.flash * 0.7)); fl.addColorStop(1, T.rgba('#dde4fb', S.flash * 0.4));
+      g.fillStyle = fl; g.fillRect(-W / 2, 0, W, 900);
+      if (S.silhouette) frameBlack(g, S, T.clamp(S.flash * 1.6));
+    }
     /* lightning: a crooked line from the cloud down toward the hill, and drawn over the white of it */
     const b = S.bolt;
     if (b && b.k > 0.01) {
@@ -139,24 +235,17 @@
       g.restore();
     }
   }
-  /* Leo through the storm. S.mood: look (the sky) · brace (in the rain) · flinch · stare · broken */
+  /* Leo through the storm. S.mood: look (the sky) · brace (in the rain) · flinch · stare (then the gestures
+     take him down: on one knee by the boards, and down into the wet grass, crying) */
   function stormPose(S) {
     return (o, a, t) => {
       const m = S.mood, gust = S.gust || 0, u = a.s / 100, f = a.flip ? -1 : 1;
-      if (m === 'broken' && a.sit > 0.3) {
-        /* sunk down by what is left of it: knees up, arms round them, head down on them, crying */
-        const cry = S.cry || 0, sob = Math.pow(Math.max(0, Math.sin(t * 4.2)), 2) * cry;
-        o.lean = 0.44 + sob * 0.05; o.headTilt = 0.58 + sob * 0.06; o.headDy = 1.2;
-        o.armF = { hand: [23, -2 + sob * 1.5] }; o.armB = { hand: [21, 1 + sob] };
-        o.face.eye = sob > 0.8 ? 'closed' : 'sad'; o.face.mouth = 'frown'; o.face.blush = 0.3;
-        o.face.tear = 0.95 * cry; o.face.tearY = (t * 1.7) % 3.6;
-        return;
-      }
-      if (a.moving && m !== 'stare' && m !== 'broken') { o.headTilt = -0.14; return; }   /* walking out, an eye on the sky */
-      if (m === 'stare' || m === 'broken') {
+      if (a.moving && m !== 'stare') { o.headTilt = -0.14; return; }   /* walking out, an eye on the sky */
+      if (m === 'stare') {
         o.headTilt = 0.16; o.lean = a.moving ? 0.08 : 0.03;
-        if (!a.moving) { o.armF = { a: 0.08, b: 0.12 }; o.armB = { a: 0.04, b: 0.12 }; }
-        o.face.eye = 'sad'; o.face.mouth = 'line'; o.face.tear = 0.3 * (S.cry || 0);
+        if (!a.moving) o.armB = { a: 0.04, b: 0.12 };
+        if (!a.moving && !(a.gestures && a.gestures.length)) o.armF = { a: 0.08, b: 0.12 };
+        o.face.eye = 'sad'; o.face.mouth = 'line'; o.face.tear = 0.4 * (S.cry || 0); o.face.tearY = (t * 1.7) % 3.6;
         return;
       }
       if (m === 'flinch') { o.lean = -0.14; o.headTilt = -0.08; o.armF = { a: 2.2, b: 1.0 }; o.armB = { a: 1.9, b: 0.9 }; o.face.eye = 'open'; o.face.mouth = 'open'; return; }
@@ -179,7 +268,7 @@
     chapter: 3, title: ['3장', '꿈'], end: ['3장 끝', '4장 「이웃들」'], next: 'ch4', pad: 2,
     plot: { stage: 1, stones: 4, board: true, table: true, season: 'late autumn' },
     build() { T.scenes.kitchen.build(); T.scenes.home.build(); },
-    onHill(g, h, S) { if (h === T.world.hillOf(T.plot.HX)) fallen(g, S); },
+    onHill(g, h, S) { const W = T.world; if (h === W.hillOf(T.plot.HX)) fallen(g, S); if (S.plank && h === W.hillOf(SLIP)) plank(g, S); },
     sky(g, S) { clouds(g, S); },
     after(g, S) { storm(g, S); },
     update(dt, S) {
@@ -199,7 +288,7 @@
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const [px, py] = X.place.plot();
-      S.fallen = 0; S.storm = 0; S.flash = 0;
+      S.fallen = 0; S.storm = 0; S.flash = 0; S.dawn = 0; S.plank = null; S.silhouette = false;
       T.state.dream = Object.assign({ scent: true }, T.state.dream || {});
       /* the scent came up out of the lake in chapter 2 */
       X.cam(px, py, 1); X.camSnap();
@@ -223,24 +312,39 @@
       X.cam(SAW - 30, W.groundAt(SAW) - 190, 1.25);
       await X.walk(leo, SAW - 118, 120);
       leo.flip = false; bram.flip = true;
-      await X.play(T.puzzle.saw({ logs: 2, strokes: 8, leo, at: SAW }));
+      await X.play(T.puzzle.saw({ logs: 1, strokes: 8, leo, at: SAW }));
       X.cam(px, py, 1);
       await TALK.say('bram', '손이 제법이야.');
-      /* and in return, a hand with his boat */
+
+      /* ---- and in return, a hand with his boat: the two of them lay a steamed plank round the open bow ---- */
       await TALK.say('bram', '그 손 좀 빌리세.\n배 판자 휘는 건 혼자선 어려워.');
-      const SLIP = 900;
-      await X.dip(async () => { leo.x = SLIP - 172; leo.flip = true; leo.pose = (o) => { o.armF = { a: 1.05, b: 0.35 }; o.armB = { a: 0.9, b: 0.35 }; o.lean = 0.16; }; bram.x = SLIP + 150; bram.flip = true; X.cam(SLIP, W.groundAt(SLIP) - 170, 1.15); X.camSnap(); });
-      T.announce('브램의 배터. 판자를 김에 쬐어 휘어서 배의 늑골에 두른다. 판자마다 알맞은 때가 더 짧아진다.');
-      await X.play(T.puzzle.steam({ at: () => { const q = W.toScreen(SLIP, W.groundAt(SLIP) - 70); return [q[0], q[1], S.cam.z * 0.9]; }, bands: [[0.48, 0.82, 0.34], [0.55, 0.8, 0.4], [0.6, 0.78, 0.46]] }));
-      /* the last plank is on: he lets his arms down and turns round to Bram across the hull */
-      leo.pose = null;
-      await X.wait(0.5);
-      leo.flip = false; bram.flip = true;
+      const hold = (o) => { o.armF = { a: 1.25, b: 0.5 }; o.armB = { a: 1.1, b: 0.55 }; o.lean = 0.1; };
+      const press = (o, a, t) => { o.armF = { a: 1.55, b: 0.22 }; o.armB = { a: 1.4, b: 0.25 }; o.lean = 0.24 + Math.sin(t * 22) * 0.008; o.face.eye = 'closed'; o.face.mouth = 'line'; o.face.blush = 0.3; };
+      await X.dip(async () => {
+        leo.x = SLIP + 74; leo.flip = false; bram.x = SLIP + 246; bram.flip = true;
+        leo.pose = hold; bram.pose = hold;
+        W.S.hook.flags.bramOut = true;   /* the town's own Bram at the bow steps out of the picture while this one is there */
+        S.plank = { k: 0, puff: 0, shut: false };
+        X.cam(SLIP + 160, W.groundAt(SLIP) - 150, 1.5); X.camSnap();
+      });
+      T.announce('브램의 배터. 김에 쪄 낸 판자를 둘이 들고 배의 열린 이물에 댄다. 판자를 누르면 둘이 함께 늑골에 대고 누른다.');
+      await X.tap(() => [SLIP + 158, W.groundAt(SLIP) - 128, 50]);
+      leo.pose = press; bram.pose = press;
+      A.sfx('creak', 0.3);
+      X.tween(S.plank, 'k', 1, 0.9, T.ease.out);
+      await X.wait(0.55);
+      A.sfx('knock', 0.45); S.plank.puff = 1; X.tween(S.plank, 'puff', 0, 1.8);
       await X.wait(0.4);
-      await TALK.say('bram', '마르타 오는 날,\n이 배 띄우는 것 좀 거들어 주게.');
+      A.sfx('knock', 0.6); X.note();
+      await X.wait(1.1);
+      /* the rest of the planks go on in the time it takes the light to go and come back */
+      await X.dip(async () => { S.plank.shut = true; leo.pose = null; bram.pose = null; leo.x = SLIP + 30; bram.x = SLIP + 262; X.cam(SLIP + 140, W.groundAt(SLIP) - 160, 1.3); X.camSnap(); }, { out: 1, in: 1.2, hold: 0.6 });
+      T.announce('날이 저물 무렵, 배의 이물이 판자로 다 덮였다.');
+      await X.wait(0.4);
+      await TALK.say('bram', '이 배 띄우는 날,\n밧줄 좀 잡아 주게.');
       await TALK.say('leo', '네. 꼭요.');
       /* a few days on: the two of them walk back up the hill together, to the timber he sawed, dry now */
-      await X.dip(async () => { leo.pose = null; leo.x = PL.HX - 520; leo.flip = false; bram.x = PL.HX - 580; bram.flip = false; X.cam(PL.HX - 260, py, 1); X.camSnap(); });
+      await X.dip(async () => { S.plank = null; W.S.hook.flags.bramOut = false; leo.pose = null; leo.x = PL.HX - 520; leo.flip = false; bram.x = PL.HX - 580; bram.flip = false; X.cam(PL.HX - 260, py, 1); X.camSnap(); });
       T.announce('며칠 뒤. 레오와 브램이 함께 언덕을 올라온다. 레오가 켜 둔 나무가 볕에 말라 있다.');
       X.age('며칠 뒤');
       X.walk(bram, PL.HX - 250, 72);
@@ -251,14 +355,12 @@
       await TALK.say('bram', '배 거들어 준 품은 갚아야지.\n뼈대, 오늘 올리세.');
       await TALK.say('leo', '네. 바람 오기 전에요.');
 
-      /* ---- the frame ---- */
+      /* ---- the frame: the two of them put it up, a post at a time ---- */
       const push = (o) => { o.armF = { a: 1.9, b: 0.3 }; o.armB = { a: 1.7, b: 0.3 }; o.lean = 0.2; };
-      T.announce('뼈대 세우기. 풀밭에 놓인 나무 일곱 개를, 서로 받쳐 주는 차례대로 세운다.');
+      T.announce('뼈대 세우기. 집터를 누르면 브램과 둘이 뼈대를 올린다.');
       await X.tap(() => [PL.HX, W.y3(PL.HX) - 30, 60]);
-      leo.x = PL.HX - 150; leo.flip = false; bram.x = PL.HX + 160; bram.flip = true;
-      leo.pose = push; bram.pose = push;
-      await X.play(T.puzzle.frame());
-      for (let i = 0; i < 3; i++) { A.sfx('knock', i / 3); X.note(); X.tween(ps, 'raise', (i + 1) / 3, 0.5, T.ease.out); await X.wait(0.55); }
+      await X.dip(async () => { leo.x = PL.HX - 150; leo.flip = false; bram.x = PL.HX + 160; bram.flip = true; leo.pose = push; bram.pose = push; }, { out: 0.8, in: 0.9 });
+      for (let i = 0; i < 3; i++) { A.sfx('knock', i / 3); X.note(); X.tween(ps, 'raise', (i + 1) / 3, 0.5, T.ease.out); await X.wait(0.62); }
       ps.stage = 2; ps.raise = 0; leo.pose = null; bram.pose = null;
       T.announce('집의 뼈대가 선다.');
       A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
@@ -298,14 +400,16 @@
 
       /* ---- that night, the storm ----
          it comes on the way storms do: the wind first, then the cloud and the dark, a few drops, the rain,
-         thunder a long way off, and then the one that is not far off at all */
-      X.bed(null);
+         thunder a long way off, and then the one that is not far off at all. No music from here to the morning */
+      X.hush();
       T.announce('그날 밤, 폭풍이 몰려온다.');
       S.mood = 'look'; S.cry = 0; S.wind = 0; S.dark = 0; S.storm = 0;
       S.gradeK = () => 1 - 0.8 * (S.dark || 0);   /* no warm evening light or drifting motes under storm cloud */
       leo.pose = stormPose(S);
       X.tween(ps, 'night', 0.45, 5); X.tween(S, 'wind', 0.45, 4);
       A.ambience(0.34, 0.6, 0.08); A.sfx('wind');
+      /* S1: wide, the frame and the sky over it in one picture, while it comes on */
+      X.cam(PL.HX + 80, py - 20, 0.9, 0.6);
       await X.walk(leo, PL.HX + 260, 70);
       leo.flip = true;
       await X.wait(2.2);
@@ -324,73 +428,154 @@
       await X.wait(3.4);
       A.sfx('wind');
       await X.wait(1.8);
-      /* the strike, close: the frame goes over */
-      S.bolt = { k: 1, wx: PL.HX - 40, seed: 9, to: 470 }; S.flash = 0.8; A.sfx('thunder');
+      /* S2: the strike, close, just to the left of the frame: it goes over black against the flash, which comes twice */
+      S.silhouette = true;
+      S.bolt = { k: 1, wx: PL.HX - 230, seed: 9, to: 470 }; S.flash = 0.95; A.sfx('thunder');
       await X.wait(0.25);
       A.sfx('knock', 0); A.sfx('knock', 0.2);
       S.mood = 'flinch'; S.collapse = true; ps.stage = 1; ps.raise = 1;
       T.announce('번개가 친다. 집의 뼈대가 무너져 풀밭에 쓰러진다.');
       X.tween(ps, 'sway', 0.9, 1.1, T.ease.in);
+      X.wait(0.55).then(() => { S.flash = Math.max(S.flash, 0.8); if (S.bolt) S.bolt.k = 0.75; });   /* and again, halfway over */
       X.wait(0.75).then(() => X.tween(S, 'fallen', 1, 0.35));
       await X.tween(ps, 'raise', 0, 1.1, T.ease.in);
       ps.sway = 0; S.collapse = false; S.impact = 1; X.tween(S, 'impact', 0, 0.8, T.ease.lin); A.sfx('knock', 0.4);
-      await X.wait(1.1);
+      /* the breath goes out of it: for a moment the wind drops away and there is only the rain */
+      A.ambience(0.5, 0.12, 0.4); A.rain(1);
+      await X.wait(1.4);
+      S.silhouette = false;
+      A.ambience(0.5, 0.6, 0.4); A.rain(null);   /* the rain goes back to following the storm */
       S.mood = 'stare';
       /* past its worst: the rain eases a little and the cloud thins enough to see him by his own lantern */
       X.tween(S, 'storm', 0.72, 4); X.tween(S, 'wind', 0.6, 4); X.tween(S, 'dark', 0.55, 6); X.tween(ps, 'night', 0.66, 6);
-      await X.wait(1.6);
-      await X.walk(leo, PL.HX + 160, 34);
-      ps.spot = [PL.HX + 160];
-      /* he sits down where he is, and it comes out of him */
-      X.tween(leo, 'sit', 1, 1.6);
-      S.mood = 'broken'; X.tween(S, 'cry', 1, 2.4);
-      X.cam(PL.HX + 130, W.y3(PL.HX + 160) - 70, 2.1, 0.7);
-      await X.wait(3.6);
+      await X.wait(0.6);
+      /* S3: he walks over to it, and the camera goes in with him, slowly */
+      const KX = PL.HX + 178;   /* where he goes down: the end of the wreck, his lantern just behind him */
+      X.cam(KX - 10, W.y3(KX) - 112, 1.4, 0.5);
+      await X.walk(leo, KX, 34);
+      ps.spot = [KX];
+      /* S4: down on one knee by the boards, a hand on the nearest of them */
+      X.cam(KX - 30, W.y3(KX - 10) - 76, 2.1, 0.7);
+      X.gesture(leo, 'kneel', { hold: true, face: false });
+      await X.wait(0.7);
+      X.gesture(leo, 'ch3-touch', { hold: true, at: [PL.HX + 146, W.y3(PL.HX + 146) - 2] });
+      X.tween(S, 'cry', 1, 2.4);
+      await X.wait(2.6);
+      /* S5 */
       await TALK.say('leo', '…겨우 세운 건데.', { slow: true });
-      await X.wait(1.2);
+      await X.wait(1);
+      /* and the knee gives: he sits down in the wet grass, a hand over his eyes */
+      X.ungesture(leo, 'ch3-touch');
+      X.ungesture(leo, 'kneel');
+      X.gesture(leo, 'sit-ground', { hold: true, face: false });
+      S.cryK = 0; X.gesture(leo, 'cry', { hands: 'face', hold: true, k: () => S.cryK });
+      X.tween(S, 'cryK', 1, 2.2);
+      X.cam(KX - 20, W.y3(KX) - 62, 2.25, 0.6);
+      await X.wait(2.8);
       await TALK.say('leo', '아나 오면,\n비라도 안 맞게 하려고….', { slow: true });
       await X.wait(2);
+      /* the rain thins, and the dark at the edge of the sky begins to go grey and warm */
+      X.tween(S, 'storm', 0.35, 3); X.tween(S, 'wind', 0.32, 3); X.tween(S, 'dark', 0.3, 3.2); X.tween(ps, 'night', 0.42, 3.2); X.tween(S, 'dawn', 1, 3.2);
+      X.tween(S, 'cryK', 0.45, 3);
+      await X.wait(2.9);
 
       /* ---- morning: everyone, with a rope ---- */
-      await X.dip(async () => { ps.night = 0; S.storm = 0; S.wind = 0; S.dark = 0; S.cry = 0.2; S.bolt = null; ps.sway = 0; ps.overcast = 0; ps.spot = null; X.cam(px, py, 1, 2); X.camSnap(); A.ambience(0.3, 0.3, 0.15); }, { color: '#fff6e6', out: 1.6, in: 1.6 });
-      X.bed(0, 0.13, 'walk');
-      T.announce('아침. 비가 그쳤다. 언덕 아래에서 사람들이 올라온다.');
+      await X.dip(async () => {
+        ps.night = 0; S.storm = 0; S.wind = 0; S.dark = 0; S.dawn = 0; S.cry = 0; S.bolt = null; ps.sway = 0; ps.overcast = 0; ps.spot = null;
+        leo.pose = null; S.cryK = 0.32; leo.face = { eye: 'sad', mouth: 'line' };
+        X.gesture(leo, 'cry', { hands: 'none', hold: true, k: () => S.cryK });   /* worn out, the head still down */
+        X.cam(KX - 10, W.y3(KX) - 96, 1.7); X.camSnap(); A.ambience(0.3, 0.3, 0.15);
+      }, { color: '#fff6e6', out: 1.6, in: 1.8 });
+      T.announce('아침. 비가 그쳤다. 레오는 아직 무너진 뼈대 곁에 앉아 있다.');
+      /* S6: only the wind for a while, close on him */
+      await X.wait(2.2);
+      T.announce('언덕 아래에서 사람들이 줄을 들고 올라온다.');
       const crew = [
-        X.actor('v2', { x: C.PLOT - 600, style: F.styles.villagerB, s: 136, lean: 0.06 }),
-        X.actor('bram2', { x: C.PLOT - 680, style: F.styles.bram, s: 144, lean: 0.08 }),
-        X.actor('rosa', { x: C.PLOT - 760, style: F.styles.rosa, s: 138 }),
+        X.actor('v2', { x: C.PLOT - 720, style: F.styles.villagerB, s: 136, lean: 0.06 }),
+        X.actor('bram2', { x: C.PLOT - 660, style: F.styles.bram, s: 144, lean: 0.08 }),
+        X.actor('rosa', { x: C.PLOT - 600, style: F.styles.rosa, s: 138 }),
         X.actor('v1', { x: C.PLOT - 840, style: F.styles.villagerA, s: 142 }),
         X.actor('kid', { x: C.PLOT - 900, style: F.styles.kidA, s: 100 }),
-        X.actor('cloud', { x: C.PLOT - 950, style: F.styles.cloud, s: 94 }),
+        X.actor('cloud', { x: C.PLOT - 960, style: F.styles.cloud, s: 94 }),
       ];
-      crew[1].prop = (g, j) => { g.save(); g.translate(j.handF[0], j.handF[1] + 6); g.strokeStyle = '#e6d6b0'; g.lineWidth = 4; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(0, 0, 14 - i * 2, 20 - i * 3, 0.3, 0, Math.PI * 2); g.stroke(); } g.restore(); };
-      crew.forEach((a, i) => X.walk(a, PL.HX - 160 - i * 62, 82 + i * 4));
-      await X.wait(4.2);
-      leo.pose = null; X.tween(leo, 'sit', 0, 0.8); leo.flip = true;
+      const [v2, bram2, rosa, v1, kid, cloud] = crew;
+      bram2.prop = (g, j) => { g.save(); g.translate(j.handB[0], j.handB[1] + 6); g.strokeStyle = '#e6d6b0'; g.lineWidth = 4; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(0, 0, 14 - i * 2, 20 - i * 3, 0.3, 0, Math.PI * 2); g.stroke(); } g.restore(); };
+      /* S7: Rosa first up the hill, straight to him; the rest stop by the frame. The music comes back with them,
+         and the camera draws back until they are all in it */
+      const rosaIn = X.walk(rosa, KX - 44, 100);
+      X.walk(bram2, PL.HX + 26, 92);
+      [v2, v1, kid, cloud].forEach((a, i) => X.walk(a, PL.HX - 70 - i * 64, 92 + i * 4));
+      X.bed(0, 0.13, 'walk');
+      X.cam(PL.HX - 20, py, 1, 0.45);
+      await rosaIn;
+      rosa.flip = false; bram2.flip = false;
+      /* S7: Rosa's hand on his head; he lifts it */
+      X.gesture(rosa, 'hand-on-head', { with: leo, mutual: false, hold: true });
       await X.wait(1.2);
+      X.tween(S, 'cryK', 0, 1.4);
       await TALK.say('rosa', '밤새 바람이 엄청났지.');
+      X.ungesture(rosa, 'hand-on-head');
+      await X.wait(0.4);
+      /* she steps aside, and Bram gives him a hand up */
+      X.walk(rosa, PL.HX + 4, 60).then(() => { rosa.flip = false; });
+      await X.walk(bram2, KX - 58, 60);
+      bram2.flip = false;
       await TALK.say('bram', '줄 가져왔네.\n혼자 끙끙대지 말고.');
+      X.gesture(bram2, 'hold-hands', { with: leo, dur: 3.4 });
+      await X.wait(0.9);
+      X.ungesture(leo, 'cry'); X.ungesture(leo, 'sit-ground');
+      X.wait(0.8).then(() => { leo.face = {}; });
+      await X.wait(2.2);
       await TALK.say('kid', '나도 당길래!');
       await TALK.say('rosa', '다 같이 하면 금방이야.');
       T.announce('다 같이 당기기. 모두가 숨을 모은 순간에 눌러 다 함께 줄을 당긴다.');
-      /* everyone takes the rope, in one line down the hill from the fallen frame */
+      /* S8: everyone takes the rope, in one line down the hill from the fallen frame */
       const pullers = [leo].concat(crew);
-      crew[1].prop = null;
-      await X.dip(async () => { pullers.forEach((a, i) => { a.go = null; a.moving = false; a.sit = 0; a.x = PL.HX + 215 + i * 62; a.flip = true; }); X.cam(PL.HX + 250, W.y3(PL.HX) - 100, 1.2); }, { out: 0.6, in: 0.8 });
+      await X.dip(async () => { bram2.prop = null; T.gesture.clear(leo); pullers.forEach((a, i) => { a.go = null; a.moving = false; a.sit = 0; a.x = PL.HX + 215 + i * 62; a.flip = true; }); X.cam(PL.HX + 250, W.y3(PL.HX) - 100, 1.2); }, { out: 0.6, in: 0.8 });
       await X.play(T.puzzle.heave({ pulls: 3, win: 1.05, wobble: 0.25, caller: 'bram2', crew: pullers, at: PL.HX, stake: PL.HX + 140, cam: X.cam, top: (k) => [PL.HX + 119, W.y3(PL.HX) - 2 - 146 * Math.max(0.03, k)], raise: (k, sh) => { ps.raise = Math.max(0.02, k); ps.sway = -(sh || 0); S.fallen = T.clamp(1 - k * 1.5); } }));
-      S.fallen = 0; ps.stage = 2; ps.raise = 0; X.cam(px, py, 1);
+      S.fallen = 0; ps.stage = 2; ps.raise = 0;
       A.sfx('knock', 0.4); X.notes(4);
-      T.announce('뼈대가 다시 선다. 사람들이 손뼉을 친다.');
-      const clap = (o, a, t) => { o.armF = { a: 1.35 + Math.sin(t * 16 + a.x) * 0.16, b: 1.1 }; o.armB = { a: 1.2 - Math.sin(t * 16 + a.x) * 0.16, b: 1.1 }; o.face.eye = 'happy'; };
-      crew.forEach((a) => { a.pose = clap; });
-      await X.wait(2.4);
-      crew.forEach((a) => { a.pose = null; });
+      X.tween(P, 'vignette', 0.1, 2.4);   /* it stands, and the morning opens out round it */
+      T.announce('뼈대가 다시 선다. 다들 줄을 놓는 순간, 줄 끝에서 제일 세게 버티던 피피가 뒤로 휘청거리다 밤새 비에 젖은 벤치에 털썩 주저앉는다.');
+      /* they all let go at once, and the one at the end, who was leaning back hardest, staggers back two steps and sits
+         down hard on the bench behind him, soaked from the night */
+      const BENCH = 4540;   /* the bench on the hill, facing the sea (plot.js) */
+      kid.keepFlip = true; kid.stride = 6;
+      kid.pose = (o) => { o.face = Object.assign({}, o.face, { eye: 'wide', mouth: 'o', brow: 'up', blush: 0.45 }); o.lean = -0.28; o.armF = { a: 2.7, b: 0.5 }; o.armB = { a: 2.3, b: 0.7 }; };
+      X.cam(PL.HX + 410, W.y3(PL.HX + 410) - 118, 1.4, 1.6);
+      await X.walk(kid, BENCH + 4, 130);
+      kid.chair = 1; kid.chairH = 25; kid.keepFlip = false;
+      kid.pose = (o) => { o.face = Object.assign({}, o.face, { eye: 'wide', mouth: 'o', brow: 'up', blush: 0.45 }); o.lean = -0.1; o.armF = { a: 0.5, b: 0.3 }; o.armB = { a: 0.4, b: 0.3 }; };
+      A.sfx('knock', 0.1); A.sfx('splash', 0.12);
+      await X.wait(0.5);
+      /* everyone turns to look at him */
+      [leo, v2, bram2, rosa, v1].forEach((a) => { a.flip = false; });
+      cloud.flip = true;
+      await X.wait(0.9);
+      kid.pose = (o) => { o.face = Object.assign({}, o.face, { eye: 'sad', mouth: 'frown', brow: 'worry', blush: 0.55 }); o.headTilt = 0.2; o.lean = 0.04; o.armF = { a: 0.3, b: 0.2 }; o.armB = { a: 0.25, b: 0.2 }; };
+      await TALK.say('kid', '…엉덩이 다 젖었어.');
+      /* and they all burst out laughing; he does too */
+      const laughers = [rosa, v2, leo, bram2, v1, cloud];
+      laughers.forEach((a, i) => X.wait(i * 0.14).then(() => X.gesture(a, 'laugh', { dur: 3, hand: i % 3 === 0 ? 'mouth' : i % 3 === 1 ? 'belly' : null })));
+      A.note({ m: 76, vel: 0.12, voice: 'box', dur: 0.6 });
+      X.wait(0.9).then(() => { kid.pose = null; X.gesture(kid, 'laugh', { dur: 2.4, hand: 'belly' }); });
+      await X.wait(3.4);
+      kid.chair = 0; kid.chairH = null;   /* down off the bench */
+      /* S9: when it has gone quiet, he looks up at it standing, breathes out, and thanks them */
+      leo.flip = true;
+      X.cam(PL.HX + 240, W.y3(PL.HX + 240) - 150, 1.15, 0.8);
+      X.gesture(leo, 'relief');
+      await X.wait(2.6);
+      leo.flip = false;
+      [v2, bram2, rosa, v1, kid, cloud].forEach((a) => { a.flip = true; });
+      await X.wait(0.8);
+      X.gesture(leo, 'bow', { depth: 'small' });
       await TALK.say('leo', '…고맙습니다.');
       await TALK.say('rosa', '고마우면 나랑 호수 좀 같이 가 줘.\n밤새 바람 소리에 그 애 우는 소리가 섞여서.');
       await TALK.say('kid', '그럼 밤엔 나랑 가.\n소원들이 어디 사는지 나 알아.');
 
-      /* ---- Rosa's son ---- */
-      X.walk(crew[2], C.PLOT + 420, 84);
+      /* ---- Rosa's son: the chapter's one visit to the lake ---- */
+      X.walk(rosa, C.PLOT + 420, 84);
       await X.wait(0.4);
       X.walk(leo, C.PLOT + 380, 84);
       await X.wait(1.6);
@@ -439,12 +624,22 @@
       await TALK.say('leo', '같이 떠요. 제가 같이 봐 둘게요.');
       await X.wait(0.8);
 
-      /* ---- that night: Pipi takes him where the wishes go. One of them hums the lullaby ---- */
-      const grove = T.place('grove', { leoAge: 0 });
+      /* ---- that night: Pipi takes him where the wishes go. 구름이 is there already, under the old tree ---- */
+      const cloudSits = (q, t, V) => {
+        T.pose.sitGround(q, 1, t, { hug: true });
+        const hum = V.echoing && V.echoing();
+        q.headTilt = (q.headTilt || 0) + (hum ? 0.08 + Math.sin(t * 2.6) * 0.07 : -0.32 + Math.sin(t * 0.5) * 0.04);
+        q.face = Object.assign({}, q.face, hum ? { eye: 'closed', mouth: 'smile', blush: 0.3 } : { eye: 'open', mouth: 'smile' });
+      };
+      const grove = T.place('grove', { leoAge: 0, echo: 'cloud', actors: [
+        { id: 'leo', style: F.leoAt(0), at: 'leo', headTilt: -0.22, face: { mouth: 'smile' } },
+        { id: 'kid', style: F.styles.kidA, s: 100, at: 'kid', headTilt: -0.3, face: { eye: 'happy' } },
+        { id: 'cloud', style: F.styles.cloud, s: 94, at: 'root', flip: true, pose: cloudSits },
+      ] });
       const gl = grove.actor('leo'), gk = grove.actor('kid'), sl = grove.spot('leo'), sk = grove.spot('kid');
       gl.x = sl[0] - 330; gk.x = sk[0] - 300;
       await X.view(grove, { color: '#151a36', out: 1.3, in: 1.8 });
-      T.announce('그날 밤, 소원 숲. 구름 위에 뜬 섬, 오래된 나무 가지마다 작은 빛이 열매처럼 열려 저마다 나직이 흥얼거린다. 빛의 개울이 풀밭을 지나 섬 끝으로 흘러내린다.');
+      T.announce('그날 밤, 소원 숲. 구름 위에 뜬 섬, 오래된 나무 가지마다 작은 빛이 열매처럼 열려 저마다 나직이 흥얼거린다. 빛의 개울이 풀밭을 지나 섬 끝으로 흘러내린다. 나무 아래 개울가에 구름이가 먼저 와 앉아 있다.');
       grove.walkTo(gk, sk[0], 64).then(() => { gk.flip = true; });
       await X.wait(0.7);
       await grove.walkTo(gl, sl[0], 58);
@@ -457,54 +652,53 @@
       await TALK.say('kid', '가만히 들어 봐.\n하나씩 다 다른 노래 해.');
       T.announce('소원 찾기. 낮게 열린 빛 넷을 눌러 들어 본다. 아나가 릴리에게 불러 주던 자장가를 흥얼거리는 빛이 있다. 숫자 키로도 고를 수 있다.');
       await grove.find();
-      T.announce('자장가를 흥얼거리던 빛이 가지에서 떨어져 레오의 손에 내려앉는다. 스튜 김 같은 하얀 김이 피어오른다.');
+      T.announce('자장가를 흥얼거리던 빛이 가지에서 떨어져 레오의 손에 내려앉는다. 나무 아래의 구름이도 그 노래를 따라 흥얼거렸다.');
+      await X.wait(0.8);
+      /* in the light: the night she wished on it */
+      const hAt = grove.heldAt();
+      /* the window with the star and the two of them on the floor under it, in one round picture */
+      grove.vis.paint = (g, t, R) => { const s = R / 390; g.scale(s, s); g.translate(350, -515); T.vig.tired(g, t, { i: 1, wish: true }); };
+      const VZ = 1.45, vx = Math.max(-T.view.W / 2 + T.view.W / (2 * VZ) + 4, hAt[0] + 10);   /* not past the edge of the place */
+      X.vcam(vx, hAt[1] - 150, VZ, 2.4);
+      await X.tween(grove.vis, 'k', 1, 2.2);
+      T.announce('빛 속에 그날 밤이 보인다. 창밖으로 별이 떨어지고, 잠든 릴리를 안은 아나가 눈을 감고 있다. 개지 못한 빨래가 쌓여 있다.');
       await X.wait(1.2);
       await TALK.say('leo', '…아나가 릴리 재울 때 부르던 거야.', { slow: true });
       await TALK.say('leo', '봤구나, 아나도.', { slow: true });
       gk.pose = (q) => { q.face = Object.assign({}, q.face, { eye: 'happy' }); };
       await TALK.say('kid', '그건 아저씨 거야.\n아저씨 생각하면서 빌었을 테니까.');
+      gk.pose = (q) => { q.face = Object.assign({}, q.face, { eye: 'open', mouth: 'line' }); q.headTilt = -0.1; };
+      await TALK.say('kid', '아줌마, 엄청 피곤해 보여….');
+      await X.wait(0.4);
+      X.tween(grove.vis, 'k', 0, 1.4);
+      await X.vcam(null, null, 1, 1.6);
       grove.letGo();
       await X.gift('light', grove.heldAt());
-      await X.wait(0.6);
+      await X.wait(0.4);
+      S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
       await TALK.say('leo', '스튜 김, 자장가, 이 빛….\n셋 다 모였네.', { slow: true });
+      gk.pose = null;
       await TALK.say('kid', '그게 뭔데?');
       await TALK.say('leo', '아나 꿈에 가는 길.');
-      await TALK.say('kid', '호수 가 보자.\n밤에는 더 잘 보여.');
-      await X.wait(0.6);
-
-      /* ---- Ana ---- */
-      const lake2 = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: F.styles.kidA, i: 0, kid: F.styles.cloud });   /* Pipi brought him; 구름이 is already there, looking in */
-      await X.view(lake2, { color: '#1b2a40' });
-      T.announce('호수에 물결이 인다. 고리 셋을 눌러 돌려 비친 모습을 맞춘다.');
-      await lake2.calm({ start: [2, 5, 7] });
-      X.age('아나, 39');
-      T.announce('호수에 비친 아나는 지쳐 있다. 늦게까지 이어지는 일, 잠든 아이, 혼자 보내는 밤.');
-      await X.wait(2.6);
-      let sent = false;
-      S.trayHold = true; X.tween(S.tray, 'a', 1, 0.5);
-      await TALK.say('kid', '아줌마, 엄청 피곤해 보여….');
       await TALK.say('leo', '오늘 가야겠다.\n꿈에서라도 좀 쉬게.', { slow: true });
-      S.trayHold = false; X.tween(S.tray, 'a', 0, 1.2); X.spendDream();
-      const dreamt = lake2.offerMote().then(() => { sent = true; });
-      for (let i = 0; i < 3 && !sent; i++) {
-        if (i > 0) { await X.tween(lake2.fade, 'a', 0, 0.7); lake2.i = i; lake2.amp = 1; await X.tween(lake2.fade, 'a', 1, 0.9); X.note({ voice: 'felt', vel: 0.3 }); }
-        if (i < 2) await Promise.race([dreamt, X.tap(() => [60, 560, 140], { screen: true })]);
-        else await dreamt;
-        X.clearSpot();
-      }
-      await dreamt;
-      A.sfx('whoosh');
-      T.announce('레오가 아껴 둔 꿈을 호수에 띄운다. 빛이 물속으로, 잠든 아나에게로 가라앉는다.');
-      await X.wait(0.8);
+      gk.pose = (q) => { q.armF = { a: 1.7, b: 0.25 }; q.headTilt = 0.08; };   /* pointing at the water */
+      await TALK.say('kid', '그럼 저기 흘려보내.\n저 물, 아래까지 간대.');
+      gk.pose = null;
+      /* ---- laying the dream in the stream: it runs down and over the edge, down through the cloud to her ---- */
+      S.trayHold = false; X.spendDream(); X.tween(S.tray, 'a', 0, 1.2);
+      T.announce('빛 흘려보내기. 레오의 손에 모인 빛을 끌어다 개울물에 놓는다. 스페이스나 엔터로도 놓을 수 있다.');
+      await grove.release();
+      T.announce('빛이 개울을 타고 흘러가 섬 끝에서 구름 아래로 떨어진다. 잠든 아나에게로.');
+      await X.wait(0.4);
 
       /* ---- the dream ---- */
-      const D = T.dream();
+      const D = T.dream({ only: ['cup', 'book', 'photo'] });
       await X.view(D, { color: '#1b2440', out: 1.2, in: 0.4 });
       T.announce('꿈. 빛이 소용돌이치며 가라앉고, 둘이 처음 살던 좁은 집이 물 위에 뜬 것처럼 흔들린다.');
       A.sfx('whoosh');
       await X.tween(D.fall, 'k', 1, 3.6, T.ease.lin);
       await X.wait(0.8);
-      T.announce('꿈속의 방. 컵, 공책, 사진, 시계, 화분이 공중에 떠 있다. 하나씩 눌러 제자리로 돌린다.');
+      T.announce('꿈속의 방. 컵, 공책, 사진이 공중에 떠 있다. 하나씩 눌러 제자리로 돌린다.');
       await D.gather();
       X.tween(D.settle, 'k', 1, 2);
       await X.wait(0.6);
@@ -524,16 +718,18 @@
       await X.tween(D.lean, 'k', 1, 1.6);
       await X.wait(3);
 
-      /* ---- the next morning ---- */
-      const lake3 = T.lake({ paint: T.vig.morning, leo: F.leoAt(0), warm: true, leoFace: { mouth: 'smile', eye: 'happy' } });
-      await X.view(lake3, { color: '#fff6e6', out: 1.8, in: 1.6 });
+      /* ---- the dream goes white, and closes on her kitchen the next morning ---- */
+      const morn = morning();
+      await X.view(morn, { color: '#fff6e6', out: 1.8, in: 0.6 });
+      X.tween(morn.open, 'k', 1, 1.8);
       T.announce('다음 날 아침. 아나가 릴리의 머리를 묶어 주며 오랜만에 웃는다.');
-      X.bed(0, 0.13, 'walk');
+      X.age('다음 날 아침');
       X.notes(4, { vel: 0.3 });
-      await X.wait(6.5);
+      await X.wait(5.4);
 
       /* ---- back on the hill ---- */
       S.actors = S.actors.filter((a) => a === leo);
+      T.gesture.clear(leo);
       leo.x = PL.HX - 120; leo.flip = false; leo.sit = 0; leo.pose = null;
       await X.view(null, { color: '#fff6e6' });
       leo.pose = (o, a, t) => { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = -0.1; o.face.eye = 'happy'; };
