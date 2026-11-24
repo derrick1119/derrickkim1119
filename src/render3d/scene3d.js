@@ -19,7 +19,8 @@ import { layers as layerDefs } from './layers.js';
 import './layers/index.js';
 
 /** 형태별 화면상 기체 너비(px). 2D 장면과 같다. */
-const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
+// 첫 형태(콩알 탐사정)는 80: 판정 반지름은 최솟값(34px)이라 그대로이고, 피포만 조금 더 크게 보인다
+const UFO_SCREEN_W = [80, 100, 116, 150, 156, 160, 190, 232];
 /** 지상 표본(닭·소)의 중심이 땅에서 떠 있는 높이(px): 모델의 발 높이(0.24·0.25) × 1.12배 × 64px. */
 const GROUND_LIFT = { chicken: 17, cow: 18 };
 const SPECIMEN_SCALE = 1.12;

@@ -11,7 +11,8 @@
      ?mode=icon&keys=outfit:cat,paint:honey,look:outfit=bee;paint=honey;beamOn=1&moods=idle,happy&size=220
        → 상점 아이콘(줄 = 항목, 칸 = 표정). look: 항목은 ; 로 묶음(세트·미리보기 그림)
      ?mode=game&look=outfit=bee,paint=honey,beam=honey,deco=wings&forms=0,2,5,7&moods=idle,happy&beam=1
-       → 게임 장면(농장 무대) 속 기체(줄 = 형태, 칸 = 표정). beam=1 이면 견인 빔을 켠다 -->
+       → 게임 장면(농장 무대) 속 기체(줄 = 형태, 칸 = 표정). beam=1 이면 견인 빔을 켠다.
+       real=1 을 더하면 게임과 같은 픽셀 크기로 찍어 기체 둘레만 2배로 보여 준다(피포가 실제로 얼마나 보이는지 볼 때) -->
 <canvas id="sheet"></canvas>
 <script type="module">
 import { renderIcon3d } from '../src/render3d/studio.js';
@@ -42,12 +43,17 @@ try {
   if (mode === 'icon') {
     const keys = list('keys', 'outfit:none');
     const size = Math.min(480, Number(q.get('size')) || 220);
-    sheet.width = moods.length * (size + GAP) + GAP;
-    sheet.height = keys.length * (size + LABEL + GAP) + GAP;
+    // cols=N: 항목을 N 칸씩 줄 바꿈(표정은 첫 하나만)
+    const wrap = Number(q.get('cols')) || 0;
+    const cells = wrap ? keys.map((key, i) => ({ key, mood: moods[0], r: Math.floor(i / wrap), c: i % wrap })) : keys.flatMap((key, r) => moods.map((mood, c) => ({ key, mood, r, c })));
+    const nc = wrap || moods.length;
+    const nr = wrap ? Math.ceil(keys.length / wrap) : keys.length;
+    sheet.width = nc * (size + GAP) + GAP;
+    sheet.height = nr * (size + LABEL + GAP) + GAP;
     ctx.fillStyle = '#1b2150';
     ctx.fillRect(0, 0, sheet.width, sheet.height);
-    keys.forEach((key, r) => {
-      moods.forEach((mood, c) => {
+    cells.forEach(({ key, mood, r, c }) => {
+      {
         const x = GAP + c * (size + GAP);
         const y = GAP + r * (size + LABEL + GAP);
         // 상점 카드처럼 밝은 바탕 위에
@@ -60,8 +66,8 @@ try {
           errors.push(`${key}: ${err.message}`);
         }
         if (shot) ctx.drawImage(shot, x, y + LABEL, size, size);
-        label(x, y, `${key} · ${mood}`);
-      });
+        label(x, y, wrap ? key.replace(/^look:/, '').replace(/;?(outfit|paint|beam)=[a-z]+/g, '') : `${key} · ${mood}`);
+      }
     });
   } else {
     const look = {};
@@ -71,10 +77,15 @@ try {
     }
     const forms = list('forms', '0,2,5,7').map(Number);
     const beamOn = q.get('beam') === '1';
-    const W = Number(q.get('w')) || 360;
-    const H = Number(q.get('h')) || 300;
-    sheet.width = moods.length * (W + GAP) + GAP;
-    sheet.height = forms.length * (H + LABEL + GAP) + GAP;
+    // real=1: 게임과 같은 크기(390px 화면에서 형태별 기체 너비 UFO_SCREEN_W)로 찍고, 기체 둘레만 2배로 키워 보여 준다
+    const real = q.get('real') === '1';
+    const REAL_W = [80, 100, 116, 150, 156, 160, 190, 232]; // scene3d.js 의 UFO_SCREEN_W 와 같게
+    const W = real ? 390 : Number(q.get('w')) || 360;
+    const H = real ? 300 : Number(q.get('h')) || 300;
+    const CW = real ? 400 : W; // 시트 칸 크기
+    const CH = real ? 300 : H;
+    sheet.width = moods.length * (CW + GAP) + GAP;
+    sheet.height = forms.length * (CH + LABEL + GAP) + GAP;
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, sheet.width, sheet.height);
     const gl = document.createElement('canvas');
@@ -86,8 +97,8 @@ try {
     for (const [r, form] of forms.entries()) {
       const ufo = createUfo(form, look);
       ufo.root.rotation.x = UFO_TILT;
-      // 화면 너비의 약 45 % 로
-      ufo.root.scale.setScalar((W * 0.45) / 64 / (2 * ufo.halfWidth));
+      // 화면 너비의 약 45 % 로(real 이면 게임과 같은 너비)
+      ufo.root.scale.setScalar((real ? REAL_W[form] : W * 0.45) / 64 / (2 * ufo.halfWidth));
       ufo.root.position.copy(engine.toWorld(W / 2, H * (beamOn ? 0.36 : 0.5)));
       engine.actors.add(ufo.root);
       let cone = null;
@@ -107,9 +118,14 @@ try {
           cone.scale.set(ufo.halfWidth * 0.6 * s, H * 0.4 / 64, ufo.halfWidth * 0.6 * s);
         }
         engine.render();
-        const x = GAP + c * (W + GAP);
-        const y = GAP + r * (H + LABEL + GAP);
-        ctx.drawImage(gl, x, y + LABEL, W, H);
+        const x = GAP + c * (CW + GAP);
+        const y = GAP + r * (CH + LABEL + GAP);
+        if (real) {
+          // 기체 둘레 200×150(CSS px)을 2배로: 게임 화면을 확대경으로 본 모습(픽셀 크기 그대로)
+          const sx = (W / 2 - 100) * (gl.width / W);
+          const sy = (H * (beamOn ? 0.36 : 0.5) - 85) * (gl.height / H);
+          ctx.drawImage(gl, sx, sy, 200 * (gl.width / W), 150 * (gl.height / H), x, y + LABEL, CW, CH);
+        } else ctx.drawImage(gl, x, y + LABEL, W, H);
         label(x, y, `form ${form} · ${mood}`);
       }
       engine.actors.remove(ufo.root);

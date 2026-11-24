@@ -4,7 +4,8 @@
 // anchor = {
 //   form, spec(형태 설계: R, dome, antennas, ring, fins, tiers, deck, sideDomes, radar, escorts),
 //   R(맨 아래 접시 반지름), surfaceY(r)(가운데에서 r 떨어진 윗면 높이), rimY(윗면 가장자리 높이), mainTopY,
-//   domeY(조종석 돔 바닥), domeR(돔 반지름, 세로는 1.1 배), domeTop(돔 꼭대기), topY(기체 꼭대기), bellyY,
+//   domeY(조종석 돔 바닥), domeR(돔 반지름, 세로는 domeSY 배), domeTop(돔 꼭대기), topY(기체 꼭대기), bellyY,
+//   domeSY, tiers([{ r2, y0 }] 위층 접시), antennaX(안테나 밑동 가로 자리, 없으면 0),
 //   o(기체 재질 묶음: o.light() = 도색 조명 색), pmesh(geo, role, opts)(도색을 따르는 메시), paint()(지금 도색 값)
 // }
 // buildDeco(id, anchor) → { group: THREE.Group, update({ t, mood, lit, beam }) } | null
@@ -171,6 +172,7 @@ function topUV(key, src) {
 
 /** 위층 접시들(형태 4·7): [{ r2: 반지름, y0: 접시 바닥 높이 }]. ufo3d.js 의 쌓는 규칙과 같다. */
 function tiersOf(a) {
+  if (a.tiers) return a.tiers; // ufo3d.js 가 실제로 쌓은 값
   const out = [];
   let top = a.mainTopY;
   for (let k = 0; k < (a.spec.tiers || 0); k++) {
@@ -1134,7 +1136,7 @@ registerDeco('propeller', (a) => {
   // 빵모자: 돔 꼭대기에 얹힌 작고 둥근 조각 모자(테두리가 유리에 살짝 묻힌다). 앞에서도 조각 무늬가 보이게 봉긋하다
   const CR = 0.5; // 모자 반지름
   const CH = 0.38; // 모자 높이
-  const capY = 1.1 * Math.sqrt(1 - CR * CR) - 0.025;
+  const capY = (a.domeSY || 1.1) * Math.sqrt(1 - CR * CR) - 0.025;
   const cap = mesh(
     geo('beanieCap', () => new THREE.SphereGeometry(1, 36, 12, 0, TAU, 0, Math.PI / 2).scale(CR, CH, CR)),
     gloss('#ffffff', { map: beanieTexture(), glow: 0.24, rough: 0.42, coat: 0.6 }),
@@ -1201,7 +1203,7 @@ registerDeco('crown', (a) => {
   group.add(pivot);
   const crown = new THREE.Group();
   // 띠 밑동 반지름 0.52 가 돔 면에 닿는 높이(돔은 세로 1.1 배)
-  const baseY = 1.1 * Math.sqrt(1 - 0.52 * 0.52) - 0.02;
+  const baseY = (a.domeSY || 1.1) * Math.sqrt(1 - 0.52 * 0.52) - 0.02;
   crown.position.y = baseY;
   pivot.add(crown);
   const gold = goldMat();

@@ -24,6 +24,14 @@ import { DECO_BUILD, buildDeco } from './decos.js';
 
 /** 윗면이 카메라를 보도록 앞으로 기울이는 각도(라디안). */
 export const UFO_TILT = 0.36;
+/**
+ * 조종석: 피포 머리 반지름 = 돔 반지름 × PILOT_K, 유리 높이 = 돔 반지름 × DOME_SY.
+ * 피포가 주인공이므로 돔을 크게, 피포를 돔에 꽉 차게 둔다(작은 화면에서도 표정이 보이게).
+ */
+export const PILOT_K = 0.6;
+export const DOME_SY = 1.26;
+/** 위층 접시 반지름(맨 아래 접시 R 에 대한 비율): 1층, 2층. */
+export const TIER_R = [0.62, 0.46];
 
 // 선체: 사탕처럼 래커 칠한 남보라(피포의 보라와 어울리게) + 반들반들한 금빛 테 + 청록 알약 조명.
 // 재질 문법: 윗면은 꼭대기로 갈수록 밝아지는 칠한 그라데이션에 아주 옅은 판 이음매, 투명 코팅(clearcoat)으로
@@ -830,7 +838,7 @@ function saucer(o, R, { pills = 10, ambers = 3, topTone = 0, emitter = true, tie
   return { group: g, sprites, amberSprites, topY: (tier ? 0.29 : 0.236) * R, bellyY: -0.27 * R, surfaceY };
 }
 
-/** 조종석 유리: 가운데는 거의 투명(피포가 또렷이 보이게), 가장자리로 갈수록 하늘빛이 짙어진다. */
+/** 조종석 유리: 가운데는 거의 투명(피포가 또렷이 보이게), 가장자리 가는 테두리만 하늘빛(돔에 꽉 찬 피포를 가리지 않게). */
 let pilotGlassMat = null;
 function pilotGlass() {
   if (pilotGlassMat) return pilotGlassMat;
@@ -846,8 +854,8 @@ function pilotGlass() {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <opaque_fragment>',
       `float glassF = 1.0 - saturate( dot( geometryNormal, geometryViewDir ) );
-      diffuseColor.a = mix( 0.04, 0.62, pow( glassF, 2.4 ) );
-      outgoingLight += vec3( 0.55, 0.92, 1.0 ) * pow( glassF, 3.0 ) * 0.45;
+      diffuseColor.a = mix( 0.03, 0.5, pow( glassF, 3.2 ) );
+      outgoingLight += vec3( 0.55, 0.92, 1.0 ) * pow( glassF, 3.6 ) * 0.4;
       #include <opaque_fragment>`,
     );
   };
@@ -886,12 +894,12 @@ function dome(o, y, r, withPilot = true) {
   });
   g.add(collar);
   let pilot = null;
-  // 조종석 돔은 큰 머리가 들어가게 조금 높게
-  const sy = withPilot ? 1.1 : 1;
+  // 조종석 돔은 큰 머리가 들어가게 높게(동그란 사탕 유리병처럼)
+  const sy = withPilot ? DOME_SY : 1;
   if (withPilot) {
-    pilot = createPipo(r * 0.5, { outfit: o.outfit });
+    pilot = createPipo(r * PILOT_K, { outfit: o.outfit });
     const seat = new THREE.Group();
-    seat.position.y = r * 0.1; // 스카프·조종간 손잡이가 받침 위로 보이게
+    seat.position.y = r * 0.08; // 스카프·조종간 손잡이가 받침 위로 보이게
     seat.rotation.x = -0.16; // 의자에 살짝 기대 앉아 얼굴이 화면을 향한다(기체가 앞으로 기울어 있으므로)
     seat.add(pilot.group);
     g.add(seat);
@@ -927,16 +935,19 @@ function antenna(o, x, y, len, lean, color) {
 
 // ───────── 형태 ─────────
 
-/** 형태별 설계: R = 접시 반지름, hw = 화면 배율용 반폭(고리·호위선 포함). */
+/**
+ * 형태별 설계: R = 접시 반지름, dome = 조종석 돔 반지름(R 에 대한 비율), hw = 화면 배율용 반폭(고리·호위선 포함).
+ * 화면에서 기체 너비는 형태마다 정해져 있으므로(scene3d UFO_SCREEN_W), 돔이 클수록 피포가 크게 보인다.
+ */
 const SPECS = [
-  { R: 0.5, dome: 0.5, pills: 6, ambers: 0, hw: 0.52 },
-  { R: 0.78, dome: 0.42, pills: 10, ambers: 3, hw: 0.8 },
-  { R: 0.9, dome: 0.4, pills: 12, ambers: 3, hw: 0.95, antennas: true },
-  { R: 0.8, dome: 0.4, pills: 10, ambers: 2, hw: 1.2, ring: true },
-  { R: 1.0, dome: 0.36, pills: 14, ambers: 2, hw: 1.1, tiers: 1, fins: true },
-  { R: 1.15, dome: 0.36, pills: 14, ambers: 2, hw: 1.2, sideDomes: true, radar: true },
-  { R: 1.4, dome: 0.32, pills: 18, ambers: 3, hw: 1.42, deck: true, antennas: true },
-  { R: 1.7, dome: 0.34, pills: 20, ambers: 4, hw: 1.98, tiers: 2, escorts: true, antennas: true },
+  { R: 0.5, dome: 0.7, pills: 6, ambers: 0, hw: 0.52 },
+  { R: 0.78, dome: 0.6, pills: 10, ambers: 3, hw: 0.8 },
+  { R: 0.9, dome: 0.56, pills: 12, ambers: 3, hw: 0.95, antennas: true },
+  { R: 0.8, dome: 0.58, pills: 10, ambers: 2, hw: 1.2, ring: true },
+  { R: 1.0, dome: 0.48, pills: 14, ambers: 2, hw: 1.1, tiers: 1, fins: true },
+  { R: 1.15, dome: 0.46, pills: 14, ambers: 2, hw: 1.2, sideDomes: true, radar: true },
+  { R: 1.4, dome: 0.44, pills: 18, ambers: 3, hw: 1.42, deck: true, antennas: true },
+  { R: 1.7, dome: 0.44, pills: 20, ambers: 4, hw: 1.98, tiers: 2, escorts: true, antennas: true },
 ];
 
 /**
@@ -988,11 +999,13 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
   let domeY = main.topY - 0.01;
 
   // 위층
+  const tierInfo = [];
   if (spec.tiers) {
     for (let k = 0; k < spec.tiers; k++) {
-      const r2 = R * (k === 0 ? 0.6 : 0.36);
+      const r2 = R * TIER_R[k];
       const t = saucer(o, r2, { pills: Math.round(spec.pills * (k === 0 ? 0.7 : 0.5)), ambers: 0, emitter: false, topTone: 0.06 + k * 0.05 });
       t.group.position.y = topY - r2 * 0.02;
+      tierInfo.push({ r2, y0: t.group.position.y });
       body.add(t.group);
       sprites.push(...t.sprites);
       topY = t.group.position.y + t.topY;
@@ -1019,7 +1032,7 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
     domeY = topY;
   }
   // 돔과 조종사
-  const domeR = R * spec.dome * (spec.tiers === 2 ? 0.8 : 1);
+  const domeR = R * spec.dome * (spec.tiers === 2 ? 0.86 : 1);
   const d = dome(o, domeY, domeR);
   body.add(d.group);
   // 조종석 받침: 돔 고리 바깥을 두르는 금빛 테와 남색 래커 받침(돔 자체는 건드리지 않는다)
@@ -1028,12 +1041,14 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
   addOutline(seatBase, 0.012 * R, LINE);
   body.add(seatBase, seatRing);
   const pilot = d.pilot;
-  topY = domeY + domeR * 1.1; // 조종석 유리는 10% 더 높다
+  topY = domeY + domeR * DOME_SY; // 조종석 유리는 둥글게 높다
 
   // 안테나
+  const antennaX = Math.max(R * (spec.deck ? 0.42 : 0.3), domeR * 1.34);
   if (spec.antennas) {
     for (const s of [-1, 1]) {
-      const a = antenna(o, s * R * (spec.deck ? 0.42 : 0.3), main.topY * 0.92, R * 0.42, -s * 0.35, s < 0 ? o.light() : AMBER);
+      // 커진 돔 바깥(받침 테 밖)에 세운다
+      const a = antenna(o, s * antennaX, main.surfaceY(antennaX) - R * 0.01, R * 0.42, -s * 0.35, s < 0 ? o.light() : AMBER);
       body.add(a.group);
       blinkers.push(a.sprite);
     }
@@ -1056,15 +1071,19 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
   // 옆 관측 돔과 레이더(관측선)
   if (spec.sideDomes) {
     for (const s of [-1, 1]) {
-      const sd = dome(o, main.topY * 0.62, R * 0.15, false);
-      sd.group.position.x = s * R * 0.58;
+      // 커진 조종석 받침 바깥 비탈에
+      const sx = Math.max(R * 0.58, domeR * 1.2 + R * 0.16);
+      const sd = dome(o, main.surfaceY(sx) - R * 0.012, R * 0.15, false);
+      sd.group.position.x = s * sx;
       body.add(sd.group);
     }
   }
   let radar = null;
   if (spec.radar) {
     radar = new THREE.Group();
-    radar.position.set(-R * 0.48, main.topY, -R * 0.2);
+    // 조종석 받침 바깥 왼쪽 뒤
+    const rr = Math.max(R * 0.52, domeR * 1.24 + R * 0.06);
+    radar.position.set(-rr * 0.88, main.surfaceY(rr) - R * 0.01, -rr * 0.47);
     radar.add(pmesh(o, cylGeo(0.016, 0.022, 0.2, 8), 'trim', { pos: [0, 0.1, 0] }));
     const dish = mesh(latheGeo([[0.001, 0], [0.08, 0.02], [0.15, 0.07], [0.17, 0.09]], 24, 'radar'), mat('#eef0ff', { rough: 0.35, side: THREE.DoubleSide, envIntensity: 1.1 }), { pos: [0, 0.22, 0], rot: [-0.9, 0, 0] });
     addOutline(dish, 0.009, LINE);
@@ -1115,7 +1134,10 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
     mainTopY: main.topY, // 맨 아래 접시 가운데 높이
     domeY, // 조종석 돔 바닥
     domeR, // 돔 반지름(세로는 1.1 배)
-    domeTop: domeY + domeR * 1.1, // 돔 꼭대기
+    domeTop: domeY + domeR * DOME_SY, // 돔 꼭대기
+    domeSY: DOME_SY, // 돔 유리 높이 / 돔 반지름
+    tiers: tierInfo, // 위층 접시 [{ r2, y0 }]
+    antennaX: spec.antennas ? antennaX : 0, // 안테나 밑동의 가로 자리(양쪽)
     topY, // 기체 꼭대기(안테나 포함)
     bellyY,
     o, // 재질 묶음(pillMat, lightSprites 등. 도색 빛 색을 따르려면 o.light())

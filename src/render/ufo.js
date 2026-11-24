@@ -246,8 +246,15 @@ function alien(ctx, x, y, r, mood, t) {
 
 // ───────── 부품 ─────────
 
+/** 조종석 돔 배율: 피포가 주인공이라 돔을 크게(3D 의 PILOT_K·dome 과 같은 뜻). */
+const PILOT_DOME = 1.28;
+
 /** 유리 돔. (x, y) = 돔 바닥 가운데. 조종사가 있으면 안에 그린다. */
 function dome(ctx, x, y, rx, ry, o, pilot = true) {
+  if (pilot) {
+    rx *= PILOT_DOME;
+    ry *= PILOT_DOME;
+  }
   const path = () => {
     ctx.beginPath();
     ctx.moveTo(x - rx, y);
@@ -263,7 +270,7 @@ function dome(ctx, x, y, rx, ry, o, pilot = true) {
   inner.addColorStop(1, withAlpha('#6fd2ea', 0.45));
   ctx.fillStyle = inner;
   ctx.fillRect(x - rx, y - ry, rx * 2, ry);
-  if (pilot) alien(ctx, x, y - ry * 0.42, rx * 0.5, o.mood, o.t);
+  if (pilot) alien(ctx, x, y - ry * 0.44, rx * 0.56, o.mood, o.t);
   ctx.restore();
   // 유리
   path();

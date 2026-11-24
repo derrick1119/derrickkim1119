@@ -26,7 +26,7 @@ import { drawSpecimen, drawRiskBadge } from './specimens.js';
 import { makeBackdrop, STAGE_THEME } from './backdrops.js';
 
 /** 형태별 화면상 기체 너비(px). 화면이 좁으면 더 줄인다. */
-const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
+const UFO_SCREEN_W = [80, 100, 116, 150, 156, 160, 190, 232]; // scene3d.js 와 같게
 /** 지상 표본의 중심이 땅에서 떠 있는 높이. */
 const GROUND_LIFT = { chicken: 15, cow: 16 };
 const MAX_DPR = 2;
