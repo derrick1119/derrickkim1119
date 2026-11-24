@@ -168,6 +168,17 @@ try {
   await click(page, '.action.cloak');
   check('구름 은폐가 켜진다', await page.evaluate(() => window.__ufo.game.cloaked));
 
+  // 보상형 광고(개발용 가짜 광고): 관측 부스터 → 광고 끝까지 → 보상 받기 → 부스터 켜짐
+  await click(page, '.mz-rail-btn.boost');
+  await page.waitForSelector('.modal-mz .mz-adbtn');
+  await click(page, '.modal-mz .mz-adbtn');
+  await page.waitForSelector('.mz-ad .btn.primary:not([disabled])', { timeout: 12000 * SLOW });
+  await click(page, '.mz-ad .btn.primary');
+  await page.waitForFunction(() => window.__ufo.game.fx.monetize.boostActive(), null, { timeout: 5000 * SLOW });
+  check('광고를 끝까지 보면 부스터가 켜진다', await page.evaluate(() => window.__ufo.game.fx.monetize.stamps() === 1));
+  await click(page, '.modal-mz .icon-btn');
+  await page.waitForFunction(() => !window.__ufo.ui.modals.active);
+
   // 임무 성공
   await page.evaluate(() => {
     window.__ufo.game.run.fuel = 100;
@@ -248,7 +259,7 @@ try {
   // 보고서부터 다시 시작한 경우에도, 다음 대원이 도착하면 출석 보급품을 받는다
   await page.waitForSelector('.modal-gift', { timeout: 4000 * SLOW });
   check('출석 보급품', (await state(page)).daily.streak === 1);
-  await click(page, '.modal-gift .btn');
+  await click(page, '.modal-gift .btn.primary');
   await page.waitForFunction(() => !window.__ufo.ui.modals.active);
 
   // 설정: 저장 코드, 언어

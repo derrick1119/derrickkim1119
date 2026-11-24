@@ -415,6 +415,7 @@ export function runMinigame(ui, missionId, tune, create) {
         /* 무시 */
       }
       if (skipped) sfx('click');
+      ui.minigameSkipped = !!skipped; // 건너뛰었으면 "광고 보고 한 번 더"를 권하지 않는다
       if (ui.minigame && ui.minigame.id === missionId) ui.minigame = null;
       const out = clamp01(Number(score));
       root.classList.add('is-out');

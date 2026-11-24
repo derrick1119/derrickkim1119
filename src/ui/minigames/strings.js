@@ -10,6 +10,7 @@ registerStrings('minigame', {
     go: '시작!',
     paused: '잠깐 멈춤',
     timeUp: '끝!',
+    retryNo: '이대로 출동',
     effect: '들킬 확률 {risk} · 성장 {gain}',
     grade: { perfect: '완벽!', good: '좋아!', close: '아슬아슬…', bad: '엉망…' },
     tpl: {
@@ -70,6 +71,7 @@ registerStrings('minigame', {
     go: 'Go!',
     paused: 'Paused',
     timeUp: 'Done!',
+    retryNo: 'Launch as is',
     effect: 'Risk {risk} · Growth {gain}',
     grade: { perfect: 'Perfect!', good: 'Nice!', close: 'Close call…', bad: 'What a mess…' },
     tpl: {

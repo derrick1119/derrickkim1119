@@ -83,3 +83,305 @@
     animation: none;
   }
 }
+
+/* ───────── 광고 버튼 ───────── */
+.mz-adbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: left;
+}
+.mz-adbtn .mz-adico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  background: #1b2266;
+  color: #ffcf26;
+}
+.mz-adbtn .mz-adtext {
+  display: grid;
+  line-height: 1.15;
+}
+.mz-adbtn .mz-adtext b {
+  font-family: "Pretendard", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15.5px;
+}
+.mz-adbtn .mz-adtext small {
+  font-family: "Pretendard", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.mz-adbtn.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.mz-adbtn[disabled] {
+  opacity: 0.55;
+}
+
+/* ───────── 오른쪽 버튼(부스터·도장) ───────── */
+.mz-rail {
+  position: absolute;
+  right: 8px;
+  top: calc(100% + 58px);
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+}
+.hud > .mz-rail {
+  pointer-events: auto;
+}
+.stage.is-title .mz-rail,
+.stage.sheet-open .mz-rail {
+  display: none;
+}
+.mz-rail-btn {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  width: 52px;
+  min-height: 52px;
+  padding: 6px 0 4px;
+  border: 2.5px solid #12174a;
+  border-radius: 16px;
+  background: #1b2266;
+  color: #ffffff;
+  box-shadow: 0 3px 0 #0b0f33;
+  font-family: "Pretendard", system-ui, sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.mz-rail-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0b0f33;
+}
+.mz-rail-btn .ico {
+  color: #ffcf26;
+}
+.mz-rail-btn.boost.on {
+  background: #ff8a3d;
+  border-color: #7a2e00;
+  box-shadow: 0 3px 0 #7a2e00;
+}
+.mz-rail-btn.boost.on .ico {
+  color: #ffffff;
+}
+.mz-rail-time {
+  font-weight: 800;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.mz-rail-btn .dot {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d42a40;
+  border: 2px solid #ffffff;
+}
+
+/* 구름 은폐 대기 중: 광고로 즉시 충전할 수 있다는 작은 표시 */
+.action.cloak.mz-can-ad::after {
+  content: "AD";
+  position: absolute;
+  top: -8px;
+  right: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ffcf26;
+  color: #161c4e;
+  border: 2px solid #12174a;
+  font: 800 11px/1.3 "Pretendard", system-ui, sans-serif;
+}
+.action.cloak {
+  position: relative;
+}
+
+/* ───────── 작은 안내 창 ───────── */
+.mz-sheet {
+  display: grid;
+  gap: 12px;
+}
+.mz-sheet .modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mz-sheet .modal-head h2 {
+  margin: 0;
+}
+.mz-desc,
+.mz-note {
+  margin: 0;
+  color: #4f5788;
+  font: 500 14.5px/1.55 "Pretendard", system-ui, sans-serif;
+}
+.mz-actions {
+  display: grid;
+  gap: 8px;
+}
+.mz-boost-meter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #161c4e;
+}
+.mz-boost-meter .ico {
+  color: #ff8a3d;
+}
+.mz-boost-left {
+  font: 800 18px/1.2 "Pretendard", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.mz-boost-meter .bar,
+.mz-ladder-head .bar {
+  grid-column: 1 / -1;
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: #dde3f6;
+  overflow: hidden;
+}
+.mz-boost-meter .bar i,
+.mz-ladder-head .bar i {
+  display: block;
+  height: 100%;
+  width: var(--p, 0%);
+  border-radius: inherit;
+  background: #ff8a3d;
+}
+.mz-ladder-head {
+  display: grid;
+  gap: 8px;
+}
+.mz-ladder-head .bar i {
+  background: #ffcf26;
+}
+.mz-stamps {
+  font: 800 17px/1.2 "Pretendard", system-ui, sans-serif;
+  color: #161c4e;
+}
+.mz-ladder {
+  display: grid;
+  gap: 6px;
+}
+.mz-step {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 2px solid #dbe2f7;
+  color: #161c4e;
+  font: 600 13.5px/1.35 "Pretendard", system-ui, sans-serif;
+}
+.mz-step.ready {
+  border-color: #ffcf26;
+  background: #fff8db;
+}
+.mz-step.claimed {
+  opacity: 0.6;
+}
+.mz-step-at {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+}
+.mz-step-at .ico {
+  color: #2563eb;
+}
+.mz-weekly,
+.mz-ticket {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #161c4e;
+  font: 700 14px/1.35 "Pretendard", system-ui, sans-serif;
+}
+.mz-weekly small {
+  grid-column: 1;
+  font-weight: 500;
+  color: #4f5788;
+}
+.mz-weekly > :last-child {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.mz-weekly.ready {
+  background: #fff8db;
+}
+.mz-ladder-extra {
+  display: grid;
+  gap: 8px;
+}
+.btn.small {
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 14px;
+}
+
+/* 보고서 연구비 ×3 */
+.mz-report {
+  display: grid;
+  margin: 4px 0;
+}
+.mz-report-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff8db;
+  color: #161c4e;
+  font: 800 15px/1.3 "Pretendard", system-ui, sans-serif;
+}
+
+/* 변명 화면의 긴급 무마, 교훈 카드 다시 뽑기, 미니게임 한 번 더 */
+.ex-cover,
+.lc-reroll {
+  display: grid;
+  margin-top: 8px;
+}
+.mg-retry {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+.mg-retry-grade {
+  font-family: "Bagel Fat One", system-ui, sans-serif;
+  font-size: 30px;
+  color: #161c4e;
+}
+.mg-retry p {
+  margin: 0;
+  color: #4f5788;
+  font: 500 14.5px/1.5 "Pretendard", system-ui, sans-serif;
+}
+.mg-retry .row {
+  display: flex;
+  gap: 8px;
+}

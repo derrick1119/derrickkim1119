@@ -7,6 +7,7 @@ import { copyText, shareText } from '../platform/device.js';
 import { iconURL, causeIconURL } from '../render/iconcache.js';
 import { h, clear, icon, img, grantTag } from './dom.js';
 import { hooks } from './hooks.js';
+import { adButton } from './ext/adButton.js';
 
 export const APP_VERSION = '1.0.0';
 
@@ -332,14 +333,29 @@ export function showEnding(ui, ending, onDone) {
 // ───────── 출석·자리 비움 ─────────
 
 export function showDaily(ui, res) {
+  ui.game.fx.monetize?.noteDaily(res.reward);
+  const amount = h('p', { class: 'gift-amount' }, grantTag(`+${formatInt(res.reward)}`, 'big'));
+  // 광고 보고 2배로(보상형 광고, 하루 한 번)
+  const double = adButton(ui, 'daily', {
+    label: t('monetize.place.daily.btn'),
+    cls: 'wide',
+    showLeft: false,
+    ctx: { reward: res.reward },
+    onReward: (r) => {
+      if (r?.amount) amount.replaceChildren(grantTag(`+${formatInt(res.reward + r.amount)}`, 'big'));
+      double.remove();
+      ui.audio.sfx('coin');
+    },
+  });
   const body = h(
     'div',
     { class: 'gift' },
     h('div', { class: 'gift-pic' }, img(iconURL('emblem', 'cvs', 84), 84)),
     h('h2', { text: t('daily.title') }),
     h('p', { text: t('daily.body') }),
-    h('p', { class: 'gift-amount' }, grantTag(`+${formatInt(res.reward)}`, 'big')),
+    amount,
     h('span', { class: 'chip', text: t('daily.streak', { n: res.streak }) }),
+    double,
     h('button', { class: 'btn primary wide', type: 'button', 'data-autofocus': '', onClick: () => entry.close() }, t('daily.claim')),
   );
   const entry = ui.modals.open(body, { cls: 'modal-gift', label: t('daily.title') });
@@ -347,13 +363,26 @@ export function showDaily(ui, res) {
 }
 
 export function showOffline(ui, res) {
+  ui.game.fx.monetize?.noteOffline(res.gained);
+  const gain = h('dd', { class: 'up', text: formatGain(res.gained) });
+  const double = adButton(ui, 'offline', {
+    label: t('monetize.place.offline.btn'),
+    cls: 'wide',
+    showLeft: false,
+    ctx: { gained: res.gained },
+    onReward: (r) => {
+      if (r?.amount) gain.textContent = formatGain(res.gained + r.amount);
+      double.remove();
+    },
+  });
   const body = h(
     'div',
     { class: 'gift' },
     h('div', { class: 'gift-pic' }, img(iconURL('emblem', 'cloudnap', 84), 84)),
     h('h2', { text: t('offline.title') }),
     h('p', { text: t('offline.body', { time: formatDuration(res.seconds) }) }),
-    h('dl', { class: 'kv' }, h('dt', { text: t('offline.gain') }), h('dd', { class: 'up', text: formatGain(res.gained) })),
+    h('dl', { class: 'kv' }, h('dt', { text: t('offline.gain') }), gain),
+    double,
     h('button', { class: 'btn primary wide', type: 'button', 'data-autofocus': '', onClick: () => entry.close() }, t('common.ok')),
   );
   const entry = ui.modals.open(body, { cls: 'modal-gift', label: t('offline.title') });

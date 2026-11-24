@@ -508,6 +508,41 @@ export class Scene {
     // 하늘의 표본
     for (const sp of world.specimens) if (sp.mode !== 'ground') this._specimen(sp, belly, cloaked);
 
+    // 본부 보급 풍선(2D)
+    const su = world.supply;
+    if (su && (su.state !== 'open' || su.openT < 0.5)) {
+      const k = su.state === 'open' ? 1 + su.openT : 1;
+      ctx.save();
+      ctx.globalAlpha = su.state === 'open' ? Math.max(0, 1 - su.openT * 2) : 1;
+      ctx.translate(su.x, su.y);
+      ctx.rotate(Math.sin(t * 1.3 + su.phase) * 0.15);
+      ctx.scale(k, k);
+      ctx.beginPath();
+      ctx.arc(0, -34, 30, Math.PI, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#ffcf26';
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#2b1a5e';
+      ctx.stroke();
+      ctx.beginPath();
+      for (const x of [-26, -9, 9, 26]) {
+        ctx.moveTo(x, -34);
+        ctx.lineTo(x * 0.4, -8);
+      }
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      rrect(ctx, -14, -10, 28, 24, 6);
+      ctx.fillStyle = '#2a3284';
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      star(ctx, 0, 2, 8, 3.5, 5, -Math.PI / 2);
+      ctx.fillStyle = '#ffcf26';
+      ctx.fill();
+      ctx.restore();
+    }
+
     // 기체
     if (showUfo) this._ufo();
     // 엄폐물(구름·연기): 기체 앞을 지나간다

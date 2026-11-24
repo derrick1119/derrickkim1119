@@ -8,6 +8,7 @@ import { PANELS, renderPanel, panelSignature } from './panels.js';
 import { hooks } from './hooks.js';
 import { playMinigame } from './minigames/index.js';
 import './ext/index.js';
+import { openCloakOffer } from './ext/monetize.js';
 
 const MISSION_SUSPENSE_MS = 2100;
 const REPORT_DELAY_MS = 2500; // 들킨 순간의 당겨 보기(범인 한마디)가 끝날 때까지
@@ -699,6 +700,8 @@ export class UI {
     const game = this.game;
     if (!this.started || !game.playing) return;
     if (!game.cloakReady) {
+      // 대기 중이면 "광고 보고 즉시 충전"을 권한다(없으면 거절음)
+      if (game.run.cloakT <= 0 && game.run.cloakCd > 0 && openCloakOffer(this)) return;
       this.audio.sfx('deny');
       return;
     }

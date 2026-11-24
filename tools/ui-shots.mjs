@@ -114,7 +114,7 @@ try {
   // 설정
   await page.evaluate(() => {
     document.querySelector('.prog-arrive')?.remove();
-    for (const m of document.querySelectorAll('.modal-gift .btn')) m.click();
+    for (const m of document.querySelectorAll('.modal-gift .btn.primary')) m.click();
   });
   await wait(500);
   await page.click('.hud .settings-btn', { force: true });

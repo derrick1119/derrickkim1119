@@ -8,6 +8,7 @@ import { iconURL, causeIconURL } from '../../render/iconcache.js';
 import { h, clear, icon, img, grantTag } from '../dom.js';
 import { addIcons } from '../icons.js';
 import { registerHud, registerReportStep, registerReportExtra, registerRecordsExtra, registerBind } from '../hooks.js';
+import { adButton } from './adButton.js';
 import { cardDef, drillCause, DRILL_STEP } from '../../features/progression/lessons.js';
 import { CLEAR, RECORD_KEYS } from '../../features/progression/memorial.js';
 
@@ -441,6 +442,38 @@ function showExcuse(ui, report, opts) {
       return b;
     });
     const skip = h('button', { class: 'link-btn ex-skip', type: 'button', onClick: () => finish(null) }, T('excuse.skip'));
+    // 본부 긴급 무마(보상형 광고): 확률 없이 없던 일로. 변명과 따로, 대원당 한 번.
+    const coverSlot = h('div', { class: 'ex-cover' });
+    const makeCover = () => {
+      if (!game.canCoverUp) return null;
+      return adButton(ui, 'coverUp', {
+        label: t('monetize.place.coverUp.btn'),
+        cls: 'grow',
+        onReward: (r) => {
+          if (!r?.ok) return;
+          chosen = true;
+          for (const x of buttons) x.setAttribute('aria-disabled', 'true');
+          coverSlot.replaceChildren();
+          skip.hidden = true;
+          stamp.hidden = false;
+          stamp.className = 'ex-stamp ok';
+          stamp.textContent = T('excuse.ok');
+          status.className = 'ex-status ok';
+          status.textContent = t('monetize.place.coverUp.desc');
+          burst(ui, stamp, 16);
+          if (report.ctx?.mission && game.busy) {
+            game.busy = false;
+            ui.scene.ufoReturn?.();
+          }
+          later(ui, 1400, () => finish({ excused: true }));
+        },
+      });
+    };
+    const firstCover = makeCover();
+    if (firstCover) {
+      coverSlot.append(firstCover);
+      ui._coverUpOffered = report.gen;
+    }
     const body = h(
       'div',
       { class: 'excuse' },
@@ -455,6 +488,7 @@ function showExcuse(ui, report, opts) {
       h('p', { class: 'ex-prompt' }, icon('chat', 18), T('excuse.prompt')),
       h('div', { class: 'ex-opts', role: 'group', 'aria-label': T('excuse.prompt') }, buttons),
       status,
+      coverSlot,
       skip,
     );
     const entry = ui.modals.open(body, { dismiss: false, cls: 'modal-excuse', label: T('excuse.title') });
@@ -496,7 +530,21 @@ function showExcuse(ui, report, opts) {
             ui.scene.ufoReturn?.();
           }
         }
-        later(ui, ok ? 1500 : 1700, () => finish(ok ? { excused: true } : null));
+        if (ok) {
+          coverSlot.replaceChildren();
+          later(ui, 1500, () => finish({ excused: true }));
+          return;
+        }
+        // 안 통했다: 긴급 무마를 한 번 더 권하고, 아니면 보고서로
+        const again = makeCover();
+        if (again) {
+          coverSlot.replaceChildren(again);
+          skip.hidden = false;
+          skip.textContent = T('excuse.skip');
+        } else {
+          coverSlot.replaceChildren();
+          later(ui, 1700, () => finish(null));
+        }
       });
     }
   });
@@ -560,8 +608,8 @@ function lessonCard(ui, id, offer, index, onPick) {
   return b;
 }
 
-/** 카드 세 장 고르기. resumed = 보고서 없이 나중에 고르는 경우. */
-function showLessons(ui, resumed = false) {
+/** 카드 세 장 고르기. resumed = 보고서 없이 나중에 고르는 경우(본부 지원 선택권도). */
+export function showLessons(ui, resumed = false) {
   const game = ui.game;
   const offer = game.fx.lessons?.pending?.();
   if (!offer) return Promise.resolve();
@@ -571,6 +619,18 @@ function showLessons(ui, resumed = false) {
     const cards = offer.ids.map((id, i) => lessonCard(ui, id, offer, i, pick));
     const row = h('div', { class: 'lc-row', role: 'group', 'aria-label': T('lesson.prompt') }, cards);
     const result = h('p', { class: 'lc-result', 'aria-live': 'polite' });
+    // 광고 보고 다시 뽑기: 카드가 다 뒤집힌 뒤에 나온다
+    const rerollSlot = h('div', { class: 'lc-reroll', hidden: '' });
+    const reroll = adButton(ui, 'reroll', {
+      label: t('monetize.place.reroll.btn'),
+      onReward: (r) => {
+        if (!r?.offer || done) return;
+        done = true;
+        entry.close();
+        showLessons(ui, resumed).then(resolve);
+      },
+    });
+    if (reroll) rerollSlot.append(reroll);
     const body = h(
       'div',
       { class: 'lessons' },
@@ -579,6 +639,7 @@ function showLessons(ui, resumed = false) {
       h('p', { class: 'lc-prompt', text: resumed ? T('lesson.later') : T('lesson.prompt') }),
       row,
       result,
+      rerollSlot,
     );
     const entry = ui.modals.open(body, { dismiss: false, cls: 'modal-lessons', label: T('lesson.title') });
     // 방향키로 카드 사이를 옮겨 다닌다
@@ -603,6 +664,7 @@ function showLessons(ui, resumed = false) {
     });
     later(ui, 260 + cards.length * flipGap + 380, () => {
       ready = true;
+      if (reroll && !done) rerollSlot.hidden = false;
       for (const c of cards) c.setAttribute('aria-disabled', 'false');
       cards[0]?.focus({ preventScroll: true });
     });
@@ -610,6 +672,7 @@ function showLessons(ui, resumed = false) {
     function pick(id, el) {
       if (!ready || done) return;
       done = true;
+      rerollSlot.hidden = true;
       const r = game.fx.lessons.pick(id);
       for (const c of cards) c.classList.toggle(c === el ? 'picked' : 'passed', true);
       ui.audio.sfx('achievement');
