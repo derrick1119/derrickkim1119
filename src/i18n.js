@@ -745,7 +745,22 @@
  "그럼 저기 흘려보내.\n저 물, 아래까지 간대.": "Then float it down there.\nThey say that water goes all the way down.",
  "빛을 끌어다 개울물에 놓아 주세요": "Drag the light into the stream",
  "레오 손의 빛을 끌어다 개울물에 놓아요": "Drag the light in Leo's hands into the stream",
- "다음 날 아침": "The next morning"
+ "다음 날 아침": "The next morning",
+ "저 아래, 어느 밤": "Down below, one night",
+ "편지는 바람을 타고 간대요.": "They say letters ride the wind.",
+ "먼저 간 사람에게도, 곁에 있는 사람에게도.": "To those who went first, and to those still near.",
+ "편지 쓰기": "Writing a letter",
+ "편지 한 줄": "Your letter",
+ "한 줄, 적어 보세요": "Write a line",
+ "보내기": "Send",
+ "쓰지 않고 넘어가기": "Go on without writing",
+ "쓴 글은 이 기기에만 남아요": "What you write stays on this device",
+ "꼭 전해 주겠네.": "I'll see that it gets there.",
+ "엽서로 간직하기": "Keep it as a postcard",
+ "보낸 편지를 담은 엽서": "A postcard of the letter you sent",
+ "그림으로 저장": "Save as a picture",
+ "그림을 길게 눌러 저장할 수 있어요": "Press and hold the picture to save it",
+ "바람 우체국": "Wind Post Office"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

@@ -964,6 +964,16 @@ T = [
     ("빛을 끌어다 개울물에 놓아 주세요", "Drag the light into the stream"),
     ("레오 손의 빛을 끌어다 개울물에 놓아요", "Drag the light in Leo's hands into the stream"),
     ("다음 날 아침", "The next morning"),
+    # ---- phase 3: the epilogue, a letter of the player's own (letter.js)
+    ("저 아래, 어느 밤", "Down below, one night"),
+    ("편지는 바람을 타고 간대요.", "They say letters ride the wind."),
+    ("먼저 간 사람에게도, 곁에 있는 사람에게도.", "To those who went first, and to those still near."),
+    ("편지 쓰기", "Writing a letter"), ("편지 한 줄", "Your letter"), ("한 줄, 적어 보세요", "Write a line"),
+    ("보내기", "Send"), ("쓰지 않고 넘어가기", "Go on without writing"), ("쓴 글은 이 기기에만 남아요", "What you write stays on this device"),
+    ("꼭 전해 주겠네.", "I'll see that it gets there."),
+    ("엽서로 간직하기", "Keep it as a postcard"), ("보낸 편지를 담은 엽서", "A postcard of the letter you sent"),
+    ("그림으로 저장", "Save as a picture"), ("그림을 길게 눌러 저장할 수 있어요", "Press and hold the picture to save it"),
+    ("바람 우체국", "Wind Post Office"),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.
