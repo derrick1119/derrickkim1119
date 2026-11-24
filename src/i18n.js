@@ -163,7 +163,6 @@
  "손도 잡고, 말도 하지.\n깨고 나면 꿈인 줄 알겠지만.": "You can hold hands. Talk.\nShe'll wake thinking it was only a dream.",
  "나 다녀온 날, 마르타가\n웃으면서 깨더군. 여기서 다 봤지.": "The morning after I went, Marta woke up smiling.\nI saw it all from here.",
  "아나가 그 부엌에 혼자 있는 걸 보니까….": "Seeing Ana alone in that kitchen....",
- "빨리 짓고 싶어요.\n아나 오면 바로 들어올 집.": "I want it built soon.\nA house she can walk right into.",
  "그럼 돌부터 놓세.\n주춧돌이 기울면 집이 다 기울어.": "Then stones first.\nIf the footings lean, the whole house leans.",
  "구덩이마다 깊이가 달라.\n돌 머리가 한 줄로 맞게 놓게.": "Every hole's a different depth.\nSet them so the tops line up.",
  "됐네. 이제 뭘 올려도\n안 기울어.": "There. Whatever goes on top now,\nit won't lean.",
@@ -351,7 +350,6 @@
  "…토마토네?": "...Tomatoes?",
  "그럼 오늘 밤에 다 들려줘.\n천천히.": "Then tell me all of it tonight.\nSlowly.",
  "집": "House",
- "배": "Boat",
  "아나의 냄비": "Ana's pot",
  "그림이랑 모양이 달라요. 피피의 그림을 다시 봐요": "That's not the same shape. Look at Pippi's drawing again",
  "이번 별자리는 기울어져 있어요. 그림과 같은 모양이 되는 별을 눌러 고르세요": "This one is tilted. Tap the stars that make the same shape as the drawing",
@@ -482,7 +480,6 @@
  "네 아빠, 거기서 여태\n혼자 기다렸잖니. 이번엔 엄마가 가야지.": "Your father's waited over there\nall on his own. This time I should go.",
  "자네 어머니가 부탁해 뒀네.\n일 년 되는 날, 호수에 데려가 달라고.": "Your mother asked me.\nTake him to the lake when it's been a year.",
  "…엄마가요? 언제요?": "...Mom did? When?",
- "자네 오기 전부터. 아들 오면\n자긴 오래 못 있을 거라고.": "Long before you came. She said once her boy\ngot here, she wouldn't stay long.",
  "…겨우 세운 건데.": "...And I'd only just got it up.",
  "스튜 김, 자장가, 이 빛….\n셋 다 모였네.": "The stew's steam, the lullaby, this light....\nThat's all three.",
  "그게 뭔데?": "All three what?",
@@ -745,7 +742,13 @@
  "아이": "Child",
  "노인": "Old",
  "표정 · faces": "표정 · faces",
- "몸짓 모음 · gestures": "몸짓 모음 · gestures"
+ "몸짓 모음 · gestures": "몸짓 모음 · gestures",
+ "…소매가 짧네.\n엄마 어림이 또 모자랐구나.": "...The sleeves are short.\nMy guess fell short again.",
+ "…딱 맞는데?": "...Fits me just right?",
+ "오래전에. 아들 오면\n자긴 오래 못 있을 거라고.": "Long ago. She said once her boy\ngot here, she wouldn't stay long.",
+ "…저도 손이 놀면 안 되겠어요.": "...I shouldn't leave my hands idle either.",
+ "브램: \"돌 하나가 솟았네. 들어내 보게.\"": "Bram: \"One stone sits proud. Lift it out.\"",
+ "브램: \"꺼진 데가 있구먼. 들어내 보게.\"": "Bram: \"One's sunk too low. Lift it out.\""
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

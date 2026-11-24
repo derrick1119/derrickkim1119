@@ -34,8 +34,8 @@
     d2: 0, d3: 0, a2: 0, a3: 0, join1: false, join2: false, snap: { k: 0, x: 0, y: 0 }, gate: [null, { k: 0 }, { k: 0 }], r2: 0, r3: 0,
     leo: {}, mom: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
-    home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
-    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, swap: 0, touch: 0, hug: 0, near: 0, rise: 0, orb: 0 }, momTo: null, momGone: false, dusk: 0,
+    home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 }, cuff: { k: 0 }, tug: { k: 0 }, laugh: { k: 0 }, lpoint: { k: 0 },
+    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, swap: 0, touch: 0, hug: 0, near: 0, rise: 0, orb: 0, half: 0, lift: 0, up: 0 }, shot: null, plotStop: null, momTo: null, momGone: false, dusk: 0,
     title: { a: 0 }, place: { a: 0 }, end: { a: 0 }, canLeave: false, hintA: { a: 0 },
     bram: { wave: 0, near: false }, post: { x: 2000, on: false, rang: false }, rosa: { k: 0, done: false }, kidWave: { k: 0 },
     things: { 1: [], 2: [], 3: [] }, banks: null,
@@ -209,13 +209,13 @@
     s.mom = { x: 300, y: PIER_Y, flip: true, wave: 0 };
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
-    s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0;
-    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.swap = 0; s.fare.touch = 0; s.fare.hug = 0; s.fare.near = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false; s.dusk = 0;
+    s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0; s.cuff.k = 0; s.tug.k = 0; s.laugh.k = 0; s.lpoint.k = 0;
+    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.swap = 0; s.fare.touch = 0; s.fare.hug = 0; s.fare.near = 0; s.fare.rise = 0; s.fare.orb = 0; s.fare.half = 0; s.fare.lift = 0; s.fare.up = 0; s.shot = null; s.plotStop = null; s.momTo = null; s.momGone = false; s.dusk = 0;
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
     s.momHome = false; s.plotGo = false; s.running = false; s.sitting = false; s.climbing = false; s.nClimb = false; s.lDown = false; s.nDown = false;
-    s.inWalk = null; s.flash = 0; s.wait = null; s.post.done = false; s.kidWave.done = false; s.lastStep = null;
+    s.inWalk = null; s.close = false; s.flash = 0; s.wait = null; s.post.done = false; s.kidWave.done = false; s.lastStep = null;
     TALK.clear();
   }
   S.enter = function (args) {
@@ -262,8 +262,17 @@
     else if (ph === 'home') {
       const up = S.st === 'beam' || S.st === 'marks' || S.st === 'sweater' || S.st === 'wear';
       if (S.st === 'marks') { const m = hs(HOUSE - 34, UF() - 104); c.x = m[0]; c.y = m[1]; c.z = 2.5 / HK; }
+      else if (S.close) { const m = hs(HOUSE - 6, UF() - 96); c.x = m[0]; c.y = m[1]; c.z = 3.1 / HK; }   /* the jumper: close on the two of them */
       else { c.x = HOUSE; c.y = HG() - (up ? 250 : 186) * HK; c.z = (up ? 1.7 : 1.5) / Math.sqrt(HK); }
-    } else if (ph === 'plot') { c.x = PLOT - 60; c.y = groundAt(PLOT) - 200; c.z = 1; }
+    } else if (ph === 'plot') {
+      const sh = S.shot, mx = (S.nx + S.wx) / 2;
+      if (sh === 'stake') { c.x = PLOT + 24; c.y = groundAt(PLOT) - 132; c.z = 1.25; }
+      else if (sh === 'fare') { c.x = mx; c.y = groundAt(mx) - 160; c.z = 1.5; }
+      else if (sh === 'touch') { c.x = mx - 2; c.y = groundAt(mx) - 128; c.z = 2.3; }
+      else if (sh === 'rise') { c.x = S.nx + 30; c.y = groundAt(S.nx) - 420; c.z = 0.95; }
+      else if (sh === 'after') { c.x = S.wx - 40; c.y = groundAt(S.wx) - 205; c.z = 1.3; }   /* down again to him, above the words, the sky over him */
+      else { c.x = PLOT - 60; c.y = groundAt(PLOT) - 200; c.z = 1; }
+    }
     else if (ph === 'end') { c.x = 3600; c.y = 50; c.z = 0.6; }
   }
   function camUpdate(dt) {
@@ -291,7 +300,16 @@
     T.announce('항구의 종이 묻고, 부두의 등불 넷이 대답한다. 종이 울린 차례대로 등불을 누른다.');
     S.game = T.puzzle.bell({ rounds: [[0, 1, 2], [0, 1, 2, 3]], onRound: (r, n) => S.clock.tween(S, 'fog', 1 - (r / n) * 0.55, 1.8, T.ease.io) });
     T.audio.bed(null);
-    S.game.begin(S.clock).then(() => { S.game = null; S.idle = 0; T.audio.bed(0, 0.12, 'sea'); open(); T.announce('안개가 걷히고 부두와 마을이 드러난다.'); S.clock.tween(S, 'fog', 0, 3.6, T.ease.io); });
+    S.game.begin(S.clock).then(() => {
+      S.game = null; S.idle = 0; open(); T.announce('안개가 걷히고 부두와 마을이 드러난다.'); S.clock.tween(S, 'fog', 0, 3.6, T.ease.io);
+      /* answered, the bell says the whole of it once more by itself, slowly: the four notes are 「천천히 와」 */
+      const k = S.clock, beat = 1.0;
+      k.wait(0.5).then(() => {
+        T.audio.motif({ voice: 'bell', vel: 0.3, beat, up: -12 });
+        for (let i = 0; i < 4; i++) k.wait(i * beat * T.pace).then(() => { S.bell.k = 1; k.tween(S.bell, 'k', 0, 2.6, T.ease.out); });   /* the scene's clock runs T.pace to the second */
+        return k.wait((4 * beat + 1.5) * T.pace);
+      }).then(() => { if (S.ph === 'sail' || S.ph === 'dock' || S.ph === 'meet') T.audio.bed(0, 0.12, 'sea'); });
+    });
   }
   function sail(dt) {
     const b = S.boat, k = S.clock, A = T.audio;
@@ -385,7 +403,7 @@
     let limit;
     if (S.ph === 'walk') limit = !S.join1 ? J1 - 104 : !S.join2 ? J2 - 104 : DOOR - 52;
     else if (S.ph === 'climb') limit = STOP - 54;
-    else if (S.ph === 'plot') limit = S.plotGo ? PLOT - 10 : S.wx;
+    else if (S.ph === 'plot') limit = S.plotGo ? (S.plotStop != null ? S.plotStop : PLOT - 10) : S.wx;   /* plotStop: where he stepped in to her */
     else limit = S.wx;
     const slope = (x) => Math.abs(groundAt(x + 8) - groundAt(x - 8)) / 16;
     S.moving = S.wx < limit - 0.5;
@@ -498,8 +516,26 @@
     L.style = F.styles.leoHome; S.sweater.a = 0; S.flash = 1; k.tween(S, 'flash', 0, 0.9, T.ease.out);
     L.flip = true;
     k.tween(S.clap, 'k', 1, 0.4);
-    await k.wait(2.4);
+    await k.wait(1.6);
     k.tween(S.clap, 'k', 0, 0.4);
+    /* and her guess has come up short again, like the marks on the post: he holds up an arm, and his wrist shows
+       past the cuff. He pulls the sleeve down over it and says it fits; it rides back up, and she laughs out loud */
+    S.close = true;   /* the camera comes in on the two of them */
+    S.inWalk.n = HOUSE - 40;
+    await k.wait(1.1);
+    k.tween(S.cuff, 'k', 1, 0.8, T.ease.io);
+    await k.wait(0.6);
+    await TALK.say('mom', '…소매가 짧네.\n엄마 어림이 또 모자랐구나.');
+    k.tween(S.cuff, 'k', 0, 0.5, T.ease.io);
+    k.wait(0.2).then(() => k.tween(S.tug, 'k', 1, 0.8, T.ease.io));
+    await TALK.say('leo', '…딱 맞는데?');
+    /* he lets go, the sleeve rides back up, and she laughs out loud */
+    k.tween(S.tug, 'k', 0, 0.3, T.ease.out);
+    k.wait(0.15).then(() => k.tween(S.laugh, 'k', 1, 0.35));
+    notes(3, { voice: 'pluck', vel: 0.34 });
+    await k.wait(2.8);
+    await k.tween(S.laugh, 'k', 0, 0.9);
+    S.close = false;
     /* down and out again: down the stairs the way they came up, facing the way they go, a tread at a time; Mom first */
     S.st = 'leave';
     S.inWalk = { l: HOUSE - 84, n: HOUSE - 136 };
@@ -547,49 +583,70 @@
     await k.tween(S.point, 'k', 1, 0.9, T.ease.out);
     await k.wait(0.6);
     await TALK.say('mom', '저기가 네 자리야.\n네 사람 오면 같이 살 데.', { slow: true });
+    /* he looks past the plot, and half lifts a hand to where the yard will go */
+    k.tween(S.lpoint, 'k', 1, 0.8, T.ease.io);
     await TALK.say('leo', '…마당은 저쪽으로 내야겠다.');
+    await k.wait(0.6);
+    k.tween(S.lpoint, 'k', 0, 0.9, T.ease.io);
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }
   /* She came on ahead to build a house, to have something hot on the table, and to keep him a place.
      All three are done now, and a promise kept is a way across: she goes on to where his father is
-     waiting, and from below it is a star falling. Before she goes she says what she said the first time. */
+     waiting, and from below it is a star falling. Before she goes she says what she said the first time.
+     The shots (S.shot, see camTarget): the two of them, close ('fare') · their two faces ('touch') · up with her
+     light into the evening sky ('rise'), and held there while the star falls. */
   async function farewell() {
     const k = S.clock, A = T.audio;
     S.momTo = PLOT - 74;
     while (S.momTo != null) await k.wait(0.05);
     S.mom.flip = false;
+    S.shot = 'fare'; S.camK = 1.0;
     await k.wait(0.6);
+    k.tween(S, 'dusk', 0.85, 6, T.ease.io);   /* the evening comes on while she talks */
     await TALK.say('mom', '넓은 집 지어 놓고,\n따뜻한 밥 해 먹이고.');
     await TALK.say('mom', '이제 다 지켰구나.\n네 자리까지 봐 뒀으니, 마음 놓인다.', { slow: true });
-    await k.wait(0.6);
+    await k.wait(1.2);
     T.announce('엄마의 몸에서 빛이 번지기 시작한다. 지킨 약속이 건너갈 길이 된다.');
     A.promise();
-    k.tween(S, 'dusk', 0.85, 4.5, T.ease.io);
     k.tween(S.fare, 'k', 1, 2.6, T.ease.io);
     await k.wait(1.4);
-    k.tween(S.rest, 'k', 0, 1.1, T.ease.io);
+    /* he gets up; the music goes, and there is only the wind */
+    A.bed(null); A.ambience(0.22, 0.3, 0.1);
+    await k.tween(S.rest, 'k', 0, 1.1, T.ease.io);
+    await k.wait(1.0);
     await TALK.say('leo', '…엄마?');
     await TALK.say('mom', '약속 다 지키면,\n저 너머로 건너갈 수 있단다.');
     await TALK.say('mom', '네 아빠, 거기서 여태\n혼자 기다렸잖니. 이번엔 엄마가 가야지.');
+    /* half a step to her, and a hand that comes up, and stops */
+    k.tween(S.fare, 'half', 1, 1.0, T.ease.io).then(() => { S.wx -= (6 * LEO_S) / 100; S.plotStop = S.wx; S.fare.half = 0; });
+    k.wait(0.3).then(() => k.tween(S.fare, 'lift', 1, 1.3, T.ease.io));
     await TALK.say('leo', '이제 겨우 다시 만났는데….', { slow: true });
-    await k.tween(S.fare, 'swap', 1, 1.0, T.ease.lin);   /* the lantern into her other hand */
+    /* in close, on the two faces: she takes the lantern into her other hand and lays the free one on his cheek */
+    S.shot = 'touch'; S.camK = 0.8;
+    await k.tween(S.fare, 'swap', 1, 1.0, T.ease.lin);
     await k.tween(S.fare, 'touch', 1, 1.5, T.ease.io);
     await TALK.say('mom', '엄마는 또 먼저 가 있을게.\n아빠랑, 맛있는 거 해 놓고.');
+    /* the lullaby comes in with what she told him the first time; its last bars come as the star falls */
+    A.score('farewell');
+    A.theme({ beat: 0.9, vel: 0.42, at: 0.3 });
     await TALK.say('mom', '그러니까 천천히 와.\n…아주 천천히.', { slow: true });
     await TALK.say('leo', '…응. 천천히 갈게.', { slow: true });
     /* he steps in and bends down into her arms, and cries; she holds him */
     T.announce('레오가 허리를 굽혀 엄마 품에 안긴다. 어깨가 들썩인다.');
-    k.tween(S.fare, 'touch', 0, 1.6, T.ease.io);
+    k.tween(S.fare, 'touch', 0, 1.6, T.ease.io); k.tween(S.fare, 'lift', 0, 1.2, T.ease.io);
     k.tween(S.fare, 'near', 1, 1.1, T.ease.lin);
     await k.tween(S.fare, 'hug', 1, 2.4, T.ease.lin);
     await k.wait(0.6);
     await TALK.say('mom', '잘 컸다, 우리 아들.', { slow: true });
-    await k.wait(0.8);
-    /* she turns to light in his arms and goes up, and then across the sky as a falling star; his arms come down after */
+    await k.wait(1.2);
+    /* she turns to light in his arms and goes up, and the camera goes up with her into the evening; then across
+       the sky as a falling star, the camera still; his arms come down after */
     T.announce('엄마가 빛이 되어 하늘로 오른다.');
     A.sfx('join');
+    S.shot = 'rise'; S.camK = 0.9;
     k.tween(S.fare, 'rise', 1, 2.2, T.ease.io);
+    k.tween(S, 'dusk', 0.95, 3.2, T.ease.io);
     k.wait(0.7).then(() => k.tween(S.fare, 'hug', 0, 2.6, T.ease.lin));
     await k.wait(1.2);
     await k.tween(S.fare, 'orb', 1, 2.6, T.ease.in);
@@ -597,13 +654,15 @@
     const top = toScreen(S.nx, groundAt(S.nx) - 110 - 560);
     T.announce('별 하나가 하늘을 가로질러, 구름 아래 산 사람들의 하늘로 떨어진다.');
     const star = T.fx && T.fx.star ? T.fx.star.add({ from: top, to: [T.view.W / 2 - 40, 560], dur: 2.6 }) : Promise.resolve();
-    notes(3, { voice: 'felt', vel: 0.32 });
+    k.wait(1.0).then(() => k.tween(S.fare, 'up', 1, 1.6, T.ease.io));   /* he looks up after it */
     await star;
-    await k.wait(1.4);
+    S.shot = 'after'; S.camK = 0.6; k.tween(S, 'dusk', 0.72, 3, T.ease.io);   /* and the camera finds him again, looking up */
+    await k.wait(1.5);   /* nothing but the lullaby's last notes */
     await TALK.say('leo', '…잘 가, 엄마.', { slow: true });
-    k.tween(S, 'dusk', 0.7, 3, T.ease.io);
+    k.tween(S, 'dusk', 0.7, 2, T.ease.io);
     await k.wait(0.8);
-    S.wx -= (9 * LEO_S) / 100; S.fare.near = 0;   /* he stays where he stepped to her */
+    S.wx -= (9 * LEO_S) / 100; S.plotStop = S.wx; S.fare.near = 0;   /* he stays where he stepped to her */
+    k.tween(S.fare, 'up', 0, 1.2, T.ease.io);
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.2);
   }
@@ -613,18 +672,21 @@
     S.plotGo = true;
     k.tween(S.hintA, 'a', 0, 0.3);
     while (S.wx < PLOT - 11) await k.wait(0.05);
+    S.shot = 'stake'; S.camK = 1.2;   /* in towards the stake */
     await k.wait(0.6);
     /* he sets his lantern in the ground: a light is on at his place now */
     A.sfx('knock'); await k.wait(0.28); A.sfx('knock', 0.6);
     await k.tween(S.lamp, 'planted', 1, 0.9, T.ease.out);
     T.announce('레오가 배에서 가져온 등불을 빈 터에 꽂는다. 이제 여기에도 불이 켜졌다.');
-    A.bed(7, 0.15, 'walk');
-    A.theme({ beat: 0.9, vel: 0.5 });
+    A.bed(7, 0.15, 'walk');   /* (the whole lullaby is kept for her goodbye) */
     await k.wait(1.4);
+    S.shot = null;
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.6);
     await farewell();
-    S.camK = 0.34; S.ph = 'end';
+    /* and the hill goes wide and small in the evening; the left hand of the tune comes back as it does */
+    S.shot = null; S.camK = 0.34; S.ph = 'end';
+    A.score(null); A.bed(0, 0.1, 'walk'); A.ambience(0.3, 0.3, 0.1);
     await k.wait(9);
     T.announce('1장 끝. 다음은 2장, 약속 목록.');
     await k.tween(S.end, 'a', 1, 2.2, T.ease.io);
@@ -959,7 +1021,9 @@
       /* folded jumper on the bed */
       if (S.sweater.a > 0.01) {
         const lift = S.sweater.lift, sx = HOUSE + 78 - lift * 40, sy = uf - 44 - lift * 50;
-        P.fill(g, P.rr(sx - 17, sy - 9, 34, 14, 4), '#d7a23c'); P.fill(g, P.rr(sx - 17, sy - 3, 34, 3, 1), '#b8862c');
+        /* the same cream jumper he comes down in, the red scarf folded on top of it */
+        P.fill(g, P.rr(sx - 17, sy - 9, 34, 14, 4), '#eee3d0'); P.fill(g, P.rr(sx - 17, sy - 3, 34, 3, 1), '#d3c4aa');
+        P.fill(g, P.rr(sx - 11, sy - 12, 22, 5, 2), '#c9443a');
       }
       /* star lights along the rafters */
       for (let i = 0; i < 7; i++) { const u = 0.12 + i * 0.12, sx = HOUSE - 136 + u * 136, sy = uf - 84 - u * 150; P.glow(g, sx, sy, 12, '#ffe6a0', 0.5 + 0.3 * Math.sin(t * 2 + i * 1.7)); P.fill(g, P.circle(sx, sy, 2.2), '#fff3c8'); }
@@ -1019,9 +1083,30 @@
     } else if (S.climbing) stairPose(lo, L.y, hg, LEO_S, S.lDown ? -1 : 1);
     else if (S.moving) lo.walk = S.wph;
     else if (st === 'marks' && lUp) { lo.flip = false; lo.lean = -0.02; lo.headTilt = -0.04; }
-    else if (st === 'wear') { lo.armF = { a: 1.2 + S.sweater.lift * 0.5, b: 0.9 }; }
+    else if (st === 'wear' && S.sweater.a > 0.01) { lo.armF = { a: 1.2 + S.sweater.lift * 0.5, b: 0.9 }; }
+    else if (st === 'wear') {
+      /* in it. He brings a forearm up in front of him to look at the sleeve: there is his wrist, showing. Then he
+         takes hold of the cuff with the other hand and pulls the sleeve down over it (it covers, just), and lets
+         go, and it rides back up. She watches it all with a hand to her cheek */
+      const ck = T.ease.io(S.cuff.k), tg = T.ease.io(S.tug.k), lg = S.laugh.k, show = Math.max(ck, tg);
+      lo.armF = { a: 0.3 + 0.12 * show, b: 0.35 + 1.25 * show }; lo.armB = { a: 0.3, b: 0.4 };
+      lo.headTilt = 0.34 * show * (1 - lg);
+      if (tg > 0.01) {
+        lo.style = Object.assign({}, ls, { wrist: (ls.wrist || 0) * (1 - 0.95 * tg) });
+        const jl = F.joints(lo), u = T.lerp(0.36, 0.22, tg);   /* the fingers show under the forearm they hold */
+        T.pose.reach(lo, 'B', [T.lerp(jl.handF[0], jl.elbowF[0], u), T.lerp(jl.handF[1], jl.elbowF[1], u) + 5.5], T.clamp(tg * 1.6));
+      }
+      if (lg > 0.2) lo.face = { blush: 0.26, eye: 'happy', mouth: 'smile' };
+      if (nUp && !S.nmoving && (ck > 0.01 || tg > 0.01)) {
+        const cv = Math.max(ck, tg);
+        T.pose.cheek(no, cv, t, { face: 'gentle' }); no.headTilt = (no.headTilt || 0) + 0.06 * cv;
+      }
+      if (nUp && !S.nmoving && (ck > 0.01 || tg > 0.01 || lg > 0.01)) no.armB = { a: 0.12, b: 0.45 };
+    }
     else if (st === 'table' || st === 'enter') { lo.headTilt = -0.12 + Math.sin(t * 0.7) * 0.06; }
     else if (lUp) { lo.headTilt = -0.16 + Math.sin(t * 0.6) * 0.08; }
+    /* and she laughs out loud, a hand to her mouth */
+    if (S.laugh.k > 0.01 && nUp) T.pose.laugh(no, S.laugh.k, t, { tl: t, hand: 'mouth' });
     const boy = S.sitting ? T.ease.io(S.ghost.a) : 0;
     const man = () => { if (boy > 0.99) return; g.save(); g.globalAlpha = 1 - boy; const j = F.person(g, lo); if (spoon) drawSpoon(g, j, spoon); g.restore(); };
     if (N.x < L.x) { F.person(g, no); man(); } else { man(); F.person(g, no); }
@@ -1141,7 +1226,7 @@
       F.person(g, no);
       if (lo) F.person(g, Object.assign({}, lo, { only: 'armF', skip: null }));
       const nj = F.person(g, Object.assign({}, no, { only: 'armF', skip: null }));
-      if (!S.lampDown) handLamp(g, nj.handF, 1);
+      if (!S.lampDown) { handLamp(g, nj.handF, 1); momLampGlow(g, nj.handF); }
       return;
     }
     /* on the road. First how each of them stands; then her farewell is laid over the two of them together (they
@@ -1167,7 +1252,17 @@
         o.lean = -0.12 * rest; o.headTilt = -0.16 * rest; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 }; o.face.eye = rest > 0.8 ? 'happy' : 'open';
       } else if (S.moving) { o.walk = S.wph; o.lean = 0.1; o.armB = { a: 0.6, b: 0.5 }; }
       else { o.headTilt = -0.14 + Math.sin(t * 0.8) * 0.04; o.armB = { a: 0.6, b: 0.5 }; if (S.ph === 'plot' && S.plotGo) o.flip = S.lamp.planted > 0.5; }
+      /* "…마당은 저쪽으로": he turns his head past the plot and half lifts a hand that way */
+      const lp = T.ease.io(S.lpoint.k);
+      if (lp > 0.001 && rest < 0.02 && !S.moving) { const yx = PLOT + 190; T.pose.point(o, 0.46 * lp, t, { at: [yx, groundAt(yx) - 60] }); }   /* a small gesture: she is just ahead of him */
+      /* her goodbye: half a step to her, and the near hand comes up a little, and stops */
+      const lift = T.ease.io(S.fare.lift || 0);
+      if (lift > 0.001 && rest < 0.02) o.armF = { a: 0.3 + 0.62 * lift, b: 0.45 + 0.5 * lift };
+      /* after the star: he looks up where it went. No sobbing now: tears standing, and a smile */
+      const up = T.ease.io(S.fare.up || 0);
+      if (up > 0.001) { o.headTilt = T.lerp(o.headTilt || 0, -0.42 + Math.sin(t * 0.5) * 0.02, up); o.lean = (o.lean || 0) - 0.04 * up; o.face = { blush: 0.2, eye: 'open', mouth: 'smile', well: 0.8 * up, tear: 0.4 * up, tearY: (t * 1.6) % 3 }; }
     }
+    if (rest < 0.02 && S.fare.half > 0.001) T.pose.step(lo, 6, S.fare.half);   /* half a step, as she says she must go */
     const swap = S.fare.swap || 0, lampB = swap >= 0.5;
     if (no && swap > 0.001) {
       /* first she takes the lantern into her other hand, so that the near one is free for him */
@@ -1241,6 +1336,15 @@
     F.person(g, o);
     const j = F.person(g, Object.assign({}, o, { only: 'armF', skip: null }));
     handLamp(g, j.handF, 1);
+    momLampGlow(g, j.handF);
+  }
+  /* once the bell has been answered and the fog lifts, hers is the brightest of the lamps on the pier: one of the
+     four that answered was in her hand */
+  function momLampGlow(g, hand) {
+    const a = S.lamps.length && S.lamps[S.lamps.length - 1].ok ? 1 - S.fog : 0;
+    if (a < 0.01) return;
+    P.glow(g, hand[0], hand[1] + 16, 120, '#ffe6a0', 0.42 * a);
+    P.glow(g, hand[0], hand[1] + 16, 34, '#fff8e0', 0.6 * a * (0.85 + 0.15 * Math.sin(T.time * 2.2)));
   }
   function boatLeo(g, hop) {
     /* seated in the boat, then up and over onto the planks */

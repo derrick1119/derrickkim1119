@@ -374,7 +374,9 @@
       if (s == null || G.placed.includes(s) || G.placed.length >= N) return;
       G.placed.push(s); T.audio.sfx('knock', G.placed.length / N);
       if (G.placed.length < N) return;
-      if (bad()) G.wrong('줄보다 솟거나 꺼진 돌이 있어요. 놓은 돌을 눌러 다시 들어내세요');
+      /* o.voice: { up, down } said by whoever is teaching, for the first stone off the line (standing proud of it, or sunk) */
+      const w = G.placed.findIndex((s, i) => s !== i), proud = w >= 0 && depth[w] < depth[G.placed[w]];
+      if (bad()) G.wrong((o.voice && (proud ? o.voice.up : o.voice.down)) || '줄보다 솟거나 꺼진 돌이 있어요. 놓은 돌을 눌러 다시 들어내세요');
       else { T.audio.promise(); G.finish(1.5); }
     };
     G.hit = (x, y) => {

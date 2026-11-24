@@ -13,9 +13,11 @@
      shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }], kid: a style (someone small sitting on the bank, looking in;
      on the near bank kidDx/kidDy move her from her place, a little way up the bank from him),
      leoPose(lo, t): change how he sits on the near bank (it goes for his reflection too),
-     leoProp(g, j, lo, t, inWater): draw something on him after he is drawn (j: his joints; inWater for the reflection) } */
+     leoProp(g, j, lo, t, inWater): draw something on him after he is drawn (j: his joints; inWater for the reflection) }
+     Set on the lake as it plays (both 0 unless a chapter sets them): glassK 0..1, the water goes still as glass;
+     ownK 0..1, with o.shore, his own reflection shows under the far bank where he sits (where her picture was). */
   T.lake = function (o) {
-    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
+    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, glassK: 0, ownK: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
     const SC = 0.7, TOP = 232, PH = 640;
     /* 물그림자: with o.shore he stands on the far bank, and what stands there with him (o.things) throws a
        shadow straight down into her picture. Slid until it lies on its counterpart, a shadow stays. */
@@ -202,9 +204,9 @@
       const pw = W * SC, x0 = -pw / 2, mg = L.mid.getContext('2d'), mw = L.mid.width, mh = L.mid.height, vs = T.view.ps;
       mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-over'; mg.globalAlpha = 1;
       mg.clearRect(0, 0, mw, mh);
-      const strip = 6, sh = strip / SC;
+      const strip = 6, sh = strip / SC, calm = 1 - 0.75 * T.clamp(L.glassK || 0);   /* L.glassK: the water goes still as glass */
       for (let y = 0; y < PH; y += strip) {
-        const dx = Math.sin(y * 0.045 + t * 1.5) * (1.4 + L.amp * 9) + Math.sin(y * 0.11 - t * 2.3) * L.amp * 5;
+        const dx = Math.sin(y * 0.045 + t * 1.5) * (1.4 * calm + L.amp * 9) + Math.sin(y * 0.11 - t * 2.3) * L.amp * 5;
         mg.drawImage(L.off, 0, (y / SC) * ps, cw, sh * ps, dx * vs, y * vs, mw, (strip + 1) * vs);
       }
       mg.globalCompositeOperation = 'destination-in';
@@ -405,6 +407,14 @@
           else if (live && (R.held === i || q.go != null)) lo.walk = q.ph || 0;
           /* his pot is beside him: a pinch of salt, a spoon to the mouth */
           if (q.pose) q.pose(lo, t, L, false);
+          /* L.ownK: where her picture was, he sees himself, alone on the bank, upside down in the water */
+          if (leoHere && L.ownK > 0.01) {
+            g.save(); g.beginPath(); g.rect(-W / 2, 254, W, 420); g.clip();
+            g.translate(Math.sin(t * 1.4) * 2.5, 2 * 252); g.scale(1, -1);
+            g.globalAlpha = T.clamp(L.ownK) * (0.8 + 0.2 * Math.sin(t * 1.1));
+            F.person(g, Object.assign({}, lo, { face: Object.assign({}, lo.face) }));
+            g.restore();
+          }
           const pot = leoHere && Q.find((w) => w.kind === 'pot');
           if (pot && seated > 0.5 && (sip > 0.02 || (sk > 0.02 && sk < 0.98))) {
             const salting = sk > 0.02 && sk < 0.98, hx = salting ? pot.x + 4 : T.lerp(pot.x + 8, x - 14, sip), hy = salting ? BANK - 124 + Math.abs(Math.sin(t * 9)) * 8 : T.lerp(BANK - 58, BANK - 112, sip);
