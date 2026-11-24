@@ -13,6 +13,8 @@ import { portrait, getLook } from '../render/sprites.js';
 import { CARDS } from '../data/cards.js';
 import { sfx } from '../audio.js';
 import { juice } from './juice.js';
+import { GFX } from '../pixel/gfx.js';
+import { pxHall, pxLantern, pxRope, pxSheet, pxAudience, pxMotes } from '../pixel/stage.js';
 
 // 무대 자리와 새끼줄
 const SX = 200, SY = 66, SW = 880, SH = 360, POLE = [40, 1240];
@@ -55,12 +57,14 @@ function hallBG() {
 }
 // 새끼줄: 꼬인 짚 무늬
 function rope(g) {
+  if (GFX.pixel) { pxRope(g, POLE[0], POLE[1], ropeY); return; }
   g.beginPath(); for (let x = POLE[0]; x <= POLE[1]; x += 10) { if (x === POLE[0]) g.moveTo(x, ropeY(x)); else g.lineTo(x, ropeY(x)); } g.lineWidth = 7; g.strokeStyle = INK; g.stroke(); g.lineWidth = 4.4; g.strokeStyle = '#c9a862'; g.stroke();
   for (let x = POLE[0] + 6; x < POLE[1]; x += 9) line(g, [x - 3, ropeY(x) - 2, x + 3, ropeY(x) + 2], 'rgba(90,60,20,0.6)', 1.2);
   for (const x of POLE) { ell(g, x, ropeY(x), 9, 6, '#c9a862', INK, 1.6); line(g, [x - 5, ropeY(x) - 2, x + 5, ropeY(x) + 2], 'rgba(90,60,20,0.6)', 1.2); }
 }
 // 한지 쪽지 한 장: 위는 나무 집게로 줄에 물리고, 아래 끝은 손으로 찢은 듯 들쭉날쭉하다
 function sheet(g, x, y, w, h, band, o = {}) {
+  if (GFX.pixel) { pxSheet(g, x, y, w, h, band, o); return; }
   const jag = p => { p.moveTo(x, y); p.lineTo(x + w, y); p.lineTo(x + w, y + h - 4); for (let i = 1; i <= 12; i++) p.lineTo(x + w - w * i / 12, y + h - 4 + ((i * 7) % 3 - 1) * 3.4); p.lineTo(x, y); p.closePath(); };
   g.save(); g.shadowColor = 'rgba(6,4,10,0.55)'; g.shadowBlur = 12; g.shadowOffsetY = 6; path(g, jag, o.fill || '#fbf3df'); g.restore();
   path(g, jag, o.fill || '#fbf3df', INK, 2);
@@ -72,6 +76,7 @@ function sheet(g, x, y, w, h, band, o = {}) {
 
 // 구경꾼 뒷모습 (머리와 어깨). kind: 0 갓 · 1 댕기 머리 아이 · 2 수건 쓴 아낙
 function audience(g, x, y, s, kind, t) {
+  if (GFX.pixel) { pxAudience(g, x, y, s, kind, t); return; }
   const ink = '#140e14', rim = 'rgba(255,200,130,0.55)', bob = Math.sin(t * 1.3 + x) * 1.2;
   g.save(); g.translate(x, y + bob); g.scale(s, s);
   g.fillStyle = ink; g.beginPath(); g.moveTo(-26, 30); g.quadraticCurveTo(-26, -6, 0, -8); g.quadraticCurveTo(26, -6, 26, 30); g.closePath(); g.fill();
@@ -108,11 +113,12 @@ export class EventScene extends Overlay {
   draw(g, dt) {
     const r = G.run, t = this.t, res = this.result; if (res) this.rt += dt; const rt = this.rt;
     if (res && this.bad === undefined) this.bad = res.slice(1).some(q => BAD.test(q) && !GOOD.test(q));
-    g.drawImage(hallBG(), 0, 0, W, H);
+    if (GFX.pixel) { pxHall(g, t, POLE); for (const [x, d] of [[POLE[0], 1], [POLE[1], -1]]) pxLantern(g, x + d * 86, 122, t, d > 0 ? 'red' : 'blue'); }
+    else { g.drawImage(hallBG(), 0, 0, W, H);
     // 장대 끝의 초롱과 불빛
     for (const [x, d] of [[POLE[0], 1], [POLE[1], -1]]) { const lx = x + d * 86, f = 0.85 + 0.15 * Math.sin(t * 2.6 + x); glow(g, lx, 150, 110, '255,180,100', 0.3 * f); line(g, [lx, 104, lx, 116], INK, 1.4); chorong(g, lx, 122, 2.6); }
     // 무대를 비추는 두 줄기 빛
-    beams(g, 300, 0, 470, 1.25, 2, t, '255,226,170', 0.07); beams(g, 960, 0, 470, 1.9, 2, t, '255,226,170', 0.07);
+    beams(g, 300, 0, 470, 1.25, 2, t, '255,226,170', 0.07); beams(g, 960, 0, 470, 1.9, 2, t, '255,226,170', 0.07); }
     // 무대
     const floor = drawStage(g, SX, SY, SW, SH, { bg: this.bg || STAGE_BG[chapterOf(r.ch).theme] || 'pass' });
     this.cast(g, floor, t);
@@ -127,7 +133,7 @@ export class EventScene extends Overlay {
     if (button(g, 'evdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
     // 구경꾼: 장대 아래 앉은 마을 사람들의 뒷모습 (등불에 테두리가 밝다)
     for (const [x, s2, kind] of [[96, 1.1, 0], [150, 0.95, 1], [1130, 1.0, 2], [1188, 1.12, 0], [60, 0.85, 2], [1236, 0.9, 1]]) audience(g, x, 548, s2, kind, t);
-    motes(g, t, 180, 60, 920, 380, 18, '255,236,190', 0.4);
+    if (GFX.pixel) pxMotes(g, t, 180, 60, 920, 380, 18); else motes(g, t, 180, 60, 920, 380, 18, '255,236,190', 0.4);
     rope(g);
     if (!res) this.slips(g, t); else this.results(g, t, rt);
   }
@@ -140,7 +146,7 @@ export class EventScene extends Overlay {
       const x = cx - w / 2, y = ty + 18;
       if (on && !this.sub && t > 1 && tapped('ev' + i, x, y - 18, w, h + 18)) { this.pick(i); return; }
       const dn = on && isDown('ev' + i, x, y - 18, w, h + 18);
-      let rot = Math.sin(t * 1.4 + i * 1.7) * 0.018, dy = (1 - easeOutBack(app)) * -30 + (dn ? 4 : 0), a = Math.min(1, app * 2);
+      let rot = GFX.pixel ? 0 : Math.sin(t * 1.4 + i * 1.7) * 0.018, dy = (1 - easeOutBack(app)) * -30 + (dn ? 4 : 0), a = Math.min(1, app * 2);
       if (fall) { const q = fall.t; if (i === fall.i) { a = clamp(1 - (q - 0.25) / 0.25, 0, 1); dy -= q * 10; } else { dy += q * q * 900; rot += q * 1.4 * (i < fall.i ? -1 : 1); a = clamp(1 - q * 2.2, 0, 1); } }
       if (a <= 0) return;
       g.save(); g.globalAlpha = a * (lack ? 0.6 : 1); g.translate(cx, ty); g.rotate(rot); g.translate(-cx, -ty + dy);
@@ -164,7 +170,7 @@ export class EventScene extends Overlay {
     for (let i = 0; i < n; i++) {
       const k = clamp((rt - 0.5 - i * 0.18) / 0.3, 0, 1); if (k <= 0) continue;
       const s = rows[i], cx = 640 + (i - (n - 1) / 2) * (w + gap), ty = ropeY(cx), x = cx - w / 2, y = ty + 18, no = s && BAD.test(s) && !GOOD.test(s), ic = s && iconFor(s), e = easeOutBack(k);
-      g.save(); g.globalAlpha = Math.min(1, k * 1.8); g.translate(cx, ty); g.rotate(Math.sin(t * 1.4 + i * 2) * 0.016 + (1 - e) * 0.3); g.translate(-cx, -ty - (1 - e) * 40);
+      g.save(); g.globalAlpha = Math.min(1, k * 1.8); g.translate(cx, ty); g.rotate((GFX.pixel ? 0 : Math.sin(t * 1.4 + i * 2) * 0.016) + (1 - e) * 0.3); g.translate(-cx, -ty - (1 - e) * 40);
       sheet(g, x, y, w, h, !s ? '#8a7f6a' : no ? RED : TEAL, { fill: !s ? '#f3ecd9' : no ? '#f5e2d8' : '#e6eedb' });
       if (!s) text(g, '별일 없이 지나갑니다', cx, y + h / 2 + 3, { size: 20, font: FONT_B, fill: SUB });
       else if (ic) { ic(g, x + 50, y + h / 2 + 4); noteText(g, s, x + 92 + (w - 104) / 2, y + h / 2 + 4, w - 108, no ? RED : TEAL); }
