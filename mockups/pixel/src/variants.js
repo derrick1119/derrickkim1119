@@ -1,9 +1,9 @@
 // 전투 장면의 여러 버전: 같은 싸움을 테마(노을·낮·달밤)와 꾸밈(고퀄 빛·수묵 색 바꿈·미니)만 바꿔 그린다
 import { LW, LH, P, INK, Spr, css, txt, draw, bayer, rng, tinted, remap, rimlit, grade, mixc, lum } from './px.js';
 import { look, jangseung, bannerCart, pine, sansuyu, rock, tuft } from './sprites.js';
-import { C, fr, panel, button, dancheong, coin, ridge, mountains, cloud, stamp, UNITS, hud } from './scenes.js';
+import { C, fr, panel, button, dancheong, coin, ridge, mountains, cloud, stamp, UNITS, hud, useLook } from './scenes.js';
 
-const TH = {
+export const TH = {
   dusk: { sky: [0x2a3470, 0x3c4a94, 0x6c6cb4, 0xb884ac, 0xf0a488, 0xffd08c, 0xffeeb4], sun: { x: 470, y: 100, r: 17, c: [0xfff8d8, 0xffeeb4, 0xffe8a8] },
     clouds: [[120, 58, 120, [0xa07cb0, 0xf4b8a0, 0xffe4c0]], [300, 44, 90, [0x8470b0, 0xd89cb0, 0xffd4c0]], [560, 62, 110, [0xa07cb0, 0xf8c0a0, 0xfff0c8]], [430, 78, 60, [0xc890a8, 0xffcc98, 0xfff4d0]]],
     m1: [0x8c80c0, 0xc0a0cc, 0xe0a8b4], m2: [0x5c68a8, 0x8c8cc8, 0xb890b8, 0x4c5898], m3: [0x2e5660, 0x5a8c64, 0x7c9c8c, 0x1e4450],
@@ -31,7 +31,7 @@ function cumulus(s, cx, cy, w, h, cols, seed) {
   for (let k = 0; k < w / 7; k++) { const u = R(), x = cx + (u - 0.5) * w, r = (0.35 + 0.65 * Math.sin(u * Math.PI)) * h * (0.6 + R() * 0.5); t.ell(x, cy - r * 0.7, r * 1.25, r, 1); }
   for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { if (t.get(x, y) === -1 || y > cy) continue; const up = t.get(x, y - 1) === -1 || t.get(x, y - 2) === -1 || t.get(x - 1, y - 1) === -1, rt = t.get(x + 1, y) === -1 || t.get(x + 2, y) === -1, d = (cy - y) / h; s.set(x, y, up ? cols[3] : rt ? cols[4] : d < 0.22 ? cols[0] : d < 0.5 && bayer(x, y) > d * 2 ? cols[0] : d < 0.9 && bayer(x, y) > (d - 0.3) * 1.6 ? cols[1] : cols[2]); }
 }
-function bake(th, o = {}) {
+export function bake(th, o = {}) {
   const s = new Spr(LW, LH), R = rng(11), PT = th.path;
   s.vgrad(0, 0, LW, 132, th.sky);
   if (th.sun.moon) { const R2 = rng(4); for (let i = 0; i < 110; i++) { const x = (R2() * LW) | 0, y = 26 + ((R2() * 86) | 0); s.set(x, y, R2() < 0.3 ? 0xfff6c8 : 0x7c8cc8); } }
@@ -60,7 +60,7 @@ function bake(th, o = {}) {
   return s;
 }
 // 햇살 줄기: 해에서 퍼지는 빛을 디더로 굽는다
-function rays(th) { const s = new Spr(LW, LH), { x: sx, y: sy } = th.sun; for (let y = 26; y < 284; y++) for (let x = 0; x < LW; x++) { const dx = x - sx, dy = y - sy, d = Math.hypot(dx, dy); if (d < 26 || d > 460) continue; const a = Math.atan2(dy, dx), band = Math.sin(a * 13 + 0.6) * 0.5 + Math.sin(a * 29 + 2) * 0.3; if (band < 0.32) continue; if (bayer(x, y) < (1 - d / 460) * 1.1 * (band - 0.1)) s.set(x, y, 0xfff0b8); } return s; }
+export function rays(th) { const s = new Spr(LW, LH), { x: sx, y: sy } = th.sun; for (let y = 26; y < 284; y++) for (let x = 0; x < LW; x++) { const dx = x - sx, dy = y - sy, d = Math.hypot(dx, dy); if (d < 26 || d > 460) continue; const a = Math.atan2(dy, dx), band = Math.sin(a * 13 + 0.6) * 0.5 + Math.sin(a * 29 + 2) * 0.3; if (band < 0.32) continue; if (bayer(x, y) < (1 - d / 460) * 1.1 * (band - 0.1)) s.set(x, y, 0xfff0b8); } return s; }
 // 화면 틀: 아래쪽 풀 그림자와 오른쪽 위의 솔가지 (앞에 놓인 것은 어둡게)
 function frameArt() { const s = new Spr(LW, LH), R = rng(77), D = 0x1c2440, D2 = 0x2c3a54;
   for (let x = 0; x < LW; x++) { const edge = Math.max(0, 1 - Math.min(x, LW - x) / 150), h = Math.round((3 + R() * 9) * (0.25 + edge)); if (R() < 0.75) s.vl(x, 284 - h, 284, R() < 0.3 ? D2 : D); if (R() < 0.05 * (0.4 + edge)) { const hh = h + 6; s.line(x, 284, x + (R() < 0.5 ? -3 : 3), 284 - hh, D); } }
@@ -70,20 +70,21 @@ function frameArt() { const s = new Spr(LW, LH), R = rng(77), D = 0x1c2440, D2 =
 const HAND = [{ kind: 'atk', name: '화살비', cost: 3, icon: 'arrows' }, { kind: 'unit', name: '궁수', cost: 2, spr: 'archer' }, { kind: 'sup', name: '진군의 북', cost: 2, icon: 'drum', sel: true }, { kind: 'unit', name: '무녀', cost: 2, spr: 'priest' }, { kind: 'atk', name: '벼락', cost: 2, icon: 'bolt' }];
 const FOE = ['goblin', 'ogre', 'ghost', 'tiger'];
 // o: { theme, rich(고퀄 빛), lut(화면 색 바꿈) }
-function makeBattle(o) {
+export function makeBattle(o) {
   let B = null; const th = TH[o.theme], night = !!th.sun.moon, lutCache = new Map();
-  const fix = sp => (night ? remap(sp, 'night', nightTint) : o.rich ? rimlit(sp) : sp);
+  const fix = sp => (o.fx ? o.fx(sp) : night ? remap(sp, 'night', nightTint) : o.rich ? rimlit(sp) : sp);
   return (g, t) => {
-    if (!B) B = { bg: bake(th, o), pines: [pine(1), pine(5), pine(9)], sans: sansuyu(3), sans2: sansuyu(8), cart: bannerCart(), js: [jangseung(0), jangseung(1)], rays: o.rich ? rays(th) : null, frame: o.rich ? frameArt() : null };
-    g.drawImage(B.bg.canvas(), 0, 0);
+    if (!B) B = { bg: o.bg ? o.bg() : bake(th, o), pines: [pine(1), pine(5), pine(9)], sans: sansuyu(3), sans2: sansuyu(8), cart: bannerCart(), js: [jangseung(0), jangseung(1)], rays: o.rich ? rays(th) : null, frame: o.rich ? frameArt() : null };
+    g.drawImage(B.bg.canvas(), 0, 0); if (o.mid) o.mid(g);
     const shadowCol = night ? 'rgba(4,6,24,0.4)' : o.rich ? 'rgba(52,36,96,0.34)' : 'rgba(20,24,50,0.32)';
     // 길게 눕는 그림자 (고퀄 판): 해 반대쪽으로 기울여 찍는다
     const longShadow = (sp, x, y) => { if (!o.rich) return; g.save(); g.translate(Math.round(x), Math.round(y)); g.transform(1, 0, 1.15, -0.42, 0, 0); g.globalAlpha = 0.36; g.drawImage(tinted(sp, 0x241a50).canvas(), -sp.ox, -sp.oy); g.restore(); };
+    const dropSh = (sp, x, y) => { g.save(); g.globalAlpha = 0.26; draw(g, tinted(fix(sp), 0x2a2036), x + 3, y + 3); g.restore(); };
     const list = [];
-    [[B.pines[0], 56, 166], [B.pines[1], 610, 158], [B.pines[2], 452, 154], [B.js[0], 590, 172], [B.js[1], 620, 280], [B.cart, 44, 232]].forEach(([sp, x, y]) => list.push({ y, sh: () => longShadow(sp, x, y), d: () => draw(g, fix(sp), x, y) }));
-    for (const [k, x, y, ph] of UNITS) { const s0 = look(k), boss = k === 'tiger', ally = !FOE.includes(k);
-      list.push({ y, sh: () => { if (o.rich) longShadow(s0, x, y); else { g.fillStyle = shadowCol; const sw = boss ? 34 : 11; g.fillRect(x - sw, y - 1, sw * 2, 3); g.fillRect(x - sw + 2, y - 2, sw * 2 - 4, 5); } },
-        d: () => { const bob = Math.sin(t * 3.2 + ph * 2) > 0.3 ? -1 : 0, hit = !ally && Math.floor(t * 2 + ph) % 7 === 0 && (t * 2 + ph) % 1 < 0.15; if (o.rich) { g.fillStyle = shadowCol; const sw = boss ? 30 : 9; g.fillRect(x - sw, y - 1, sw * 2, 2); } draw(g, hit ? tinted(s0, 0xffffff) : fix(s0), x + (hit ? 1 : 0), y + bob); } }); }
+    [[B.pines[0], 56, 166], [B.pines[1], 610, 158], [B.pines[2], 452, 154], [B.js[0], 590, 172], [B.js[1], 620, 280], [B.cart, 44, 232]].forEach(([sp, x, y]) => list.push({ y, sh: () => (o.drop ? dropSh(sp, x, y) : longShadow(sp, x, y)), d: () => draw(g, fix(sp), x, y) }));
+    for (const [k, x, y, ph] of UNITS) { const s0 = (o.spr || look)(k), boss = k === 'tiger', ally = !FOE.includes(k);
+      list.push({ y, sh: () => { if (o.drop) dropSh(s0, x, y); else if (o.rich) longShadow(s0, x, y); else { g.fillStyle = shadowCol; const sw = boss ? 34 : 11; g.fillRect(x - sw, y - 1, sw * 2, 3); g.fillRect(x - sw + 2, y - 2, sw * 2 - 4, 5); } },
+        d: () => { const bob = Math.sin(t * 3.2 + ph * 2) > 0.3 ? -1 : 0, hit = !ally && Math.floor(t * 2 + ph) % 7 === 0 && (t * 2 + ph) % 1 < 0.15; if (o.rich) { g.fillStyle = shadowCol; const sw = boss ? 30 : 9; g.fillRect(x - sw, y - 1, sw * 2, 2); } draw(g, hit ? tinted(fix(s0), 0xffffff) : fix(s0), x + (hit ? 1 : 0), y + bob); } }); }
     list.sort((a, b) => a.y - b.y); for (const it of list) it.sh(); for (const it of list) it.d();
     draw(g, fix(B.sans), 22, 290); draw(g, fix(B.sans2), 628, 292);
     // 달밤: 등불과 도깨비불
@@ -107,13 +108,15 @@ function makeBattle(o) {
       g.drawImage(B.frame.canvas(), 0, 0);
       const vg = g.createLinearGradient(0, 24, 0, 284); vg.addColorStop(0, 'rgba(40,30,90,0.20)'); vg.addColorStop(0.25, 'rgba(40,30,90,0)'); vg.addColorStop(0.8, 'rgba(40,30,90,0)'); vg.addColorStop(1, 'rgba(30,20,70,0.28)'); g.fillStyle = vg; g.fillRect(0, 24, LW, 260);
     }
+    if (o.over) o.over(g, t);
     { const p = (t * 0.8) % 1, p2 = (t * 0.8 + 0.5) % 1; txt(g, '-18', 398, 160 - p * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); txt(g, '-9', 428, 214 - p2 * 12, { f: 'b', a: 'c', c: C('white', 4), ol: C('red', 1) }); txt(g, '+12', 306, 152 - p2 * 10, { f: 'b', a: 'c', c: C('teal', 4), ol: C('teal', 0) }); }
-    fr(g, 232, 168, 30, 5, INK); fr(g, 233, 169, 28, 3, C('ink', 3)); fr(g, 233, 169, 22, 3, C('gold', 3)); fr(g, 233, 169, 22, 1, C('gold', 4));
+    { const gy = 168 + (o.gaugeDy || 0); fr(g, 232, gy, 30, 5, INK); fr(g, 233, gy + 1, 28, 3, C('ink', 3)); fr(g, 233, gy + 1, 22, 3, C('gold', 3)); fr(g, 233, gy + 1, 22, 1, C('gold', 4)); }
     panel(g, 214, 30, 212, 25, { fill: C('ink', 1), edge: C('red', 1) }); txt(g, '고개 호랑이', 320, 34, { f: 9, a: 'c', c: C('gold', 4), sh: INK }); fr(g, 222, 46, 196, 5, INK); fr(g, 223, 47, 194, 3, C('red', 0)); fr(g, 223, 47, 138, 3, C('red', 2)); fr(g, 223, 47, 138, 1, C('red', 3)); for (const k of [0.25, 0.5, 0.75]) fr(g, 223 + 194 * k, 47, 1, 3, INK);
     panel(g, 6, 30, 112, 16, { fill: C('teal', 1), edge: C('teal', 3), corner: false }); txt(g, '학익진', 11, 33, { f: 9, c: C('gold', 4) }); txt(g, '피해 +20%', 113, 33, { f: 9, a: 'r', c: C('cream', 3) });
     panel(g, 6, 48, 112, 16, { fill: C('ink', 2), edge: C('ink', 3), corner: false }); txt(g, '방진 2단', 11, 51, { f: 9, c: C('cream', 3) }); txt(g, '방어 +10%', 113, 51, { f: 9, a: 'r', c: C('cream', 1) });
-    hud(g, t);
+    useLook(o.spr ? k => fix(o.spr(k)) : o.fx ? k => fix(look(k)) : null, o.cardDy || 0, o.portDy || 0); hud(g, t); useLook(null);
     if (o.lut) grade(g, o.lut, lutCache);
+    if (o.after) o.after(g, t);
   };
 }
 // 수묵: 밝기만 남겨 먹의 농담 여섯 단으로, 붉은빛만 인주색으로 남긴다
@@ -185,16 +188,7 @@ function bakeMini(pale) {
   tree(28, 84); tree(226, 78); tree(304, 80);
   return s;
 }
-function makeMini(lut) {
-  let BG = null; const cache = new Map();
-  return (g, t) => {
-    if (!BG) BG = bakeMini(!!lut);
-    g.save(); g.scale(2, 2); g.drawImage(BG.canvas(), 0, 0);
-    const list = UNITS.map(([k, x, y, ph]) => ({ k, x: Math.round(x / 2), y: Math.round(y / 2), ph })).sort((a, b) => a.y - b.y);
-    for (const u of list) { const sp = mlook(u.k), w = u.k === 'tiger' ? 14 : 5; fr(g, u.x - w, u.y, w * 2, 2, 'rgba(20,24,50,0.3)'); }
-    for (const u of list) { const sp = mlook(u.k), foe = ['goblin', 'ogre', 'ghost', 'tiger'].includes(u.k), hit = foe && Math.floor(t * 2 + u.ph) % 7 === 0 && (t * 2 + u.ph) % 1 < 0.15; draw(g, hit ? tinted(sp, 0xffffff) : sp, u.x, u.y + (Math.sin(t * 3.2 + u.ph * 2) > 0.3 ? -1 : 0)); }
-    for (let k = 0; k < 4; k++) { const p = ((t * 0.9 + k * 0.27) % 1), x = 88 + k * 2 + (110 + k * 4) * p, y = 85 + k * 3 - Math.sin(p * Math.PI) * 23; fr(g, x, y, 3, 1, 0xf4f6f4); fr(g, x + 3, y, 1, 1, 0xccd8e4); }
-    { const p = (t * 0.8) % 1; txt(g, '-18', 199, 76 - p * 6, lut ? { f: 9, a: 'c', c: INK, ol: 0xffffff } : { f: 9, a: 'c', c: 0xffffff, ol: 0x8a1c30 }); txt(g, '+12', 152, 72 - ((t * 0.8 + 0.5) % 1) * 6, lut ? { f: 9, a: 'c', c: INK, ol: 0xffffff } : { f: 9, a: 'c', c: 0xc8f098, ol: 0x0e2e38 }); }
+export function miniHud(g, lut) {
     // 위 띠
     fr(g, 0, 0, 320, 13, 0x141a3c); fr(g, 0, 13, 320, 1, 0xe09a28); txt(g, '첫째 고개', 4, 2, { f: 9, c: 0xffd24a });
     for (let i = 0; i < 6; i++) { const x = 70 + i * 14; fr(g, x, 4, 7, 6, INK); fr(g, x + 1, 5, 5, 4, i === 2 ? 0xffd24a : i < 2 ? 0x26346e : i === 5 ? 0xc83232 : 0x3c5cae); if (i < 5) fr(g, x + 7, 6, 7, 1, i < 2 ? 0xe09a28 : 0x38508c); }
@@ -208,6 +202,18 @@ function makeMini(lut) {
       if (spr) draw(g, mlook(spr), x + 14, y + 28); else if (i === 0) { for (const dx of [8, 13, 18]) { fr(g, x + dx, y + 10, 1, 12, 0x84522c); fr(g, x + dx - 1, y + 21, 3, 2, 0x8c98b0); fr(g, x + dx - 1, y + 9, 3, 2, col); } } else if (i === 2) { fr(g, x + 9, y + 11, 12, 12, INK); fr(g, x + 10, y + 12, 10, 10, col === 0x2e8c64 ? 0xc83232 : col); fr(g, x + 12, y + 14, 6, 6, 0xf8ecc0); fr(g, x + 14, y + 16, 2, 2, 0x3c5cae); } else { fr(g, x + 9, y + 10, 12, 5, 0x6a3c94); fr(g, x + 14, y + 15, 3, 4, 0xe09a28); fr(g, x + 12, y + 19, 3, 4, 0xe09a28); fr(g, x + 11, y + 23, 2, 2, 0xe09a28); }
       fr(g, x - 3, y - 3, 11, 12, INK); fr(g, x - 2, y - 2, 9, 10, 0xffd24a); txt(g, cost, x + 3, y - 2, { f: 9, a: 'c', c: INK }); });
     for (const [x, lab, col, hi] of [[236, '대기', 0x3c5cae, 0x6c9ce0], [278, '돌격', 0xc83232, 0xec6a3c]]) { fr(g, x, 150, 38, 22, INK); fr(g, x + 1, 151, 36, 20, col); fr(g, x + 1, 151, 36, 2, hi); txt(g, lab, x + 19, 156, { f: 9, a: 'c', c: 0xfffbe4, sh: INK }); }
+}
+function makeMini(lut) {
+  let BG = null; const cache = new Map();
+  return (g, t) => {
+    if (!BG) BG = bakeMini(!!lut);
+    g.save(); g.scale(2, 2); g.drawImage(BG.canvas(), 0, 0);
+    const list = UNITS.map(([k, x, y, ph]) => ({ k, x: Math.round(x / 2), y: Math.round(y / 2), ph })).sort((a, b) => a.y - b.y);
+    for (const u of list) { const sp = mlook(u.k), w = u.k === 'tiger' ? 14 : 5; fr(g, u.x - w, u.y, w * 2, 2, 'rgba(20,24,50,0.3)'); }
+    for (const u of list) { const sp = mlook(u.k), foe = ['goblin', 'ogre', 'ghost', 'tiger'].includes(u.k), hit = foe && Math.floor(t * 2 + u.ph) % 7 === 0 && (t * 2 + u.ph) % 1 < 0.15; draw(g, hit ? tinted(sp, 0xffffff) : sp, u.x, u.y + (Math.sin(t * 3.2 + u.ph * 2) > 0.3 ? -1 : 0)); }
+    for (let k = 0; k < 4; k++) { const p = ((t * 0.9 + k * 0.27) % 1), x = 88 + k * 2 + (110 + k * 4) * p, y = 85 + k * 3 - Math.sin(p * Math.PI) * 23; fr(g, x, y, 3, 1, 0xf4f6f4); fr(g, x + 3, y, 1, 1, 0xccd8e4); }
+    { const p = (t * 0.8) % 1; txt(g, '-18', 199, 76 - p * 6, lut ? { f: 9, a: 'c', c: INK, ol: 0xffffff } : { f: 9, a: 'c', c: 0xffffff, ol: 0x8a1c30 }); txt(g, '+12', 152, 72 - ((t * 0.8 + 0.5) % 1) * 6, lut ? { f: 9, a: 'c', c: INK, ol: 0xffffff } : { f: 9, a: 'c', c: 0xc8f098, ol: 0x0e2e38 }); }
+    miniHud(g, lut);
     g.restore();
     if (lut) grade(g, lut, cache);
   };
@@ -217,11 +223,11 @@ const FOUR = [0x1c2a2c, 0x486858, 0x98b47c, 0xe4ecc0];
 const four = c => { const L = lum(c); return FOUR[L < 0.2 ? 0 : L < 0.46 ? 1 : L < 0.74 ? 2 : 3]; };
 
 export const BATTLES = {
-  dusk: { name: '① 노을 (기본)', draw: makeBattle({ theme: 'dusk' }) },
-  rich: { name: '② 노을 · 고퀄 빛', draw: makeBattle({ theme: 'dusk', rich: true }) },
-  night: { name: '③ 달밤', draw: makeBattle({ theme: 'night' }) },
-  day: { name: '④ 밝은 낮', draw: makeBattle({ theme: 'day' }) },
-  ink: { name: '⑤ 수묵 한지', draw: makeBattle({ theme: 'day', lut: sumuk }) },
-  mini: { name: '⑥ 미니 (단순화)', draw: makeMini(null) },
-  mini4: { name: '⑦ 미니 · 네 가지 색', draw: makeMini(four) },
+  dusk: { name: '노을', draw: makeBattle({ theme: 'dusk' }) },
+  rich: { name: '노을 · 고퀄 빛', draw: makeBattle({ theme: 'dusk', rich: true }) },
+  night: { name: '달밤', draw: makeBattle({ theme: 'night' }) },
+  day: { name: '밝은 낮', draw: makeBattle({ theme: 'day' }) },
+  ink: { name: '수묵 한지', draw: makeBattle({ theme: 'day', lut: sumuk }) },
+  mini: { name: 'G 미니 (8비트풍)', draw: makeMini(null) },
+  mini4: { name: '미니 · 네 가지 색', draw: makeMini(four) },
 };

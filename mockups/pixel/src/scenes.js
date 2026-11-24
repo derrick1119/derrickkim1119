@@ -58,6 +58,9 @@ export function icon(kind) {
   else if (kind === 'bolt') { const t = new Spr(26, 24); t.ell(12, 7, 9, 4, C('purple', 2)); t.ell(8, 8, 5, 4, C('purple', 2)); t.ell(17, 8, 6, 4, C('purple', 2)); t.shade(1, 1); s.blit(t, 0, 0); s.poly([[13, 9], [16, 9], [13, 15], [16, 15], [10, 23], [12, 16], [9, 16]], C('gold', 4)); s.line(13, 10, 11, 16, C('white', 4)); }
   ICONS[kind] = s.outline(); return ICONS[kind];
 }
+// 화면 띠가 쓸 인형 그림을 바꿔 끼운다 (도트 스타일 비교용)
+let LK = look, LKD = 0, LKP = 0;
+export const useLook = (fn, cardDy = 0, portDy = 0) => { LK = fn || look; LKD = fn ? cardDy : 0; LKP = fn ? portDy : 0; };
 export function card(g, x, y, o) {
   const band = { unit: 'blue', atk: 'red', sup: 'teal' }[o.kind], w = 56, h = 70;
   fr(g, x + 2, y + 3, w, h, 'rgba(10,8,20,0.45)');
@@ -65,7 +68,7 @@ export function card(g, x, y, o) {
   fr(g, x + 1, y + 1, w - 2, 13, C(band, 2)); fr(g, x + 1, y + 1, w - 2, 1, C(band, 3)); fr(g, x + 1, y + 12, w - 2, 2, C(band, 1)); fr(g, x + 1, y + 14, w - 2, 1, INK);
   // 그림 칸
   g.save(); g.beginPath(); g.rect(x + 2, y + 15, w - 4, 39); g.clip();
-  if (o.spr) { fr(g, x + 2, y + 44, w - 4, 10, C('grass', 3)); fr(g, x + 2, y + 44, w - 4, 1, C('grass', 4)); draw(g, look(o.spr), x + 26, y + 52); } else { for (let r = 15; r > 0; r -= 5) { g.fillStyle = css(C(band, 3)); g.globalAlpha = 0.18; g.beginPath(); g.arc(x + 28, y + 34, r, 0, 7); g.fill(); } g.globalAlpha = 1; draw(g, icon(o.icon), x + 28, y + 34); }
+  if (o.spr) { fr(g, x + 2, y + 44, w - 4, 10, C('grass', 3)); fr(g, x + 2, y + 44, w - 4, 1, C('grass', 4)); g.save(); g.beginPath(); g.rect(x + 2, y + 15, w - 4, 39); g.clip(); draw(g, LK(o.spr), x + 26, y + 52 + LKD); g.restore(); } else { for (let r = 15; r > 0; r -= 5) { g.fillStyle = css(C(band, 3)); g.globalAlpha = 0.18; g.beginPath(); g.arc(x + 28, y + 34, r, 0, 7); g.fill(); } g.globalAlpha = 1; draw(g, icon(o.icon), x + 28, y + 34); }
   g.restore(); fr(g, x + 1, y + 54, w - 2, 1, INK);
   txt(g, o.name, x + w / 2 + 4, y + 3, { f: 9, a: 'c', c: C('cream', 4), sh: C(band, 0) });
   txt(g, { unit: '병력', atk: '공격', sup: '지원' }[o.kind], x + w / 2, y + 57, { f: 9, a: 'c', c: C(band, 1) });
@@ -76,7 +79,7 @@ export function card(g, x, y, o) {
 export function hud(g, t) {
   // 위 띠
   fr(g, 0, 0, LW, 24, C('night', 1)); fr(g, 0, 0, LW, 1, C('night', 3)); dancheong(g, 0, 22, LW, 4);
-  fr(g, 5, 3, 17, 17, INK); fr(g, 6, 4, 15, 15, C('blue', 2)); g.save(); g.beginPath(); g.rect(6, 4, 15, 15); g.clip(); draw(g, look('commander'), 13, 44); g.restore();
+  fr(g, 5, 3, 17, 17, INK); fr(g, 6, 4, 15, 15, C('blue', 2)); g.save(); g.beginPath(); g.rect(6, 4, 15, 15); g.clip(); draw(g, LK('commander'), 13, 44 + LKP); g.restore();
   txt(g, '남은 병력', 26, 3, { f: 9, c: C('cream', 2) }); txt(g, '전장 19 · 대기 패 6', 26, 13, { f: 9, c: C('cream', 4) });
   txt(g, '첫째 고개', 172, 6, { f: 'b', c: C('gold', 4), sh: INK });
   // 길: 지나온 곳과 갈 곳
