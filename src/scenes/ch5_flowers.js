@@ -197,7 +197,7 @@
 
   T.stage('ch5', {
     chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「다 지킨 약속」'], next: 'ch6', pad: 3,
-    plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 0, garden: 0.4, patch: 2, fruit: 1 },   /* the swing is built during the first years card */
+    plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 0, garden: 0.4, patch: 2, fruit: 1, season: 'winter' },   /* the swing is built during the first years card */
     flags: { bramGone: true, rosaGone: true },   /* Bram and Marta, and Rosa and her son, went on in chapter 4 */
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * (S.swingAmp == null ? 0.5 : S.swingAmp); },
     /* after dark, a lamp in a small hand shines over the evening, not under it */
@@ -241,7 +241,7 @@
       X.title();
       await X.wait(4.2);
       /* the years go by here on the hill: the apple tree grows, and one spring a swing hangs from it */
-      await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); X.wait(d * 0.4).then(() => { A.sfx('knock', 0.3); X.tween(ps, 'swing', 1, d * 0.4); }); } });
+      await X.years(15, 20, { age: 56, season: 'summer', during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); X.wait(d * 0.4).then(() => { A.sfx('knock', 0.3); X.tween(ps, 'swing', 1, d * 0.4); }); } });
       T.announce('사과나무가 자라고, 가지에 작은 그네가 걸렸다. 릴리에게 만들어 주겠다던 그네.');
 
       /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */
@@ -291,7 +291,7 @@
         S.pie = pie;
       });
       X.bed(4, 0.13, 'walk');
-      await X.years(20, 25, { age: 61 });
+      await X.years(20, 25, { age: 61, season: 'spring' });   /* a spring wedding */
       A.sfx('star', 0.8);
       T.announce('까치 한 마리가 언덕으로 날아와 팻말에 앉는다. 바람 우체국의 까치다.');
       const perch = [PL.BOARD_X + 6, W.y3(PL.BOARD_X) - 98];

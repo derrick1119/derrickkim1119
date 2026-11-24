@@ -168,4 +168,116 @@
     void t;
     return [lx, ly + 12 * s];
   };
+
+  /* ---------- the seasons on the hill (src/look.js: T.season.paint gives sz = { s, f, c }) ---------- */
+  const SNOW = '#f6f5f7', SNOW_S = '#c6cede';
+  /* a tree in its season: blossom in spring, full in summer, turning and thinning in autumn, bare (and snowed on)
+     in winter. Same shape as the town's trees (T.town.tree), drawn live. seed: which way it turns, whether it blossoms */
+  D.tree = function (g, x, y, s, c, c2, trunk, sway, seed, sz) {
+    const f = sz.f, w = (sway || 0) * 4, tr = trunk || '#6b4f52', leaves = f.leaves;
+    const tx = x + w * 0.3, ty = y - 48 * s;
+    P.line(g, x, y + 3, tx, ty, 7 * s, tr);
+    if (leaves < 0.98) {   /* the branches that the leaves hide in summer */
+      g.strokeStyle = tr; g.lineCap = 'round';
+      for (let i = 0; i < 5; i++) {
+        const a = -1.15 + i * 0.58 + T.noise(i * 1.9, seed) * 0.16, len = (44 + T.noise(i * 2.7, seed + 3) * 14) * s, k = i === 2 ? 1.1 : 1;
+        const bx = tx + Math.sin(a) * len * k + w * 0.9, by = ty + 6 * s - Math.cos(a) * len * k;
+        const mx = tx + Math.sin(a) * len * 0.45 + w * 0.4, my = ty + 4 * s - Math.cos(a) * len * 0.6;
+        g.lineWidth = 3.4 * s; g.beginPath(); g.moveTo(tx, ty + 6 * s); g.quadraticCurveTo(mx, my, bx, by); g.stroke();
+        const tw = a + (i % 2 ? 0.55 : -0.55), tl = len * 0.42, sx = T.lerp(tx, bx, 0.6), sy = T.lerp(ty, by, 0.6);
+        g.lineWidth = 1.8 * s; g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.sin(tw) * tl, sy - Math.cos(tw) * tl); g.stroke();
+        if (f.snow > 0.02 && leaves < 0.3) { g.save(); g.globalAlpha *= f.snow * 0.95; g.strokeStyle = SNOW; g.lineWidth = 2.6 * s; g.beginPath(); g.moveTo(T.lerp(tx, mx, 0.7), T.lerp(ty, my, 0.7) - 2 * s); g.quadraticCurveTo(mx, my - 2.5 * s, T.lerp(mx, bx, 0.7), T.lerp(my, by, 0.7) - 2 * s); g.stroke(); g.restore(); }
+      }
+    }
+    if (leaves > 0.01) {
+      const col = T.season.leaf(c, seed, sz), k = 0.62 + 0.38 * leaves;
+      g.save(); g.globalAlpha *= Math.min(1, leaves * 1.5);
+      P.fill(g, P.ellipse(x + w, y - 84 * s, 40 * s * k, 46 * s * k), col);
+      P.fill(g, P.ellipse(x - 20 * s + w * 0.8, y - 66 * s, 25 * s * k, 27 * s * k), c2 && f.turn < 0.05 && f.fresh < 0.05 ? c2 : T.shade(col, -0.1));
+      P.fill(g, P.ellipse(x + 16 * s + w * 1.1, y - 104 * s, 22 * s * k, 22 * s * k), T.shade(col, 0.12));
+      g.restore();
+      if (f.snow > 0.02) { g.save(); g.globalAlpha *= f.snow * 0.9; P.fill(g, P.ellipse(x + w * 1.05, y - 120 * s * k - 8 * s, 30 * s * k, 9 * s), SNOW); P.fill(g, P.ellipse(x + 16 * s + w * 1.1, y - 122 * s, 15 * s * k, 6 * s), SNOW); g.restore(); }
+    }
+    /* blossom on every other tree in spring, a few flowers on the rest */
+    const bl = f.blossom * (seed % 2 ? 0.35 : 1);
+    if (bl > 0.03) {
+      const n = Math.round(34 * bl);
+      for (let c = 0; c < 3; c++) {   /* one path for each of the three pinks */
+        g.beginPath();
+        for (let i = c; i < n; i += 3) {
+          const px = x + w + T.noise(i * 1.31, seed + 7) * 40 * s, py = y - 86 * s + T.noise(i * 1.73, seed + 11) * 44 * s, r = (1.5 + c * 0.6) * s;
+          const rot = i * 0.7;
+          g.moveTo(px + Math.cos(rot) * r * 1.25, py + Math.sin(rot) * r * 1.25); g.ellipse(px, py, r * 1.25, r, rot, 0, Math.PI * 2);
+        }
+        g.fillStyle = T.season.BLOSSOM[c]; g.fill();
+      }
+    }
+  };
+  /* a bush in its season: roses in summer, hips in autumn, snow in winter */
+  D.bush = function (g, x, y, s, c, dots, sz) {
+    const f = sz.f;
+    let col = c;
+    if (f.turn > 0.02) col = T.mix(col, '#9a8a4c', Math.round(f.turn * 0.6 * 32) / 32);
+    if (f.snow > 0.02) col = T.mix(col, '#7c8a80', Math.round(f.snow * 0.6 * 32) / 32);
+    if (f.fresh > 0.02) col = T.mix(col, '#8cc47a', Math.round(f.fresh * 0.3 * 32) / 32);
+    const bloom = dots ? T.clamp(f.flowers * 1.2) : 0, hips = dots ? f.turn * (1 - f.snow) : 0;
+    T.town.bush(g, x, y, s, col, null);
+    if (bloom > 0.05 || hips > 0.05) {
+      for (let i = 0; i < 9; i++) {
+        if ((i + 1) / 9 > Math.max(bloom, hips * 0.6)) break;
+        const px = x - 22 * s + (T.noise(i * 1.37, x * 0.01) * 0.5 + 0.5) * 56 * s, py = y - 6 * s - (T.noise(i * 1.91, x * 0.013 + 3) * 0.5 + 0.5) * 22 * s;
+        P.fill(g, P.circle(px, py, (bloom > hips ? 4.4 : 3) * s), bloom > hips ? dots[i % dots.length] : '#b5452f');
+      }
+    }
+    if (f.snow > 0.02) { g.save(); g.globalAlpha *= f.snow * 0.92; P.fill(g, P.ellipse(x + 2 * s, y - 28 * s, 26 * s, 8 * s), SNOW); P.fill(g, P.ellipse(x + 22 * s, y - 21 * s, 15 * s, 6 * s), SNOW); g.restore(); }
+  };
+  /* snow lying along a roof (spec: the house's spec; x, y: where its sprite is laid) */
+  D.snowRoof = function (g, spec, x, y, snow, k) {
+    if (snow < 0.02 || !spec || (spec.stage != null && spec.stage < 1)) return;
+    k = k || 1;
+    const rp = T.town.roofPts(spec), wh = spec.h, rh = spec.roofH;
+    g.save(); g.translate(x, y); if (k !== 1) g.scale(k, k);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    g.beginPath(); rp.forEach((q, i) => (i ? g.lineTo(q[0], q[1] + 1) : g.moveTo(q[0] + 4, q[1] - 1)));
+    g.globalAlpha = 0.55 * snow; g.strokeStyle = SNOW_S; g.lineWidth = 13; g.stroke();
+    g.beginPath(); rp.forEach((q, i) => (i ? g.lineTo(q[0], q[1] - 3) : g.moveTo(q[0] + 4, q[1] - 4)));
+    g.globalAlpha = 0.95 * snow; g.strokeStyle = SNOW; g.lineWidth = 10; g.stroke();
+    /* a soft lip hanging over the eaves */
+    const e0 = rp[0], e1 = rp[rp.length - 1];
+    P.fill(g, P.ellipse(e0[0] + 6, e0[1] - 1, 12, 5), SNOW); P.fill(g, P.ellipse(e1[0] - 6, e1[1] - 1, 12, 5), SNOW);
+    if (spec.chim != null) P.fill(g, P.rr(spec.chim - 17, -wh - rh * 0.62 - 56, 34, 8, 4), SNOW);
+    g.restore();
+  };
+  /* a little snow on top of something small (a stone, a post, a seat) */
+  D.snowCap = function (g, x, y, w, snow) {
+    if (snow < 0.02) return;
+    g.save(); g.globalAlpha *= snow * 0.92; P.fill(g, P.ellipse(x, y, w / 2, Math.max(2.5, w * 0.14)), SNOW); g.restore();
+  };
+  /* what falls through the air, in screen space: blossom petals, turning leaves, snow (each 0..1) */
+  const AIR = 70, air = new Float32Array(AIR * 5);
+  (function () { const r = T.rng(4242); for (let i = 0; i < air.length; i++) air[i] = r(); })();
+  D.air = function (g, petals, leaves, snow, t) {
+    const W = T.view.W;
+    if (petals + leaves + snow < 0.02) return;
+    g.save();
+    for (let i = 0; i < AIR; i++) {
+      const x0 = air[i * 5], y0 = air[i * 5 + 1], sp = 0.5 + air[i * 5 + 2], ph = air[i * 5 + 3] * 6.28, sz = 0.6 + air[i * 5 + 4] * 0.8;
+      const kind = i % 3;   /* 0 petal, 1 leaf, 2 snowflake */
+      const a = kind === 0 ? petals : kind === 1 ? leaves : snow;
+      if (a < 0.02 || (i / AIR) > a * 1.2) continue;
+      if (kind === 2) {
+        const x = -W / 2 - 20 + ((x0 * (W + 40) + t * 14 * sp + Math.sin(t * 0.8 + ph) * 18) % (W + 40)), y = -20 + ((y0 * 940 + t * 38 * sp) % 940);
+        g.globalAlpha = a * (0.55 + 0.35 * sz / 1.4); g.fillStyle = '#ffffff';
+        g.beginPath(); g.arc(x, y, 2.2 * sz + 0.6, 0, Math.PI * 2); g.fill();
+      } else {
+        const x = -W / 2 - 40 + ((x0 * (W + 80) + t * (kind ? 52 : 40) * sp) % (W + 80)), y = -30 + ((y0 * 960 + t * (kind ? 46 : 30) * sp + Math.sin(t * 1.6 + ph) * 22) % 960);
+        g.globalAlpha = a * 0.85;
+        g.fillStyle = kind ? T.season.TURN[i % T.season.TURN.length] : T.season.BLOSSOM[i % 3];
+        g.save(); g.translate(x, y); g.rotate(t * (kind ? 1.6 : 2.2) * (i % 2 ? 1 : -1) + ph); g.scale(1, 0.45 + 0.4 * Math.abs(Math.sin(t * 2.4 + ph)));
+        g.beginPath(); g.ellipse(0, 0, (kind ? 7 : 5.5) * sz, (kind ? 3.6 : 3.4) * sz, 0, 0, Math.PI * 2); g.fill();
+        g.restore();
+      }
+    }
+    g.restore();
+  };
 })();

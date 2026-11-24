@@ -49,7 +49,7 @@
 
   T.stage('ch7', {
     chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
-    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 0, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1 },
+    plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 0, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1, patch: 3, fruit: 1, season: 'late autumn' },   /* she comes in late autumn, as he did */
     flags: { bramGone: true, rosaGone: true },
     build() { T.scenes.kitchen.build(); T.scenes.room.build(); T.scenes.stew.build(); },
     exit() { T.scenes.stew.plain = false; T.scenes.stew.cast = null; },

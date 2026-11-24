@@ -64,7 +64,7 @@
   S.build = function () {
     if (S.builtGen === T.gen && S.spr.mom) return;   /* baked art is good until the canvas changes size */
     S.builtGen = T.gen;
-    const H = K.house, sp = (S.spr = {});
+    const H = (h, k) => { const L = K.house(h, k); L.spec = h; return L; }, sp = (S.spr = {});   /* each keeps its spec: snow lies along its roof */
     sp.shed = H({ w: 150, h: 112, roofH: 62, roof: 'hip', wall: '#e9dcc0', roofC: C.teal, door: { x: -30, c: '#6b5a48' }, win: [[22, -84, 40, 44, 0]], seed: 11 });
     sp.post = H({ w: 176, h: 156, roofH: 84, roof: 'gable', wall: '#f6e9cc', roofC: C.terra, door: { x: -44, c: C.slate }, win: [[14, -116, 50, 58, 1, true]], sign: 'envelope', signX: 84, chim: 40, seed: 21 });
     sp.build1 = H({ w: 190, h: 152, roofH: 86, roof: 'gable', roofC: C.must, stage: 0.42, seed: 31 });
@@ -735,8 +735,8 @@
   }
   function backdrop(g) {
     const V = T.view, W = V.W, t = T.time;
-    const sky = g.createLinearGradient(0, 0, 0, 900);
-    sky.addColorStop(0, '#8496cc'); sky.addColorStop(0.38, '#e9b9a4'); sky.addColorStop(0.7, '#ffdba6'); sky.addColorStop(1, '#fff0cc');
+    const sky = g.createLinearGradient(0, 0, 0, 900), c = SZ && SZ.c;   /* the hill's season (src/look.js) colours its sky */
+    sky.addColorStop(0, c ? c.sky0 : '#8496cc'); sky.addColorStop(0.38, c ? c.sky1 : '#e9b9a4'); sky.addColorStop(0.7, c ? c.sky2 : '#ffdba6'); sky.addColorStop(1, c ? c.sky3 : '#fff0cc');
     g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 900);
     if (S.hook && S.hook.sky) S.hook.sky(g);
     if (!S.hook && S.dusk > 0.003) duskSky(g);
@@ -797,13 +797,14 @@
     g.stroke();
   }
   function tufts(g, fn, seed, color, xa, xb, size) {
-    const r = T.rng(seed);
+    const r = T.rng(seed), under = SZ ? 1 - SZ.f.snow * 0.85 : 1;   /* under snow, only a few show */
+    if (under < 0.03) return;
     g.strokeStyle = color; g.lineCap = 'round';
     for (let i = 0; i < 420; i++) {
       const x = -400 + r() * 5600, d = 16 + r() * 150, s = size * (0.6 + r() * 0.8), lw = 2 + r() * 1.6;
       if (x < xa || x > xb) continue;
       const y = fn(x) + d;
-      g.lineWidth = lw; g.globalAlpha = 0.42 * (1 - d / 190);
+      g.lineWidth = lw; g.globalAlpha = 0.42 * (1 - d / 190) * under;
       g.beginPath(); g.moveTo(x - s, y); g.quadraticCurveTo(x, y - s * 1.3, x + s * 0.8, y - s * 0.2); g.stroke();
     }
     g.globalAlpha = 1;
@@ -811,6 +812,9 @@
 
   /* the lamps up each road come on outward from its turning, once that turning's lamp is lit */
   const GATE_S = 1.3;
+  const ROSES = ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0'];
+  /* the hill's season this frame, while a later chapter has the world on loan (src/look.js); null in chapter 1 */
+  let SZ = null;
   const lampLit = (h, x) => (h === 1 ? 1 : T.clamp(((h === 2 ? S.r2 : S.r3) - Math.abs(x - (h === 2 ? J1 : J2))) / 90));
   const gateAt = (n) => { const x = (n === 1 ? J1 : J2) - 26, y = (n === 1 ? y1(x) : y2(x)) + 2; return [x + 16 * GATE_S, y - 74 * GATE_S]; };
   function drawThings(g, h, fn, xa, xb) {
@@ -818,16 +822,16 @@
     for (const o of S.things[h]) {
       if (o.x < xa - 320 || o.x > xb + 320) continue;
       const y = fn(o.x);
-      if (o.k === 'spr') T.blit(g, S.spr[o.s], o.x, y + 3);
+      if (o.k === 'spr') { T.blit(g, S.spr[o.s], o.x, y + 3); if (SZ) T.detail.snowRoof(g, S.spr[o.s].spec, o.x, y + 3, SZ.f.snow); }
       else if (o.k === 'lamp') K.lantern(g, o.x, y + 2, t, { s: o.s || 1, seed: o.x, lit: lampLit(h, o.x) });
       else if (o.k === 'gate') K.lantern(g, o.x, y + 2, t, { s: GATE_S, seed: o.x, lit: S.gate[o.n].k });
-      else if (o.k === 'tree') { if (!(S.hook && o.x === 4420) && !(gardenOn() && o.x === 3690)) K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); }   /* later on, the swing hangs where this one stood */
+      else if (o.k === 'tree') { if (!(S.hook && o.x === 4420) && !(gardenOn() && o.x === 3690)) { if (SZ) T.detail.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x), Math.round(o.x / 7), SZ); else K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); } }   /* later on, the swing hangs where this one stood */
       else if (o.k === 'box') { P.fill(g, P.rr(o.x - 13, y - 58, 26, 34, 6), '#c9573f'); P.fill(g, P.rr(o.x - 8, y - 46, 16, 4, 2), '#3a3032'); P.line(g, o.x, y - 24, o.x, y + 2, 6, '#8a4a3a'); }
       else if (o.k === 'slip') { if (!(S.hook && S.hook.flags.bramGone)) drawSlip(g, o.x, y); }
       else if (o.k === 'builder') drawBuilder(g, o.x, y);
       else if (o.k === 'rosa') { if (!(S.hook && (T.rosaOut || S.hook.flags.rosaGone))) drawRosa(g, o.x, y); }   /* not at her window while she is out on the porch or the quay */
       else if (o.k === 'sitter') drawSitter(g, o.x, y);
-      else if (o.k === 'roses') { if (!(gardenOn() && o.x === 3540)) K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0']); }
+      else if (o.k === 'roses') { if (!(gardenOn() && o.x === 3540)) { if (SZ) T.detail.bush(g, o.x, y + 2, 1.15, '#5f8f62', ROSES, SZ); else K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ROSES); } }
       else if (o.k === 'arch') { if (!gardenOn()) drawArch(g, o.x, y); }   /* the tomato rack (garden.js) stands here in the later chapters */
       else if (o.k === 'home') drawHome(g);
       else if (o.k === 'plot') { if (S.hook && S.hook.plot) S.hook.plot(g, o.x); else drawPlot(g, o.x); }
@@ -956,6 +960,7 @@
     if (open < 0.995) {
       g.save(); g.globalAlpha = 1 - open;
       T.blit(g, S.spr.mom, HOUSE, hg + 3);
+      if (SZ) T.detail.snowRoof(g, S.spr.mom.spec, HOUSE, hg + 3, SZ.f.snow);
       /* smoke */
       g.restore();
     }
@@ -1315,6 +1320,8 @@
   S.draw = function (g) {
     const V = T.view, W = V.W, t = T.time;
     const who = S.hook ? S.hook.people : people;
+    SZ = S.hook && T.season ? T.season.paint() : null;   /* { s, f: what the season does, c: its colours } */
+    const c = SZ && SZ.c, snow = SZ ? SZ.f.snow : 0;
     P.cray = P.look === 'crayon';
     if (P.cray) P.crayonize(g);
     backdrop(g);
@@ -1327,18 +1334,18 @@
     }
     /* cloud between here and the horizon */
     let r = layer(g, 0.55);
-    bankFill(g, S.banks.mid, -((t * 6) % 118), Math.sin(t * 0.36 + 1) * 4, '#fff8ea', '#e6b6bc', 676, r[0], r[1]);
+    bankFill(g, S.banks.mid, -((t * 6) % 118), Math.sin(t * 0.36 + 1) * 4, c ? c.bank : '#fff8ea', c ? c.bankS : '#e6b6bc', 676, r[0], r[1]);
     g.restore();
 
     r = layer(g, 1);
     const xa = r[0], xb = r[1];
-    hill(g, y3, xa, xb, '#8eaa86', '#5f8a86', -20);
-    tufts(g, y3, 5, '#6d8f70', xa, xb, 10);
+    hill(g, y3, xa, xb, c ? c.h3 : '#8eaa86', c ? c.h3s : '#5f8a86', -20);
+    tufts(g, y3, 5, c ? c.tuft3 : '#6d8f70', xa, xb, 10);
     drawThings(g, 3, y3, xa, xb);
     who(g, 3);
 
-    hill(g, y2, xa, xb, '#c2ab63', '#93835e', 360);
-    tufts(g, y2, 6, '#a08c4e', xa, xb, 11);
+    hill(g, y2, xa, xb, c ? c.h2 : '#c2ab63', c ? c.h2s : '#93835e', 360);
+    tufts(g, y2, 6, c ? c.tuft2 : '#a08c4e', xa, xb, 11);
     drawThings(g, 2, y2, xa, xb);
     who(g, 2);
 
@@ -1348,7 +1355,7 @@
     if (r[3] > SEA - 240) seaSurface(g, xa, xb);
     if (xa < 700) drawPier(g);
     if (xb > QUAY) {
-      hill(g, y1, xa, xb, '#dba777', '#b7806a', 560, QUAY);
+      hill(g, y1, xa, xb, c ? c.h1 : '#dba777', c ? c.h1s : '#b7806a', 560, QUAY);
       if (xa < QUAY + 60) { P.fill(g, P.box(QUAY, PIER_Y, 30, 900, 0.8, 4), '#b98a70'); g.strokeStyle = 'rgba(90,60,60,0.22)'; g.lineWidth = 2; for (let y = PIER_Y + 30; y < PIER_Y + 420; y += 34) { g.beginPath(); g.moveTo(QUAY, y); g.lineTo(QUAY + 30, y + 2); g.stroke(); } }
       /* cobbles */
       g.strokeStyle = 'rgba(140,90,70,0.3)'; g.lineWidth = 2; g.lineCap = 'round';
@@ -1370,9 +1377,11 @@
     g.restore();
 
     if (S.fog > 0.004 && !S.hook) drawFog(g);   /* chapter 1 only; the later chapters borrow this town without its fog */
+    /* blossom, turning leaves or snow in the air (the year card brings its own) */
+    if (SZ && !SZ.quiet) T.detail.air(g, SZ.f.petalFall, SZ.f.leafFall, snow, t);
 
-    /* the evening lays gold over everything */
-    g.save(); g.globalCompositeOperation = 'soft-light';
+    /* the evening lays gold over everything (less of it on snow) */
+    g.save(); g.globalCompositeOperation = 'soft-light'; if (snow > 0.01) g.globalAlpha = 1 - snow * 0.45;
     const warm = g.createLinearGradient(-W / 2, 0, W / 2, 0);
     warm.addColorStop(0, 'rgba(120,110,200,0.22)'); warm.addColorStop(0.5, 'rgba(255,200,130,0.1)'); warm.addColorStop(1, 'rgba(255,196,110,0.4)');
     g.fillStyle = warm; g.fillRect(-W / 2, 0, W, 900);

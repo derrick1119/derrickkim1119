@@ -10,7 +10,7 @@
 
   T.stage('ch2', {
     chapter: 2, title: ['2장', '약속 목록'], end: ['2장 끝', '3장 「꿈」'], next: 'ch3', pad: 0,
-    plot: { stage: 0, table: true },
+    plot: { stage: 0, table: true, season: 'late autumn' },   /* a few days after he came: the same late autumn as the hospital room */
     build() { T.scenes.kitchen.build(); },
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, lin = T.ease.lin;

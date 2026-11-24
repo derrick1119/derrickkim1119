@@ -441,10 +441,11 @@
     function drawYears(g, y, W, t, dark) {
       const a = y.a, span = Math.max(1, y.to - y.from), u = T.clamp((y.n - y.from) / span);
       /* the seasons go round once a year, but never more than four times while we watch */
-      const sp = (u * Math.min(span, 4) * 0.999) % 1, SEAS = ['#f7b9c8', '#9fcf86', '#e89a4e', '#ffffff'];
+      /* look.js: y.sp is the hill's own season while it turns (0 spring … 1), y.veil lets the hill show through */
+      const sp = y.sp != null ? y.sp : (u * Math.min(span, 4) * 0.999) % 1, SEAS = ['#f7b9c8', '#9fcf86', '#e89a4e', '#ffffff'];
       const si = Math.floor(sp * 4) % 4, sc = T.mix(SEAS[si], SEAS[(si + 1) % 4], (sp * 4) % 1);
       g.save();
-      g.fillStyle = T.rgba(dark ? T.mix('#1b2540', sc, 0.18) : T.mix('#fff6e6', sc, 0.42), 0.62 * a); g.fillRect(-W / 2, 0, W, 900);
+      g.fillStyle = T.rgba(dark ? T.mix('#1b2540', sc, 0.18) : T.mix('#fff6e6', sc, 0.42), (y.veil != null ? y.veil : 0.62) * a); g.fillRect(-W / 2, 0, W, 900);
       const r = T.rng(7);
       for (let i = 0; i < 80; i++) {
         const sx = r(), sy = r(), sz = 0.6 + r() * 0.9, ph = r() * 6.28;
