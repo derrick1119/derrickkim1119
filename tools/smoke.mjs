@@ -265,14 +265,14 @@ try {
   // 설정: 저장 코드, 언어
   await click(page, '.hud .settings-btn');
   await page.waitForSelector('.modal-settings');
-  await page.locator('.modal-settings .btn.ghost').nth(0).click({ force: true });
+  await page.locator('.modal-settings .save-export-btn').click({ force: true });
   const code = await page.inputValue('#save-export');
   check('저장 코드 내보내기', code.startsWith('SHHUFO1.') && code.length > 200);
   check('설정 화면이 넘치지 않는다', await modalFits(page));
   await page.locator('.modal-settings .segment:not(.ui-themes) .seg').nth(1).click({ force: true });
   await page.waitForFunction(() => document.documentElement.lang === 'en');
   check('영어로 바꾸면 화면 글자가 바뀐다', (await page.textContent('.tabs')).includes('Archive'));
-  await page.locator('.modal-settings .btn.ghost').nth(1).click({ force: true });
+  await page.locator('.modal-settings .save-import-btn').click({ force: true });
   await page.fill('#save-import', 'nonsense');
   await page.locator('.modal-settings .save-box:not([hidden]) .btn').click({ force: true });
   check('엉터리 저장 코드는 거절한다', (await page.locator('.modal-settings').count()) === 1);

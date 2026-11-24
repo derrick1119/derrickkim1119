@@ -628,6 +628,23 @@ export class UI {
     this.sheetBody.scrollTop = top;
   }
 
+  /**
+   * 안드로이드 뒤로 가기: 맨 위 창을 닫거나 패널을 닫는다. 처리했으면 true(아니면 앱을 내린다).
+   */
+  handleBack() {
+    if (document.querySelector('.mz-overlay') || this.minigame) return true; // 광고·결제·미니게임 중에는 무시
+    if (this.modals.active) {
+      const top = this.modals.stack[this.modals.stack.length - 1];
+      if (top?.dismiss) top.close();
+      return true;
+    }
+    if (this.panel) {
+      this.closePanel();
+      return true;
+    }
+    return false;
+  }
+
   _extPanel(name) {
     return hooks.panels.find((p) => p.id === name) || null;
   }

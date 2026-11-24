@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <!-- 세로 화면 전용 게임. (Android 16 이상 큰 화면(태블릿·폴더블)에서는 OS 가 이 제한을 무시할 수 있습니다.) -->
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+        <!-- AdMob 앱 ID: 값은 res/values/strings.xml 의 admob_app_id (지금은 Google 공식 테스트 앱 ID).
+             출시 전에 내 AdMob 앱 ID 로 바꾸세요. docs/release.md 3단계 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 광고 ID 권한(com.google.android.gms.permission.AD_ID)과 결제 권한(com.android.vending.BILLING)은
+         Google Mobile Ads SDK 와 RevenueCat(Play Billing) 라이브러리가 매니페스트 병합으로 자동으로 넣습니다.
+         그래서 Play Console 「앱 콘텐츠 > 광고 ID」에서 "광고 ID 를 사용함(광고·분석)"으로 신고해야 합니다.
+         (12세 이상 대상이므로 광고 ID 를 빼지 않습니다. 어린이 대상 앱으로 바꾸는 경우에만 아래 줄로 제거합니다.)
+         <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" /> -->
+</manifest>

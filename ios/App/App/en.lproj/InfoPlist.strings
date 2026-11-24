@@ -1,0 +1,3 @@
+/* App name and App Tracking Transparency prompt (English). */
+"CFBundleDisplayName" = "Shh! UFO";
+"NSUserTrackingUsageDescription" = "This identifier is used only to show you more relevant ads and measure ad performance. You can still play everything if you choose \"Ask App Not to Track\".";

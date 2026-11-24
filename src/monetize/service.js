@@ -38,6 +38,11 @@ export class Monetize extends Emitter {
     } catch (err) {
       console.warn('수익화 공급자를 시작하지 못했습니다.', err);
     }
+    // 보호자 승인(iOS 구매 요청) 등으로 나중에 끝난 구매
+    this.provider.store.onDeferred?.((r) => {
+      const result = this.fx?.applyPurchase(r.id, r.txId || null, { expiresAt: r.expiresAt });
+      if (result && !result.duplicate) this.emit('purchased', { id: r.id, result });
+    });
     this.refreshPrices();
   }
 
@@ -111,7 +116,7 @@ export class Monetize extends Emitter {
       this.busy = false;
       this.hooks.resume();
     }
-    if (!res?.ok) return { ok: false, reason: res?.cancelled ? 'cancelled' : 'error', error: res?.error };
+    if (!res?.ok) return { ok: false, reason: res?.cancelled ? 'cancelled' : res?.pending ? 'pending' : 'error', error: res?.error };
     const result = fx.applyPurchase(id, res.txId || null, { expiresAt: res.expiresAt });
     this.emit('purchased', { id, result });
     return { ok: true, result };
@@ -125,7 +130,7 @@ export class Monetize extends Emitter {
       const list = await this.provider.store.restore();
       const restored = fx.restore(list);
       this.emit('restored', restored);
-      return { ok: true, restored };
+      return { ok: !list?.error, restored, error: list?.error };
     } catch (err) {
       return { ok: false, error: String(err?.message || err) };
     }

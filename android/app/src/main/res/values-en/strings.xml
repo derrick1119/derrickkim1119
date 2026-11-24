@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- 영어 기기에서 보이는 앱 이름. 한국어 이름만 쓰려면 이 파일을 지우세요. -->
+<resources>
+    <string name="app_name">Shh! UFO</string>
+    <string name="title_activity_main">Shh! UFO</string>
+</resources>

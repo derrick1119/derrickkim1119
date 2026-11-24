@@ -80,6 +80,8 @@ export function registerServiceWorker(onUpdate) {
   try {
     if (!('serviceWorker' in navigator)) return;
     if (window.top !== window) return;
+    // 앱(Capacitor)은 파일을 앱 안에 담고 있다: 서비스 워커가 옛 app.js 를 붙잡지 않게 쓰지 않는다
+    if (globalThis.Capacitor?.isNativePlatform?.()) return;
     if (!/^https:$/.test(location.protocol)) return;
     window.addEventListener('load', () => {
       navigator.serviceWorker

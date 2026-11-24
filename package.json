@@ -10,12 +10,24 @@
     "sim": "node tools/sim.mjs",
     "build": "node tools/build.mjs",
     "smoke": "node tools/smoke.mjs",
-    "icons": "node tools/gen-icons.mjs"
+    "icons": "node tools/gen-icons.mjs",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios",
+    "capacitor:copy:after": "node -e \"const fs=require('fs'),p=require('path');const d={android:'android/app/src/main/assets/public',ios:'ios/App/App/public'}[process.env.CAPACITOR_PLATFORM_NAME];if(d)for(const f of ['sw.js','shh-ufo.html'])fs.rmSync(p.join(d,f),{force:true})\""
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "esbuild": "^0.28.2"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.4.2",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@revenuecat/purchases-capacitor": "^14.1.2",
     "three": "0.187.0"
   }
 }

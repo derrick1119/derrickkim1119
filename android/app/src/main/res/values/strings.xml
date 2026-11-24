@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">쉿! UFO</string>
+    <string name="title_activity_main">쉿! UFO</string>
+    <string name="package_name">com.shhufo.game</string>
+    <string name="custom_url_scheme">com.shhufo.game</string>
+    <!-- AdMob 앱 ID. 지금 값은 Google 공식 "테스트" 앱 ID 입니다(실제 광고·수익 없음).
+         출시 전에 AdMob 콘솔 > 앱 > 앱 설정의 Android 앱 ID(ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY)로 바꾸세요.
+         광고 "단위" ID(…/…) 가 아니라 앱 ID(…~…) 입니다. 광고 단위 ID 는 src/monetize/config.js 에 넣습니다. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+</resources>

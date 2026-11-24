@@ -8,6 +8,7 @@ import { iconURL, causeIconURL } from '../render/iconcache.js';
 import { h, clear, icon, img, grantTag } from './dom.js';
 import { hooks } from './hooks.js';
 import { adButton } from './ext/adButton.js';
+import { POLICY_LINKS } from '../monetize/links.js';
 
 export const APP_VERSION = '1.0.0';
 
@@ -487,6 +488,40 @@ function toggle(label, iconName, on, onChange) {
   return b;
 }
 
+/** 설정의 「구매·광고」: 구매 복원, 광고 개인정보 설정(동의 지역), 정책 문서. */
+function purchaseSection(ui) {
+  const m = ui.monetize;
+  if (!m) return [];
+  const restore = h(
+    'button',
+    {
+      class: 'btn ghost grow',
+      type: 'button',
+      onClick: async () => {
+        restore.disabled = true;
+        const r = await m.restore();
+        restore.disabled = false;
+        ui.toast(t(!r.ok ? 'settings.restoreFail' : r.restored?.length ? 'settings.restoreOk' : 'settings.restoreNone'), r.ok ? 'good' : 'warn');
+      },
+    },
+    t('settings.restore'),
+  );
+  const links = [
+    POLICY_LINKS.privacy && h('a', { class: 'link-btn', href: POLICY_LINKS.privacy, target: '_blank', rel: 'noopener' }, t('settings.privacy')),
+    POLICY_LINKS.terms && h('a', { class: 'link-btn', href: POLICY_LINKS.terms, target: '_blank', rel: 'noopener' }, t('settings.terms')),
+  ];
+  return [
+    h('h3', null, icon('grant', 18), t('settings.purchases')),
+    h(
+      'div',
+      { class: 'row' },
+      restore,
+      m.privacyOptionsRequired && h('button', { class: 'btn ghost grow', type: 'button', onClick: () => m.showPrivacyOptions() }, t('settings.adPrivacy')),
+    ),
+    h('p', { class: 'note links' }, links),
+  ];
+}
+
 export function showSettings(ui) {
   const game = ui.game;
   const s = game.state.settings;
@@ -578,6 +613,7 @@ export function showSettings(ui) {
       h('summary', null, icon('help', 18), t('settings.howto')),
       h('ol', { class: 'howto' }, tList('settings.howtoLines').map((line) => h('li', { text: line }))),
     ),
+    ...purchaseSection(ui),
     h('h3', null, icon('doc', 18), t('settings.save')),
     h('p', { class: 'note', text: t('settings.saveHint') }),
     h(
@@ -586,7 +622,7 @@ export function showSettings(ui) {
       h(
         'button',
         {
-          class: 'btn ghost grow',
+          class: 'btn ghost grow save-export-btn',
           type: 'button',
           onClick: () => {
             exportBox.value = encodeSave(game.state);
@@ -599,7 +635,7 @@ export function showSettings(ui) {
       h(
         'button',
         {
-          class: 'btn ghost grow',
+          class: 'btn ghost grow save-import-btn',
           type: 'button',
           onClick: () => {
             importWrap.hidden = false;

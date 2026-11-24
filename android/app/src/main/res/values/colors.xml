@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 게임 시작 화면(styles/main.css .boot)의 위쪽 하늘색과 같은 색 -->
+    <color name="splash_background">#2F62CF</color>
+</resources>

@@ -66,7 +66,20 @@ npm run build
 - `dist/` — 그대로 정적 호스팅(GitHub Pages, Netlify, Cloudflare Pages 등)에 올리면 됩니다. HTTPS 로 열면 서비스 워커가 등록되어 홈 화면에 설치할 수 있고 오프라인에서도 열립니다.
 - `dist/shh-ufo.html` — 글꼴·스크립트·스타일을 모두 품은 파일 하나짜리 판입니다(약 3 MB). 웹 포털 업로드나 미리보기에 씁니다. 이 판은 설치·오프라인 기능이 없습니다.
 
-앱 마켓(구글 플레이·앱 스토어)에 올리려면 `dist/` 를 Capacitor 나 TWA(Trusted Web Activity) 같은 웹뷰 포장 도구로 감싸면 됩니다. 이 저장소에는 그 포장 설정이 들어 있지 않습니다.
+앱 마켓(구글 플레이·앱 스토어)용 안드로이드·iOS 프로젝트는 Capacitor 로 포장되어 `android/`·`ios/` 에 들어 있습니다. 아래 「앱 출시」와 [docs/release.md](docs/release.md) 를 보세요.
+
+## 앱 출시
+
+안드로이드·iOS 앱은 [Capacitor](https://capacitorjs.com/) 8 로 `dist/` 를 감싸 만듭니다(`android/`, `ios/`, `capacitor.config.json`).
+보상형 광고는 AdMob, 인앱 결제는 RevenueCat 을 씁니다(`src/monetize/providers/native.js`, 설정은 `src/monetize/config.js`). 웹·개발 빌드에서는 지금처럼 가짜 공급자가 쓰입니다.
+
+```bash
+npm run cap:sync      # 웹 빌드 → android/ · ios/ 에 복사
+npm run cap:android   # Android Studio 열기
+npm run cap:ios       # Xcode 열기(Mac)
+```
+
+지금 들어 있는 AdMob 앱 ID·광고 단위는 Google 테스트 값이고 RevenueCat 키는 비어 있습니다. 계정 만들기, ID·키 교체, 서명, 스토어 등록(연령 등급·데이터 보안 답안, 인앱 결제 고지)은 [docs/release.md](docs/release.md), 개인정보처리방침 초안은 [docs/privacy-policy.md](docs/privacy-policy.md) 를 보세요.
 
 ## 시험
 

@@ -1,0 +1,38 @@
+{
+  "//": "appId 'com.shhufo.game' 은 임시 값입니다. 스토어에 처음 올리기 전에 내 도메인 기반 ID(예: com.mystudio.shhufo)로 바꾸세요. 한 번 올린 뒤에는 바꿀 수 없습니다. 바꾸는 곳: docs/release.md 「1. 앱 ID 정하기」.",
+  "appId": "com.shhufo.game",
+  "appName": "쉿! UFO",
+  "webDir": "dist",
+  "backgroundColor": "#2f62cf",
+  "loggingBehavior": "debug",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "backgroundColor": "#2f62cf"
+  },
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#2f62cf"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DARK",
+      "hidden": false
+    },
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#2f62cf",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": false,
+      "splashImmersive": false
+    }
+  }
+}

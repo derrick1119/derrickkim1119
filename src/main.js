@@ -182,6 +182,16 @@ async function start(hotData) {
 
   registerServiceWorker(() => ui.toast(t('toast.update'), 'info'));
 
+  // 앱(안드로이드): 뒤로 가기 버튼은 창·패널을 닫고, 더 닫을 게 없으면 앱을 내린다
+  if (globalThis.Capacitor?.isNativePlatform?.()) {
+    import('@capacitor/app')
+      .then(({ App }) =>
+        App.addListener('backButton', () => {
+          if (!ui.handleBack()) App.minimizeApp();
+        }),
+      )
+      .catch((err) => console.warn('뒤로 가기 버튼을 연결하지 못했습니다.', err));
+  }
   if (new URLSearchParams(location.search).has('debug')) window.__ufo = { game, world, scene, ui, audio, save };
 
   document.getElementById('boot')?.remove();

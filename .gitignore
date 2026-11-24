@@ -28,3 +28,17 @@ venv/
 
 # 개발 중 잠깐 만드는 미리보기 페이지
 tools/_*_tmp.*
+
+# 앱(Capacitor) 빌드 결과와 서명 열쇠 — 열쇠·암호는 절대 저장소에 올리지 않는다
+# (android/.gitignore, ios/.gitignore 가 각 플랫폼의 빌드 폴더·복사된 웹 파일을 따로 뺀다)
+android/keystore.properties
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+android/app/release/
+ios/App/output/
+ios/DerivedData/
+*.ipa
+*.xcarchive
