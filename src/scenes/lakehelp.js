@@ -9,10 +9,19 @@
    the water, or sad where Bean used to wait), and goes on as soon as it is there. Nothing is ever lost: things
    can be picked up again and carried ahead of her.
 
+   Whatever reaches its place goes down into her street the way it does at the lake (T.shadowFall, views.js), and
+   she looks up. 앞질러 (chapter 4): things are put ahead of her, before she gets there, and carried on ahead again.
+   겹치기 (chapter 6): two things together make one shadow, and a cloud with the plank stood up under it makes a
+   new shape altogether: an umbrella (need 'umbrella'), which goes along over her where the rain is heaviest.
+
    T.lakeHelp(o) -> a view for X.view:
      o.level 1 | 2 | 3            a ready-made street (2 obstacles/2 helpers · 4/3 with two needs close together · 6/4 with one place needing two)
      o.who                        her look: an age (F.lilyAt), a style, or { style, s }; o.name for the captions (릴리); o.bag (a child's school bag)
-     o.helpers  [{ kind: 'lantern'|'cloud'|'plank'|'bean', x }]   o.obstacles [{ x, need: kind | [kind, kind], w }] (street x, she starts at 120)
+     o.helpers  [{ kind: 'lantern'|'cloud'|'plank'|'bean', x }]   o.obstacles [{ x, need: kind | [kind, kind], w, say, porch }] (street x,
+                                  she starts at 120). need 'umbrella': the cloud with the plank under it. say: this place's own line
+                                  when she waits there. porch: the place is her own front door, its lamp out (a lantern lights it)
+     o.porch                      her house has a porch lamp and a closed door (no one at it: o.home false); o.beanHome: Bean,
+                                  once he has found her, walks with her all the way to the door
      o.len                        street length (home is at len - 150); o.caption the opening line; o.home: false (no one at the door) or a style
      o.homeS                      the size of the one at the door (a grown-up walker's own size; 188 when a child walks home)
      o.arrive                     the line when she gets there (릴리가 집에 왔어요)
@@ -36,7 +45,10 @@
   /* the frame: the bank, the water's edge, the picture in the water, her pavement */
   const BANK = 262, WATER = 300, PIC = 316, GROUND = 744, CLOUDY = BANK - 158;
   const KINDS = ['lantern', 'cloud', 'plank', 'bean'];
-  const WIDTH = { lantern: 240, cloud: 240, plank: 140, bean: 70 };   /* how much of the street each need takes */
+  /* a shape two things make together: the plank stood on end under the cloud is an umbrella */
+  const PARTS = { umbrella: ['cloud', 'plank'] };
+  const parts = (k) => PARTS[k] || [k];
+  const WIDTH = { lantern: 240, cloud: 240, plank: 140, bean: 70, umbrella: 380 };   /* how much of the street each need takes */
   const TOL = { lantern: 70, cloud: 80, plank: 36, bean: 60 };          /* how near its thing must stand */
   const SNAP = 56, STEP = 36;
   const NAME = { lantern: '등불', cloud: '구름', plank: '판자', bean: '빈' };
@@ -46,6 +58,7 @@
     plank: '물웅덩이가 깊어요. 판자를 놓아 건너게 해 주세요',
     bean: '빈이 기다리던 자리예요. 빈을 그 위로 데려가 주세요',
     'lantern+cloud': '깜깜한 데다 비까지 와요. 등불과 구름을 함께 옮겨 주세요',
+    umbrella: '빗줄기가 가장 굵은 데예요. 구름 하나로는 다 못 가려요',
   };
   const LEVELS = {
     1: { len: 1900, helpers: [{ kind: 'lantern', x: 250 }, { kind: 'bean', x: 430 }], obstacles: [{ x: 760, need: 'lantern' }, { x: 1380, need: 'bean' }],
@@ -92,9 +105,26 @@
     [-len / 2 + 8, len / 2 - 8].forEach((nx) => P.fill(g, P.circle(nx, -4, 1.6), '#5a4030'));
     g.restore();
   }
+  /* an umbrella: the canopy's top at (x, y), its handle hanging below. In the water it is the cloud and the plank's
+     one shadow, pale and soft like Bean's */
+  function umbrellaShape(g, x, y, s, a, c, rib) {
+    g.save(); g.globalAlpha *= a; g.translate(x, y); g.scale(s, s);
+    P.line(g, 0, 4, 0, 118, 4, c);
+    g.strokeStyle = c; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(-8, 118, 8, 0, Math.PI); g.stroke();
+    g.beginPath(); g.moveTo(-74, 46); g.quadraticCurveTo(-70, -6, 0, -8); g.quadraticCurveTo(70, -6, 74, 46);
+    for (let i = 4; i >= 0; i--) { const x0 = -74 + i * 29.6; g.quadraticCurveTo(x0 + 14.8, 36, x0, 46); }
+    g.closePath(); g.fillStyle = c; g.fill();
+    if (rib) { g.strokeStyle = rib; g.lineWidth = 1.6; for (let i = 1; i < 5; i++) { const x0 = -74 + i * 29.6; g.beginPath(); g.moveTo(0, -6); g.quadraticCurveTo(x0 * 0.7, 6, x0, 44); g.stroke(); } }
+    P.fill(g, P.circle(0, -11, 3.4), c);
+    g.restore();
+  }
   function icon(g, kind, x, y, s, t) {
     g.save(); g.translate(x, y); g.scale(s, s);
-    if (kind === 'lantern') {
+    if (kind === 'umbrella') {
+      umbrellaShape(g, 0, -14, 0.24, 1, '#f3eefc', '#a9a2d0');
+      g.strokeStyle = '#a9c8ea'; g.lineWidth = 1.6; g.lineCap = 'round';
+      for (const d of [-14, 14]) { g.beginPath(); g.moveTo(d * 1.3, -20); g.lineTo(d * 1.3 - 2, -12); g.stroke(); }
+    } else if (kind === 'lantern') {
       P.glow(g, 0, 2, 26, '#ffd98a', 0.6);
       P.line(g, 0, -16, 0, -10, 2, '#433a4c');
       P.fill(g, P.poly([[-7, -8], [7, -8], [5, 8], [-5, 8]]), '#fff0b8');
@@ -136,7 +166,7 @@
   T.lakeHelp = function (o = {}) {
     const lv = LEVELS[o.level] || LEVELS[1];
     const LEN = o.len || lv.len, HOME = LEN - 150;
-    const V = { dark: true, mood: 'still', chord: 2, level: o.level || 1, started: false, finished: false, res: null, camX: 0, idle: 0, said: '', amp: 0, rip: [], spark: [] };
+    const V = { dark: true, mood: 'still', chord: 2, level: o.level || 1, started: false, finished: false, res: null, camX: 0, idle: 0, said: '', amp: 0, rip: [], spark: [], falls: [] };
     V.promise = new Promise((res) => { V.res = res; });
     V.sky = T.fx && T.fx.stars ? T.fx.stars() : null;   /* her own night sky, inside the water */
 
@@ -149,7 +179,7 @@
     ws = ws || (wst.kid ? 160 : 188);   /* a child comes up to a grown-up's chest; a grown-up is the size of the one at the door */
     const NAME_ = o.name || '릴리', named = (s) => (NAME_ === '릴리' ? s : s.replace(/릴리/g, NAME_));
     const BAG = o.bag == null ? !!wst.kid : !!o.bag;
-    const L = (V.lily = { x: o.startX || 120, ph: 0, v: 66, moving: false, wait: 0, mood: 'walk', relief: 0, home: 0, hop: 0, style: wst, s: ws });
+    const L = (V.lily = { x: o.startX || 120, ph: 0, v: 66, moving: false, wait: 0, mood: 'walk', relief: 0, home: 0, hop: 0, look: 0, style: wst, s: ws });
     const homeWho = o.home === false ? null : o.home && o.home.skin ? o.home : F.anaAt(41);
     /* the one at the door is drawn to the same scale as the one coming home: a child comes up to her chest */
     const homeS = o.homeS || (wst.kid ? 188 : ws), ARRIVE = o.arrive || named('릴리가 집에 왔어요'), CARRY = o.carry || null;
@@ -172,14 +202,14 @@
     const helpers = (V.helpers = (o.helpers || lv.helpers).map((h, i) => ({ kind: h.kind, x: h.x, i, go: null, ph: 0, flip: false, held: false, run: 0, lift: 0, pop: 0, seen: 0 })));
     /* a need with nothing on the bank to meet it would leave her waiting for ever: such needs are dropped */
     const obs = (V.obstacles = (o.obstacles || lv.obstacles).map((q) => {
-      const needs = (Array.isArray(q.need) ? q.need : [q.need]).filter((k) => KINDS.includes(k) && helpers.some((h) => h.kind === k));
-      return { x: q.x, needs, w: q.w || Math.max(0, ...needs.map((k) => WIDTH[k])), passed: false, metK: 0, waited: 0 };
+      const needs = (Array.isArray(q.need) ? q.need : [q.need]).filter((k) => parts(k).every((p) => KINDS.includes(p) && helpers.some((h) => h.kind === p)));
+      return { x: q.x, needs, w: q.w || Math.max(0, ...needs.map((k) => WIDTH[k])), say: q.say || null, porch: !!q.porch, passed: false, metK: 0, waited: 0, umbK: 0 };
     }).filter((q) => q.needs.length).sort((a, b) => a.x - b.x));
     const SCHOOL = -470;
     const houses = street(LEN, (o.seed || 7) + V.level * 13, [[SCHOOL - 20, SCHOOL + 480], [HOME - 130, HOME + 210]]), far = roofs(31 + V.level);
     const lamps = [];
     for (let x = -300; x < LEN + 900; x += 400) { const inDark = obs.some((q) => q.needs.includes('lantern') && Math.abs(x - q.x) < q.w / 2 + 80); if (!inDark) lamps.push(x); }
-    obs.forEach((q) => { if (q.needs.includes('lantern')) lamps.push(q.x); });
+    obs.forEach((q) => { if (q.needs.includes('lantern') && !q.porch) lamps.push(q.x); });
     let sel = -1, held = -1, dragDx = 0, moved = false, ptrX = 0, cursor = 'default';
 
     /* ---------- rules ---------- */
@@ -187,9 +217,16 @@
     const clampX = (x) => T.clamp(x, camL(), camR());
     const bean = () => helpers.find((h) => h.kind === 'bean');
     const near = (h, q) => Math.abs(h.x - q.x) <= TOL[h.kind];
+    /* the umbrella: the plank stood on end under the cloud, neither of them in hand. Its x on the bank, or null */
+    function umbrella() {
+      const c = helpers.find((h) => h.kind === 'cloud'), p = helpers.find((h) => h.kind === 'plank');
+      return c && p && !c.held && !p.held && c.go == null && p.go == null && Math.abs(c.x - p.x) < 30 ? c.x : null;
+    }
+    const stood = (h) => h.kind === 'plank' && umbrella() != null;   /* a plank that is the umbrella's handle is no bridge */
     function has(q, k) {
+      if (k === 'umbrella') { const u = umbrella(); return u != null && Math.abs(u - q.x) <= 80; }
       if (k === 'bean') { const b = bean(); if (b && b.run > 0) return true; }
-      return helpers.some((h) => h.kind === k && near(h, q));
+      return helpers.some((h) => h.kind === k && near(h, q) && !stood(h));
     }
     const met = (q) => q.needs.every((k) => has(q, k));
     const nextObs = () => obs.find((q) => !q.passed) || null;
@@ -200,17 +237,20 @@
       for (let oi = 0; oi < obs.length; oi++) {
         const q = obs[oi];
         if (q.passed) continue;
-        for (const k of q.needs) {
-          if (has(q, k)) continue;
-          let best = -1, bd = 1e9;
-          helpers.forEach((h, i) => {
-            if (h.kind !== k || (k === 'bean' && h.run > 0)) return;
-            const busy = obs.some((p, pi) => pi < oi && !p.passed && p.needs.includes(k) && near(h, p));   /* still needed where it is */
-            if (busy) return;
-            const d = Math.abs(h.x - q.x);
-            if (d < bd) { bd = d; best = i; }
-          });
-          if (best >= 0) return { q, k, h: best, tx: q.x };
+        for (const k0 of q.needs) {
+          if (has(q, k0)) continue;
+          for (const k of parts(k0)) {
+            if (k !== k0 && helpers.some((h) => h.kind === k && Math.abs(h.x - q.x) < 20)) continue;   /* this half of it is there */
+            let best = -1, bd = 1e9;
+            helpers.forEach((h, i) => {
+              if (h.kind !== k || (k === 'bean' && h.run > 0)) return;
+              const busy = obs.some((p, pi) => pi < oi && !p.passed && p.needs.some((n) => parts(n).includes(k)) && near(h, p));   /* still needed where it is */
+              if (busy) return;
+              const d = Math.abs(h.x - q.x);
+              if (d < bd) { bd = d; best = i; }
+            });
+            if (best >= 0) return { q, k, h: best, tx: q.x, whole: k0 };
+          }
         }
       }
       return null;
@@ -219,7 +259,7 @@
     function settle(h, from) {
       let best = null, bd = 1e9;
       for (const q of obs) {
-        if (q.passed || !q.needs.includes(h.kind)) continue;
+        if (q.passed || !q.needs.some((n) => parts(n).includes(h.kind))) continue;
         const d = Math.abs(h.x - q.x);
         if (from != null) {   /* moved by a key: only onto a place it is heading for, never back onto the one it left */
           const dir = Math.sign(h.x - from), d0 = (q.x - from) * dir, d1 = (q.x - h.x) * dir;
@@ -227,9 +267,16 @@
         } else if (d > SNAP) continue;
         if (d < bd) { bd = d; best = q; }
       }
-      if (!best || Math.abs(h.x - best.x) < 0.5) return;
-      h.x = best.x; h.go = null; h.pop = 1;
-      if (T.audio) { T.audio.sfx('join'); T.audio.step(KINDS.indexOf(h.kind) * 2 + 3, { voice: 'glass', vel: 0.34 }); }
+      if (!best || (Math.abs(h.x - best.x) < 0.5 && h.at === best)) return;
+      h.x = best.x; h.go = null; h.pop = 1; h.at = best;
+      if (!(umbrella() != null && parts('umbrella').includes(h.kind))) fall(h.kind, best.x);   /* (one that makes an umbrella goes down as the umbrella) */
+    }
+    /* its shadow goes down into her street, the look every lake shares, and she looks up */
+    const LAND = { lantern: GROUND - 170, cloud: GROUND - 300, plank: GROUND + 4, bean: GROUND - 40, umbrella: GROUND - 236 };
+    function fall(kind, wx) {
+      T.shadowFall.add(V.falls, { wx, x: wx - V.camX, top: WATER + 4, y: LAND[kind], r: kind === 'umbrella' ? 96 : kind === 'cloud' ? 80 : 62, warm: kind === 'lantern' || kind === 'bean' || kind === 'umbrella' });
+      V.amp = Math.max(V.amp, 0.5);
+      if (Math.abs(wx - L.x) < 520) L.look = 1.8;
     }
     function pick(i) {
       if (i < 0 || i >= helpers.length) return;
@@ -256,7 +303,8 @@
       V.coach = T.puzzle.coach({
         idle: () => V.idle, stuck: () => { const q = nextObs(); return q && !L.moving && !met(q) ? Math.min(V.idle, q.waited) : 0; },
         live: () => V.started && !V.finished && !V.auto, hintAt: () => V.hintAt(), r: 46,
-        tip: '물가의 것을 끌어서 막힌 길 위에 놓아요', solve: () => { V.auto = true; held = -1; helpers.forEach((h) => { h.held = false; }); },
+        tip: () => { const n = nextNeed(); return n && n.whole === 'umbrella' ? '두 가지를 겹쳐 놓으면, 그림자가 새 모양이 돼요' : '물가의 것을 끌어서 막힌 길 위에 놓아요'; },
+        solve: () => { V.auto = true; held = -1; helpers.forEach((h) => { h.held = false; }); },
       });
     };
     V.done = function () { V.start(); return V.promise; };
@@ -336,6 +384,7 @@
       if (V.sky) V.sky.update(dt);
       for (const h of helpers) {
         h.pop = Math.max(0, h.pop - dt * 1.8);
+        if (h.at && Math.abs(h.x - h.at.x) > 0.5) h.at = null;   /* (it has left the place it last went down at) */
         h.lift += ((h.held || h.go != null ? 1 : 0) - h.lift) * Math.min(1, dt * 10);
         if (held >= 0 && helpers[held] === h) { const nx = clampX(ptrX + V.camX + dragDx); if (nx !== h.x) { h.ph += Math.abs(nx - h.x) / 9; h.x = nx; } }
         else if (h.go != null) {
@@ -348,8 +397,17 @@
         }
       }
       /* things left behind at that edge make room for each other instead of piling up */
-      const spare = helpers.filter((h) => !h.held && h.go == null && !(h.run > 0) && h.x < camL() + 240 && !obs.some((q) => !q.passed && q.needs.includes(h.kind) && near(h, q))).sort((a, b) => a.x - b.x);
+      const spare = helpers.filter((h) => !h.held && h.go == null && !(h.run > 0) && h.x < camL() + 240 && !obs.some((q) => !q.passed && q.needs.some((n) => parts(n).includes(h.kind)) && near(h, q))).sort((a, b) => a.x - b.x);
       for (let i = 1; i < spare.length; i++) if (spare[i].x < spare[i - 1].x + 70) { const nx = spare[i - 1].x + 70; spare[i].ph += (nx - spare[i].x) / 9; spare[i].x = nx; }
+      /* the umbrella's shadow: where the cloud and the plank stand together, and over her while she is under it */
+      const ub = umbrella();
+      V.umbK = (V.umbK || 0) + ((ub != null ? 1 : 0) - (V.umbK || 0)) * Math.min(1, dt * 2.6);
+      if (ub != null) {
+        const uq = obs.find((p) => p.needs.includes('umbrella') && Math.abs(ub - p.x) <= 80);
+        const tx = uq && L.x > uq.x - uq.w / 2 - 80 ? T.clamp(L.x + 4, uq.x - uq.w / 2 + 20, uq.x + uq.w / 2 + 60) : ub;
+        V.umbX = V.umbX == null ? tx : V.umbX + (tx - V.umbX) * Math.min(1, dt * 5);
+        V.umbOut = uq ? T.clamp((L.x - (uq.x + uq.w / 2 + 70)) / 140) : 0;   /* out of the downpour, it lets her go on alone */
+      } else if (V.umbK < 0.02) V.umbX = null;
       if (!V.started) { L.mood = L.hold ? 'scared' : 'walk'; friendStep(dt); V.camX += (camTarget() - V.camX) * Math.min(1, dt * 3); return; }
       if (V.finished) { L.home = Math.min(1, L.home + dt / 2.4); L.moving = false; leo.moving = false; friendStep(dt); return; }
       /* where she may walk to */
@@ -360,7 +418,7 @@
       if (q && !met(q)) limit = Math.max(L.x, entryOf(q));
       /* Bean comes to her where he used to wait, and walks along with her a while */
       if (q && b && b.run <= 0 && q.needs.includes('bean') && near(b, q) && L.x >= entryOf(q) - 30) {
-        b.run = 380; b.held = false; if (held >= 0 && helpers[held] === b) held = -1; b.go = null;
+        b.run = o.beanHome ? Math.max(380, HOME - 46 - L.x + 2) : 380; b.held = false; if (held >= 0 && helpers[held] === b) held = -1; b.go = null;
         if (T.audio) { T.audio.sfx('bark', 0.4); T.audio.step(7, { voice: 'glass', vel: 0.36 }); }
         burst(L.x + 40, GROUND - 40, '#fff6e6');
       }
@@ -375,7 +433,11 @@
       if (!L.moving && q && !met(q)) L.stopQ = q;
       L.relief = Math.max(0, L.relief - dt * 0.8);
       if (b && b.run > 0) { b.run -= step; b.x = L.x + 52; b.ph += step / 5; b.flip = false; if (b.run <= 0) { b.run = 0; burst(b.x, GROUND - 30, '#ffffff'); } }
-      obs.forEach((p) => { p.metK += ((met(p) || p.passed ? 1 : 0) - p.metK) * Math.min(1, dt * 3); });
+      obs.forEach((p) => {
+        p.metK += ((met(p) || p.passed ? 1 : 0) - p.metK) * Math.min(1, dt * 3);
+        if (p.needs.includes('umbrella')) { const on = has(p, 'umbrella'); if (on && !p.umbOn && !p.passed) fall('umbrella', V.umbX != null ? V.umbX : umbrella()); p.umbOn = on; p.umbK += ((on ? 1 : 0) - p.umbK) * Math.min(1, dt * 2.4); }
+      });
+      L.look = Math.max(0, L.look - dt);
       /* Leo keeps pace above her, a little behind */
       const lt = L.x - 110, ld = lt - leo.x;
       leo.moving = Math.abs(ld) > 1;
@@ -383,7 +445,7 @@
       leo.ph += Math.abs(ld) > 1 ? (Math.min(Math.abs(ld), 80 * dt)) / 10 : 0;
       /* her feeling, in a word */
       const firstUnmet = q && !met(q) ? q.needs.find((k) => !has(q, k)) : null;
-      L.mood = !L.moving && firstUnmet ? { lantern: 'scared', cloud: 'huddle', plank: 'edge', bean: 'sad' }[firstUnmet] : happy ? 'happy' : L.relief > 0.3 ? 'relief' : 'walk';
+      L.mood = !L.moving && firstUnmet ? { lantern: 'scared', cloud: 'huddle', plank: 'edge', bean: 'sad', umbrella: 'huddle' }[firstUnmet] : happy ? 'happy' : L.relief > 0.3 ? 'relief' : 'walk';
       friendStep(dt);
       V.camX += (camTarget() - V.camX) * Math.min(1, dt * 2.2);
       if (L.x >= HOME - 46.5) {
@@ -453,7 +515,8 @@
           if (has(q, k)) return;
           const gx = sx + (q.needs.length > 1 ? (j - 0.5) * 18 : 0);
           g.save(); g.globalAlpha = 0.16 + 0.14 * pulse;
-          if (k === 'lantern') { P.line(g, gx, BANK, gx, BANK - 100, 4, '#fff3d6'); P.fill(g, P.rr(gx + 12, BANK - 104, 18, 26, 4), '#fff3d6'); }
+          if (k === 'umbrella') { cloudPuff(g, gx, CLOUDY, 1, 1, '#fff3d6', '#fff3d6'); g.save(); g.translate(gx, BANK - 8); g.rotate(-Math.PI / 2); plankShape(g, 62, 0, 140, 1, 0); g.restore(); }
+          else if (k === 'lantern') { P.line(g, gx, BANK, gx, BANK - 100, 4, '#fff3d6'); P.fill(g, P.rr(gx + 12, BANK - 104, 18, 26, 4), '#fff3d6'); }
           else if (k === 'cloud') cloudPuff(g, gx, CLOUDY, 1, 1, '#fff3d6', '#fff3d6');
           else if (k === 'plank') plankShape(g, gx, BANK - 8, 140, 1, 0);
           else F.dog(g, { x: gx, y: BANK + 2, s: 190, sit: 1, tintAll: '#fff3d6', flatLook: true });
@@ -479,13 +542,18 @@
         P.fill(g, P.ellipse(sx, BANK + 1, 46, 6), 'rgba(80,60,110,0.16)');
         cloudPuff(g, sx, CLOUDY + Math.sin(t * 1.4 + i) * 5 - lift, 1, 1);
       } else if (h.kind === 'plank') {
-        plankShape(g, sx, BANK - 8 - lift * 1.4, 140, 1, h.lift * 0.05 + Math.sin(t * 7) * 0.02 * h.lift);
+        if (stood(h)) {   /* stood on end under the cloud: its handle */
+          const k = T.ease.io(T.clamp(V.umbK || 0));
+          g.save(); g.translate(sx, BANK - 8); g.rotate(-k * Math.PI / 2); g.translate(-sx, -(BANK - 8));
+          plankShape(g, sx + k * 62, BANK - 8, 140, 1, 0);
+          g.restore();
+        } else plankShape(g, sx, BANK - 8 - lift * 1.4, 140, 1, h.lift * 0.05 + Math.sin(t * 7) * 0.02 * h.lift);
       } else {
         const walking = h.held || h.go != null || h.run > 0 || (held < 0 && h.lift > 0.2);
         F.dog(g, { x: sx, y: BANK + 2 - (h.held ? 4 : 0), s: 190, sit: walking ? 0 : 1, walk: walking ? h.ph : null, flip: h.flip, wag: Math.sin(t * 9) * 0.8, headTilt: walking ? 0 : 0.12 });
       }
       /* its number, for the keys */
-      if (!V.finished) { P.fill(g, P.circle(sx, BANK + 22, 11), s ? 'rgba(255,233,192,0.95)' : 'rgba(40,34,62,0.45)'); P.text(g, String(i + 1), sx, BANK + 28, { font: 'serif', size: 16, color: s ? '#3d3a5c' : '#f3ead8' }); }
+      if (!V.finished) { const nx = sx + (stood(h) ? 26 : 0); P.fill(g, P.circle(nx, BANK + 22, 11), s ? 'rgba(255,233,192,0.95)' : 'rgba(40,34,62,0.45)'); P.text(g, String(i + 1), nx, BANK + 28, { font: 'serif', size: 16, color: s ? '#3d3a5c' : '#f3ead8' }); }
     }
     function drawLeo(g, t) {
       const sx = leo.x - V.camX, st = leo.style;
@@ -553,7 +621,8 @@
       P.fill(g, P.rr(s + 16, GROUND - 238, 24, 16, 5), broken ? T.mix('#4a4f6a', '#fff0b8', fl) : '#fff0b8');
       if (fl > 0.03) { P.glow(g, s + 28, GROUND - 226, 150, '#ffd98a', 0.45 * fl); g.save(); g.translate(s + 28, GROUND + 8); g.scale(1, 0.18); P.glow(g, 0, 0, 160, '#ffd98a', 0.55 * fl); g.restore(); }
     }
-    function sheltered(x) { return helpers.some((h) => h.kind === 'cloud' && Math.abs(h.x - x) < 140); }
+    const underUmb = (x) => V.umbX != null && V.umbK * (1 - (V.umbOut || 0)) > 0.4 && Math.abs(V.umbX - x) < 92;
+    function sheltered(x) { return underUmb(x) || helpers.some((h) => h.kind === 'cloud' && Math.abs(h.x - x) < 140); }
     function paintStreet(g, t) {
       const W = T.view.W, cam = V.camX;
       /* the night sky over her street, and the far roofs */
@@ -587,9 +656,16 @@
       { const x = sx_(HOME - 110), lit = 0.8 + 0.2 * L.home;
         g.fillStyle = '#8a6f7e'; g.fillRect(x, GROUND - 290, 300, 290); P.fill(g, P.poly([[x - 18, GROUND - 288], [x + 150, GROUND - 380], [x + 318, GROUND - 288]]), '#4a3d5e');
         P.fill(g, P.rr(x + 180, GROUND - 230, 70, 70, 3), '#ffd58a'); P.glow(g, x + 215, GROUND - 195, 90, '#ffcf7a', 0.5);
-        P.fill(g, P.rr(x + 80, GROUND - 120, 64, 120, 4), '#ffe2a0');
-        P.glow(g, x + 112, GROUND - 60, 150 * lit, '#ffd98a', 0.75 * lit);
-        g.save(); g.translate(x + 112, GROUND + 10); g.scale(1, 0.2); P.glow(g, 0, 0, 220, '#ffd98a', 0.6 * lit); g.restore();
+        if (o.porch) {   /* her own door, shut, with its lamp beside it: out, until a light comes to it */
+          const pq = obs.find((q) => q.porch), on = pq ? T.clamp(pq.metK) : 1;
+          P.fill(g, P.rr(x + 80, GROUND - 120, 64, 120, 4), '#5a8fa0'); P.fill(g, P.circle(x + 132, GROUND - 60, 4), '#e3b64f');
+          P.fill(g, P.rr(x + 156, GROUND - 146, 22, 30, 6), T.mix('#4a4f6a', '#fff0b8', on));
+          if (on > 0.02) { P.glow(g, x + 167, GROUND - 132, 170, '#ffd98a', 0.8 * on); g.save(); g.translate(x + 120, GROUND + 10); g.scale(1, 0.2); P.glow(g, 0, 0, 220, '#ffd98a', 0.6 * on); g.restore(); }
+        } else {
+          P.fill(g, P.rr(x + 80, GROUND - 120, 64, 120, 4), '#ffe2a0');
+          P.glow(g, x + 112, GROUND - 60, 150 * lit, '#ffd98a', 0.75 * lit);
+          g.save(); g.translate(x + 112, GROUND + 10); g.scale(1, 0.2); P.glow(g, 0, 0, 220, '#ffd98a', 0.6 * lit); g.restore();
+        }
         P.fill(g, P.rr(x + 70, GROUND - 4, 84, 6, 2), '#b9a58e');
         if (homeWho) {   /* someone at the door, watching for her */
           const near = T.clamp((L.x - (HOME - 500)) / 400), hug = T.ease.io(L.home), hk = homeS / 188;
@@ -633,10 +709,19 @@
       /* what the bank lends her: a plank over the water, Bean */
       for (const h of helpers) {
         const s = sx_(h.x);
-        if (h.kind === 'plank') { g.save(); g.globalAlpha = 0.95; plankShape(g, s, GROUND + 14, 170, 1, 0); g.restore(); P.glow(g, s, GROUND + 10, 70, '#ffe2a8', 0.18); }
+        if (h.kind === 'plank' && !stood(h)) { g.save(); g.globalAlpha = 0.95; plankShape(g, s, GROUND + 14, 170, 1, 0); g.restore(); P.glow(g, s, GROUND + 10, 70, '#ffe2a8', 0.18); }
       }
       /* her */
       drawLily(g, t);
+      if (V.umbX != null && V.umbK * (1 - (V.umbOut || 0)) > 0.01) {   /* the umbrella the cloud and the plank make: pale, soft, over her head */
+        const ux = sx_(V.umbX), uy = GROUND - L.s * 1.32 - 24 + Math.sin(t * 1.3) * 2, k = T.ease.io(T.clamp(V.umbK)) * (1 - (V.umbOut || 0));
+        P.glow(g, ux, uy + 20, 130, '#fff6e6', 0.3 * k);
+        umbrellaShape(g, ux, uy, 0.92 + 0.08 * k, 0.62 * k, '#fbf6ee', 'rgba(150,160,200,0.5)');
+        /* the rain finding it instead of her: little splashes on its top */
+        g.save(); g.strokeStyle = T.rgba('#e6eeff', 0.7 * k); g.lineWidth = 1.5;
+        for (let i = 0; i < 6; i++) { const life = (t * 2.4 + i / 6) % 1, x = ux - 56 + i * 22 + Math.sin(i * 3) * 5, y = uy - 4 + Math.abs(x - ux) * 0.3; g.globalAlpha = 1 - life; g.beginPath(); g.arc(x, y - life * 6, 2 + life * 5, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); }
+        g.restore();
+      }
       const b = bean();
       if (b && !(b.run > 0)) { const s = sx_(b.x); g.save(); g.globalAlpha = 0.5 + 0.08 * Math.sin(t * 2); P.glow(g, s, GROUND - 30, 70, '#fff6e6', 0.3); F.dog(g, { x: s, y: GROUND + 2, s: 180, sit: 1, wag: Math.sin(t * 6) * 0.4, flatLook: true }); g.restore(); }
       /* the dark stretches: dark until a light comes, then a pool of it */
@@ -674,28 +759,34 @@
         g.moveTo(x, y); g.lineTo(x - 4, y + 18);
       }
       g.stroke();
+      /* where the rain comes down hard, and, where it is heaviest of all, so hard a cloud alone lets half of it through */
+      const cl = helpers.find((h) => h.kind === 'cloud');
       for (const q of obs) {
-        if (!q.needs.includes('cloud')) continue;
+        const heavy = q.needs.includes('umbrella');
+        if (!q.needs.includes('cloud') && !heavy) continue;
         const s = sx_(q.x);
         if (s < -W / 2 - 300 || s > W / 2 + 300) continue;
-        const cover = sheltered(q.x);
-        if (!cover) { g.fillStyle = 'rgba(150,170,210,0.13)'; g.fillRect(s - q.w / 2, PIC, q.w, GROUND - PIC + 30); }
-        g.strokeStyle = 'rgba(214,226,250,0.62)'; g.lineWidth = 1.8; g.beginPath();
-        for (let i = 0; i < 90; i++) {
-          const x = s - q.w / 2 + ((i * 37.7) % q.w), y = PIC + ((i * 71.3 + t * 820) % (GROUND - PIC + 20));
-          if (cover && Math.abs(x + V.camX - helpers.find((h) => h.kind === 'cloud').x) < 140) continue;
-          g.moveTo(x, y); g.lineTo(x - 6, y + 28);
+        const cover = heavy ? has(q, 'umbrella') : sheltered(q.x);
+        if (!cover) { g.fillStyle = heavy ? 'rgba(150,170,210,0.2)' : 'rgba(150,170,210,0.13)'; g.fillRect(s - q.w / 2, PIC, q.w, GROUND - PIC + 30); }
+        g.strokeStyle = heavy ? 'rgba(220,230,252,0.7)' : 'rgba(214,226,250,0.62)'; g.lineWidth = heavy ? 2.3 : 1.8; g.beginPath();
+        const n = heavy ? 170 : 90;
+        for (let i = 0; i < n; i++) {
+          const x = s - q.w / 2 + ((i * 37.7) % q.w), y = PIC + ((i * 71.3 + t * (heavy ? 980 : 820)) % (GROUND - PIC + 20)), xw = x + V.camX;
+          if (underUmb(xw) && y > GROUND - 260) continue;   /* the umbrella's shadow keeps it off her */
+          if (cl && Math.abs(xw - cl.x) < 140 && (!heavy || i % 2)) continue;
+          g.moveTo(x, y); g.lineTo(x - (heavy ? 8 : 6), y + (heavy ? 34 : 28));
         }
         g.stroke();
-        if (!cover) for (let i = 0; i < 10; i++) { const x = s - q.w / 2 + ((i * 53.1 + Math.floor(t * 6) * 17) % q.w); g.strokeStyle = 'rgba(214,226,250,0.5)'; g.beginPath(); g.arc(x, GROUND + 6, 5, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+        if (!cover) for (let i = 0; i < (heavy ? 18 : 10); i++) { const x = s - q.w / 2 + ((i * 53.1 + Math.floor(t * 6) * 17) % q.w); g.strokeStyle = 'rgba(214,226,250,0.5)'; g.beginPath(); g.arc(x, GROUND + 6, 5, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
       }
       g.restore();
       /* the cloud: in her sky, a soft roof, and a dry patch under it */
       for (const h of helpers) {
         if (h.kind !== 'cloud') continue;
-        const s = sx_(h.x);
-        g.save(); g.translate(s, GROUND + 14); g.scale(1, 0.12); P.glow(g, 0, 0, 150, '#c8d6f0', 0.35); g.restore();
-        cloudPuff(g, s, GROUND - 300 + Math.sin(t * 1.4) * 4, 1.9, 0.82, '#e8e6fa', '#9a96c6');
+        const s = sx_(h.x), own = 1 - (umbrella() != null ? T.clamp(V.umbK) : 0);   /* with the plank under it, the two make one shadow, the umbrella */
+        if (own < 0.01) continue;
+        g.save(); g.translate(s, GROUND + 14); g.scale(1, 0.12); P.glow(g, 0, 0, 150, '#c8d6f0', 0.35 * own); g.restore();
+        cloudPuff(g, s, GROUND - 300 + Math.sin(t * 1.4) * 4, 1.9, 0.82 * own, '#e8e6fa', '#9a96c6');
       }
       /* what each place still needs, over it */
       for (const q of obs) {
@@ -744,6 +835,7 @@
       else if (m === 'happy') { o.headTilt = 0.02; o.face = { eye: 'happy', mouth: 'smile', blush: 0.42 }; }
       else if (m === 'relief') { o.headTilt = -0.12; o.face = { eye: 'open', mouth: 'smile', blush: 0.34 }; }
       else if (!sheltered(L.x)) { o.headTilt = 0.22; }   /* head down in the drizzle */
+      if (L.look > 0 && !V.finished) { const k = T.ease.io(T.clamp(L.look / 0.5)) * T.clamp(L.look) * T.ease.io(T.clamp((1.8 - L.look) / 0.35)); o.headTilt = T.lerp(o.headTilt, -0.32, k); o.face = Object.assign({}, o.face, { eye: 'open' }); }   /* something came: she looks up */
       /* the collar: held out as she walks, hugged close when she is frightened or cold, looked at where Bean waited */
       const chest = [s + 6 * u + Math.sin(o.lean) * 14, y - 13 * u];
       if (!V.finished) {
@@ -863,11 +955,15 @@
       g.save(); g.lineWidth = 2;
       for (const r of V.rip) { const age = t - r.t; if (age > 2.4) continue; for (let k = 0; k < 3; k++) { const a = age - k * 0.3; if (a < 0) continue; g.strokeStyle = T.rgba('#dfeeff', 0.45 * (1 - a / 2.4)); g.beginPath(); g.ellipse(r.x, r.y, a * 100, a * 30, 0, 0, TAU); g.stroke(); } }
       g.restore();
+      for (const f of V.falls) f.x = f.wx - V.camX;
+      T.shadowFall.draw(g, V.falls, t);
       /* words */
       if (V.started && !V.finished) {
         const q = nextObs(), waiting = q && !L.moving && !met(q) && q.waited > 0.6;
         let line = o.caption || lv.caption;
-        if (waiting) { const miss = q.needs.filter((k) => !has(q, k)); line = SAYS[miss.length > 1 ? miss.join('+') : miss[0]] || SAYS[miss[0]]; }
+        const nn = nextNeed();
+        if (waiting) { const miss = q.needs.filter((k) => !has(q, k)); line = q.say || SAYS[miss.length > 1 ? miss.join('+') : miss[0]] || SAYS[miss[0]]; }
+        else if (nn && helpers[nn.h].x < L.x - 60 && nn.q.x > L.x) line = '지나온 자리의 것은 다시 앞으로 옮길 수 있어요';   /* 앞질러: what she has passed can go on ahead of her */
         else if (bean() && bean().run > 0) line = named('빈의 그림자가 릴리 곁을 따라 걸어요');
         T.band(g, 1);
         P.text(g, waiting || V.auto ? line : T.puzzle.withKeys(line, 'move'), 0, 866, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.95, glow: 'rgba(8,12,22,0.9)', fit: W - 120 });
