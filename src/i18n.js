@@ -245,8 +245,8 @@
  "그 풀은 맨 마지막이에요. 아나가 불을 끄기 직전에 넣었어요": "That herb goes in last. Ana put it in just before taking it off the heat.",
  "아나는 그걸 이때 넣지 않았어요. 공책의 차례를 봐요": "Ana didn't put that in now. Look at the order in the notebook.",
  "공책에 적은 차례대로 재료를 눌러 넣으세요": "Tap the ingredients in the order written in the notebook",
- "로사는 요람 옆 빈 걸상에, 실바구니는 요람 발치에, 등불은 어두운 창에. 좌우로 끌어 점선에 맞춰 보세요": "Rosa on the empty stool by the cradle, the yarn basket at its foot, the lamp in the dark window. Slide them onto the dotted shapes.",
- "등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 물가에서 좌우로 끌어 점선에 맞춰 보세요": "The lamp in the dark window, the pot on Ana's pot, Leo where he always sat on the counter. Slide them along the bank onto the dotted shapes.",
+ "로사는 요람 옆 빈 걸상에, 등불은 어두운 창에. 물가 가까이 데려가야 그림자가 짙게 앉아요": "Rosa on the empty stool by the cradle, the lantern on the dark window. Only near the water do their shadows fall dark enough to stay",
+ "등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 그림자가 그 위에 겹치게 물가에서 옮겨 보세요": "The lantern on the dark window, the pot on Ana's pot, Leo in the place on the counter where Ana used to sit. Move them along the bank until their shadows lie over those",
  "떠나보낼 때는 거꾸로예요. 마지막에 울린 등불부터. 종이 한 번 더 물어요": "To see someone off, answer backwards: the last lamp first. The bell will ask again.",
  "등불이 자리를 바꿨어요. 울린 색을 따라가 보세요. 종이 한 번 더 물어요": "The lamps have changed places. Follow the colors that rang. The bell will ask again.",
  "떠나보낼 때는 거꾸로, 마지막에 울린 등불부터 눌러 주세요 · 종을 누르면 다시 들려줘요": "To see someone off, answer backwards: tap the last lamp first · Tap the bell to hear it again",
@@ -507,7 +507,6 @@
  "…혼자 기다리기엔, 너무 작네요.": "...She's very small, to be waiting on her own.",
  "그러니까 다들 한 번씩 들여다봐 주는 거지.\n너도 그래 줘.": "That's why we all look in on her now and then.\nYou do it too.",
  "…그럼 릴리는,\n이제 혼자 걷겠구나.": "...So Lily's going to be\nwalking on her own now.",
- "빈은 릴리 발치 늘 앉던 자리에, 공은 풀밭에, 등불은 꺼진 현관 등에, 구름이는 릴리 옆 계단에. 좌우로 끌어 점선에 맞춰 보세요": "Bean in his old place at Lily's feet, the ball in the grass, the lantern on the dark porch light, Cloudy on the step beside Lily. Drag them left and right onto the dotted outlines",
  "휴… 또 틀렸네.": "Oh... wrong again.",
  "또 푸세요?": "Pulling it out again?",
  "몇 해째 이래.\n줄무늬 차례가 자꾸 헷갈려서.": "Years, it's been like this.\nI keep mixing up the order of the stripes.",
@@ -640,7 +639,6 @@
  "빛을 하나씩 눌러 노래를 들어 봐요": "Tap the lights one by one to hear their songs",
  "별 그림 편지가 레오 손 가까이 올 때 눌러요": "Tap the letter with the star when it comes near Leo's hand",
  "왼쪽이나 오른쪽을 눌러 방을 돌려요": "Tap left or right to turn the room",
- "눌러서 릴리 곁을 걸어요. 한 번 더 누르면 멈춰요": "Tap to walk beside Lily. Tap again to stop",
  "영차!": "Heave!",
  "아직!": "Not yet!",
  "숨 맞추고!": "Breathe together!",
@@ -745,7 +743,15 @@
  "그럼 저기 흘려보내.\n저 물, 아래까지 간대.": "Then float it down there.\nThey say that water goes all the way down.",
  "빛을 끌어다 개울물에 놓아 주세요": "Drag the light into the stream",
  "레오 손의 빛을 끌어다 개울물에 놓아요": "Drag the light in Leo's hands into the stream",
- "다음 날 아침": "The next morning"
+ "다음 날 아침": "The next morning",
+ "스페이스로 고르고 화살표로 옮겨요": "Space to pick, the arrow keys to move",
+ "물가에 가까이 둘수록 그림자가 크고 짙어져요": "The nearer the water, the larger and darker the shadow",
+ "가까이 가 봐야겠다.\n멀리선 그림자도 흐리거든.": "I'd better go closer.\nFrom far off, even a shadow is faint.",
+ "릴리가 닿기 전에, 가는 길에 먼저 놓아 두세요": "Put things on her way before Lily gets there",
+ "현관 등이 꺼져 있어요. 등불을 그 위로 옮겨 주세요": "The porch light is out. Move the lantern over it",
+ "빗줄기가 가장 굵은 데예요. 구름 하나로는 다 못 가려요": "This is where the rain is heaviest. One cloud can't keep it all off",
+ "두 가지를 겹쳐 놓으면, 그림자가 새 모양이 돼요": "Lay two things one over the other, and their shadow takes a new shape",
+ "릴리 걸음에 맞춰, 곁에서 걸어요": "Keep pace with Lily, walking beside her"
 };
   /* hand-lettered lines that need less room than they were given */
   const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "항구": 0.9, "꿈": 0.8, "이웃들": 0.72, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.64, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.8, "오로라 보러 가기": 0.74, "릴리의 그네": 0.8, "같이 늙기": 0.8, "약한 불에, 오래오래": 0.8, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};

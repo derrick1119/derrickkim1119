@@ -640,13 +640,15 @@
       await X.walk(leo, C.PLOT + 380, 84);
       await X.wait(0.6);
       /* her kitchen is dark this year: she is out in the rain with a basket, on her way to Lily's. From the bank he
-         lights her way, the way he once walked Lily home from school */
+         lights her way, the way he once walked Lily home from school. 겹치기: two things make one shadow (a light and
+         a cloud where it is dark and raining at once), and where the rain is heaviest a cloud alone will not do: the
+         plank stood up under it, and their one shadow is an umbrella that goes along over her */
       const way = T.lakeHelp({
         level: 3, len: 3000, who: { style: F.anaAt(73), s: 150 }, name: '아나', home: F.lilyAt(43), homeS: 160, carry: 'basket', arrive: '아나가 릴리네 집에 왔어요',
         from: 'house', steady: true, say: { lantern: '길이 깜깜해요. 등불을 그 위로 옮겨 주세요' },
         leoAge: 3, friend: { style: F.styles.cloud, beside: false },
         helpers: [{ kind: 'lantern', x: 210 }, { kind: 'plank', x: 340 }, { kind: 'cloud', x: 470 }],
-        obstacles: [{ x: 700, need: 'lantern' }, { x: 1300, need: ['lantern', 'cloud'] }, { x: 1980, need: ['plank', 'cloud'] }, { x: 2600, need: 'lantern' }],
+        obstacles: [{ x: 680, need: 'lantern' }, { x: 1160, need: 'plank' }, { x: 1680, need: ['lantern', 'cloud'] }, { x: 2320, need: 'umbrella', w: 400 }],
       });
       await X.view(way, { color: '#1b2a40' });
       X.age('아나, 73');

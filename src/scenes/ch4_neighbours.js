@@ -281,20 +281,19 @@
       kumo.chair = 0; kumo.look = true; X.walk(kumo, 800, 80);
       await X.wait(1.2);
 
-      /* ---- the lake, the one time in this chapter: Lily walking home from school in the rain, then on the back
-         step with his collar, and her mother coming out to her ---- */
+      /* ---- the lake, the one time in this chapter: one walk. Lily goes home from school in the rain with his
+         collar, and he puts things ahead of her on the way (앞질러): a light over the dark stretch, Bean where Bean
+         used to wait for her, and the same light carried on ahead again to her own door, whose lamp is out. Bean's
+         shadow walks the rest of the way with her. At the door the water comes in close: she sits down on the back
+         step, and what came home with her settles round her there; her mother comes out to her ---- */
       const lakeB = T.lake({
         paint: T.vig.lilyBean, leo: F.leoAt(0), mom: F.styles.rosa, shore: true, ana: { k: 0 },
-        rhText: '빈은 릴리 발치 늘 앉던 자리에, 공은 풀밭에, 등불은 꺼진 현관 등에, 구름이는 릴리 옆 계단에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
-          { kind: 'dog', id: 'bean', x: -330, at: [140, 634], flip: false, lockFlip: false, ps: 300 },
-          { kind: 'ball', id: 'ball', x: 300, at: [-150, 700],
-            bank: (g, x) => { P.fill(g, P.circle(x, 212, 15), '#e3b64f'); P.line(g, x - 12, 206, x + 12, 218, 2, '#c99a2a'); },
-            ghost: (g, x, dy, near, lit) => { if (lit > 0.97) return; g.globalAlpha = (0.4 + 0.3 * near) * (1 - lit); P.fill(g, P.circle(x, dy - 4, 13), '#101c33'); } },
-          { kind: 'lamp', id: 'lamp', x: -60, at: [383, 380] },
+          { kind: 'dog', id: 'bean', x: 98, at: [140, 634], flip: false, lockFlip: false, ps: 300 },
+          { kind: 'lamp', id: 'lamp', x: 250, at: [383, 380] },
           /* the one who walked the bank with him: her shadow sits down on the step, a little way along from Lily,
              with room between them (where, later, her mother sits) */
-          { kind: 'who', id: 'cloud', style: F.styles.cloud, x: 440, at: [414, 622], ps: 236, bs: 108, flip: true, lockFlip: true, face: { blush: 0.24 },
+          { kind: 'who', id: 'cloud', style: F.styles.cloud, x: 330, at: [414, 622], ps: 236, bs: 108, flip: true, lockFlip: true, face: { blush: 0.24 },
             pose: (o, t, L, inPic) => {
               if (!inPic) return;
               const lean = L.beat >= 3 && L.ana ? T.smooth(T.clamp((L.ana.k - 0.7) / 0.3)) : 0;   /* she leans in toward the warmth beside her */
@@ -303,7 +302,11 @@
             } },
         ],
       });
-      const help = T.lakeHelp({ level: 1, leoAge: 1, who: F.lilyAt(11, { knit: F.KNIT }), friend: F.styles.cloud });
+      const help = T.lakeHelp({
+        level: 1, leoAge: 1, who: F.lilyAt(11, { knit: F.KNIT }), friend: F.styles.cloud, home: false, porch: true, beanHome: true,
+        caption: '릴리가 닿기 전에, 가는 길에 먼저 놓아 두세요',
+        obstacles: [{ x: 760, need: 'lantern' }, { x: 1380, need: 'bean' }, { x: 1742, need: 'lantern', w: 150, porch: true, say: '현관 등이 꺼져 있어요. 등불을 그 위로 옮겨 주세요' }],
+      });
       A.surface(null);
       await X.view(help, { color: '#1b2a40' });
       X.age('릴리, 11');
@@ -320,12 +323,14 @@
       await help.done();
       await X.wait(1.2);
       await TALK.say('leo', '…오늘도 데려다주는구나, 빈.', { slow: true });
-      await X.view(lakeB, { color: '#1b2a40', out: 0.9, in: 1 });
-      await X.wait(0.8);
-      T.announce('집에 온 릴리가 뒷마당 계단에 주저앉아 목걸이를 끌어안는다. 밥그릇은 아직 그대로다. 구름이도 물가에 서서 들여다본다.');
-      T.announce('물그림자 맞추기. 빈은 릴리 발치에, 공은 풀밭에, 등불은 현관 등에, 구름이는 릴리 옆 계단에.');
-      await lakeB.rhyme();
-      await X.wait(1.2);
+      /* the water comes in close on her door, and on round to the back step */
+      X.vcam(100, 505, 1.15, 2.6);   /* (no further than this at this zoom, or the edge of the picture shows) */
+      await X.wait(1.6);
+      await X.view(lakeB, { color: '#1b2a40', out: 0.9, in: 1.1 });
+      T.announce('집에 온 릴리가 뒷마당 계단에 주저앉아 목걸이를 끌어안는다. 밥그릇은 아직 그대로다. 같이 온 그림자들이 하나씩 내려앉는다. 현관 등, 빈, 구름이.');
+      await X.wait(0.7);
+      for (const id of ['lamp', 'bean', 'cloud']) { lakeB.drop(id); await X.wait(1.15); }
+      await X.wait(1.0);
       lakeB.beat = 1;
       T.announce('릴리가 휘파람을 분다. 빈을 부르던 소리.');
       for (let i = 0; i < 2; i++) { A.note({ m: 84 + i * 3, vel: 0.24, voice: 'glass', dur: 0.6 }); await X.wait(0.5); }

@@ -8,6 +8,78 @@
   const TAU = Math.PI * 2;
   const COUNTER = 622, FLOORY = 822;
 
+  /* ---------- 물가의 그림자: the one look every chapter shares ----------
+     Whatever is set on the bank above the cloud sea falls as a shadow into the living world in the water. When a
+     thing reaches its place, its shadow goes visibly down through the water's skin into the picture: a ring on the
+     surface, a drop of soft dark sinking, and where it lands it spreads like ink let into water, with a short soft
+     tone. Then the picture answers, each in its own way (a window lights, she looks up, the rain stops on her
+     shoulders). The lake (T.lake), the walks in the water (T.lakeHelp) and the wedding (ch5_flowers.js) all use it.
+       T.shadowFall.add(list, { x, top, y, r, warm, quiet }): top the water's surface, y where it lands, r how wide it
+         spreads (60), warm a light going down instead of a shadow, quiet no sound
+       T.shadowFall.draw(g, list, t): draws them, and lets go of the ones that are over */
+  const FALL_T = 2.8;
+  T.shadowFall = {
+    add(list, o) {
+      const f = Object.assign({ r: 60, warm: false, t0: T.time, seed: Math.floor(Math.random() * 1000) }, o);
+      list.push(f);
+      if (!o.quiet && T.audio) {
+        T.audio.sfx('ripple', 0.35);
+        T.audio.note({ m: f.warm ? 84 : 79, at: 0.42, voice: 'glass', vel: 0.17, dur: 1.6, fx: true });
+        T.audio.note({ m: f.warm ? 76 : 72, at: 0.5, voice: 'felt', vel: 0.13, dur: 2.4, fx: true });
+      }
+      return f;
+    },
+    draw(g, list, t) {
+      for (let i = list.length - 1; i >= 0; i--) if (t - list[i].t0 > FALL_T || t < list[i].t0 - 1) list.splice(i, 1);
+      for (const f of list) {
+        const a = t - f.t0, ink = f.warm ? '#ffd98a' : '#0b1530', r = f.rnd || (f.rnd = T.rng(f.seed));
+        g.save();
+        /* a ring on the skin of the water, and a second one after it */
+        g.lineWidth = 2;
+        for (let k = 0; k < 2; k++) {
+          const u = (a - k * 0.28) / 1.7;
+          if (u <= 0 || u >= 1) continue;
+          g.strokeStyle = T.rgba('#eef5ff', 0.6 * (1 - u)); g.beginPath(); g.ellipse(f.x, f.top, 16 + u * 96, 4 + u * 24, 0, 0, TAU); g.stroke();
+        }
+        /* the drop going down, a thread of it left behind */
+        if (a < 0.62) {
+          const u = T.ease.in(T.clamp(a / 0.55)), yy = T.lerp(f.top, f.y, u);
+          const tr = g.createLinearGradient(0, f.top, 0, yy);
+          tr.addColorStop(0, T.rgba(ink, 0)); tr.addColorStop(1, T.rgba(ink, f.warm ? 0.5 : 0.42));
+          g.fillStyle = tr; g.fillRect(f.x - 2.5, f.top, 5, Math.max(0, yy - f.top));
+          blob(g, f.x, yy, 9 + u * 9, ink, f.warm ? 0.85 : 0.7, f.warm);
+        }
+        /* where it lands it spreads, the way ink does in water: soft lobes, curling threads, then it settles in */
+        const b = (a - 0.45) / 2.2;
+        if (b > 0 && b < 1) {
+          const grow = T.ease.out(T.clamp(b * 1.6)), env = b < 0.12 ? b / 0.12 : 1 - T.ease.io((b - 0.12) / 0.88);
+          r.s = r.s || [0, 1, 2, 3, 4, 5].map(() => [r(), r(), r()]);
+          r.s.forEach((q, j) => {
+            const an = f.seed + j * 1.07 + q[0] * 0.6, d = f.r * 0.42 * grow * (0.5 + q[1] * 0.5);
+            blob(g, f.x + Math.cos(an) * d, f.y + Math.sin(an) * d * 0.6 + grow * 8, f.r * (0.3 + 0.62 * grow) * (0.6 + 0.4 * q[2]), ink, (f.warm ? 0.36 : 0.3) * env, f.warm);
+          });
+          g.lineWidth = 2.2; g.lineCap = 'round';
+          for (let j = 0; j < 3; j++) {
+            const an = f.seed * 0.7 + j * 2.1, d = f.r * (0.4 + 0.6 * grow);
+            g.strokeStyle = T.rgba(ink, 0.32 * env);
+            g.beginPath(); g.moveTo(f.x, f.y);
+            g.bezierCurveTo(f.x + Math.cos(an) * d * 0.5, f.y + Math.sin(an) * d * 0.3 - 10, f.x + Math.cos(an + 0.9) * d * 0.9, f.y + Math.sin(an + 0.9) * d * 0.5, f.x + Math.cos(an + 1.5) * d, f.y + Math.sin(an + 1.5) * d * 0.55 + 6);
+            g.stroke();
+          }
+        }
+        g.restore();
+      }
+    },
+  };
+  /* a soft round of ink (or of light) */
+  function blob(g, x, y, rad, c, a, warm) {
+    if (a <= 0.005 || rad <= 0.5) return;
+    if (warm) { P.glow(g, x, y, rad * 1.3, c, Math.min(1, a * 1.4)); return; }
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, T.rgba(c, a)); gr.addColorStop(0.55, T.rgba(c, a * 0.7)); gr.addColorStop(1, T.rgba(c, 0));
+    g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+
   /* ---------- the lake ---------- */
   /* o: { paint(g, t), leo: style, mom: bool, mirror: 0..1 (how plainly he sees himself), warm: bool,
      shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }], kid: a style (someone small sitting on the bank, looking in;
@@ -17,13 +89,19 @@
      Set on the lake as it plays (both 0 unless a chapter sets them): glassK 0..1, the water goes still as glass;
      ownK 0..1, with o.shore, his own reflection shows under the far bank where he sits (where her picture was). */
   T.lake = function (o) {
-    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, glassK: 0, ownK: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
+    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, glassK: 0, ownK: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null, falls: [], deep: false }, o);
     const SC = 0.7, TOP = 232, PH = 640;
     /* 물그림자: with o.shore he stands on the far bank, and what stands there with him (o.things) throws a
-       shadow straight down into her picture. Slid until it lies on its counterpart, a shadow stays. */
+       shadow straight down into her picture, at the same place (자리). Slid until it lies on what it belongs to in
+       the picture, a shadow stays. Nothing is marked out: the picture shows what it is missing, a soft want of light
+       where something belongs (a dark window, an empty seat), and it warms as the right shadow comes near.
+       o.deep: the bank has depth as well (거리, chapter 3). A thing can be brought nearer the water or set back,
+       and the nearer it stands, the larger and darker its shadow; a faint one does not stay (q.needD, 0.7). */
     const BANK = 228, DEPTH = { lamp: TOP + 304 * SC, pot: TOP + 548 * SC, leo: TOP + (COUNTER - 34) * SC };
+    const BACK = 170, FRONT = 246, SURF = 258;   /* with o.deep: the far bank from its back to the water's edge; the water's skin */
     /* a thing: { kind: 'lamp'|'pot'|'leo'|'who'|'dog' or anything with its own bank()/ghost(), id, x (on the bank),
-       at: [x, y] where its shadow belongs in the picture, style (people), flip, ps (picture size), bs (size on the bank, 172) } */
+       at: [x, y] where its shadow belongs in the picture, style (people), flip, ps (picture size), bs (size on the bank, 172),
+       cueR: how wide the want of it in the picture is, d: how near the water it starts (o.deep), needD } */
     const things = () => L.things || [];
     const idOf = (q) => q.id || q.kind;
     const person = (q) => q.kind === 'leo' || q.kind === 'who';
@@ -35,7 +113,14 @@
       if (q.at) { q.to = q.at[0] * SC; q.depth = TOP + q.at[1] * SC; }
       if (q.depth == null) q.depth = DEPTH[q.kind] || TOP + 400 * SC;
       if (L.lit[idOf(q)] == null) L.lit[idOf(q)] = 0;
+      if (!L.deep) q.d = 1; else if (q.d == null) q.d = 0.12;
+      if (q.needD == null) q.needD = L.deep ? 0.7 : 0;
     });
+    /* where a thing stands on the bank, how big it is drawn there, and how big and dark its shadow falls */
+    const yOf = (q) => (L.deep ? T.lerp(BACK, FRONT, q.d) : BANK);
+    const kOf = (q) => (L.deep ? T.lerp(0.64, 1, q.d) : 1);
+    const shK = (q) => (L.deep ? T.lerp(0.46, 1, T.ease.io(q.d)) : 1);
+    const shA = (q) => (L.deep ? T.lerp(0.26, 1, q.d) : 1);
     const clampX = (x) => { const lim = T.view.W * SC / 2 - 56; return T.clamp(x, -lim, lim); };
     /* the picture can arrive broken into rings, each turned a little: tap a ring to turn it a notch */
     const RCY = TOP + PH / 2 - 20, RADS = { 2: [0, 150, 280], 3: [0, 112, 202, 292], 4: [0, 88, 160, 232, 304] };
@@ -68,21 +153,30 @@
       T.audio.step(R.taps++, { voice: 'glass', vel: 0.3 });
       if (aligned(R)) { R.solved = true; R.t = 1.3; L.amp = 0; T.audio.promise(); }
     }
+    /* it has found its place: it goes down into the picture (the look every chapter shares), and stays */
+    function lockQ(q) {
+      q.lock = true; q.x = q.to; q.go = null; q.dGo = null; if (L.deep) q.dTo = 1;
+      if (person(q) || q.kind === 'dog') q.flip = restFlip(q);
+      T.shadowFall.add(L.falls, { x: q.to, top: SURF, y: q.depth - (person(q) ? 46 : q.kind === 'dog' ? 26 : 0), r: person(q) ? 74 : q.kind === 'lamp' ? 64 : 52, warm: q.kind === 'lamp' });
+      L.amp = Math.max(L.amp, 0.5);
+    }
     function settle(q) {
       const R = L.rh;
-      if (!R || q.lock || Math.abs(q.x - q.to) >= 30) return;
-      q.lock = true; q.x = q.to; q.go = null; if (person(q) || q.kind === 'dog') q.flip = restFlip(q); R.n++; R.idle = 0; if (R.sel >= 0 && things()[R.sel] === q) R.sel = -1;
-      T.audio.sfx('join'); T.audio.step(R.n * 2 + 1, { voice: 'glass', vel: 0.36 });
-      if (things().every((w) => w.lock)) { R.solved = true; R.t = 1.8; L.amp = 0; T.audio.promise(); }
+      if (!R || q.lock || Math.abs(q.x - q.to) >= 30 || q.d < q.needD - 1e-6) return;
+      lockQ(q); R.n++; R.idle = 0; if (R.sel >= 0 && things()[R.sel] === q) R.sel = -1;
+      T.audio.step(R.n * 2 + 1, { voice: 'glass', vel: 0.3 });
+      if (things().every((w) => w.lock)) { R.solved = true; R.t = 2.4; T.audio.promise(); }
     }
-    const thingAt = (x, y) => { let best = -1, bd = 78; if (y < 268) things().forEach((q, i) => { const d = Math.abs(x - q.x); if (!q.lock && d < bd) { bd = d; best = i; } }); return best; };
+    /* a scripted one: the thing goes to its place by itself, and down (for the shadows that came home with someone) */
+    L.drop = function (id) { const q = things().find((w) => idOf(w) === id); if (q && !q.lock) lockQ(q); };
+    const thingAt = (x, y) => { let best = -1, bd = 78; if (y < 268) things().forEach((q, i) => { const d = Math.abs(x - q.x) + (L.deep ? Math.max(0, Math.abs(y - (yOf(q) - 40 * kOf(q))) - 40) * 0.8 : 0); if (!q.lock && d < bd) { bd = d; best = i; } }); return best; };
     const rhNext = () => (L.rh && !L.rh.solved ? things().findIndex((q) => !q.lock) : -1);
     /* begin sliding: resolves when every shadow has found its place. The help (T.puzzle.coach) is the one every
        puzzle has; skipped, each shadow slides to its place by itself */
     L.rhyme = function () {
       return new Promise((res) => {
         const R = (L.rh = { sel: -1, held: -1, dx: 0, moved: false, idle: 0, solved: false, t: 0, n: 0, res });
-        R.coach = T.puzzle.coach({ idle: () => R.idle, live: () => L.rh === R && !R.solved, hintAt: () => L.hintAt(), r: 44, tip: '물가의 것들을 좌우로 끌어 보세요', solve: () => { R.held = -1; R.sel = -1; things().forEach((q) => { if (!q.lock) q.go = q.to; }); } });
+        R.coach = T.puzzle.coach({ idle: () => R.idle, live: () => L.rh === R && !R.solved, hintAt: () => L.hintAt(), r: 44, tip: L.tip || '물가의 것들을 좌우로 끌어 보세요', solve: () => { R.held = -1; R.sel = -1; things().forEach((q) => { if (q.lock) return; if (Math.abs(q.x - q.to) < 0.5 && q.d >= q.needD) settle(q); else { q.go = q.to; if (q.d < q.needD) q.dGo = 1; } }); } });
         L.amp = 0.3;
       });
     };
@@ -97,7 +191,7 @@
         L.amp = 0.35;
       });
     };
-    L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel === h ? [q.to, q.depth - (person(q) ? 60 : 0)] : [q.x, BANK - 46]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
+    L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel !== h ? [q.x, yOf(q) - 46 * kOf(q)] : Math.abs(q.x - q.to) < 30 && q.d < q.needD ? [q.x, FRONT - 10] : [q.to, q.depth - (person(q) ? 60 : 0)]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
     L.pointer = function (type, x, y) {
       const C = (L.rh && L.rh.coach) || (L.ring && L.ring.coach);
       if (C && C.pointer(type, x, y)) return true;
@@ -105,10 +199,16 @@
         const R = L.rh, Q = things();
         if (type === 'down') {
           const i = thingAt(x, y);
-          if (i >= 0) { R.held = i; R.sel = i; R.dx = Q[i].x - x; R.moved = false; R.idle = 0; Q[i].go = null; T.audio.sfx('step'); }
-          else if (R.sel >= 0 && !Q[R.sel].lock && y > 236) { Q[R.sel].go = clampX(x); R.idle = 0; }   /* picked up with one tap, sent with the next */
+          if (i >= 0) { R.held = i; R.sel = i; R.dx = Q[i].x - x; R.dy = yOf(Q[i]) - y; R.moved = false; R.idle = 0; Q[i].go = null; Q[i].dGo = null; T.audio.sfx('step'); }
+          else if (R.sel >= 0 && !Q[R.sel].lock && (y > 236 || (L.deep && y > BACK - 40))) {   /* picked up with one tap, sent with the next */
+            const q = Q[R.sel]; q.go = clampX(x); R.idle = 0;
+            if (L.deep) q.dGo = y > SURF ? 1 : T.clamp((y - BACK) / (FRONT - BACK));   /* sent into the water: it comes right to the edge */
+          }
         } else if (type === 'move') {
-          if (R.held >= 0) { const q = Q[R.held], nx = clampX(x + R.dx); q.ph = (q.ph || 0) + (turns(q) ? Math.abs(nx - q.x) : nx - q.x) / 9; if (nx !== q.x && turns(q)) q.flip = nx < q.x; q.x = nx; R.moved = true; R.idle = 0; }
+          if (R.held >= 0) {
+            const q = Q[R.held], nx = clampX(x + R.dx); q.ph = (q.ph || 0) + (turns(q) ? Math.abs(nx - q.x) : nx - q.x) / 9; if (nx !== q.x && turns(q)) q.flip = nx < q.x; q.x = nx; R.moved = true; R.idle = 0;
+            if (L.deep) q.d = T.clamp((y + R.dy - BACK) / (FRONT - BACK));
+          }
           T.cursor(R.held >= 0 ? 'grabbing' : thingAt(x, y) >= 0 ? 'grab' : 'default');
         } else if (type === 'up' && R.held >= 0) { const q = Q[R.held]; R.held = -1; if (R.moved) settle(q); }
         return true;
@@ -136,6 +236,7 @@
           return true;
         }
         if ((key === 'ArrowLeft' || key === 'ArrowRight') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel], left = key === 'ArrowLeft'; q.go = null; if (turns(q)) q.flip = left; q.x = clampX(q.x + (left ? -16 : 16)); q.ph = (q.ph || 0) + (left && !turns(q) ? -1.8 : 1.8); R.idle = 0; settle(q); return true; }
+        if (L.deep && (key === 'ArrowUp' || key === 'ArrowDown') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel]; q.dGo = null; q.d = T.clamp(q.d + (key === 'ArrowDown' ? 0.125 : -0.125)); q.ph = (q.ph || 0) + 1.8; R.idle = 0; settle(q); return true; }
         return false;
       }
       if (L.ring && !L.ring.solved) {
@@ -146,16 +247,25 @@
         return false;
       }
       if (L.mote && !L.mote.gone && (key === ' ' || key === 'Enter' || key === 'ArrowDown')) { L.mote.x = 40; L.mote.y = 520; L.release(); return true; } return false; };
-    L.want = function () { const h = rhNext(); if (h >= 0) { const q = things()[h]; return 'key:' + (L.rh.sel !== h ? h + 1 : q.x > q.to ? 'ArrowLeft' : 'ArrowRight'); } if (L.rh) return 'busy'; const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
+    L.want = function () { const h = rhNext(); if (h >= 0) { const q = things()[h]; return 'key:' + (L.rh.sel !== h ? h + 1 : Math.abs(q.x - q.to) >= 30 ? (q.x > q.to ? 'ArrowLeft' : 'ArrowRight') : 'ArrowDown'); } if (L.rh) return 'busy'; const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
     L.release = function () { const m = L.mote; if (!m || m.gone) return; m.gone = true; L.rip.push({ x: m.x, y: m.y, t: T.time }); L.amp = 1; if (m.res) m.res(); };
     L.update = function (dt) {
       const H = L.rh;
       if (H) {
         H.idle += dt; if (H.coach) H.coach.update(dt);
-        for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + (turns(q) ? Math.abs(st) : st) / 9; if (st && turns(q)) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
+        for (const q of things()) {
+          if (q.lock) continue;
+          if (q.go != null) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + (turns(q) ? Math.abs(st) : st) / 9; if (st && turns(q)) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) q.go = null; }
+          if (q.dGo != null) { const d = q.dGo - q.d; q.d += Math.sign(d) * Math.min(Math.abs(d), 1.6 * dt); q.ph = (q.ph || 0) + Math.abs(d) * 0.4; if (Math.abs(q.dGo - q.d) < 0.002) { q.d = q.dGo; q.dGo = null; } }
+          if ((q.goWas || q.dWas) && q.go == null && q.dGo == null) settle(q);
+          q.goWas = q.go != null; q.dWas = q.dGo != null;
+        }
         if (H.solved) { H.t -= dt; if (H.t <= 0) { L.rh = null; H.res(); } } else L.amp = Math.max(L.amp, 0.2);
       }
-      for (const q of things()) { const id = idOf(q); L.lit[id] += ((q.lock ? 1 : 0) - L.lit[id]) * Math.min(1, dt * 1.8); }
+      for (const q of things()) {
+        const id = idOf(q); L.lit[id] += ((q.lock ? 1 : 0) - L.lit[id]) * Math.min(1, dt * 1.8);
+        if (q.lock && q.dTo != null) { q.d += (q.dTo - q.d) * Math.min(1, dt * 3); if (Math.abs(q.dTo - q.d) < 0.002) { q.d = q.dTo; q.dTo = null; } }
+      }
       const R = L.ring;
       if (R) {
         R.idle += dt; if (R.coach) R.coach.update(dt);
@@ -307,60 +417,64 @@
     function drawShore(g, t, W) {
       const R = L.rh, Q = things(), live = R && !R.solved, ls = L.leo || F.styles.leoHome;
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-      /* where each thing belongs: a faint shape of it in the empty place, and a ring that warms as its shadow comes near */
+      /* where each thing belongs: nothing drawn round it, only the picture's own want of it, a soft light breathing in
+         the empty place (a dark window, an empty seat), that warms as the right shadow comes near. A shadow too faint
+         to stay (o.deep, set back from the water) only half warms it */
       if (live) for (const q of Q) {
         if (q.lock) continue;
-        const near = T.clamp(1 - Math.abs(q.x - q.to) / 180), x = q.to, y = q.depth, pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + x);
-        g.save();
-        g.globalAlpha = 0.16 + 0.12 * pulse + 0.25 * near;
-        if (person(q)) {
-          const fo = { x, y, s: (q.ps || 372) * SC, flip: restFlip(q), sit: true, lean: 0.14, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: {} };
-          if (q.pose) q.pose(fo, t, L, true);
-          F.person(g, Object.assign({}, fo, { style: flat(q.style || ls, '#fff3d6'), flatLook: true }));
-        } else if (q.kind === 'dog') F.dog(g, { x, y, s: (q.ps || 300) * SC, sit: 1, flip: restFlip(q), tintAll: '#fff3d6' });
-        g.globalAlpha = 0.4 + 0.25 * pulse + 0.35 * near;
-        g.setLineDash([7, 7]); g.lineDashOffset = -t * 18; g.lineWidth = 2.4; g.strokeStyle = T.mix('#fff3d6', '#ffd98a', near);
-        g.beginPath();
-        if (person(q) || q.kind === 'dog') g.ellipse(x, y + (q.kind === 'dog' ? 4 : 10), 48, 12, 0, 0, TAU); else g.arc(x, y - 6, 30 + near * 6, 0, TAU);
-        g.stroke();
-        g.restore();
+        const ready = q.d >= q.needD ? 1 : 0.45, near = T.clamp(1 - Math.abs(q.x - q.to) / 200) * ready, x = q.to, y = q.depth - (person(q) ? 44 : q.kind === 'dog' ? 22 : 4), br = 0.5 + 0.5 * Math.sin(t * 1.6 + x * 0.01);
+        const rad = (q.cueR || (person(q) ? 64 : 44)) * (1 + 0.2 * near + 0.08 * br);
+        P.glow(g, x, y, rad * 1.7, T.mix('#bcd4f6', '#ffd98a', near), 0.14 + 0.08 * br + 0.3 * near);
+        P.glow(g, x, y, rad * 0.55, T.mix('#eef4ff', '#fff0c8', near), 0.2 + 0.12 * br + 0.4 * near);
       }
       /* the shadows, lying in her picture */
       for (let i = 0; i < Q.length; i++) {
-        const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[idOf(q)], dy = q.depth;
+        const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[idOf(q)], dy = q.depth, sk = shK(q), sa = shA(q);
         if (lit < 0.97) {
           const c = T.mix('#a9c8ea', '#ffd98a', near), gr = g.createLinearGradient(0, 252, 0, dy);
-          gr.addColorStop(0, T.rgba(c, 0.5 * (1 - lit))); gr.addColorStop(0.5, T.rgba(c, (0.2 + 0.3 * near) * (1 - lit))); gr.addColorStop(1, T.rgba(c, 0));
+          gr.addColorStop(0, T.rgba(c, 0.5 * (1 - lit) * sa)); gr.addColorStop(0.5, T.rgba(c, (0.2 + 0.3 * near) * (1 - lit))); gr.addColorStop(1, T.rgba(c, 0));
           g.fillStyle = gr; g.fillRect(q.x - 3, 250, 6, dy - 250);
         }
         g.save();
+        /* set back from the water (o.deep) a shadow falls small and faint, about the place it lands */
+        if (sk < 0.999) { const py = dy - (person(q) ? 40 : 0); g.translate(q.x, py); g.scale(sk, sk); g.translate(-q.x, -py); }
         if (q.ghost) q.ghost(g, q.x, dy, near, lit, t, L);
         else if (q.kind === 'dog') {
           const fd = { x: q.x, y: dy, s: (q.ps || 300) * SC, sit: 1, flip: q.flip, wag: Math.sin(t * 9) * 0.5 * lit, headTilt: 0.2 };
-          if (lit < 0.97) { g.globalAlpha = (0.34 + 0.3 * near) * (1 - lit); F.dog(g, Object.assign({}, fd, { shadow: true })); }
-          if (lit > 0.02) { g.globalAlpha = 0.74 * lit; P.glow(g, q.x, dy - 30, 110, '#ffe2a8', 0.2 * lit); F.dog(g, fd); }
+          if (lit < 0.97) { g.globalAlpha = sa * (0.34 + 0.3 * near) * (1 - lit); F.dog(g, Object.assign({}, fd, { shadow: true })); }
+          if (lit > 0.02) { g.globalAlpha = sa * 0.74 * lit; P.glow(g, q.x, dy - 30, 110, '#ffe2a8', 0.2 * lit); F.dog(g, fd); }
         }
-        else if (q.kind === 'lamp') { const a = (0.3 + 0.34 * near) * (1 - lit * 0.85); P.glow(g, q.x, dy, 84 + 30 * near, '#ffd98a', a); g.globalAlpha = a * 0.75; P.fill(g, P.rr(q.x - 27, dy - 36, 54, 72, 9), '#ffe2a0'); g.globalAlpha = 1; }
+        else if (q.kind === 'lamp') { const a = sa * (0.3 + 0.34 * near) * (1 - lit * 0.85); P.glow(g, q.x, dy, 84 + 30 * near, '#ffd98a', a); g.globalAlpha = a * 0.75; P.fill(g, P.rr(q.x - 27, dy - 36, 54, 72, 9), '#ffe2a0'); g.globalAlpha = sa * 1; }
         else if (q.kind === 'pot') {
-          g.globalAlpha = (0.46 + 0.3 * near) * (1 - lit); P.fill(g, P.rr(q.x - 68, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x + 52, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x - 54, dy - 3, 108, 46, 14), '#101c33'); P.fill(g, P.ellipse(q.x, dy - 3, 55, 9), '#22365c');
-          g.globalAlpha = 1; for (let k = 0; k < 2; k++) { const life = (t * 0.3 + k * 0.5) % 1; P.glow(g, q.x + Math.sin(t + k * 2) * 10, dy - 20 - life * 90, 16 + life * 22, '#fff3dc', Math.sin(life * Math.PI) * (0.1 + 0.16 * near + 0.14 * lit)); }
+          g.globalAlpha = sa * (0.46 + 0.3 * near) * (1 - lit); P.fill(g, P.rr(q.x - 68, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x + 52, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x - 54, dy - 3, 108, 46, 14), '#101c33'); P.fill(g, P.ellipse(q.x, dy - 3, 55, 9), '#22365c');
+          g.globalAlpha = sa * 1; for (let k = 0; k < 2; k++) { const life = (t * 0.3 + k * 0.5) % 1; P.glow(g, q.x + Math.sin(t + k * 2) * 10, dy - 20 - life * 90, 16 + life * 22, '#fff3dc', Math.sin(life * Math.PI) * (0.1 + 0.16 * near + 0.14 * lit)); }
         } else if (person(q)) {
           const qs = q.style || ls, leoHere = q.kind === 'leo';
           const fo = { x: q.x, y: dy, s: (q.ps || 372) * SC, flip: q.flip == null ? true : q.flip, sit: true, lean: 0.14 + (leoHere ? T.ease.io(L.reach.k) * 0.1 : 0), headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: Object.assign({ blush: 0.14 }, leoHere ? L.leoFace : q.face) };
           if (q.pose) q.pose(fo, t, L, true);
           const sipK = leoHere ? T.ease.io(L.sip.k) : 0;
           if (sipK > 0.02) fo.armF = { hand: F.local(fo, T.lerp(q.x - 66, q.x - 34, sipK), T.lerp(dy - 22, dy - 116, sipK)) };
-          if (lit < 0.97) { g.globalAlpha = (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }
+          if (lit < 0.97) { g.globalAlpha = sa * (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }
           const part = leoHere || q.parts ? T.ease.io(L.part.k) : 0, gone = T.ease.io(L.gone.k);
-          if (lit > 0.5 && part > 0.02) { g.globalAlpha = 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }   /* what they see there: nothing */
-          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90 * (fo.s / 260), 150 * (fo.s / 260), '#ffe2a8', 0.18 * here); const jk = F.person(g, Object.assign({}, fo, { style: qs })); if (sipK > 0.02 && jk && jk.handF) { P.line(g, jk.handF[0], jk.handF[1], jk.handF[0] - 26, jk.handF[1] + 9, 5, '#b98a5a'); P.fill(g, P.ellipse(jk.handF[0] - 32, jk.handF[1] + 11, 10, 6), '#b98a5a'); } }
+          if (lit > 0.5 && part > 0.02) { g.globalAlpha = sa * 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }   /* what they see there: nothing */
+          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = sa * 0.74 * here; P.glow(g, q.x - 10, dy - 90 * (fo.s / 260), 150 * (fo.s / 260), '#ffe2a8', 0.18 * here); const jk = F.person(g, Object.assign({}, fo, { style: qs })); if (sipK > 0.02 && jk && jk.handF) { P.line(g, jk.handF[0], jk.handF[1], jk.handF[0] - 26, jk.handF[1] + 9, 5, '#b98a5a'); P.fill(g, P.ellipse(jk.handF[0] - 32, jk.handF[1] + 11, 10, 6), '#b98a5a'); } }
         }
         g.restore();
       }
       /* the far bank, across the water from us */
       const edge = (y, amp, seed) => { const pts = []; for (let x = -W / 2 - 60; x <= W / 2 + 60; x += 90) pts.push([x, y + T.noise(x * 0.012, seed) * amp]); return pts; };
-      P.fill(g, P.soft(edge(206, 5, 1).concat(edge(256, 6, 2).reverse())), '#3f6058');
-      P.fill(g, P.soft(edge(204, 5, 1).concat(edge(238, 5, 3).reverse())), '#58806c');
+      if (L.deep) {   /* a wide, gently sloping bank: things can be set back from the water, or brought to its edge */
+        P.fill(g, P.soft(edge(BACK - 26, 9, 4).concat(edge(258, 6, 2).reverse())), '#3f6058');
+        const bg = g.createLinearGradient(0, BACK - 24, 0, 242); bg.addColorStop(0, '#46695d'); bg.addColorStop(1, '#5c866f');
+        P.fill(g, P.soft(edge(BACK - 24, 9, 4).concat(edge(240, 5, 3).reverse())), bg);
+        g.strokeStyle = 'rgba(214,236,200,0.16)'; g.lineWidth = 2;
+        for (let k = 1; k < 4; k++) { const yy = T.lerp(BACK, FRONT, k / 4) - 6; g.beginPath(); g.moveTo(-W / 2, yy); for (let x = -W / 2; x <= W / 2; x += 90) g.lineTo(x, yy + T.noise(x * 0.012, k + 6) * 4); g.stroke(); }
+      } else {
+        P.fill(g, P.soft(edge(206, 5, 1).concat(edge(256, 6, 2).reverse())), '#3f6058');
+        P.fill(g, P.soft(edge(204, 5, 1).concat(edge(238, 5, 3).reverse())), '#58806c');
+      }
+      /* a shadow that has found its place, going down into the picture */
+      T.shadowFall.draw(g, L.falls, t);
       /* who has come to look: his mother with her lamp, and Leo himself when he is not one of the things to slide.
          They stand at the far end of the bank, each drawn once, at the same scale as the things beside them. */
       const mx = -W * SC / 2 + 22;
@@ -377,14 +491,19 @@
         lo.armB = { a: 0.15, b: 0.35 };
         F.person(g, lo);
       }
-      const order = Q.map((q, i) => i).sort((a2, b2) => (R && R.held === a2 ? 1 : 0) - (R && R.held === b2 ? 1 : 0));
+      const order = Q.map((q, i) => i).sort((a2, b2) => (R && R.held === a2 ? 1 : 0) - (R && R.held === b2 ? 1 : 0) || (L.deep ? Q[a2].d - Q[b2].d : 0));
       for (const i of order) {
-        const q = Q[i], x = q.x, sel = live && !q.lock && (R.sel === i || R.held === i);
-        if (live && !q.lock) {   /* it can be slid: little arrows either side */
+        const q = Q[i], x = q.x, sel = live && !q.lock && (R.sel === i || R.held === i), qk = kOf(q);
+        if (live && !q.lock) {   /* it can be slid: little arrows either side (and, on a deep bank, toward the water and back) */
+          const ay = yOf(q) - 44 * qk;
           g.save(); g.globalAlpha = sel ? 0.9 : 0.34 + 0.2 * pulse; g.fillStyle = '#fff6e0';
-          for (const d of [-1, 1]) { const ax = x + d * 56 + d * (sel ? pulse * 6 : 0), ay = BANK - 44; g.beginPath(); g.moveTo(ax, ay - 14); g.lineTo(ax + d * 18, ay); g.lineTo(ax, ay + 14); g.closePath(); g.fill(); }
+          for (const d of [-1, 1]) { const ax = x + d * 56 * qk + d * (sel ? pulse * 6 : 0); g.beginPath(); g.moveTo(ax, ay - 14 * qk); g.lineTo(ax + d * 18 * qk, ay); g.lineTo(ax, ay + 14 * qk); g.closePath(); g.fill(); }
+          if (L.deep && sel) for (const d of [-1, 1]) { const by = d < 0 ? yOf(q) - 150 * qk - pulse * 4 : yOf(q) + 14 + pulse * 4; if (d > 0 && q.d > 0.97) continue; g.beginPath(); g.moveTo(x - 12, by); g.lineTo(x, by + d * 14); g.lineTo(x + 12, by); g.closePath(); g.fill(); }
           g.restore();
         }
+        /* on a deep bank, drawn where it stands and smaller the further back it is */
+        g.save();
+        if (L.deep) { g.translate(x, yOf(q)); g.scale(qk, qk); g.translate(-x, -BANK); }
         if (q.bank) q.bank(g, x, t, L, q);
         else if (q.kind === 'dog') { const sat = L.lit[idOf(q)]; F.dog(g, { x, y: BANK + 2 - (q.jump || 0), s: 220, walk: live && (R.held === i || q.go != null) ? q.ph || 0 : null, sit: sat > 0.5 ? 1 : 0, flip: q.lock ? !!q.lockFlip : !!q.flip, wag: Math.sin(t * (q.wagRate || 10)) * (q.wag == null ? 0.8 : q.wag), headTilt: q.tilt || 0 }); }
         else if (q.kind === 'lamp') K.lantern(g, x, BANK + 2, t, { s: 1.2, lit: 1, seed: 5 });
@@ -426,18 +545,19 @@
           if (lo.prop) { P.line(g, j.handF[0], j.handF[1], j.handF[0] - 17, j.handF[1] + 6, 3.4, '#b98a5a'); P.fill(g, P.ellipse(j.handF[0] - 21, j.handF[1] + 7, 7, 4), '#b98a5a'); }
           if (lo.shaker) { g.save(); g.translate(j.handF[0] - 2, j.handF[1] + 8); g.rotate(2.7); P.fill(g, P.rr(-6, -10, 12, 19, 3), '#f6f2ea'); P.fill(g, P.rr(-6, -13, 12, 6, 2), '#8f96a0'); g.restore(); }
         }
+        g.restore();
       }
       /* reeds along the water's edge */
       g.strokeStyle = '#2f4a48'; g.lineCap = 'round'; g.lineWidth = 3;
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
-        /* no instructions up front: the dotted shapes in the water say enough. Stuck a while, the help every puzzle
-           has: a glow on the next thing, then the gesture at the top and what goes where at the foot, then the skip */
+        /* no instructions up front: the picture's want of each thing says enough. Stuck a while, the help every
+           puzzle has: a glow on the next thing, then the gesture at the top and what goes where at the foot, then the skip */
         const C = R.coach, ca = C ? C.tipA : 0;
         if (ca > 0.01) {
-          const cap = L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 물가에서 좌우로 끌어 점선에 맞춰 보세요';
+          const cap = L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 그림자가 그 위에 겹치게 물가에서 옮겨 보세요';
           g.save(); g.globalAlpha = ca; T.band(g, 1); g.restore();
-          P.text(g, T.puzzle.withKeys(cap, 'move'), 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94 * ca, glow: 'rgba(8,12,22,0.9)' });
+          P.text(g, T.puzzle.withKeys(cap, L.deep ? '스페이스로 고르고 화살표로 옮겨요' : 'move'), 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94 * ca, glow: 'rgba(8,12,22,0.9)', fit: W - 100 });
         }
         if (C) { C.glow(g, t, 1, 62); C.draw(g, t); }   /* a ring wider than the dotted shape it points at */
       } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });

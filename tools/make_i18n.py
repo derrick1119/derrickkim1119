@@ -964,6 +964,17 @@ T = [
     ("빛을 끌어다 개울물에 놓아 주세요", "Drag the light into the stream"),
     ("레오 손의 빛을 끌어다 개울물에 놓아요", "Drag the light in Leo's hands into the stream"),
     ("다음 날 아침", "The next morning"),
+    # ---- phase 3: the mirror lake's shadows (물가의 그림자), chapters 2-6
+    ("등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 그림자가 그 위에 겹치게 물가에서 옮겨 보세요", "The lantern on the dark window, the pot on Ana's pot, Leo in the place on the counter where Ana used to sit. Move them along the bank until their shadows lie over those"),
+    ("스페이스로 고르고 화살표로 옮겨요", "Space to pick, the arrow keys to move"),
+    ("물가에 가까이 둘수록 그림자가 크고 짙어져요", "The nearer the water, the larger and darker the shadow"),
+    ("로사는 요람 옆 빈 걸상에, 등불은 어두운 창에. 물가 가까이 데려가야 그림자가 짙게 앉아요", "Rosa on the empty stool by the cradle, the lantern on the dark window. Only near the water do their shadows fall dark enough to stay"),
+    ("가까이 가 봐야겠다.\n멀리선 그림자도 흐리거든.", "I'd better go closer.\nFrom far off, even a shadow is faint."),
+    ("릴리가 닿기 전에, 가는 길에 먼저 놓아 두세요", "Put things on her way before Lily gets there"),
+    ("현관 등이 꺼져 있어요. 등불을 그 위로 옮겨 주세요", "The porch light is out. Move the lantern over it"),
+    ("빗줄기가 가장 굵은 데예요. 구름 하나로는 다 못 가려요", "This is where the rain is heaviest. One cloud can't keep it all off"),
+    ("두 가지를 겹쳐 놓으면, 그림자가 새 모양이 돼요", "Lay two things one over the other, and their shadow takes a new shape"),
+    ("릴리 걸음에 맞춰, 곁에서 걸어요", "Keep pace with Lily, walking beside her"),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

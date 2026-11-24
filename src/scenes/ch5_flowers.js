@@ -43,47 +43,102 @@
     [a, b].forEach((e, j) => { P.line(g, e[0], e[1], e[0] + (j ? 2 : -2) * s, e[1] + 11 * s, 1.6 * s, '#e58aa0'); P.fill(g, P.circle(e[0], e[1], 3.8 * s), '#f1c04a'); });
   }
 
-  /* ---------- the wedding, walked ---------- */
+  /* a flat cut-out of someone, all in one colour (his shadow while it is thin) */
+  const flatStyle = (st, c) => { const o2 = {}; Object.keys(st).forEach((k) => { o2[k] = typeof st[k] === 'string' && st[k][0] === '#' ? c : st[k]; }); return o2; };
+
+  /* ---------- the wedding, walked (나란히) ----------
+     Above, the flower road in Welcome Harbor; below, in the water, the hall, upside down, where Lily walks in on her
+     mother's arm with her other arm crooked and empty. She goes at her own pace: she sets off when he does, stops
+     twice on the way to look down at the arm she kept free, and slows at the end. He walks the road above her, and
+     his shadow in the water keeps pace beside her: level with her it fills the empty arm, warm, his hand in it;
+     behind her or ahead of her it thins to almost nothing, and comes back when he is level again (each time it does,
+     it falls in the way every shadow here does, T.shadowFall). Nothing is counted and nothing fails: she waits for
+     him if he is left far behind, he cannot get far ahead, and at the end he comes up beside her of himself. The one
+     line of help is small, at the start only, and long gone before she speaks. */
   function wedding() {
     /* age: seconds since it opened; look: Lily looking down at her free arm; hug: Lily and her mother; bow: Leo, and
-       the groom to Ana */
-    const V = { dark: false, quiet: true, p: 0, held: false, until: 0, ph: 0, done: false, steps: 0, stir: 0, age: 0, look: { k: 0 }, hug: { k: 0 }, bow: { k: 0 }, petals: [], res: null };
+       the groom to Ana. pL / pLeo: how far along the aisle she and he are (0..1); fill: how full his shadow is */
+    const V = { dark: false, quiet: true, pL: 0, pLeo: 0, until: 0, ph: 0, lph: 0, done: false, steps: 0, stir: 0, age: 0, look: { k: 0 }, hug: { k: 0 }, bow: { k: 0 }, petals: [], falls: [], fill: 0, full: false, off: 0, tipA: 0, lilyGo: false, pause: -1, pauseT: 0, glance: 0, res: null };
     const SHORE = 470, LX = -150, LEN = 1750, ALTAR = LX + 330 + LEN, START = 2;
+    const VL = 1 / 30;   /* her pace, walking: the length of the aisle in half a minute */
+    /* where she stops, and for how long; at each she looks down at the arm she kept free */
+    const STOPS = [{ at: 0.3, dur: 2.8 }, { at: 0.63, dur: 2.4 }];
     const r0 = T.rng(41);
     for (let i = 0; i < 46; i++) V.petals.push({ x: (r0() - 0.5) * 2000, y: r0() * 470, v: 26 + r0() * 30, ph: r0() * 9, c: ['#f6b6c2', '#fbe3a8', '#ffffff', '#e58aa0'][i % 4] });
     V.walked = new Promise((res) => { V.res = res; });
-    /* the controls every puzzle has (puzzles.js): a tap sets him walking beside her and another stops him; nothing
-       has to be held down. → walks while it is pressed; Space / Enter is the tap. For the first moments nothing
-       walks at all: the petals come down and everyone along the road looks up */
-    V.pointer = function (type) { if (V.done) return false; if (V.age < START) return true; if (type === 'down') V.on = !V.on; return true; };
+    const gap = () => (V.pLeo - V.pL) * LEN;   /* how far he is from level with her, along the road (+ ahead) */
+    /* the controls every puzzle has (puzzles.js): a tap sets him walking and another stops him; nothing has to be held
+       down. → walks while it is pressed; Space / Enter is the tap. For the first moments nothing walks at all: the
+       petals come down and everyone along the road looks up */
+    V.pointer = function (type) { if (V.done) return false; if (V.age < START) return true; if (type === 'down') { V.on = !V.on; V.touched = true; } return true; };
     V.key = function (key) {
       if (V.done) return false;
       const ours = key === 'ArrowRight' || key === ' ' || key === 'Enter';
       if (V.age < START) return ours;
-      if (key === 'ArrowRight') { V.until = T.time + 0.3; return true; }
-      if (key === ' ' || key === 'Enter') { V.on = !V.on; return true; }
+      if (key === 'ArrowRight') { V.until = T.time + 0.3; V.touched = true; return true; }
+      if (key === ' ' || key === 'Enter') { V.on = !V.on; V.touched = true; return true; }
       return false;
     };
-    V.want = function () { return V.done ? null : 'hold'; };
+    /* (the tests: walk while she walks or he is behind, stop while she stands) */
+    V.want = function () {
+      if (V.done || V.age < START || V.pL >= 1) return V.done ? null : 'busy';
+      const d = gap(), should = !V.lilyGo || d < -14 || (V.lilyMoving && d < 14);
+      return should !== !!V.on ? 'key: ' : 'busy';
+    };
     V.update = function (dt, S) {
       if (S.dip.a < 0.05) V.age += dt;   /* counted from when it is fully in view */
-      const going = !V.done && V.age >= START && (V.on || T.time < V.until);
+      const going = !V.done && V.pL < 1 && V.age >= START && (V.on || T.time < V.until);   /* once she is there, he comes level of himself */
       V.going = going;
-      V.stir += ((going ? 1 : 0) - V.stir) * Math.min(1, dt * 2);
-      if (going) {
-        S.idle = 0;
-        V.p = Math.min(1, V.p + dt / 27);
-        V.ph += dt * 5.4;
-        const st = Math.floor(V.ph / Math.PI);
-        if (st !== V.steps) { V.steps = st; T.audio.sfx('step'); if (st % 2 === 0) S.X.note({ voice: 'felt', vel: 0.42 }); }
-        if (V.p >= 1) { V.done = true; V.res(); }
+      if (V.touched && V.t1 == null) V.t1 = V.age;
+      /* she sets off when he does; his shadow goes down into the water beside her */
+      if (going && !V.lilyGo) { V.lilyGo = true; V.full = true; T.shadowFall.add(V.falls, { x: LX, top: SHORE + 4, y: SHORE + 118, r: 84, warm: true }); }
+      /* her pace: her own, with two stops on the way and slower at the end; if he is left far behind she waits */
+      let vl = 0;
+      if (V.lilyGo && V.pL < 1) {
+        const i = STOPS.findIndex((q, j) => j > V.pause && V.pL >= q.at);
+        if (i >= 0) { V.pause = i; V.pauseT = STOPS[i].dur; }
+        if (V.pauseT > 0) V.pauseT -= dt;
+        else {
+          vl = VL * (1 + 0.1 * Math.sin(V.age * 0.9)) * (V.pL > 0.86 ? 0.72 : 1);
+          const lag = -gap();
+          if (lag > 150) vl *= T.clamp(1 - (lag - 150) / 140);
+        }
+        V.pL = Math.min(1, V.pL + vl * dt);
       }
+      V.lilyMoving = vl > 1e-4;
+      if (V.lilyMoving) V.lph += dt * 5.4 * (vl / VL);
+      /* his: hers while he is level with her, quicker when he has fallen behind, and never far ahead */
+      const d = gap(), end = V.pL >= 1;
+      let vleo = 0;
+      if (going) { vleo = d < -10 ? VL * 1.7 : V.lilyMoving && d < 40 ? vl : VL; if (d > 240) vleo = 0; }
+      if (end && !V.done && !going && d < -3) vleo = VL * 1.3;   /* at the end he comes up beside her of himself */
+      V.pLeo += vleo * dt;
+      if (end && !V.done && d > 3 && !going) V.pLeo += (V.pL - V.pLeo) * Math.min(1, dt * 1.2);   /* (or waits there, and she comes level) */
+      V.leoMoving = vleo > 1e-4;
+      V.stir += ((V.leoMoving || V.lilyMoving ? 1 : 0) - V.stir) * Math.min(1, dt * 2);
+      if (V.leoMoving) {
+        S.idle = 0;
+        V.ph += dt * 5.4 * Math.min(1.5, vleo / VL);
+        const st = Math.floor(V.ph / Math.PI);
+        if (st !== V.steps) { V.steps = st; T.audio.sfx('step'); if (st % 2 === 0) S.X.note({ voice: 'felt', vel: 0.2 + 0.24 * V.fill }); }
+      }
+      /* his shadow beside her: full when he is level with her, thin when he is not; each time it comes back level it
+         falls in again */
+      const fillTo = V.lilyGo ? 1 - T.clamp((Math.abs(gap()) - 36) / 150) : 0.2;
+      V.fill += (fillTo - V.fill) * Math.min(1, dt * 4);
+      if (V.fill > 0.86 && !V.full) { V.full = true; if (V.age - V.off > 1.6) T.shadowFall.add(V.falls, { x: LX + gap(), top: SHORE + 4, y: SHORE + 118, r: 84, warm: true }); }
+      if (V.fill < 0.45 && V.full) { V.full = false; V.off = V.age; }
+      /* at each stop she looks down at the arm she kept free (the script has the last look) */
+      if (!V.done) { const p = V.pause >= 0 && V.pauseT > 0 ? V.pauseT / STOPS[V.pause].dur : 0; V.look.k += ((p > 0.2 && p < 0.92 ? 0.72 : 0) - V.look.k) * Math.min(1, dt * 3); }
+      if (end && !V.done && Math.abs(gap()) < 4) { V.done = true; V.on = false; V.res(); }
+      /* the one line of help: from the start until a little after he first walks */
+      V.tipA += ((V.age >= START && (V.t1 == null || V.age - V.t1 < 4.5) && !V.done ? 1 : 0) - V.tipA) * Math.min(1, dt * 2.5);
       for (const q of V.petals) { q.y += q.v * dt; q.ph += dt; if (q.y > SHORE) { q.y = -10; } }
     };
     /* the neighbours along the road; Pipi and 구름이 together near the middle of it, two more waiting where it ends */
     const guests = [[260, F.styles.villagerB, 132], [330, F.styles.villagerC, 138], [650, F.styles.kidA, 100], [700, F.styles.cloud, 94], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1880, F.styles.villagerC, 142], [1960, F.styles.post, 140]];
     V.draw = function (g, t, S) {
-      const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2) * T.clamp(V.age - START), up = T.ease.io(T.clamp(V.age / START));
+      const W = T.view.W, wx = V.pL * LEN, d = gap(), hint = V.t1 == null ? T.clamp((S.idle - 2) / 1.2) * T.clamp(V.age - START) : 0, up = T.ease.io(T.clamp(V.age / START));
       P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);   /* the road is the harbour's; the hall below it is not */
       /* ---- above: the flower road in Welcome Harbor ---- */
       const sky = g.createLinearGradient(0, 0, 0, SHORE);
@@ -121,9 +176,10 @@
         F.person(g, o);
       });
       const bow = T.ease.io(V.bow.k);
-      const leo = { x: LX, y: SHORE - 6 - F.hipHeight(F.styles.leoHome, 190), s: 190, style: F.leoAt(2), lean: 0.05 + bow * 0.12, headTilt: bow * 0.3, face: { blush: 0.16, mouth: 'smile' } };
+      /* him on the road above her: level with her, or behind, or ahead */
+      const leo = { x: LX + d, y: SHORE - 6 - F.hipHeight(F.styles.leoHome, 190), s: 190, style: F.leoAt(2), lean: 0.05 + bow * 0.12, headTilt: bow * 0.3 + 0.12 * (1 - V.fill) * (V.lilyGo ? 1 : 0), face: { blush: 0.16, mouth: 'smile' } };
       if (bow > 0.01) T.face.set(leo, 'smileTears', bow, t);
-      if (V.going) leo.walk = V.ph;
+      if (V.leoMoving) leo.walk = V.ph;
       leo.armF = { a: 0.5, b: 1.5 - bow * 0.6 };   /* an arm crooked for someone to hold */
       F.person(g, leo);
       g.save(); g.beginPath(); g.rect(-W / 2, 0, W, SHORE); g.clip();
@@ -173,7 +229,7 @@
         P.line(g, ax - 70, SHORE - 36, ax - 70, SHORE - 250, 7, '#e9dcc8'); P.line(g, ax + 70, SHORE - 36, ax + 70, SHORE - 250, 7, '#e9dcc8');
         for (let k = 0; k <= 18; k++) { const a = Math.PI + (k / 18) * Math.PI, fx = ax + Math.cos(a) * 70, fy = SHORE - 250 + Math.sin(a) * 60; P.fill(g, P.circle(fx, fy, 11), ['#9ab86a', '#e58aa0', '#f6f0e0', '#7fa86a', '#f1c04a'][k % 5]); }
         for (let k = 0; k < 8; k++) { P.fill(g, P.circle(ax - 70 + Math.sin(k * 1.7) * 6, SHORE - 230 + k * 24, 8), ['#9ab86a', '#f6f0e0', '#e58aa0'][k % 3]); P.fill(g, P.circle(ax + 70 - Math.sin(k * 1.3) * 6, SHORE - 230 + k * 24, 8), ['#e58aa0', '#9ab86a', '#f6f0e0'][k % 3]); }
-        const turned = V.p > 0.9, gb = turned ? T.ease.io(V.bow.k) : 0;
+        const turned = V.pL > 0.9, gb = turned ? T.ease.io(V.bow.k) : 0;
         const groom = { x: gx, y: SHORE - 6 - F.hipHeight(F.styles.groom, 182), s: 182, style: F.styles.groom, flip: turned, lean: 0.04, headTilt: turned ? 0.06 : -0.04, face: { blush: 0.22, mouth: 'smile', eye: turned ? 'happy' : 'open' } };
         groom.armF = { a: 0.35, b: 0.5 }; groom.armB = { a: 0.3, b: 0.55 };   /* hands together in front, waiting */
         if (gb > 0.01) T.pose.bow(groom, gb, t, { face: 'gentle' });   /* to her mother, and to the empty place beside her */
@@ -186,7 +242,7 @@
       const lk = T.ease.io(V.look.k);
       const lily = { x: LX + 92, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04 + lk * 0.03, headTilt: lk * 0.42, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
       if (lk > 0.01) T.face.set(lily, 'smileTears', lk * 0.8, t);   /* she looks down at her free arm */
-      if (V.going) { ana.walk = V.ph + 0.6; lily.walk = V.ph + 0.3; }
+      if (V.lilyMoving) { ana.walk = V.lph + 0.6; lily.walk = V.lph + 0.3; }
       ana.armB = { hand: F.local(ana, lily.x + 20, lily.y - 40) };
       lily.armF = hug > 0.02 ? { hand: F.local(lily, ana.x - 6, ana.y - 60), bend: 1 } : { hand: F.local(lily, ana.x - 22, ana.y - 34) };
       lily.armB = { a: 0.78, b: 1.3 };   /* crooked, held a little away from her side: room for an arm in it */
@@ -195,18 +251,23 @@
       /* veil and flowers */
       g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.moveTo(lj.head[0] - 6, lj.head[1] - 20); g.quadraticCurveTo(lj.head[0] - 50, lj.head[1] + 20, lj.head[0] - 46, lj.head[1] + 110); g.lineTo(lj.head[0] - 14, lj.head[1] + 60); g.closePath(); g.fill();
       [['#e58aa0', -6, 0], ['#f6f0e0', 6, -4], ['#f1c04a', 2, 8], ['#9ab86a', -10, 8]].forEach((b) => P.fill(g, P.circle(lj.handF[0] + b[1], lj.handF[1] + b[2], 7), b[0]));
-      g.globalAlpha = 0.8 * (1 - hug * 0.5);
-      F.person(g, Object.assign({}, leo, { face: { blush: 0.16, mouth: 'smile' }, headTilt: 0, lean: 0.05 }));
+      /* his shadow, beside her: thin and flat while he is not level with her, and, level, warm and full, his hand in the
+         arm she kept free */
+      const fk = T.ease.io(T.clamp(V.fill)), lo = Object.assign({}, leo, { face: { blush: 0.16, mouth: 'smile' }, headTilt: 0, lean: 0.05 });
+      if (fk > 0.45 && lj.elbowB) lo.armF = { hand: F.local(lo, T.lerp(lo.x + 40, lj.elbowB[0] - 4, T.clamp((fk - 0.45) / 0.4)), T.lerp(lo.y - 10, lj.elbowB[1] + 2, T.clamp((fk - 0.45) / 0.4))) };
+      const thin = 0.3 * (1 - fk) * (V.lilyGo ? 1 : 0.6);
+      if (thin > 0.01) { g.save(); g.globalAlpha = thin * (1 - hug * 0.5); g.translate(lo.x, lo.y); g.scale(0.94, 1.06); g.translate(-lo.x, -lo.y); F.person(g, Object.assign({}, lo, { style: flatStyle(lo.style, '#24304f'), flatLook: true })); g.restore(); }
+      if (fk > 0.01) { g.globalAlpha = 0.84 * fk * (1 - hug * 0.5); P.glow(g, lo.x + 30, lo.y - 50, 150, '#ffe9c0', 0.3 * fk); F.person(g, lo); }
       g.restore();
       /* water over all of it */
       g.fillStyle = 'rgba(40,70,112,0.2)'; g.fillRect(-W / 2, SHORE, W, 430);
       g.strokeStyle = 'rgba(230,240,255,0.16)'; g.lineWidth = 2;
       for (let i = 0; i < 16; i++) { const y = SHORE + 14 + i * 27, off = Math.sin(t * 1.1 + i * 1.7) * 30; g.beginPath(); g.moveTo(-W / 2, y); for (let x = -W / 2; x <= W / 2; x += 80) g.quadraticCurveTo(x + 40 + off * 0.2, y + Math.sin(x * 0.01 + t * 1.6 + i) * 5, x + 80, y); g.stroke(); }
       g.fillStyle = 'rgba(255,240,205,0.5)'; g.fillRect(-W / 2, SHORE - 1, W, 3);
-      if (!V.done && hint > 0) {
-        P.text(g, T.puzzle.withKeys('눌러서 릴리 곁을 걸어요. 한 번 더 누르면 멈춰요', 'act'), 0, 852, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * hint });
-        P.beacon(g, LX, SHORE - 90, 70, t, hint, '#fff0c8');
-      }
+      T.shadowFall.draw(g, V.falls, t);
+      /* the one line of help, small, at the start only */
+      if (V.tipA > 0.01) P.text(g, T.puzzle.withKeys('릴리 걸음에 맞춰, 곁에서 걸어요', 'act'), 0, 872, { font: 'serif', size: 21, color: '#f3ead8', alpha: 0.8 * V.tipA, glow: 'rgba(20,30,50,0.6)' });
+      if (!V.done && hint > 0) P.beacon(g, LX + d, SHORE - 90, 70, t, hint, '#fff0c8');
     };
     return V;
   }
@@ -716,7 +777,7 @@
       const V = wedding();
       await X.view(V, { out: 1.4, in: 1.6 });
       A.score('wedding');
-      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 꽃길 끝에 신랑이 기다린다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르면 걷고, 한 번 더 누르면 멈춘다.');
+      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 꽃길 끝에 신랑이 기다린다. 레오는 꽃길 위에서 릴리와 나란히 걷는다. 릴리는 제 걸음으로 걷다가, 두 번 멈춰 비워 둔 팔을 내려다본다. 걸음이 맞으면 레오의 그림자가 그 빈 팔을 채우고, 뒤처지거나 앞서면 엷어진다. 누르면 걷고, 한 번 더 누르면 멈춘다.');
       await V.walked;
       /* she is there. The notes stop, and for a breath nothing sounds; she looks at the arm she kept free */
       await X.wait(1.5);

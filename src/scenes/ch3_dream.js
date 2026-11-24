@@ -579,23 +579,24 @@
       await X.wait(0.4);
       X.walk(leo, C.PLOT + 380, 84);
       await X.wait(1.6);
+      /* 거리: the bank here is deep, and what stands back from the water falls in small and faint. Only brought right
+         to the edge does Rosa's shadow sit by the cradle the size she is, in the same room as the two of them */
       const lake = T.lake({
-        paint: T.vig.rosa, leo: F.leoAt(0), shore: true, cover: { k: 0 },
-        rhText: '로사는 요람 옆 빈 걸상에, 실바구니는 요람 발치에, 등불은 어두운 창에. 좌우로 끌어 점선에 맞춰 보세요',
+        paint: T.vig.rosa, leo: F.leoAt(0), shore: true, cover: { k: 0 }, deep: true,
+        tip: '물가에 가까이 둘수록 그림자가 크고 짙어져요',
+        rhText: '로사는 요람 옆 빈 걸상에, 등불은 어두운 창에. 물가 가까이 데려가야 그림자가 짙게 앉아요',
         things: [
-          { kind: 'lamp', id: 'lamp', x: 60, at: [-410, 300] },
-          { kind: 'who', id: 'rosa', style: F.styles.rosa, x: 330, at: [-265, 748], flip: false, lockFlip: false, turn: false, ps: 340,
+          { kind: 'lamp', id: 'lamp', x: 60, at: [-410, 300], d: 0.2 },
+          { kind: 'who', id: 'rosa', style: F.styles.rosa, x: 330, at: [-265, 748], d: 0.05, flip: false, lockFlip: false, turn: false, ps: 340,
             prop: (g, j, lo, t, L) => { if (L.lit.rosa < 0.5) return; const k = L.hum || 0, a = Math.sin(t * (k > 0 ? 9 : 3)) * 0.2; g.save(); g.translate(j.handF[0], j.handF[1]); P.line(g, -14, -14 - a * 10, 14, 10, 2.4, '#c9c3ba'); P.line(g, 14, -14 + a * 10, -14, 10, 2.4, '#c9c3ba'); P.fill(g, P.rr(-12, 4, 24, 12, 3), '#e9c45a'); g.restore(); } },
-          { kind: 'yarn', id: 'yarn', x: -300, at: [-36, 804],
-            bank: (g, x) => { P.fill(g, P.rr(x - 26, 196, 52, 32, 8), '#a57d58'); for (let i = 0; i < 3; i++) P.fill(g, P.circle(x - 14 + i * 14, 194 - (i % 2) * 6, 11), ['#e9c45a', '#c9573f', '#7fb0c9'][i]); },
-            ghost: (g, x, dy, near, lit) => { if (lit > 0.97) return; g.globalAlpha = (0.4 + 0.3 * near) * (1 - lit); P.fill(g, P.circle(x, dy - 4, 14), '#101c33'); P.line(g, x - 8, dy - 18, x + 8, dy + 6, 2.4, '#101c33'); } },
         ],
       });
       await X.view(lake, { color: '#1b2a40' });
       X.age('로사의 아들, 72');
       T.announce('거울 호수. 늙은 남자가 안락의자에서 졸고 있다. 요람에는 아기가 잠들어 있다. 벽에는 젊은 로사의 사진.');
       await TALK.say('rosa', '백일도 못 넘기고 두고 왔어.\n그 애가 벌써 할아버지가 됐네.');
-      T.announce('물그림자 맞추기. 로사는 빈 의자에, 실바구니는 요람 옆에, 등불은 창에.');
+      await TALK.say('rosa', '가까이 가 봐야겠다.\n멀리선 그림자도 흐리거든.');
+      T.announce('물그림자 맞추기. 이 물가는 깊다. 물가 가까이 둘수록 그림자가 크고 짙어진다. 로사는 요람 옆 빈 걸상에, 등불은 창에. 숫자 키로 고르고, 좌우 화살표로 옮기고, 아래 화살표로 물가에 가까이 댄다.');
       await lake.rhyme();
       await X.wait(1.2);
       /* the baby wakes, and he rocks the cradle */
