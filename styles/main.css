@@ -1107,6 +1107,7 @@ button {
 
 /* 알림: 한 번에 하나, 통통 튀며 나타난다 */
 .toasts {
+  z-index: 60; /* 창이 떠 있어도 알림이 보이게(창 위, 회전 안내 아래) */
   position: absolute;
   top: calc(var(--hud-h, 128px) + 46px);
   left: 0;
@@ -2083,6 +2084,7 @@ button {
   z-index: 50;
 }
 .modal-layer {
+  isolation: isolate; /* 아래 창의 제목 띠가 위 창의 어두운 바탕 위로 비치지 않게 */
   position: absolute;
   inset: 0;
   display: grid;

@@ -23,7 +23,7 @@ OUT = ROOT / "assets" / "fonts"
 
 def wanted_chars() -> set[str]:
     chars = {chr(c) for c in range(0x20, 0x7F)}
-    chars |= set("·…“”‘’「」『』〈〉★☆×→←↑↓−–—°%℃◈•※♪♥")
+    chars |= set("·…“”‘’「」『』〈〉★☆×→←↑↓−–—°%℃◈•※♪♥₩€£¥")
     # KS X 1001 완성형 한글 2,350자
     for lead in range(0xB0, 0xC9):
         for trail in range(0xA1, 0xFF):
@@ -34,7 +34,7 @@ def wanted_chars() -> set[str]:
     for path in (ROOT / "src" / "i18n").glob("*.js"):
         chars |= set(path.read_text(encoding="utf-8"))
     # 기능 모듈이 registerStrings 로 더하는 문구
-    for path in list((ROOT / "src" / "features").rglob("strings.js")) + [ROOT / "src" / "ui" / "minigames" / "strings.js"]:
+    for path in list((ROOT / "src" / "features").rglob("strings.js")) + [ROOT / "src" / "ui" / "minigames" / "strings.js", ROOT / "src" / "ui" / "ext" / "shopStrings.js"]:
         if path.exists():
             chars |= set(path.read_text(encoding="utf-8"))
     chars |= set((ROOT / "index.html").read_text(encoding="utf-8"))

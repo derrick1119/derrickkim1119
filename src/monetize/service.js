@@ -59,6 +59,8 @@ export class Monetize extends Emitter {
   price(id) {
     const p = this.prices[id]?.price;
     if (p) return p;
+    // 앱에서는 스토어가 정한 현지 통화로만 보여 준다(받기 전엔 '…')
+    if (this.provider.name !== 'mock') return '…';
     const def = PRODUCTS.find((x) => x.id === id);
     return def ? `₩${def.krw.toLocaleString('ko-KR')}` : '';
   }

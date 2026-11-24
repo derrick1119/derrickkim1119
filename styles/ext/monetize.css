@@ -12,6 +12,7 @@
 .mz-overlay.out {
   opacity: 0;
   transition: opacity 0.18s;
+  pointer-events: none; /* 사라지는 동안 아래 창을 누를 수 있게 */
 }
 .mz-ad,
 .mz-buy {

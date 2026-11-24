@@ -56,7 +56,7 @@ registerStrings('monetize', {
     product: {
       shh_starter: { name: '스타터 팩', desc: '연구비 상자 + 견습 비행사 의상 + 진열장 1칸' },
       shh_freepass: { name: '본부 프리패스', desc: '모든 광고 보상을 광고 없이 바로 받아요(도장도 쌓여요). 황금 기체 도색 선물' },
-      shh_season: { name: '관측 시즌 패스', desc: '30일 동안 성장 +25%, 매일 연구비 상자, 별빛 망토·황금 빔' },
+      shh_season: { name: '관측 시즌 패스', desc: '구독하는 동안 성장 +25%, 매일 연구비 상자, 별빛 망토·황금 빔(한 달마다 자동 갱신)' },
       shh_grant_s: { name: '연구비 한 줌', desc: '지금 진행도에 맞춘 연구비' },
       shh_grant_m: { name: '연구비 꾸러미', desc: '지금 진행도에 맞춘 연구비(보너스 포함)' },
       shh_grant_l: { name: '연구비 금고', desc: '지금 진행도에 맞춘 연구비(보너스 더 많이)' },
@@ -140,7 +140,7 @@ registerStrings('monetize', {
     product: {
       shh_starter: { name: 'Starter Pack', desc: 'Grant chest + Cadet Pilot outfit + 1 display slot' },
       shh_freepass: { name: 'HQ Free Pass', desc: 'Get every ad reward instantly without ads (stamps still count). Gold ship paint included' },
-      shh_season: { name: 'Observation Season Pass', desc: '30 days of +25% growth, a daily grant chest, Starlight Cape and Gold Beam' },
+      shh_season: { name: 'Observation Season Pass', desc: '+25% growth while subscribed, a daily grant chest, Starlight Cape and Gold Beam (renews monthly)' },
       shh_grant_s: { name: 'Handful of Grant', desc: 'Grant scaled to your progress' },
       shh_grant_m: { name: 'Grant Bundle', desc: 'Grant scaled to your progress, with bonus' },
       shh_grant_l: { name: 'Grant Vault', desc: 'Grant scaled to your progress, bigger bonus' },

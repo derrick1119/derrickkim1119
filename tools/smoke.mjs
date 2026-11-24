@@ -176,6 +176,7 @@ try {
   await click(page, '.mz-ad .btn.primary');
   await page.waitForFunction(() => window.__ufo.game.fx.monetize.boostActive(), null, { timeout: 5000 * SLOW });
   check('광고를 끝까지 보면 부스터가 켜진다', await page.evaluate(() => window.__ufo.game.fx.monetize.stamps() === 1));
+  await page.waitForSelector('.mz-overlay', { state: 'detached' });
   await click(page, '.modal-mz .icon-btn');
   await page.waitForFunction(() => !window.__ufo.ui.modals.active);
 
