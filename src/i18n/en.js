@@ -44,7 +44,7 @@ export default {
     notice: 'The {who} is about to look up',
     look: 'Shh! The {who} is watching the sky',
     cloaked: "In the cloud. They can't see you",
-    hidden: 'Hiding behind a cloud',
+    hidden: 'Snug inside a cloud',
     near: "The {who} is looking your way! Slide aside",
   },
 
@@ -734,7 +734,7 @@ export default {
     shiny: 'SHINY!',
     combo: '{n} combo',
     comboMult: '×{m}',
-    hidden: 'Hidden behind a cloud',
+    hidden: 'Hid inside a cloud',
     holdCow: 'Press and hold to lift a cow',
     holdBalloon: 'Balloons: gentle press and hold',
     cutKite: 'Swipe across the string to cut it',
@@ -748,7 +748,7 @@ export default {
     suspicion: 'Getting suspicious…',
     hunterIn: 'A UFO Hunter appeared! Watch out for the binoculars',
     hunterOut: 'The UFO Hunter went home',
-    lightningWarn: 'Rumble… Lightning! Get behind a cloud!',
+    lightningWarn: 'Rumble… Lightning! Get into a cloud!',
     sourceWarn: {
       window: 'A window is lighting up!',
       dome: 'The observatory dome is turning!',

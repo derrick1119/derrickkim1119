@@ -45,7 +45,7 @@ export default {
     notice: '{who}(이)가 고개를 들려고 해요',
     look: '쉿! {who}(이)가 하늘을 봐요',
     cloaked: '구름 속이라 안 보여요',
-    hidden: '구름 뒤에 숨었어요',
+    hidden: '구름 속에 쏙 숨었어요',
     near: '{who}의 시선이 기체 쪽이에요! 옆으로 피해요',
   },
 
@@ -736,7 +736,7 @@ export default {
     shiny: '반짝!',
     combo: '{n} 콤보',
     comboMult: '×{m}',
-    hidden: '구름 뒤로 숨었다',
+    hidden: '구름 속으로 숨었다',
     holdCow: '소는 꾹 눌러서 들어 올려요',
     holdBalloon: '풍선은 살살 꾹 눌러요',
     cutKite: '연줄을 쓱 그어서 끊어요',
@@ -750,7 +750,7 @@ export default {
     suspicion: '의심받는 중…',
     hunterIn: 'UFO 헌터가 나타났다! 쌍안경을 조심해요',
     hunterOut: 'UFO 헌터가 돌아갔어요',
-    lightningWarn: '우르릉… 번개가 쳐요! 구름 뒤로!',
+    lightningWarn: '우르릉… 번개가 쳐요! 구름 속으로!',
     sourceWarn: {
       window: '창문에 불이 켜져요!',
       dome: '천문대 돔이 돌아가요!',

@@ -61,6 +61,8 @@ export class Scene {
     this.ufo = { mode: 'hover', modeT: 0, x: 195, y: 300, scale: 1, k: 1, rot: 0 };
     this.lit = 1;
     this.cloakAmt = 0;
+    this.coverAmt = 0; // 지나가는 구름(연기) 속에 숨어 있는 정도
+    this.coverKind = 'cloud';
     this.gazeAmt = 0;
     this.happyT = 0;
     this.wobbleT = 0;
@@ -379,6 +381,14 @@ export class Scene {
     this.lit = lerp(this.lit, watched ? 0.08 : 1, Math.min(1, dt * 10));
     this.gazeAmt = lerp(this.gazeAmt, seen ? 1 : watched ? 0.3 : 0, Math.min(1, dt * 8));
     this.cloakAmt = lerp(this.cloakAmt, game.cloaked ? 1 : 0, Math.min(1, dt * 9));
+    // 구름 속에 숨었으면 기체가 구름 방석에 폭 잠긴다(숨었다는 신호). 어떤 엄폐물인지(구름·연기)도 기억한다
+    const hiddenNow = !!world.hidden && game.phase === 'play';
+    this.coverAmt = lerp(this.coverAmt, hiddenNow ? 1 : 0, Math.min(1, dt * 6));
+    if (hiddenNow) {
+      let best = null;
+      for (const c of world.covers || []) if (!best || Math.abs(c.x - this.home.x) < Math.abs(best.x - this.home.x)) best = c;
+      if (best) this.coverKind = best.kind === 'smoke' ? 'smoke' : 'cloud';
+    }
     if (this.fadeT < 1) {
       this.fadeT = Math.min(1, this.fadeT + dt / 0.9);
       if (this.fadeT >= 1) this.prevBackdrop = null;
@@ -543,9 +553,7 @@ export class Scene {
       ctx.restore();
     }
 
-    // 기체
-    if (showUfo) this._ufo();
-    // 엄폐물(구름·연기): 기체 앞을 지나간다
+    // 엄폐물(구름·연기): 기체 뒤로 지나간다(피포를 가리지 않게. 숨었을 때는 구름 방석이 기체를 감싼다)
     for (const c of world.covers || []) {
       const k = 0.35 + 0.65 * clamp(c.a);
       ctx.save();
@@ -556,6 +564,9 @@ export class Scene {
       puffs(ctx, blobs, c.kind === 'smoke' ? '#ece6f2' : '#ffffff', 0, C.ink);
       ctx.restore();
     }
+
+    // 기체
+    if (showUfo) this._ufo();
 
     // 땅 위: 지상 표본과 지구인
     for (const sp of world.specimens) if (sp.mode === 'ground') this._specimen(sp, belly, cloaked);
@@ -632,6 +643,11 @@ export class Scene {
     return sp.mode === 'ground' ? sp.by - (GROUND_LIFT[sp.kind] || 14) : sp.by;
   }
 
+  /** 구름 방석의 정도(0..1): 구름 은폐 또는 지나가는 구름 속. */
+  get cushionAmt() {
+    return Math.max(this.cloakAmt, this.coverAmt * 0.9);
+  }
+
   _ufo() {
     const { ctx, game, t } = this;
     const u = this.ufo;
@@ -642,10 +658,12 @@ export class Scene {
     ctx.translate(u.x, u.y);
     ctx.rotate(u.rot);
     ctx.scale(s, s);
-    if (this.cloakAmt > 0.02) ctx.globalAlpha = 1 - this.cloakAmt * 0.55;
+    // 구름 방석: 뒤 덩이 → 기체 → 앞 덩이(돔과 피포는 가리지 않는다)
+    const ca = this.cushionAmt;
+    const kind = this.cloakAmt >= this.coverAmt ? 'cloud' : this.coverKind;
+    if (ca > 0.02) drawCloak(ctx, form, t, ca, 'back', kind);
     drawUfo(ctx, { form, t, mood: this._mood(), lit: this.lit, beam: beaming ? 1 : 0 });
-    ctx.globalAlpha = 1;
-    if (this.cloakAmt > 0.02) drawCloak(ctx, form, t, this.cloakAmt);
+    if (ca > 0.02) drawCloak(ctx, form, t, ca, 'front', kind);
     ctx.restore();
   }
 

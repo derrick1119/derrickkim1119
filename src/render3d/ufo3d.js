@@ -1244,6 +1244,7 @@ export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan'
     root,
     update,
     halfWidth: spec.hw,
+    hullR: R, // 맨 아래 접시 반지름(구름 방석 크기)
     bellyY,
     topY,
     body,

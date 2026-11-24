@@ -41,6 +41,21 @@ const COVER_BLOBS = [
   [-0.2, -0.16, 0.25, 0.42],
   [0.25, -0.14, 0.28, 0.44],
 ];
+/**
+ * 구름 방석: 기체 맨 아래 접시 반지름(R) = 1 단위. 테두리를 빙 두르는 구름 열두 덩이(앞쪽이 크고 조금 낮다) + 배 아래 네 덩이.
+ * 기체처럼 앞으로 기울어지므로 앞 덩이는 테두리와 배를, 뒤 덩이는 돔 뒤를 받쳐 준다(피포 얼굴은 가리지 않는다).
+ */
+const CUSHION_BLOBS = [
+  ...Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * Math.PI * 2;
+    const front = Math.cos(a);
+    return [Math.sin(a) * 1.02, -0.01 - 0.03 * Math.max(0, front), Math.cos(a) * 0.98, 0.27 + 0.06 * front];
+  }),
+  [0, -0.2, 0.15, 0.44],
+  [-0.52, -0.14, 0.32, 0.32],
+  [0.52, -0.14, 0.32, 0.32],
+  [0, -0.1, 0.62, 0.34],
+];
 const SMOKE_BLOBS = [
   [0, -0.7, 0, 0.42],
   [0.12, -0.25, 0.05, 0.5],
@@ -183,20 +198,17 @@ export class Scene3D extends Scene {
     this.beams = [];
     this.cones = [];
     this.strings = [];
-    this.cloak3d = cloud3d(
-      [
-        [-0.75, -0.05, 0.1, 0.42],
-        [-0.35, 0.22, 0.05, 0.5],
-        [0.15, 0.3, 0, 0.55],
-        [0.6, 0.12, 0.05, 0.45],
-        [0.9, -0.08, 0.1, 0.34],
-        [-0.3, -0.2, 0.3, 0.45],
-        [0.3, -0.18, 0.32, 0.48],
-      ],
-      { fog: false },
-    );
-    this.cloak3d.visible = false;
-    this.engine.actors.add(this.cloak3d);
+    // 구름 방석: 구름 은폐·지나가는 구름 속에 숨었을 때 기체 테두리와 배를 감싼다(돔과 피포는 위로 빼꼼 보인다)
+    this.cushions = {
+      cloud: cloud3d(CUSHION_BLOBS, { fog: false }),
+      smoke: cloud3d(CUSHION_BLOBS, { color: '#f1ecf6', shadeColor: '#a59cbd', fog: false }),
+    };
+    for (const c of Object.values(this.cushions)) {
+      c.visible = false;
+      c.userData.base = c.children.map((m) => m.scale.x);
+      this.engine.actors.add(c);
+    }
+    this.coverKind = 'cloud';
     this.t3 = 0;
     // 화면이 아주 촘촘한 기기(3배 등)는 1.75 배에서 시작한다
     this.quality = (window.devicePixelRatio || 1) > 2.5 ? 1 : 0;
@@ -514,6 +526,18 @@ export class Scene3D extends Scene {
     return this.engine.toWorld(x, y, out);
   }
 
+  /**
+   * 화면 좌표(px)에 보이는 행동 평면의 점을 카메라 시선을 따라 depth 만큼 뒤로 민 3D 점.
+   * 돌려주는 값 = 같은 크기로 보이려면 곱할 배율(멀어진 만큼 크게).
+   */
+  _behind(x, y, depth, out = new THREE.Vector3()) {
+    const cam = this.engine.camera.position;
+    this.engine.toWorld(x, y, out);
+    const k = cam.z > 0 ? (cam.z + depth) / cam.z : 1;
+    out.sub(cam).multiplyScalar(k).add(cam);
+    return k;
+  }
+
   _sync3d() {
     const { game, world, t } = this;
     const found = game.phase === 'discovered';
@@ -536,15 +560,21 @@ export class Scene3D extends Scene {
     ufo.root.rotation.set(UFO_TILT, 0, -u.rot);
     const beaming = world.specimens.some((sp) => sp.state === 'beam' || sp.state === 'caught');
     ufo.update({ t, mood: hero ? 'happy' : this._mood(), lit: this.lit, beam: beaming ? 1 : 0, look: this._lookTarget(hero) });
-    // 은폐 구름
-    const ca = this.cloakAmt;
-    this.cloak3d.visible = visible && ca > 0.02;
-    if (this.cloak3d.visible) {
-      const cs = s * ufo.halfWidth * (0.55 + 0.6 * ca);
-      this.cloak3d.position.copy(ufo.root.position);
-      this.cloak3d.position.z += 0.25 * s * ufo.halfWidth;
-      this.cloak3d.scale.setScalar(cs);
-      this.cloak3d.rotation.z = Math.sin(t * 0.8) * 0.05;
+    // 구름 방석(은폐·구름 속): 기체와 함께 기울고 움직인다. 퐁퐁 하나씩 부풀며 나타난다
+    const ca = hero ? 0 : this.cushionAmt;
+    const kind = this.cloakAmt >= this.coverAmt ? 'cloud' : this.coverKind;
+    for (const [id, cu] of Object.entries(this.cushions)) {
+      const on = visible && ca > 0.02 && id === kind;
+      cu.visible = on;
+      if (!on) continue;
+      cu.position.copy(ufo.root.position);
+      cu.rotation.copy(ufo.root.rotation);
+      cu.scale.setScalar(s * ufo.hullR);
+      const base = cu.userData.base;
+      cu.children.forEach((m, i) => {
+        const k = easeOut(clamp(ca * 1.5 - (i % 6) * 0.07));
+        m.scale.setScalar(base[i] * (0.25 + 0.75 * k) * (1 + Math.sin(t * 1.6 + i * 1.3) * 0.035));
+      });
     }
     const belly = this.bellyPoint();
     const bellyW = this._w(belly.x, belly.y, new THREE.Vector3());
@@ -722,11 +752,12 @@ export class Scene3D extends Scene {
         this.coverObjs.set(c.id, obj);
         this.engine.actors.add(obj);
       }
-      this._w(c.x, c.y, obj.position);
-      obj.position.z = 1.1;
+      // 기체 뒤로 지나간다(피포를 가리지 않게). 화면 자리·크기는 그대로 보이도록 카메라 시선을 따라 뒤로 민다
+      const depth = (this.ufo3d ? this.ufo3d.halfWidth * this.ufoScale * 1.15 : 1.5) + (c.rx / PX) * 0.5;
+      const pk = this._behind(c.x, c.y, depth, obj.position);
       const k = 0.35 + 0.65 * easeOut(clamp(c.a));
-      if (c.kind === 'smoke') obj.scale.set((c.rx / PX) * k, (c.ry / PX) * 0.9 * k, (c.rx / PX) * 0.6 * k);
-      else obj.scale.set((c.rx / PX) * k, (c.ry / PX) * 1.7 * k, (c.rx / PX) * 0.45 * k);
+      if (c.kind === 'smoke') obj.scale.set((c.rx / PX) * k * pk, (c.ry / PX) * 0.9 * k * pk, (c.rx / PX) * 0.6 * k);
+      else obj.scale.set((c.rx / PX) * k * pk, (c.ry / PX) * 1.5 * k * pk, (c.rx / PX) * 0.45 * k);
       obj.rotation.z = Math.sin(t * 0.5 + c.id) * 0.03;
     }
     for (const [id, obj] of this.coverObjs) {

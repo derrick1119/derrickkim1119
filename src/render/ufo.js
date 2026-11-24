@@ -609,27 +609,42 @@ export function drawUfo(ctx, o) {
   ctx.restore();
 }
 
-/** 은폐용 뭉게구름. amount 0..1 로 부풀어 오른다. */
-export function drawCloak(ctx, form, t, amount) {
-  const hw = UFO_HALF_WIDTH[form] * 1.15;
-  const top = UFO_TOP[form];
-  const s = 0.55 + 0.45 * amount;
-  const wob = (i) => Math.sin(t * 1.5 + i * 1.7) * 1.4;
-  const blobs = [
-    [-hw * 0.74, 12 + wob(0), hw * 0.32],
-    [-hw * 0.4, top * 0.38 + wob(1), hw * 0.42],
-    [hw * 0.06, top * 0.66 + wob(2), hw * 0.47],
-    [hw * 0.5, top * 0.3 + wob(3), hw * 0.38],
-    [hw * 0.82, 12 + wob(4), hw * 0.3],
-    [-hw * 0.34, 17 + wob(5), hw * 0.4],
-    [hw * 0.3, 18 + wob(6), hw * 0.42],
-  ].map(([x, y, r]) => [x * s, y * s, r * s]);
+/** 형태별 맨 아래 접시: 테두리 높이(y)와 반지름(R). FORMS 의 saucer 호출과 같은 값. */
+const HULL_2D = [
+  [6, 27],
+  [5, 46],
+  [6, 55],
+  [6, 50],
+  [10, 62],
+  [8, 70],
+  [12, 86],
+  [15, 100],
+];
+
+/**
+ * 구름 방석(구름 은폐·지나가는 구름 속): 접시 테두리를 빙 두른 구름. 돔과 피포는 위로 빼꼼 보인다.
+ * layer 'back' = 기체 뒤쪽 덩이(기체보다 먼저), 'front' = 앞쪽 덩이(기체 다음에). kind 'smoke' 면 연기 빛.
+ */
+export function drawCloak(ctx, form, t, amount, layer = 'front', kind = 'cloud') {
+  const [y0, R] = HULL_2D[form] || HULL_2D[0];
+  const ry = R * 0.3;
+  const blobs = [];
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const a = (i / (n - 1)) * Math.PI; // 0 = 오른쪽 끝, π = 왼쪽 끝
+    const wob = Math.sin(t * 1.6 + i * 1.3) * R * 0.012;
+    const k = easeOutQuick(clamp(amount * 1.5 - (i % 4) * 0.08));
+    if (layer === 'front') blobs.push([Math.cos(a) * R * 1.0, y0 + Math.sin(a) * ry * 0.85 + wob, R * (0.2 + 0.05 * Math.sin(a)) * (0.3 + 0.7 * k)]);
+    else if (i > 0 && i < n - 1) blobs.push([Math.cos(a) * R * 0.92, y0 - Math.sin(a) * ry * 0.7 + wob, R * 0.17 * (0.3 + 0.7 * k)]);
+  }
+  if (layer === 'front') blobs.push([0, y0 + ry * 1.15, R * 0.3 * (0.3 + 0.7 * easeOutQuick(clamp(amount * 1.4)))]);
+  const smoke = kind === 'smoke';
   ctx.save();
-  ctx.globalAlpha *= clamp(amount * 1.25);
+  ctx.globalAlpha *= clamp(amount * 1.4);
   // 하늘에 묻히지 않도록 바깥에 옅은 테두리를 한 겹 깐다
-  cumulus(ctx, blobs.map(([x, y, r]) => [x, y + 1, r + 2.2]), { base: tone(P.cloudShade, -0.05), shadeColor: tone(P.cloudShade, -0.3), alpha: 0.85 });
-  cumulus(ctx, blobs, { base: '#ffffff', shadeColor: '#c9d4f6' });
-  // 위쪽 반짝임
-  for (const [x, y, r] of [blobs[1], blobs[2], blobs[3]]) gloss(ctx, x - r * 0.3, y - r * 0.45, r * 0.35, r * 0.16, -0.3, 0.7);
+  cumulus(ctx, blobs.map(([x, y, r]) => [x, y + 1, r + 2]), { base: tone(P.cloudShade, -0.05), shadeColor: tone(P.cloudShade, -0.3), alpha: 0.85 });
+  cumulus(ctx, blobs, { base: smoke ? '#f1ecf6' : '#ffffff', shadeColor: smoke ? '#b8afcc' : '#c9d4f6' });
+  if (layer === 'front') for (const [x, y, r] of blobs.slice(1, 4)) gloss(ctx, x - r * 0.3, y - r * 0.45, r * 0.35, r * 0.16, -0.3, 0.6);
   ctx.restore();
 }
+const easeOutQuick = (x) => 1 - (1 - x) * (1 - x);
