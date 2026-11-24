@@ -2,3 +2,5 @@
 import '../../features/progression/strings.js';
 import '../../features/collection/strings.js';
 import '../../ui/minigames/strings.js';
+import '../../features/monetize/strings.js';
+import '../../ui/ext/shopStrings.js';

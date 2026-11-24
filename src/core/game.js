@@ -327,19 +327,46 @@ export class Game extends Emitter {
       this.emit('change');
       return { ok: true, success: false };
     }
+    s.stats.excuses = (s.stats.excuses || 0) + 1;
+    this._undoDiscovery({ cause: d.cause, excuse: excuseId });
+    return { ok: true, success: true };
+  }
+
+  /** 들킨 일을 없던 일로 한다(변명 성공·본부 긴급 무마가 함께 쓴다). */
+  _undoDiscovery(info) {
+    const s = this.state;
+    const d = this._lastDiscovery;
     if (d.isNew) delete s.seen[d.cause];
     if (d.resist > 0) s.resist[d.cause] = d.resist;
     else delete s.resist[d.cause];
     s.grant = Math.max(0, s.grant - d.grant);
     s.stats.discoveries = Math.max(0, s.stats.discoveries - 1);
-    s.stats.excuses = (s.stats.excuses || 0) + 1;
     s.phase = 'play';
     s.lastReport = null;
     s.run.combo = 0;
     this._lastDiscovery = null;
-    this.emit('excused', { cause: d.cause, excuse: excuseId });
+    this.emit('excused', info);
     this.emit('change');
-    return { ok: true, success: true };
+  }
+
+  /** 본부 긴급 무마를 쓸 수 있는지(들킨 직후, 변명과 별개). */
+  get canCoverUp() {
+    return this.state.phase === 'discovered' && !!this._lastDiscovery;
+  }
+
+  /** 본부 긴급 무마(광고 보상): 확률 없이 들킨 일을 없던 일로 한다. */
+  coverUp() {
+    if (!this.canCoverUp) return false;
+    this._undoDiscovery({ cause: this._lastDiscovery.cause, coverUp: true });
+    return true;
+  }
+
+  /** 성장을 바로 더한다(광고·상품 보상). 승급 셀카 판정은 하지 않는다. */
+  grantGrowth(amount) {
+    if (!(amount > 0) || this.state.phase !== 'play') return null;
+    const grown = this._addSize(amount, false);
+    this.emit('change');
+    return grown;
   }
 
   /** 기체를 건드린다. 너무 자주 건드리면 간지럼 사건. */

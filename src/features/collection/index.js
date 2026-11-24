@@ -87,6 +87,16 @@ export default defineFeature({
       shelf: () => slotOf(game).shelf,
       /** 다음 자리 값(다 열었으면 null). */
       nextSlotCost: () => slotCost(slotOf(game).slots),
+      /** 진열 자리를 하나 무료로 늘린다(스타터 팩 등). */
+      giftSlot() {
+        const ok = addSlot(slotOf(game));
+        if (ok) {
+          touch();
+          game.emit('roomChange');
+          game.emit('change');
+        }
+        return ok;
+      },
       buySlot() {
         const slot = slotOf(game);
         const cost = slotCost(slot.slots);

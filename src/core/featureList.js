@@ -2,3 +2,4 @@
 // 순서가 곧 game.mod 가 보정을 적용하는 순서다.
 import '../features/progression/index.js';
 import '../features/collection/index.js';
+import '../features/monetize/index.js';

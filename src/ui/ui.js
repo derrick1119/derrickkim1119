@@ -42,6 +42,7 @@ export class UI {
     this.scene = o.scene;
     this.audio = o.audio;
     this.haptics = o.haptics;
+    this.monetize = o.monetize || null;
     this.storageOk = o.storageOk;
     this.save = o.save;
     this.onEnter = o.onEnter;

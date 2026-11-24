@@ -8,6 +8,7 @@
 //   기체가 시선 안에 있을 때 빔을 쏘면 들킬 수 있고, 가만히 있어도 의심 게이지가 찬다.
 //   무대마다 사람 말고도 시선을 보내는 것(창문·천문대 돔·우주 정거장·손전등)이 있다.
 import { FORMS, WATCHERS, AIRBORNE_STAGES, WEATHERS, STAGE_WEATHER, STAGE_RULES } from '../data/content.js';
+import { SUPPLY } from '../features/monetize/catalog.js';
 import { Emitter } from './emitter.js';
 import { rand, pickWeighted } from './rng.js';
 
@@ -147,6 +148,8 @@ export class World extends Emitter {
     this.recentBeams = [];
     this.cowTimes = [];
     this.nearT = 0;
+    this.supply = null;
+    this.supplyT = SUPPLY.firstAfter;
     this.ufoX = this.ufoTarget = this.layout.w / 2;
     this.ufoVX = 0;
     this.stageId = this.stage;
@@ -576,6 +579,7 @@ export class World extends Emitter {
       this._updateSpecimens(dt);
       this._updateHold(dt);
       this._updateDrone(dt);
+      this._updateSupply(dt);
     } else if (this.pointer?.mode === 'hold') {
       this.pointer = null;
     }
@@ -795,7 +799,7 @@ export class World extends Emitter {
       by: 0,
       auto: false,
       dead: false,
-      shiny: this.rng() < Math.min(0.5, this.game.mod('shinyChance', SHINY_BASE)),
+      shiny: this._rollShiny(),
       group,
       hold: 0,
       held: false,
@@ -864,6 +868,60 @@ export class World extends Emitter {
     return sp;
   }
 
+  /** 반짝이 판정. 확정 보상(도장)은 확률이 1 로 온다. */
+  _rollShiny() {
+    const p = this.game.mod('shinyChance', SHINY_BASE, { spawn: true });
+    return p >= 1 || this.rng() < Math.min(0.5, p);
+  }
+
+  // ───────── 본부 보급 풍선(보상형 광고) ─────────
+
+  /** 낙하산 캡슐이 하늘로 천천히 내려온다. 누르면 'supplyTap' — 열지 말지는 UI 가 정한다. */
+  _updateSupply(dt) {
+    const fx = this.game.fx.monetize;
+    const sp = this.supply;
+    if (sp) {
+      sp.age += dt;
+      if (sp.state === 'drop') {
+        sp.y = Math.min(sp.y + dt * 22, sp.ty);
+        sp.x = sp.ax + Math.sin(sp.age * 0.9 + sp.phase) * 18;
+        if (sp.age > SUPPLY.life) sp.state = 'leave';
+      } else if (sp.state === 'leave') {
+        sp.y -= dt * 70;
+        sp.x += dt * 12;
+        if (sp.y < -60) this.supply = null;
+      } else if (sp.state === 'open') {
+        sp.openT += dt;
+        if (sp.openT > 0.9) this.supply = null;
+      }
+      return;
+    }
+    if (!fx) return;
+    this.supplyT -= dt;
+    if (this.supplyT > 0) return;
+    this.supplyT = rand(this.rng, SUPPLY.every[0], SUPPLY.every[1]);
+    if (!fx.canWatch('supply').ok) return;
+    const { w, top, groundY } = this.layout;
+    const [a, b] = this.lane;
+    const x = rand(this.rng, a + 10, b - 10);
+    this.supply = { id: nextId++, x, ax: x, y: top - 30, ty: top + (groundY - top) * rand(this.rng, 0.18, 0.32), age: 0, phase: this.rng() * 6, state: 'drop', openT: 0 };
+    void w;
+    this.emit('supplySpawn', this.supply);
+  }
+
+  /** 보급 캡슐을 연다(광고를 끝까지 본 뒤 UI 가 부른다). */
+  openSupply() {
+    if (!this.supply) return;
+    this.supply.state = 'open';
+    this.supply.openT = 0;
+    this.emit('supplyOpen', this.supply);
+  }
+
+  /** 보급 캡슐을 그냥 보낸다(안 열기). */
+  dismissSupply() {
+    if (this.supply && this.supply.state === 'drop') this.supply.state = 'leave';
+  }
+
   _beam(sp, auto) {
     sp.state = 'beam';
     sp.bt = 0;
@@ -899,6 +957,11 @@ export class World extends Emitter {
   pointerDown(x, y) {
     if (!this.game.playing) return null;
     this.pointer = null;
+    const su = this.supply;
+    if (su && su.state === 'drop' && Math.hypot(x - su.x, y - (su.y + 8)) < 46) {
+      this.emit('supplyTap', su);
+      return { type: 'supply', supply: su };
+    }
     const sp = this._hit(x, y);
     if (sp) {
       if (HOLD_TIME[sp.kind]) {

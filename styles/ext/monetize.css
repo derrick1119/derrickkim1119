@@ -1,0 +1,85 @@
+/* 보상형 광고 자리·도장·보급 풍선, 그리고 개발용 가짜 광고·결제 창 */
+.mz-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 10, 34, 0.82);
+  animation: mz-in 0.18s ease-out both;
+}
+.mz-overlay.out {
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.mz-ad,
+.mz-buy {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #161c4e;
+  box-shadow: 0 6px 0 #0b0f33, 0 18px 40px rgba(0, 0, 0, 0.45);
+  border: 3px solid #12174a;
+  font-family: "Pretendard", system-ui, sans-serif;
+}
+.mz-tag {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ffcf26;
+  color: #161c4e;
+  font-weight: 800;
+  font-size: 12.5px;
+}
+.mz-screen {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 220px;
+  border-radius: 14px;
+  background: linear-gradient(#2a5bd7, #1b2266);
+  color: #ffffff;
+  font-weight: 700;
+  text-align: center;
+}
+.mz-count {
+  font-size: 22px;
+  font-weight: 800;
+}
+.mz-buy h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+.mz-price {
+  font-size: 24px;
+  font-weight: 800;
+}
+.mz-note {
+  margin: 0;
+  color: #4f5788;
+  font-size: 13.5px;
+}
+.mz-ad .row,
+.mz-buy .row {
+  display: flex;
+  gap: 10px;
+}
+.mz-ad .row .btn,
+.mz-buy .row .btn {
+  flex: 1;
+}
+@keyframes mz-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mz-overlay {
+    animation: none;
+  }
+}

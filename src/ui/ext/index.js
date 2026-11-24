@@ -2,3 +2,5 @@
 import './play.js';
 import './progression.js';
 import './collection.js';
+import './monetize.js';
+import './shop.js';

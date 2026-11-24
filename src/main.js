@@ -9,6 +9,7 @@ import { Storage, localDay } from './platform/storage.js';
 import { Haptics, registerServiceWorker, prefersReducedMotion } from './platform/device.js';
 import { UI } from './ui/ui.js';
 import { showDaily, showOffline } from './ui/modals.js';
+import { createMonetize } from './monetize/index.js';
 
 const SAVE_EVERY_SECONDS = 5;
 const OFFLINE_MIN_SECONDS = 60;
@@ -86,6 +87,8 @@ async function start(hotData) {
   };
 
   let bootChecked = false;
+  // 보상형 광고·인앱 결제(앱에서는 AdMob·RevenueCat, 웹·개발에서는 가짜 공급자)
+  const monetize = await createMonetize(game);
   const ui = new UI({
     stage,
     game,
@@ -93,6 +96,7 @@ async function start(hotData) {
     scene,
     audio,
     haptics,
+    monetize,
     storageOk: storage.available,
     save,
     onEnter: () => {

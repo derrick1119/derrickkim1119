@@ -102,8 +102,10 @@ function pickByRarity(rng, ids) {
  * 카드 세 장을 뽑는다. 첫 장은 이번 사건에 맞춘 카드(있으면).
  * 모든 카드를 다 모았으면 비상금 카드로 채운다.
  */
-export function makeOffer(rng, stacks, causeId) {
-  const avail = (id) => stackOf(stacks, id) < cardDef(id).max;
+export function makeOffer(rng, stacks, causeId, { minRarity = null } = {}) {
+  const RANK = { common: 0, rare: 1, epic: 2 };
+  // minRarity 를 주면(본부 지원 선택권) 그 등급 이상만 나온다
+  const avail = (id) => stackOf(stacks, id) < cardDef(id).max && (!minRarity || RANK[cardDef(id).rarity] >= RANK[minRarity]);
   const kind = kindOf(causeId);
   const themedPool = CARDS.filter((c) => kind && c.theme === kind && avail(c.id)).map((c) => c.id);
   if (causeId && CAUSE_BY_ID[causeId] && avail(`drill:${causeId}`)) themedPool.push(`drill:${causeId}`);
@@ -153,6 +155,8 @@ defineFeature({
         ids,
         themed: clean.int(o.themed, -1, -1, ids.length - 1),
         cash: clean.int(o.cash, 5, 0, 1e9),
+        bonus: clean.bool(o.bonus, false),
+        rerolled: clean.int(o.rerolled, 0, 0, 99),
       };
     }
     return { stacks, offer, picks: clean.int(r.picks, init.picks, 0) };
@@ -198,6 +202,25 @@ defineFeature({
       /** 고르지 않고 넘긴다(저장본을 바꾸는 등). */
       dismiss() {
         slot().offer = null;
+      },
+      /** 지금 나온 카드 세 장을 새로 뽑는다(광고 보상). @returns 새 묶음 또는 null */
+      reroll() {
+        const s = slot();
+        const o = s.offer;
+        if (!o) return null;
+        const { ids, themed } = makeOffer(game.rng, s.stacks, o.bonus ? null : o.cause, o.bonus ? { minRarity: 'rare' } : {});
+        s.offer = { ...o, ids, themed, rerolled: (o.rerolled || 0) + 1 };
+        game.emit('change');
+        return s.offer;
+      },
+      /** 희귀 이상 카드 세 장 중 하나를 고르는 선택권(본부 지원 도장 보상). 이미 고를 카드가 있으면 false. */
+      offerBonus() {
+        const s = slot();
+        if (s.offer) return false;
+        const { ids } = makeOffer(game.rng, s.stacks, null, { minRarity: 'rare' });
+        s.offer = { gen: game.state.gen, cause: null, ids, themed: -1, cash: cashBase(game.formIndex, game.state.gadgets.ai || 0), bonus: true };
+        game.emit('change');
+        return true;
       },
       level: (id) => stackOf(game.state.ext?.lessons?.stacks, id),
       /** 모은 카드 목록 [{id, level, max}] (단계가 높은 순). */
