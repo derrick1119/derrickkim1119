@@ -4,7 +4,10 @@
 import { W, H } from '../config.js';
 import { TAU, makeCanvas, rng, clamp } from './draw.js';
 import { mix, rgba, dab, stroke, vgrad, pinePads, pal } from './painted.js';
-import { FONT, FONT_B } from './draw.js';
+import { FONT, FONT_B, text } from './draw.js';
+import { GFX } from '../pixel/gfx.js';
+import { pxScene } from '../pixel/scene.js';
+import { lowres, pxPaperSpr } from '../pixel/paper.js';
 import { symbol } from './symbols.js';
 
 const S = 1.5;
@@ -266,9 +269,24 @@ function crane(g, x, y, s, t) {
 const MARCH = Array.from({ length: 20 }, (_, k) => { const q = k / 19, x = 380 + q * 300, y = 606 - q * 70, s = 0.95 - q * 0.5; return { x, y, s, kind: k % 5 === 2 ? 1 : k % 7 === 4 ? 2 : 0, ph: k * 0.7, lamp: k % 4 === 1 }; });
 
 // ── 한 장면 ──
+// 도트일 때: 풍경은 반 해상도 판에 그리고(구운 배경은 도트판으로), 제호는 도트 글자판으로 또렷하게 얹는다
+const bg = (g, cv) => (GFX.pixel ? g.drawImage(pxScene(cv), 0, 0, W, H) : g.drawImage(cv, 0, 0, W, H));
+let PXLOGO = null;
 export function drawKeyArt(g, t) {
+  if (!GFX.pixel) return keyArt(g, t, true);
+  lowres(g, q => keyArt(q, t, false));
+  const lk = clamp((t - 1.2) / 1.2, 0, 1);
+  if (lk > 0) {
+    const lx = 470 - LW / 2, ly = 34; if (!PXLOGO) PXLOGO = pxPaperSpr({ img: logo(), w: LW, h: LH, ox: 0, oy: 0 }, 1);
+    const S2 = PXLOGO.canvas(); g.save(); g.imageSmoothingEnabled = false; g.beginPath(); g.rect(lx - 20, ly - 20, Math.round((LW + 40) * ease(lk) / 2) * 2, LH + 40); g.clip(); g.globalAlpha = Math.min(1, lk * 1.6); g.drawImage(S2, lx - 2, ly - 2, S2.width * 2, S2.height * 2); g.restore();
+    if (lk >= 1) lowres(g, q => { letterShine(q, lx, ly, t); glints(q, lx, ly, t); });
+    g.globalAlpha = clamp((t - 2.2) / 0.6, 0, 1); text(g, '긴 밤을 걷으러 가는 열두 옛이야기', 471, ly + 222, { size: 20, fill: '#efe3c4', stroke: 'rgba(4,6,14,0.85)', lw: 4 }); g.globalAlpha = 1;
+  }
+  lowres(g, q => keyTail(q, t));
+}
+function keyArt(g, t, withLogo) {
   const fade = clamp(t / 1.2, 0, 1), [mx, my] = MOON;
-  g.drawImage(sky(), 0, 0, W, H);
+  bg(g, sky());
   // 별이 반짝인다
   for (let i = 0; i < 46; i++) { const x = (i * 241.7) % W, y = 20 + (i * 97.3) % 320, a = 0.4 + 0.6 * Math.abs(Math.sin(t * (0.7 + (i % 5) * 0.3) + i)); if (Math.hypot(x - mx, y - my) < MOON_R + 30) continue; dab(g, x, y, 1.1, 1.1, '#fffbe8', a * 0.85); if (i % 9 === 0) { stroke(g, [x - 4, y, x + 4, y], '#fffbe8', 0.6, a * 0.5); stroke(g, [x, y - 4, x, y + 4], '#fffbe8', 0.6, a * 0.5); } }
   // 가끔 별똥별
@@ -283,7 +301,7 @@ export function drawKeyArt(g, t) {
   { const q = (t * 0.035) % 1, x0 = 1340 - q * 1100; crane(g, x0, 150 + Math.sin(q * 6) * 12, 0.9, t); crane(g, x0 + 70, 176 + Math.sin(q * 6 + 1) * 10, 0.7, t + 0.4); }
   // 달 앞을 지나는 띠구름
   { const [c1, c2] = clouds(); g.globalAlpha = 1; g.drawImage(c1, ((t * 6) % 1700) - 420 + 360, my + 30, c1.width / S, c1.height / S); g.drawImage(c2, 1500 - ((t * 4) % 1900), my - 90, c2.width / S, c2.height / S); }
-  g.globalAlpha = 1; g.drawImage(ridges(), 0, 0, W, H);
+  g.globalAlpha = 1; bg(g, ridges());
   // 산허리를 흐르는 안개
   for (let k = 0; k < 5; k++) { const y = 360 + k * 48, x = ((t * (6 + k * 3) + k * 400) % 1800) - 300; dab(g, x, y, 380, 18 + k * 4, '#aab0d8', 0.07); dab(g, x - 900, y + 10, 300, 14 + k * 4, '#aab0d8', 0.06); }
   // 등불 행렬: 아래에서부터 하나씩 켜지며 고개를 넘는다
@@ -293,7 +311,7 @@ export function drawKeyArt(g, t) {
   { const top = RIDGES[0]; glow(g, top.nx, top.ny - 4, 26 + Math.sin(t * 3) * 3, '255,190,110', 0.4 * clamp((t - 2.6) / 0.6, 0, 1)); }
   // 고개 사이 숲에 숨은 도깨비불
   for (let k = 0; k < 7; k++) { const r = RIDGES[4 + k], x = (r.nx + (k % 2 ? 140 : -150) + Math.sin(t * 0.6 + k) * 18), y = r.f(x) + 18 + Math.sin(t * 1.3 + k) * 6, a = 0.35 + 0.3 * Math.sin(t * 2 + k * 2); glow(g, x, y, 14, '120,220,200', a * 0.6); dab(g, x, y, 1.8, 2.4, '#c8fff0', a); }
-  g.globalAlpha = 1; g.drawImage(front(), 0, 0, W, H);
+  g.globalAlpha = 1; bg(g, front());
   // 행군하는 군사들 (멀수록 작게). 등불을 든 이도 있다
   for (let k = MARCH.length - 1; k >= 0; k--) { const m = MARCH[k], walk = (t * 6) % 60; const x = m.x + (walk / 60) * 12 * m.s; soldier(g, x, m.y, m.s, t, m.kind, m.ph); if (m.lamp) { glow(g, x - 8 * m.s, m.y - 26 * m.s, 16 * m.s + 6, '255,170,80', 0.6); dab(g, x - 8 * m.s, m.y - 26 * m.s, 2.2 * m.s, 3 * m.s, '#ffd08a', 1); } }
   // 바위턱 위의 장수
@@ -304,11 +322,11 @@ export function drawKeyArt(g, t) {
   g.globalAlpha = 1;
   // 반딧불과 떠도는 꽃잎
   for (let i = 0; i < 18; i++) { const ph = i * 2.7, x = (i * 151 + Math.sin(t * 0.4 + ph) * 60) % W, y = 420 + ((i * 67) % 250) + Math.sin(t * 0.9 + ph) * 16, a = clamp(Math.sin(t * 1.3 + ph), 0, 1); glow(g, x, y, 8, '255,230,150', a * 0.5); dab(g, x, y, 1.3, 1.3, '#fff4c0', a); }
-  for (let i = 0; i < 14; i++) { const ph = i * 1.9, x = W - ((t * (22 + i * 3) + i * 180) % (W + 200)) + 100, y = 120 + ((t * (14 + i) + i * 90) % 560), r = 2.2 + (i % 3); dab(g, x, y, r, r * 0.55, i % 2 ? '#f2c4d2' : '#fbe4ea', 0.75, t * 2 + ph); }
+  for (let i = 0; i < 14; i++) { const ph = i * 1.9, x = W - ((t * (22 + i * 3) + i * 180) % (W + 200)) + 100, y = 120 + ((t * (14 + i) + i * 90) % 560), r = 2.2 + (i % 3); dab(g, x, y, r, r * 0.55, i % 2 ? '#f0d264' : '#fbe9a0', 0.75, t * 2 + ph); }
   g.globalAlpha = 1;
   // 제호: 먹 번짐 속에서 금박이 번져 나온다
   const lk = clamp((t - 1.2) / 1.2, 0, 1);
-  if (lk > 0) {
+  if (lk > 0 && withLogo) {
     const L = logo(), lx = 470 - LW / 2, ly = 34;
     glow(g, 470, 150, 300, '255,196,110', 0.12 * lk);
     g.save(); g.beginPath(); g.rect(lx - 20, ly - 20, (LW + 40) * ease(lk), LH + 40); g.clip(); g.globalAlpha = Math.min(1, lk * 1.6); g.drawImage(L, lx, ly, LW, LH); g.restore();
@@ -317,6 +335,10 @@ export function drawKeyArt(g, t) {
     g.globalAlpha = clamp((t - 2.2) / 0.6, 0, 1); g.font = `400 21px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(4,6,14,0.7)'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 471, ly + 258); g.fillStyle = '#e8e2f6'; g.fillText('긴 밤을 걷으러 가는 열두 옛이야기', 470, ly + 256); g.globalAlpha = 1;
   }
   g.globalAlpha = 1;
+  if (withLogo) keyTail(g, t);
+}
+function keyTail(g, t) {
+  const fade = clamp(t / 1.2, 0, 1);
   // 앞 둔덕 위로 깔리는 안개와 출정 단추 뒤의 따뜻한 불빛
   for (let k = 0; k < 3; k++) { const x = ((t * (8 + k * 4) + k * 520) % 1900) - 300; dab(g, x, 612 + k * 10, 420, 16, '#aab0d8', 0.08); }
   glow(g, 640, 660, 220 + Math.sin(t * 2) * 10, '255,170,90', 0.16 * clamp((t - 2.8) / 0.6, 0, 1));
@@ -328,12 +350,12 @@ export function drawKeyArt(g, t) {
 
 // 메뉴 화면들의 배경: 같은 달밤 고갯마루를 어둡게 가라앉혀 깐다 (제호·인물 없이, 안개와 등불·반딧불만 움직인다)
 export function drawVista(g, t, dim = 0.5) {
-  g.globalAlpha = 1; g.drawImage(sky(), 0, 0, W, H);
+  g.globalAlpha = 1; bg(g, sky());
   glow(g, MOON[0], MOON[1], 250, '210,215,255', 0.14);
-  g.globalAlpha = 1; g.drawImage(ridges(), 0, 0, W, H);
+  g.globalAlpha = 1; bg(g, ridges());
   for (let k = 0; k < 4; k++) { const y = 380 + k * 56, x = ((t * (5 + k * 3) + k * 400) % 1800) - 300; dab(g, x, y, 380, 18 + k * 4, '#aab0d8', 0.07); }
   for (const l of LAMPS) { const fl = 0.75 + 0.25 * Math.sin(t * 7 + l.k * 1.7), s = 0.5 + (1 - l.d) * 1.6; glow(g, l.x, l.y - 2, 10 * s + 4, '255,170,80', 0.5 * fl); }
-  g.globalAlpha = 1; g.drawImage(front(), 0, 0, W, H);
+  g.globalAlpha = 1; bg(g, front());
   for (let i = 0; i < 14; i++) { const ph = i * 2.7, x = (i * 151 + Math.sin(t * 0.4 + ph) * 60) % W, y = 300 + ((i * 67) % 380) + Math.sin(t * 0.9 + ph) * 16, a = clamp(Math.sin(t * 1.3 + ph), 0, 1); glow(g, x, y, 8, '255,230,150', a * 0.45); }
   g.globalAlpha = 1; g.fillStyle = `rgba(6,8,20,${dim})`; g.fillRect(0, 0, W, H);
   const vg = g.createRadialGradient(W / 2, H / 2, 280, W / 2, H / 2, 820); vg.addColorStop(0, 'rgba(0,0,8,0)'); vg.addColorStop(1, 'rgba(0,0,8,0.6)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
