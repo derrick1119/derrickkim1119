@@ -50,6 +50,7 @@
       const tk = (K.cur = { who, text, k: 0, u: 0, done: false, a: 0, pass: !!o.pass, slow: !!o.slow });   /* pass: said in passing; a tap goes through to the scene */
       T.announce(T.tr(WHO[who][0]) + ': ' + T.tr(text).replace(/\n/g, ' '));
       const dur = Math.max(0.6, n ? times[n - 1] : 0.6);
+      if (T.audio && T.audio.talk) T.audio.talk(dur);   /* the music steps back while the words are written */
       k.tween(tk, 'a', 1, o.slow ? 0.6 : 0.25);
       /* the characters come at the speed the line is said, pauses and all */
       const step = { u: 0 };

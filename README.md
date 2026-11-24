@@ -213,7 +213,7 @@ python3 tools/make_i18n.py
 
 ## 구조
 
-빌드 과정 없이 `<script>` 태그로 읽는 순수 캔버스 게임입니다. 그림과 음악은 모두 코드로 만듭니다.
+빌드 과정 없이 `<script>` 태그로 읽는 순수 캔버스 게임입니다. 그림은 모두 코드로 그리고, 음악은 녹음된 악기 소리(CC0)를 코드가 연주합니다.
 
 ```
 index.html                 화면 틀
@@ -221,7 +221,8 @@ src/core.js                화면 크기, 시간, 입력, 장면 전환
 src/i18n.js                영어 문장 (tools/make_i18n.py가 만든다)
 src/paint.js               손그림 느낌의 도형, 분필, 크레파스, 종이결, 글씨
 src/figures.js             레오, 아나, 릴리, 엄마, 마을 사람들, 빈을 그리는 인형 리그
-src/audio.js               자장가 한 곡과 1장부터 그 화성으로 이어지는 잔잔한 반주, 항구의 종, 효과음 (전부 합성)
+src/audio.js               자장가 한 곡과 장면마다 다른 편곡(A.score), 1장부터 그 화성으로 이어지는 잔잔한 반주, 항구의 종, 효과음, 잔향과 믹스
+assets/audio/*.js          피아노·글로켄슈필·비브라폰·하프·관종·현악·효과음 녹음 (base64 MP3, 약 2.5 MB). make_samples.py가 만든다
 src/ui.js                  대사 한 줄 표시
 src/settings.js            설정 창: 음량, 전체 화면, 저장 지우기
 src/scenes/room.js         병실: 제목, 물건 고르기, 사진 뒷면, 마지막 대화
@@ -265,6 +266,71 @@ pip install fonttools brotli
 
 ```bash
 python3 tools/subset_fonts.py NanumPenScript-Regular.ttf GowunBatang-Regular.ttf
+```
+
+## 소리
+
+음악은 녹음된 악기로 연주합니다. 출처와 라이선스는 모두 [CREDITS.md](CREDITS.md)에 있습니다
+(악기는 전부 CC0: Versilian Community Sample Library, VS Chamber Orchestra 2 CE.
+효과음 녹음 일부는 CC0, 둘은 CC BY 3.0이라 저작자를 밝혀 둡니다).
+
+| 목소리 (`A.note`의 `voice`) | 악기 |
+| --- | --- |
+| `felt` (`piano`) | 업라이트 피아노, 여린 소리 층에 펠트처럼 고음을 조금 눌러서 |
+| `box` (`musicbox`) | 글로켄슈필(부드러운 채)을 한 옥타브 위에서 짧게: 오르골 |
+| `celesta` (`vibes`) | 비브라폰(부드러운 채)을 한 옥타브 위에서, 글로켄슈필을 살짝 섞어: 첼레스타 |
+| `glass` | 글로켄슈필을 두 옥타브 위에서, 잔향을 많이: 별빛 |
+| `pluck` (`harp`) | 하프 |
+| `strings` (`cello`·`viola`·`violin`) | 현악 합주(첼로·비올라·바이올린 섹션), 음 높이에 따라 골라서 길게 끌기 |
+| `bell` | 관종(튜뷸러 벨)을 낮춰 친 항구의 종 + 낮은 울림 |
+| `hum` | 입을 다물고 흥얼거리는 목소리 (합성) |
+
+샘플은 첫 터치 뒤 한 번만 풀어 둡니다. 풀리기 전이나 풀 수 없는 브라우저에서는 예전 합성 소리가 대신 납니다.
+소리를 끄면(또는 음량 0) 소리 엔진은 아무 일도 하지 않고 쉽니다. 동시에 울리는 소리는 44개로 제한합니다.
+
+**공간과 믹스**: 잔향은 두 개입니다. 작은 방(1.1초, 이른 반사)과 하늘(2.8초, 밝게 번지다 어두워지는 꼬리).
+둘 다 코드로 만든 임펄스 응답(걸러진 잡음)이고, 장면 종류마다 두 곳으로 보내는 양이 다릅니다.
+마지막에는 저역 정리 필터, 부드러운 컴프레서, 리미터가 있어 소리가 깨지지 않습니다.
+대사 한 줄이 써지는 동안에는 음악이 조금(약 −2.6 dB) 물러납니다(`T.talk` → `A.talk`).
+
+**장면마다 다른 편곡**: 같은 자장가를 장면 종류에 따라 다르게 연주합니다.
+
+| 종류 | 편곡 |
+| --- | --- |
+| `room` | 병실. 피아노 혼자, 성기게, 작은 방 잔향 |
+| `memory` | 기억 속. 오르골 + 부드러운 현 패드 + 첼레스타 |
+| `home` | 엄마 집, 식탁. 피아노 + 첼로 |
+| `harbor` | 항구와 마을. 피아노 + 부드러운 현 |
+| `lake` | 거울 호수. 첼레스타가 왼손을 맡고 멜로디를 겹치며, 현은 어둡게, 먼 잔향 |
+| `dream` | 꿈. 오르골 + 첼레스타 + 현 패드, 가장 넓은 잔향 |
+| `night` | 별 뜬 밤. 피아노 + 별빛(glass) + 옅은 현 |
+| `farewell` | 건너감. 현이 부풀어 오르고 바이올린이 멜로디를 함께 노래 |
+| `wedding` | 결혼식. 하프 아르페지오 + 오르골 겹치기 + 가벼운 현 |
+| `reunion` | 다시 만남. 피아노 + 현 + 첼레스타, 다 함께지만 부드럽게 |
+
+`A.score('lake')`처럼 부르면 그 장면이 바뀔 때까지(또는 `A.score(null)`까지) 그 편곡이 됩니다.
+`A.score()`는 지금 종류를 알려 주고, `A.theme({ kind: 'farewell' })`처럼 한 번만 다른 편곡을 고를 수도 있습니다.
+아무도 고르지 않으면 장면과 반주의 분위기로 정합니다: 병실과 아나의 부엌은 `room`, 기억 장면은 `memory`,
+호수 화면은 `lake`, 꿈 화면은 `dream`, 반주 분위기 `walk`→`harbor`, `home`→`home`, `still`→`lake`,
+`sea`→`farewell`, `night`→`night`, 마지막 장의 `walk`/`home`/`still`→`reunion`.
+지금 있는 `A.bed` / `A.pad` / `A.theme` / `A.motif` 호출은 그대로 두어도 장면에 맞는 편곡으로 들립니다.
+
+**비**: `A.rain(0..1, { window: true })` (창 너머 비는 먹먹하게), `A.rain(null)`이면 장면에 맡깁니다
+(아나의 부엌 창, 호수에 비친 빗길, 3장 폭풍의 세기에 저절로 맞춤).
+**발소리 바닥**: `A.surface('wood' | 'grass' | 'soft')`, `null`이면 장면에 맡깁니다(항구는 나무, 언덕은 풀).
+
+**효과음** (`A.sfx(name, k)`, k는 0..1로 음높이나 크기를 조금 바꿈):
+`step`(바닥에 따라) · `step-wood` · `step-grass` · `knock`(망치와 나무못, 노크) · `door` · `creak`(그네 줄, 경첩) ·
+`whoosh` · `wind` · `thunder` · `bark`(빈) · `page` · `card` · `paper` · `chalk` · `crayon` · `knit`(뜨개바늘) ·
+`bubble` · `boil`(끓는 냄비) · `pour` · `splash` · `ripple` · `drip` · `sparkle`(선물) · `shoot`(별똥별) ·
+`star` · `join` · `touch` · `bike`(자전거 종).
+`step-wood`, `step-grass`, `card`, `knit`, `boil`, `splash`, `ripple`, `drip`, `sparkle`, `shoot`은 새로 생긴 이름입니다.
+
+샘플을 다시 만들려면 (numpy, scipy, soundfile, ffmpeg 필요):
+
+```bash
+python3 assets/audio/make_samples.py --fetch /tmp/tyt-sound-src
+python3 assets/audio/make_samples.py /tmp/tyt-sound-src
 ```
 
 ## 글꼴
