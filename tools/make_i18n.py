@@ -825,6 +825,15 @@ T = [
     ("…이건?", "...And this one?"),
     ("이건 이제부터.", "This one starts now."),
     ("그럼, 천천히 지키자.", "Then let's keep it slowly."),
+    # ---- pulling together
+    ("영차!", "Heave!"), ("아직!", "Not yet!"), ("숨 맞추고!", "Breathe together!"), ("어이쿠!", "Whoa!"), ("빈!", "Bean!"),
+    ("마지막은 나도 잡아야지.", "I'll take hold for the last one."),
+    ("한 줄로 서서 다 같이 줄을 잡아요", "Everyone takes the rope, in one line"),
+    ("마지막 한 번은, 다 같이", "One last time, all of us"),
+    ("모두 몸을 젖히고 숨을 모으면, 그때 눌러요 · 스페이스 / 엔터", "When everyone leans back and holds their breath, press · Space / Enter"),
+    ("머리 위 동그라미가 모두 환해지면, 그때 눌러요 · 스페이스 / 엔터", "When every circle overhead is lit, press · Space / Enter"),
+    ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
+    ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

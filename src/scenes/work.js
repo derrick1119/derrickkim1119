@@ -154,272 +154,438 @@
     return G;
   };
 
-  /* ---------- everyone on the rope ----------
-     What is going up (the frame after the storm, the ridge beam) has a rope to each side, and the crew split between
-     them. Someone calls the count, 하나, 둘, 셋!, and a pull only takes when every hand is on it, on 셋, and only if what
-     they are raising stands straight. It sways as it comes up, and once it leans it goes on leaning, dragging the
-     team on the far side toward it: that side must haul it back (← or →, or tap that side), and too hard a haul sends
-     it over the other way. Pulled crooked it only lurches; pulled out of time it sags back a little; let it lean too
-     far and it sinks back down. The count can quicken, wait a beat, or (an old joke) tease with 「둘 반」. After a few
-     misses the count slows and everyone holds on harder.
-     o: { crew: [actors], top(k) -> world [x, y]: the middle of its top at height k (0..1), raise(k, sh): show it at
-          height k, leaning sh (top over foot, + to the right), at: world x of its middle, cam(x, y, z, k): to frame
-          both teams, beam: length (a beam the puzzle draws itself, tilting; otherwise the scene draws a frame),
-          span: half the gap between the ropes' ends, pulls, sway (how unsteady), tempo (seconds a beat),
-          quick (the beat shortens by this after each good pull), tricks (0..1: how often the count waits or teases),
-          tease (「둘 반」 allowed), gust (0..1: a lurch of its own now and then) } */
+  /* ---------- everyone on the rope: 다 같이, 한 번에 ----------
+     One rope, and everyone on it in a line down the hill. What is going up (the frame after the storm, the ridge
+     beam) moves only when every one of them pulls at the same moment. Each gets ready in their own time: plants
+     their feet, breathes in, leans back, and the little circle over their head fills as they do and shines once
+     they are set. The children are set in no time, the old ones take longer, and nobody can hold it for long: they
+     tremble, breathe out, and start again. Press once when every circle shines at the same time: Leo calls 영차!,
+     they all heave, it comes up a notch and a peg drops in under it. Pressed too soon, only the ones who were set
+     pull: it jerks up and slides back onto its peg, and everyone starts again. After two misses running they all
+     hold it a little longer (twice at most). Left alone a while, a ring shows who they are waiting for.
+     o: { crew: [actors, standing in their line, the one nearest it first], pulls, at: world x of its middle,
+          top(k) -> world [x, y]: where the rope is tied at height k (0..1), raise(k, sh): show it at height k
+          (sh: a shudder), cam(x, y, z, k), beam: length (the puzzle draws the beam itself, coming up on pegs),
+          stake: world x of a notched stake beside a frame, win: seconds that they are all set together,
+          hold: how long they can hold it (x), wobble (0..1: how unevenly they come ready),
+          slow: { id: seconds to get set }, late: id of one who takes the rope only for the last heave,
+          bean: Bean, gust (0..1: how often a gust or Bean puts someone off just before they are all set),
+          caller: id of who says 「숨 맞추고!」 } */
   Z.heave = function (o) {
-    const N = o.pulls || 3, SW = o.sway == null ? 0.6 : o.sway, BEAM = o.beam || 0, crew = o.crew, rnd = T.rng(o.seed || 17);
-    const G = make({ pulls: N, h: 0, k: 0, L: 0, corr: 0, phase: 'gather', wait: 0.9, cyc: [], bi: 0, ct: 0, n: 0, beat: o.tempo || 0.62, pulled: false,
-      yank: 0, cool: 0, fails: 0, dry: 0, assist: 0, said: 0, since3: Infinity });
-    const PRE = 0.12, SH = 0.36, gAt = (x) => W().groundAt(x);
-    const teams = [{ dir: 1, m: [], heave: 0, give: 0, drag: 0, slip: 0 }, { dir: -1, m: [], heave: 0, give: 0, drag: 0, slip: 0 }];
-    let at = o.at;
-    const slow = () => [1, 1.15, 1.3][G.assist], steady = () => [1, 0.6, 0.3][G.assist], straight = () => [0.4, 0.5, 0.62][G.assist];
-    const itemLen = (it) => (it.rest ? (G.pulled ? 1.6 : 1) : it.d) * G.beat * slow();   /* a breath after a good pull */
-    const post = () => T.clamp(0.85 * G.beat, 0.45, 0.55) + 0.12 * G.assist;   /* long enough to hear 셋 and answer it */
-    const cur = () => G.cyc[G.bi];
-    const inWindow = () => {   /* from just before 셋 until a moment after it, even into the breath that follows */
-      const c = cur(); if (!c || G.pulled) return false;
-      if (G.since3 <= post()) return true;
-      const nx = G.cyc[G.bi + 1];
-      return !!(nx && nx.three && itemLen(c) - G.ct <= PRE);
-    };
-    const lean = () => G.L + G.corr;   /* where it is heading, with the last haul still going into it */
-    /* the rope's two ends on what is going up, at its height k */
-    const ends = (k) => {
-      const c = o.top(k);
-      if (BEAM) { const th = -G.L * 0.2, h = BEAM / 2 - 12; return [[c[0] - Math.cos(th) * h, c[1] - Math.sin(th) * h], [c[0] + Math.cos(th) * h, c[1] + Math.sin(th) * h], c, th]; }
-      const sp = o.span || 110, sh = G.L * SH, foot = gAt(c[0]), dx = sh * (foot - c[1]);
-      return [[c[0] - sp + dx, c[1]], [c[0] + sp + dx, c[1]], c, sh];
-    };
+    const N = o.pulls || 3, BEAM = o.beam || 0, crew = o.crew, rnd = T.rng(o.seed || 23), wob = o.wobble == null ? 0.3 : o.wobble;
+    const G = make({ kind: 'heave', pulls: N, n: 0, k: 0, kv: 0, peg: 0, T: 0, phase: 'take', ph: 0, miss: 0, assist: 0, word: 0, shud: 0,
+      set: false, setT: 0, glow: 0, said: -9, we: Infinity, plans: 0, gust: 0, bark: 0, sayT: 0, events: [], pops: [] });
+    const gAt = (x) => W().groundAt(x);
+    /* how long each of them takes to get set, and how long they can hold it there */
+    const TEMPER = { kid: [0.55, 1.2], cloud: [0.65, 1.3], leo: [1.0, 2.0], v3: [0.95, 2.0], rosa: [1.15, 1.9], v2: [1.25, 1.9], bram: [1.45, 2.1], bram2: [1.45, 2.1], v1: [1.8, 1.9] };
+    const OUT = 0.45, SLIP = 0.6, PULL = 1.0, BEAN_V = 420;   /* breathing out; losing a footing; the heave; Bean at a run */
+    const fx = Math.sign(o.at - crew[0].x) || -1;   /* the way they face: toward what is going up */
+    const ppl = crew.map((a, i) => {
+      const tp = TEMPER[a.id] || [1.1, 1.9];
+      return { a, i, prep: (o.slow && o.slow[a.id]) || tp[0], hold: tp[1] * (o.hold || 1), on: a.id !== o.late, segs: [], q: { s: 'slack', k: 0 }, prev: 'slack',
+        L: 0, pl: 0.2, br: 0, sl: 0.3, sb: 0, tr: 0, tau: 0.1, pop: 0, puff: 0, say: '', sayT: 0, slot: a.x };
+    });
+    const act = () => ppl.filter((p) => p.on);
+    const late = ppl.find((p) => !p.on) || null;
+    if (late) { const on = ppl.filter((p) => p.on), a = on[on.length - 1], b = on[on.length - 2]; late.slot = a.slot + (b ? a.slot - b.slot : -fx * 60); }   /* his place: next in the line */
+    const byId = (id) => ppl.find((p) => p.a.id === id);
+    const win = () => (o.win || 1) * [1, 1.3, 1.6][G.assist];
+    const holdK = () => [1, 1.3, 1.6][G.assist];
+    const say = (p, w, d) => { if (p) { p.say = w; p.sayT = d || 1.4; } };
+    /* close enough to set that a press counts for them: a breath all but full, or let go a moment ago */
+    const nearly = (p) => p.q.s === 'ready' || (p.q.s === 'prep' && p.q.k >= 0.88) || (p.q.s === 'tire' && p.q.since < 0.14);
 
-    /* a puller: braced, leaning back into the rope, hands on it at the waist; dragged in when the load leans away */
-    const posePull = (tm, rank) => (oo, aa, t) => {
-      if (aa.go) return;
-      const dir = tm.dir, u = (aa.s / 150) * (aa.style && aa.style.kid ? 0.62 : 1);
-      const pull = Math.max(tm.heave, G.yank * 0.85), drag = Math.max(tm.drag, tm.give * 0.4, tm.slip), wob = Math.sin(t * 1.9 + aa.x * 0.07);
-      const sx = aa.x + dir * (drag * 9 + tm.slip * 6) * u;
-      oo.flip = dir < 0;
-      oo.x = sx - dir * (7 + pull * 7 - drag * 6) * u;
-      oo.y += (3 + pull * 4 - drag * 2) * u;
-      oo.lean = -0.3 - pull * 0.16 + drag * 0.27 + wob * 0.015;
-      const gF = sx + dir * 13 * u, gB = sx - dir * 9 * u, fF = F.local(oo, gF, gAt(gF)), fB = F.local(oo, gB, gAt(gB));
-      oo.legF = { foot: [fF[0], fF[1] - 2.8] }; oo.legB = { foot: [fB[0], fB[1] - 2.8] };
-      const hy = oo.y - (26 + (rank === 0 ? 6 : 0) - pull * 3) * u, hx = oo.x + dir * (21 + drag * 8 - pull * 4) * u;
-      oo.armF = { hand: F.local(oo, hx + dir * 6 * u, hy - 2 * u) }; oo.armB = { hand: F.local(oo, hx - dir * 3 * u, hy + 2 * u) };
-      const strain = pull > 0.45 || drag > 0.55;
-      oo.face = Object.assign({}, oo.face, { eye: strain ? 'closed' : 'open', mouth: strain ? 'open' : 'line', blush: 0.2 + 0.3 * Math.max(pull, drag) });
-      oo.headTilt = -0.05 - pull * 0.08 + drag * 0.12;
-    };
-    G.start = function () {
-      if (at == null) at = o.top(0)[0];
-      const near = crew.slice().sort((a, b) => Math.abs(a.x - at) - Math.abs(b.x - at));
-      const L0 = near.filter((a) => a.x < at), R0 = near.filter((a) => a.x >= at);
-      let left = L0, right = R0;
-      if (!L0.length || !R0.length) {   /* all on one side: the nearer half takes the rope round to the other */
-        const half = Math.ceil(near.length / 2), one = R0.length ? -1 : 1;
-        const go = near.slice(0, half), stay = near.slice(half);
-        if (one < 0) { left = go; right = stay; } else { right = go; left = stay; }
-      }
-      const D0 = o.reach || 205, GAP = o.gap || 60;
-      [[left, 0], [right, 1]].forEach(([list, ti]) => {
-        const tm = teams[ti];
-        tm.m = list;
-        list.forEach((a, j) => {
-          const x = at - tm.dir * (D0 + j * GAP), d = Math.abs(x - a.x);
-          a.sit = 0; a.moving = false; a.pose = posePull(tm, j);
-          if (d > 2) a.go = { x, v: T.clamp(d / 2.4, 80, 240), res: () => { a.flip = tm.dir < 0; } };
-          else { a.go = null; a.x = x; a.flip = tm.dir < 0; }
-        });
-      });
-      if (o.cam) { const far = D0 + GAP * (Math.max(left.length, right.length) - 1) + 120; o.cam(at, gAt(at) - 150, T.clamp((T.view.W / 2 - 30) / far, 0.72, 1.02), 1.2); }
-      o.raise(0, 0);
-      T.announce('다 같이 당기기. 셋에 맞춰 위 방향키나 가운데를 눌러 다 함께 당긴다. 기울면 끌려가는 쪽 줄을 왼쪽, 오른쪽 방향키나 그쪽을 눌러 당겨 바로 세운다.');
-    };
-
-    /* ---------- the count ---------- */
-    function cycle() {
-      G.bi = 0; G.ct = 0; G.pulled = false; G.since3 = Infinity; G.n++;
-      const rest = { w: '', rest: true };
-      let kind = 'base';
-      if (G.n > 1 && G.assist === 0 && rnd() < (o.tricks || 0)) kind = o.tease && rnd() < 0.5 ? 'tease' : 'hold';
-      if (kind === G.prevKind && kind !== 'base') kind = 'base';   /* never the same trick twice running */
-      G.prevKind = kind;
-      const one = { w: '하나', d: 1, m: 57 }, two = { w: '둘', d: 1, m: 57 }, three = { w: '셋!', d: 1, m: 64, three: true };
-      G.cyc = kind === 'tease' ? [one, two, { w: '둘 반', d: 1, m: 58, tease: true }, three, rest] : kind === 'hold' ? [one, two, { w: '', d: 1.1, hold: true }, three, rest] : [one, two, three, rest];
-      if (o.gust && G.n > 1 && G.h > 0.05 && rnd() < o.gust) { G.L += (rnd() < 0.5 ? -1 : 1) * 0.22 * SW; T.audio.sfx('creak'); }
-      enter();
-    }
-    function enter() { const c = cur(); if (c && c.three) G.since3 = 0; if (c && c.m) T.audio.note({ m: c.m, vel: c.three ? 0.3 : 0.2, voice: 'pluck', dur: 0.4 }); }
-    function sag(f) { G.h = Math.max(0, G.h - f / N); T.audio.sfx('creak'); }
-    function stepCount(dt) {
-      G.ct += dt; G.since3 += dt;
-      while (cur() && G.ct >= itemLen(cur())) {
-        G.ct -= itemLen(cur());
-        G.bi++;
-        if (G.bi >= G.cyc.length) {
-          if (!G.pulled && ++G.dry >= 3 && G.assist < 2) { G.assist++; G.dry = 0; G.wrong('천천히 해요. 구령을 늦추고, 다들 꽉 붙잡았어요'); }   /* 셋 went by with no pull */
-          cycle(); return;
+    /* ---------- who is set, and when ----------
+       Each round is planned around one moment when they will all be set together, for win() seconds. Everyone gets
+       there by their own breaths: the quick ones are set early, can't hold it that long, breathe out and go again;
+       the slow ones start at once and only just make it. Someone (usually the slowest) is the last to be set, and
+       someone is the first to let go. If nobody presses, the next such moment is planned when this one is over. */
+    const free = (p) => (p.segs.length ? p.segs[p.segs.length - 1].t1 : G.T);
+    function breaths(p, f0, r0, r1, P) {   /* p's breaths from f0 until set from r0 to r1, then breathing out */
+      const out = [], cap = p.hold * holdK(), add = (s, a, b) => { if (b > a + 0.001) out.push({ s, t0: a, t1: b }); };
+      let t = Math.min(f0 + 0.06 + rnd() * 0.3, r0 - P);
+      add('slack', f0, t);
+      for (let i = 0; i < 8; i++) {
+        const last = r0 - P;   /* the latest they can start the breath that carries them through */
+        if (t >= last - 0.001 || r1 - (t + P) <= cap) {   /* one breath will do */
+          const s = Math.max(t, Math.min(last, T.lerp(t, last, rnd() * 0.7)));
+          add('slack', t, s); add('prep', s, s + P); add('ready', s + P, r1); add('tire', r1, r1 + OUT);
+          return out;
         }
-        enter();
+        const room = last - 0.08 - (t + P + OUT);   /* too long to hold: set early anyway, then breathe out and go again */
+        if (room < 0.35) { add('slack', t, last); t = last; continue; }
+        const h = Math.min(cap * (0.55 + 0.45 * rnd()), room);
+        add('prep', t, t + P); add('ready', t + P, t + P + h); add('tire', t + P + h, t + P + h + OUT);
+        t += P + h + OUT;
+        const gap = Math.max(0, Math.min(last - t, rnd() * 0.25));
+        add('slack', t, t + gap); t += gap;
       }
+      add('slack', t, r0 - P); add('prep', r0 - P, r0); add('ready', r0, r1); add('tire', r1, r1 + OUT);
+      return out;
+    }
+    function plan(from) {
+      G.plans++;
+      const A = act(), Wn = win() * (G.plans === 1 ? 1.3 : 1), hk = holdK(), f = (p) => from.get(p);   /* the very first time, a little longer */
+      const P = new Map(A.map((p) => [p, p.prep * (0.92 + 0.16 * rnd())]));
+      let ws = Math.max(...A.map((p) => f(p) + 0.45 + P.get(p))) + 0.1 + rnd() * 0.5 * wob;
+      const slowest = A.reduce((m, p) => (P.get(p) > P.get(m) ? p : m), A[0]);
+      let opener = rnd() < wob ? A[Math.floor(rnd() * A.length)] : slowest;
+      const closer = A[Math.floor(rnd() * A.length)];
+      /* now and then, just before they are all set, a gust or Bean puts someone off their footing */
+      let trip = null;
+      if (o.gust && G.plans > 1 && A.length > 2 && rnd() < o.gust) {
+        const pool = A.filter((p) => p !== slowest), who = pool[Math.floor(rnd() * pool.length)];
+        const kind = o.bean && !o.bean.go && rnd() < 0.5 ? 'bean' : 'gust', Pv = P.get(who), h1 = Math.min(who.hold * hk, 0.45 + rnd() * 0.4);
+        ws = Math.max(ws, f(who) + 0.4 + Pv + h1 + SLIP + Pv);
+        if (kind === 'bean') ws = Math.max(ws, G.T + 0.3 + Math.abs(who.a.x - o.bean.x) / BEAN_V + SLIP + Pv);
+        trip = { who, kind, at: ws - Pv - SLIP, h1 };
+        opener = who;
+      }
+      G.ws = ws; G.we = ws + Wn;
+      A.forEach((p) => {
+        const Pp = P.get(p);
+        const tail = p === closer ? 0 : Math.min(0.08 + rnd() * 0.45, Math.max(0, p.hold * hk - Wn - 0.05));
+        const room = Math.max(0, p.hold * hk - Wn - tail);
+        const lead = p === opener ? 0 : Math.max(0, Math.min(room * (0.35 + 0.65 * rnd()), ws - Pp - f(p) - 0.4));   /* most are set a while before the last one */
+        const r1 = ws + Wn + tail;
+        let segs;
+        if (trip && trip.who === p) {
+          segs = breaths(p, f(p), trip.at - trip.h1, trip.at, Pp);
+          segs.pop();   /* not a breath out: they lose their footing, and must start again */
+          segs.push({ s: 'slip', t0: trip.at, t1: trip.at + SLIP, kind: trip.kind }, { s: 'prep', t0: trip.at + SLIP, t1: ws }, { s: 'ready', t0: ws, t1: r1 }, { s: 'tire', t0: r1, t1: r1 + OUT });
+        } else segs = breaths(p, f(p), ws - lead, r1, Pp);
+        p.segs = p.segs.concat(segs);
+      });
+      if (trip && trip.kind === 'bean') { const d = Math.abs(trip.who.a.x - o.bean.x); G.events.push({ t: trip.at - d / BEAN_V, fn: dash }); }
+      if (trip && trip.kind === 'gust') G.events.push({ t: trip.at - 0.4, fn: () => { G.gust = 1; G.shud = Math.max(G.shud, 0.4); T.audio.sfx('wind'); } });
+    }
+    /* everyone lets the rope go slack and starts again, after d seconds */
+    function reset(d) {
+      G.events = [];
+      act().forEach((p) => { p.segs = [{ s: 'slack', t0: G.T, t1: G.T + d }]; });
+      plan(new Map(act().map((p) => [p, G.T + d])));
+    }
+    /* Bean, at a run up the line between their feet, and back */
+    function dash() {
+      const b = o.bean;
+      if (!b || b.go) return;
+      if (b.home == null) b.home = b.x;
+      b.sit = 0; b.run = 1; b.z0 = b.z0 == null ? b.z : b.z0; b.z = 4;
+      T.audio.sfx('bark', 0.7);
+      b.go = { x: crew[0].x + fx * 36, v: BEAN_V, res: () => { b.run = 0; b.go = { x: b.home, v: 150, res: () => { b.flip = fx < 0; b.sit = 1; b.z = b.z0; } }; } };
     }
 
-    /* ---------- the moves ---------- */
-    G.keyOf = (key) => (key === 'ArrowLeft' || key === 'a' || key === 'A' || key === '1' ? 0 : key === 'ArrowRight' || key === 'd' || key === 'D' || key === '3' ? 2 : key === 'ArrowUp' || key === ' ' || key === 'Enter' || key === 'w' || key === 'W' || key === '2' ? 1 : -1);
-    const loadX = () => { const e = ends(G.k); return scr(e[2][0], e[2][1])[0]; };
-    G.hit = (x, y) => { const lx = loadX(); if ((y < 265 && Math.abs(x) < 400) || Math.abs(x - lx) < 120) return 1; return x < lx ? 0 : 2; };
-    G.tap = function (n) {
-      if (G.done || G.phase !== 'count') return;
-      G.idle = 0;
-      if (n !== 1) {   /* one side hauls, the other gives a little */
-        const tm = teams[n === 0 ? 0 : 1], other = teams[n === 0 ? 1 : 0];
-        tm.heave = 1; other.give = 1;
-        if (G.h > 0.02) G.corr += n === 0 ? -0.38 : 0.38;
-        T.audio.sfx('step'); T.audio.note({ m: n === 0 ? 50 : 52, vel: 0.14, voice: 'pluck', dur: 0.3 });
-        return;
+    /* ---------- how they stand ----------
+       Slack: upright, the rope loose and low in their hands. Getting set: feet planted, a breath in (shoulders
+       up), then leaning back with the rope drawn in to the waist. Set: leaning right back, face set, trembling at
+       the end of it. Breathing out: slumped. On the heave: thrown back all at once. */
+    const pose = (p) => (oo, aa, t) => {
+      if (aa.go) return;
+      const f = fx, u = (aa.s / 150) * (aa.style && aa.style.kid ? 0.62 : 1), q = p.q;
+      const L = p.L, pl = p.pl, br = p.br, sl = p.sl, sb = p.sb, tr = p.tr;
+      const shake = tr * Math.sin(t * 41 + p.i * 1.7) * 0.025 + G.gust * Math.sin(t * 9 + p.i) * 0.04;
+      oo.flip = f < 0;
+      oo.x = aa.x - f * (L * 9 - sb * 9) * u;
+      oo.y += (pl * 2.2 + L * 3.2 + sl * 1.4 - br * 1.6) * u;
+      oo.lean = 0.05 + sl * 0.13 - L * 0.35 + sb * 0.34 + shake;
+      const gF = aa.x + f * (7 + pl * 7 + sb * 9) * u, gB = aa.x - f * (3 + pl * 7 - sb * 2) * u, fF = F.local(oo, gF, gAt(gF)), fB = F.local(oo, gB, gAt(gB));
+      oo.legF = { foot: [fF[0], fF[1] - 2.8] }; oo.legB = { foot: [fB[0], fB[1] - 2.8] };
+      const hy = oo.y - (13 + L * 9 + br * 2 - sl * 3 + sb * 4) * u, hx = oo.x + f * (25 - L * 6 + sb * 6) * u;
+      oo.armF = { hand: F.local(oo, hx + f * 6 * u, hy - 1 * u) }; oo.armB = { hand: F.local(oo, hx - f * 3 * u, hy + 2 * u) };
+      const s = q.s, strain = s === 'pull' || (s === 'ready' && tr > 0.45);
+      const face = s === 'pull' ? { eye: 'closed', mouth: 'open', blush: 0.55 }
+        : s === 'ready' ? { eye: strain ? 'closed' : 'open', mouth: 'line', blush: 0.3 + tr * 0.35 }
+          : s === 'prep' ? { eye: 'open', mouth: br > 0.4 ? 'line' : 'smile', blush: 0.2 + br * 0.15 }
+            : s === 'tire' ? { eye: 'closed', mouth: 'open', blush: 0.35 }
+              : s === 'slip' || s === 'jolt' ? { eye: 'open', mouth: 'open', blush: 0.3 } : s === 'glad' ? { eye: 'happy', mouth: 'smile', blush: 0.4 } : { eye: 'open', mouth: 'smile' };
+      oo.face = Object.assign({}, oo.face, face);
+      oo.headTilt = -0.04 - L * 0.05 + sl * 0.12 + sb * 0.1;
+    };
+    /* the one who joins at the end, watching till then with his hands behind his back */
+    const watch = (oo) => { oo.flip = fx < 0; oo.armF = { a: -0.55, b: 0.9 }; oo.armB = { a: -0.5, b: 0.95 }; oo.face = Object.assign({}, oo.face, { mouth: 'smile' }); };
+
+    G.start = function () {
+      ppl.forEach((p) => {
+        const a = p.a;
+        a.sit = 0; a.moving = false; a.go = null; a.flip = fx < 0;
+        a.pose = p.on ? pose(p) : watch;
+      });
+      if (o.bean) { o.bean.home = o.bean.x; o.bean.z0 = o.bean.z; }
+      if (o.cam) {
+        const xs = ppl.map((p) => (p.on ? p.slot : p.a.x)).concat([o.at + fx * (BEAM ? BEAM / 2 + 10 : 160)], o.bean ? [o.bean.x] : []);
+        const x0 = Math.min(...xs) - 20, x1 = Math.max(...xs) + 60, z = T.clamp(1100 / (x1 - x0), 0.8, 1.25);
+        o.cam((x0 + x1) / 2, gAt(o.at) - 125 / z, z, 1.2);
       }
-      if (G.cool > 0 || G.pulled) return;
-      const c = cur();
-      if (!inWindow()) {
-        G.fails++; G.cool = 0.5; sag(0.3);
-        G.wrong(c && c.tease ? '「둘 반」은 셋이 아니에요! 조금 처졌어요' : '혼자서는 꿈쩍도 안 해요. 「셋!」에 다 같이');
-        return;
-      }
-      if (G.h > 0.02 && Math.abs(lean()) > straight()) {   /* crooked: the pull only throws it further over */
-        G.fails++; G.cool = 0.4; G.pulled = true;
-        G.L += Math.sign(G.L || 1) * 0.15;
-        G.wrong(BEAM ? '기운 채로 당기면 더 기울어요. 먼저 수평부터 맞춰요' : '비뚤어진 채로 당기면 기울기만 해요. 먼저 바로 세워요');
-        return;
-      }
-      G.say = ''; G.pulled = true; G.yank = 1; G.fails = 0; G.dry = 0;
-      G.h = Math.min(1, G.h + 1 / N);
-      teams.forEach((tm) => { tm.heave = Math.max(tm.heave, 0.6); });
-      T.audio.sfx('knock', G.h); T.audio.step(Math.round(G.h * N) * 2, { voice: 'box', vel: 0.4 });
-      if (G.h >= 0.999) { T.audio.promise(); G.finish(1.6); return; }
-      G.beat = Math.max(0.46, G.beat * (o.quick || 1));
-      if (G.assist > 0) G.assist--;
-      G.L += (rnd() < 0.5 ? -1 : 1) * (0.18 + 0.18 * SW);   /* it comes up with a lurch to one side */
-      T.audio.sfx('creak');
+      o.raise(0, 0);
+      T.announce('다 같이 당기기. 한 줄로 줄을 잡은 사람들이 저마다 발을 딛고, 숨을 들이쉬고, 몸을 뒤로 젖힌다. 모두가 준비된 순간에 스페이스나 엔터를 누르면 다 같이 당긴다.');
     };
 
+    /* ---------- a press ---------- */
+    G.keyOf = (key) => (key === ' ' || key === 'Enter' || key === 'ArrowUp' || key === 'w' || key === 'W' || key === '1' ? 0 : -1);
+    G.hit = () => 0;   /* anywhere: on the rope, on them, on the sky */
+    G.tap = function () {
+      if (G.done || G.phase !== 'go') return;
+      G.idle = 0;
+      if (act().every(nearly)) heave(); else miss();
+    };
+    function heave() {
+      G.phase = 'heave'; G.ph = 0; G.n++; G.miss = 0; G.say = ''; G.word = 1; G.pegged = false; G.we = Infinity; G.events = [];
+      G.kv += BEAM ? 1.1 : 1.4; G.shud = 1;
+      act().forEach((p) => { p.segs = [{ s: 'pull', t0: G.T, t1: G.T + PULL }]; p.L = 1.75; p.tau = 1; });
+      T.audio.sfx('creak'); T.audio.step(G.n * 2, { voice: 'box', vel: 0.4 });
+      if (o.bean) { G.bark = 0.7; T.audio.sfx('bark', 0.5); }
+      T.announce(G.n >= N ? '영차! 다 같이 당겨서 끝까지 올라갔다.' : '영차! 다 같이 당겨서 한 칸 올라가고, 쐐기가 걸렸다.');
+    }
+    function miss() {
+      const A = act(), set = A.filter(nearly), not = A.filter((p) => !nearly(p));
+      G.phase = 'slip'; G.ph = 0; G.miss++; G.we = Infinity; G.events = [];
+      G.kv += 0.3 + 0.7 * (set.length / A.length); G.shud = 0.6;
+      set.forEach((p) => { p.segs = [{ s: 'pull', t0: G.T, t1: G.T + 0.6 }]; p.L = 1.35; });
+      not.forEach((p) => { p.segs = [{ s: 'jolt', t0: G.T, t1: G.T + 0.6 }]; });
+      const shy = not.reduce((m, p) => (p.q.k < m.q.k ? p : m), not[0]), caller = o.caller ? byId(o.caller) : null;
+      say(shy, '아직!');
+      if (caller && caller !== shy) G.events.push({ t: G.T + 0.4, fn: () => say(caller, '숨 맞추고!', 1.6) });
+      T.audio.sfx('creak'); T.audio.note({ m: 50, vel: 0.12, voice: 'pluck', dur: 0.5 });
+      if (G.miss >= 2 && G.assist < 2) { G.assist++; G.miss = 0; G.say = '괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요'; }
+      else G.say = '아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요';
+      G.sayT = 5;
+      T.announce('아직 준비 안 된 사람이 있다. 조금 들렸다가 도로 미끄러져 쐐기에 걸린다.' + (G.miss === 0 ? ' 이번엔 다들 조금 더 오래 버틴다.' : ''));
+    }
+    function join() {
+      G.phase = 'join'; G.ph = 0;
+      act().forEach((p) => { p.segs = [{ s: 'slack', t0: G.T, t1: G.T + 30 }]; });
+      say(late, '마지막은 나도 잡아야지.', 2.4);
+      late.a.pose = null;
+      late.a.go = { x: late.slot, v: 52, res: () => { late.a.flip = fx < 0; } };
+      T.announce('마지막 한 번. 지켜보던 이웃도 와서 줄 끝을 잡는다.');
+    }
+
+    /* ---------- the clock ---------- */
     const up = G.update;
     G.update = function (dt) {
       up(dt);
       const t = T.time;
-      G.yank = Math.max(0, G.yank - dt * 1.6); G.cool = Math.max(0, G.cool - dt);
-      teams.forEach((tm) => { tm.heave = Math.max(0, tm.heave - dt * 2.4); tm.give = Math.max(0, tm.give - dt * 2.4); tm.slip = Math.max(0, tm.slip - dt * 1.5); });
-      if (G.phase === 'gather') {
-        G.wait -= dt;
-        if (G.wait <= 0 && crew.every((a) => !a.go)) { G.phase = 'count'; G.idle = 0; cycle(); }
-      } else if (!G.done) stepCount(dt);
-      /* the lean: nothing while it lies on the ground; once up, it keeps going the way it leans */
-      if (G.done) { G.L *= 1 - Math.min(1, dt * 4); G.corr = 0; }
-      else if (G.phase === 'count' && G.h > 0.02) {
-        const r = SW * (0.35 + 0.65 * G.h) * steady(), wind = SW * 0.16 * (Math.sin(t * 1.3 + 0.5) + 0.6 * Math.sin(t * 2.9 + 1.7)) * (0.3 + G.h) * steady();
-        G.L += (r * G.L + wind) * dt;
-        const d = G.corr * Math.min(1, dt * 9); G.L += d; G.corr -= d;
-        if (Math.abs(G.L) >= 1) {   /* over too far: it sinks back, and the dragged side stumbles in */
-          const s = Math.sign(G.L), tm = teams[s > 0 ? 0 : 1];
-          tm.slip = 1; G.fails++; sag(0.5);
-          G.L = s * 0.5; G.corr = 0;
-          G.wrong(BEAM ? '한쪽이 처져서 도로 내려앉았어요. 처지는 쪽 줄을 당겨요' : '너무 기울어서 도로 내려앉았어요. 끌려가는 쪽 줄을 당겨요');
+      G.T += dt; G.ph += dt;
+      G.word = Math.max(0, G.word - dt * 0.9); G.gust = Math.max(0, G.gust - dt * 0.8); G.shud = Math.max(0, G.shud - dt * 2.2);
+      if (G.sayT > 0) { G.sayT -= dt; if (G.sayT <= 0) G.say = ''; }
+      G.pops = G.pops.map((v) => Math.max(0, v - dt * 3));
+      if (G.done) {
+        G.kv += ((1 - G.k) * 50 - G.kv * 8) * dt; G.k += G.kv * dt;
+        o.raise(G.k, 0);
+        ppl.forEach((p) => { p.L += (0 - p.L) * Math.min(1, dt * 4); p.sl += (0.2 - p.sl) * Math.min(1, dt * 4); p.tau = 0.3; if (p.on && G.ph > PULL) p.q = { s: 'glad', k: 0 }; });   /* up: glad faces all along the line */
+        if (G.a < 0.3 && !G.let) { G.let = true; ppl.forEach((p) => { p.a.pose = null; }); }   /* they let go of the rope */
+        return;
+      }
+      if (G.phase === 'take') {
+        if (G.ph > 1.1 && crew.every((a) => !a.go)) { G.phase = 'go'; G.idle = 0; reset(0.1); }
+      } else if (G.phase === 'heave') {
+        if (!G.pegged && G.ph > 0.32) { G.pegged = true; G.peg = G.n / N; G.pops[G.n - 1] = 1; T.audio.sfx('knock', G.peg); }
+        if (G.ph > PULL + 0.2) {
+          if (G.n >= N) { T.audio.promise(); G.finish(1.6); }
+          else if (late && !late.on && G.n === N - 1) join();
+          else { G.phase = 'go'; reset(0.05); }
         }
-      } else { G.L = 0; G.corr = 0; }
-      if (G.fails >= 3 && G.assist < 2) { G.assist++; G.fails = 0; }
-      teams[0].drag = T.clamp((G.L - 0.05) / 0.7); teams[1].drag = T.clamp((-G.L - 0.05) / 0.7);
-      /* for those who listen: say which way it goes when it starts to go */
-      const side = Math.abs(G.L) > 0.35 ? Math.sign(G.L) : 0;
-      if (side && side !== G.said) T.announce(BEAM ? (side > 0 ? '왼쪽이 처진다. 왼쪽 줄을 당긴다.' : '오른쪽이 처진다. 오른쪽 줄을 당긴다.') : side > 0 ? '오른쪽으로 기운다. 왼쪽 줄을 당긴다.' : '왼쪽으로 기운다. 오른쪽 줄을 당긴다.');
-      G.said = side;
-      G.k += (G.h - G.k) * Math.min(1, dt * (G.h > G.k ? 4 : 2.5));
-      o.raise(G.k, BEAM ? 0 : G.L * SH);
-      if (G.done && G.a < 0.3 && !G.let) { G.let = true; crew.forEach((a) => { a.pose = null; }); }   /* let go of the rope */
+      } else if (G.phase === 'slip') {
+        if (G.ph > 0.9) { G.phase = 'go'; reset(0.05); }
+      } else if (G.phase === 'join') {
+        if (G.ph > 1.2 && !late.a.go) { late.on = true; late.a.pose = pose(late); G.phase = 'go'; G.idle = 0; reset(0.15); }
+      } else if (G.phase === 'go' && G.T >= G.we + 0.05) { G.we = Infinity; plan(new Map(act().map((p) => [p, free(p)]))); }
+      for (let i = 0; i < G.events.length; i++) if (G.events[i].t <= G.T) { const e = G.events.splice(i--, 1)[0]; e.fn(); }
+
+      /* each of them: where they are in their breath, and the pose easing toward it */
+      act().forEach((p) => {
+        while (p.segs.length > 1 && p.segs[0].t1 <= G.T) p.segs.shift();
+        const s = p.segs[0];
+        let q;
+        if (!s || G.T >= s.t1) q = { s: 'slack', k: 0, u: 1, left: 9, since: 9 };
+        else { const u = T.clamp((G.T - s.t0) / Math.max(1e-3, s.t1 - s.t0)); q = { s: s.s, u, k: s.s === 'prep' ? u : s.s === 'ready' ? 1 : 0, left: s.t1 - G.T, since: G.T - s.t0, kind: s.kind }; }
+        p.q = q;
+        if (q.s !== p.prev) {
+          if (q.s === 'ready') { p.pop = 1; T.audio.note({ m: [67, 69, 72, 74, 76, 79, 81, 84][p.i % 8], vel: 0.06, voice: 'pluck', dur: 0.3 }); }
+          if (q.s === 'tire' && p.prev === 'ready') p.puff = 1;
+          if (q.s === 'slip') { say(p, q.kind === 'bean' && p.a.style && p.a.style.kid ? '빈!' : '어이쿠!', 1.2); T.audio.sfx('step'); G.shud = Math.max(G.shud, 0.3); }
+          p.prev = q.s;
+        }
+        const k = q.k, s2 = q.s;
+        let L = 0, pl = 0.15, br = 0, sl = 0.35, sb = 0;
+        if (s2 === 'prep') { pl = T.clamp(k / 0.35); br = T.clamp((k - 0.3) / 0.35); L = 0.85 * T.clamp((k - 0.6) / 0.4); sl = 0; }
+        else if (s2 === 'ready') { L = 1; pl = 1; br = 1; sl = 0; }
+        else if (s2 === 'tire') { L = 0.12; pl = 0.6; sl = 1; }
+        else if (s2 === 'slip') { sb = q.u < 0.6 ? 1 : 0; pl = 0; sl = 0.2; }
+        else if (s2 === 'jolt') { sb = q.u < 0.5 ? 0.5 : 0; pl = 0.4; sl = 0.2; }
+        else if (s2 === 'pull') { L = q.u < 0.4 ? 1.5 : 0.3; pl = 1; sl = q.u < 0.4 ? 0 : 0.5; }
+        const r = Math.min(1, dt * 9);
+        p.L += (L - p.L) * r; p.pl += (pl - p.pl) * r; p.br += (br - p.br) * r; p.sl += (sl - p.sl) * Math.min(1, dt * 6); p.sb += (sb - p.sb) * Math.min(1, dt * 14);
+        p.tr = s2 === 'ready' ? T.clamp(1 - q.left / 0.5) : 0;
+        const tau = s2 === 'ready' || s2 === 'pull' ? 1 : s2 === 'prep' ? 0.2 + 0.55 * k : s2 === 'tire' ? 0.25 : 0.06;
+        p.tau += (tau - p.tau) * Math.min(1, dt * (tau > p.tau ? 14 : 6));
+      });
+      ppl.forEach((p) => { p.pop = Math.max(0, p.pop - dt * 4); p.puff = Math.max(0, p.puff - dt * 1.6); if (p.sayT > 0) p.sayT -= dt; });
+
+      /* all set together */
+      const A = act(), all = G.phase === 'go' && A.length > 0 && A.every((p) => p.q.s === 'ready');
+      if (all && !G.set) {
+        G.setT = G.T;
+        T.audio.note({ m: 79, vel: 0.1, voice: 'felt', dur: 1.2 });
+        if (G.T - G.said > 2.5) { G.said = G.T; T.announce('모두 준비됐다.'); }
+      }
+      G.set = all;
+      G.glow += ((all ? 1 : 0) - G.glow) * Math.min(1, dt * (all ? 16 : 7));
+
+      /* what is going up: a spring to its notch, never below the last peg */
+      const aim = G.phase === 'heave' ? G.n / N : G.peg, kS = G.phase === 'slip' ? 24 : BEAM ? 46 : 62;
+      G.kv += ((aim - G.k) * kS - G.kv * (G.phase === 'slip' ? 6 : 8.5)) * dt;
+      G.k += G.kv * dt;
+      if (G.k < G.peg) { if (G.kv < -0.15) T.audio.sfx('knock', 0.15 + G.peg * 0.4); G.k = G.peg; G.kv = Math.max(0, G.kv); }
+      o.raise(Math.max(0, G.k), G.shud * 0.035 * Math.sin(t * 27));
+      if (o.bean) { const b = o.bean; G.bark = Math.max(0, G.bark - dt); if (!b.go) b.jump = G.bark > 0 ? Math.abs(Math.sin(G.bark * 13)) * 12 : 0; }
     };
-    G.next = () => {
-      if (G.done || G.phase !== 'count') return null;
-      const Le = lean();
-      if (G.cool <= 0 && inWindow() && !(cur() && cur().tease) && (G.h <= 0.02 || Math.abs(Le) <= straight())) return 'ArrowUp';
-      if (G.h > 0.02 && Math.abs(Le) > 0.24) return Le > 0 ? 'ArrowLeft' : 'ArrowRight';
-      return null;
-    };
-    const teamSpot = (tm) => {
-      const pts = tm.m.map((a) => (a.j && a.j.head ? a.j.head : [a.x, gAt(a.x) - 1.3 * a.s])), x = pts.reduce((s, p) => s + p[0], 0) / Math.max(1, pts.length);
-      const y = Math.min(...pts.map((p) => p[1])) - 56;
-      return scr(x, y);
-    };
-    G.hintAt = () => { const k = G.next(); return !k ? null : k === 'ArrowUp' ? [0, 170] : teamSpot(teams[k === 'ArrowLeft' ? 0 : 1]); };
+    G.next = () => (G.phase === 'go' && !G.done && G.a > 0.6 && G.set && G.T - G.setT > 0.04 ? 'Enter' : null);
+    G.who = () => ppl.map((p) => ({ id: p.a.id, on: p.on, s: p.q.s, k: p.q.k, left: p.q.left }));   /* for the tests: where each of them is */
+    const cueAt = (p) => { const j = p.a.j; if (!j) return null; const s = scr(j.head[0], j.head[1] - j.R); return [s[0], s[1] - 34]; };
+    const ropeMid = () => { const A = act(), p = A[Math.floor((A.length - 1) / 2)]; const j = p && p.a.j; return j ? scr(j.handF[0], j.handF[1]) : [0, 450]; };
+    G.hintAt = () => (G.phase === 'go' && G.set ? ropeMid() : null);
+    /* who they are waiting for: of those not set, the one whose next set comes last */
+    function waitingFor() {
+      let best = null, bt = -1;
+      act().forEach((p) => {
+        if (p.q.s === 'ready') return;
+        const r = p.segs.find((s) => s.s === 'ready'), at = r ? r.t0 : 99;
+        if (at > bt) { bt = at; best = p; }
+      });
+      return best;
+    }
 
     /* ---------- drawing ---------- */
-    function rope(g, tm, end, z) {
-      const hands = [];
-      tm.m.forEach((a) => { if (a.j && a.j.handF && !a.go) hands.push(scr(a.j.handF[0], a.j.handF[1]), scr(a.j.handB[0], a.j.handB[1])); });
-      const e = scr(end[0], end[1]);
-      if (!hands.length) return;
-      const tense = T.clamp(0.35 + tm.drag * 0.8 + tm.heave * 0.4 + G.yank * 0.4), h0 = hands[0], sagY = (1 - tense) * 26 * z;
+    const WOOD = '#8a6442', WOOD2 = '#a57d58';
+    function peg(g, x, y, w, h, pop, z) {   /* a wooden peg, end on; it pops in when it goes in */
+      const k = 1 + 0.6 * pop;
+      g.save(); g.translate(x, y); g.scale(k * z, k * z);
+      if (pop > 0.01) P.glow(g, 0, 0, w * 1.4, '#ffe2a8', 0.7 * pop);
+      P.fill(g, P.rr(-w / 2 - 1.5, -h / 2 - 1.5, w + 3, h + 3, h / 2 + 1.5), '#4a3424'); P.fill(g, P.rr(-w / 2, -h / 2, w, h, h / 2), '#b07f55'); P.fill(g, P.rr(-w / 2 + 2, -h / 2 + 1, w - 4, h * 0.38, h / 3), '#d1a676');
+      g.restore();
+    }
+    function stake(g, z) {   /* a notched stake beside the frame: a peg goes in under it at every notch */
+      const x = o.stake, side = Math.sign(o.at - x) || 1, b = scr(x, gAt(x) + 4), tp = scr(x, o.top(1)[1] - 22);
+      P.line(g, b[0], b[1], tp[0], tp[1], 9 * z, WOOD); P.line(g, b[0] - 2 * z, b[1], tp[0] - 2 * z, tp[1], 3 * z, WOOD2);
+      for (let n = 1; n <= N; n++) {
+        const y = scr(x, o.top(n / N)[1] + 6)[1];
+        P.line(g, b[0] - 4 * z, y, b[0] + 4 * z, y, 2 * z, '#5a3d28');
+        if (n <= Math.round(G.peg * N)) peg(g, b[0] + side * 13 * z, y, 28, 11, G.pops[n - 1] || 0, z);
+      }
+    }
+    function beamAt() { const c = o.top(G.k); return [c[0], c[1]]; }
+    function beam(g, z, t) {   /* the ridge beam, coming up level, on a sling, onto pegs in the walls */
+      const c = beamAt(), half = BEAM / 2, tilt = G.shud * 0.02 * Math.sin(t * 23);
+      for (let n = 1; n <= Math.round(G.peg * N); n++) {
+        const y = o.top(n / N)[1] + 12;
+        [-1, 1].forEach((sd) => { const q = scr(c[0] + sd * (half - 16), y); peg(g, q[0], q[1], 22, 10, G.pops[n - 1] || 0, z); });
+      }
+      const s = scr(c[0], c[1]);
+      g.save(); g.translate(s[0], s[1]); g.scale(z, z); g.rotate(tilt);
+      g.strokeStyle = '#e6d6b0'; g.lineWidth = 3; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-half + 34, -6); g.lineTo(0, -64); g.lineTo(half - 34, -6); g.stroke();   /* the sling */
+      P.fill(g, P.rr(-half, -8, BEAM, 16, 6), '#b98a5a'); P.fill(g, P.rr(-half, -8, BEAM, 5, 3), '#d1a676');
+      P.fill(g, P.ellipse(-half, 0, 5, 8), '#d9b384'); P.fill(g, P.ellipse(half, 0, 5, 8), '#d9b384');
+      g.restore();
+    }
+    const tieAt = () => { if (BEAM) { const c = beamAt(); return scr(c[0], c[1] - 64); } const c = o.top(G.k); return scr(c[0], c[1]); };
+    function rope(g, z) {
+      const A = act().filter((p) => p.a.j && !p.a.go);
+      if (!A.length) return;
+      const pts = [], e = tieAt();
+      let prev = e;
+      A.forEach((p, i) => {
+        const j = p.a.j, hf = scr(j.handF[0], j.handF[1]), hb = scr(j.handB[0], j.handB[1]);
+        const tau = i === 0 ? p.tau : Math.min(p.tau, A[i - 1].tau);
+        pts.push([prev, hf, (1 - tau) * 26 * z]); pts.push([hf, hb, 0]);
+        prev = hb;
+      });
+      /* the end of it, trailing in the grass (as far as the one who will take it last) */
+      const lp = A[A.length - 1], lu = lp.a.s / 150, ex = (late && !late.on ? late.slot : lp.a.x) - fx * 34 * lu, en = scr(ex, gAt(ex) - 2);
       const run = (w, c) => {
         g.strokeStyle = c; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round';
-        g.beginPath(); g.moveTo(e[0], e[1]); g.quadraticCurveTo((e[0] + h0[0]) / 2, (e[1] + h0[1]) / 2 + sagY, h0[0], h0[1]);
-        for (let i = 1; i < hands.length; i++) g.lineTo(hands[i][0], hands[i][1]);
-        const lx = hands[hands.length - 1], a = tm.m[tm.m.length - 1], tx = a.x - tm.dir * 40 * (a.s / 150), ty = scr(tx, gAt(tx) - 2);
-        g.quadraticCurveTo(lx[0] - tm.dir * 16 * z, lx[1] + 10 * z, ty[0], ty[1]);   /* the end of it, trailing in the grass */
+        g.beginPath(); g.moveTo(pts[0][0][0], pts[0][0][1]);
+        pts.forEach(([a, b, sag]) => { if (sag > 0.5) g.quadraticCurveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + sag, b[0], b[1]); else g.lineTo(b[0], b[1]); });
+        g.quadraticCurveTo(prev[0] - fx * 14 * z, prev[1] + 18 * z, en[0], en[1]);
         g.stroke();
       };
-      const need = T.clamp((tm.drag - 0.08) / 0.4);
-      if (need > 0.02) { g.save(); g.globalAlpha *= need * (0.55 + 0.25 * Math.sin(T.time * 8)); run(11 * z, '#ffd98a'); g.restore(); }
-      run(4 * z, '#e6d6b0');
+      if (G.glow > 0.02) { g.save(); g.globalAlpha *= G.glow * (0.45 + 0.15 * Math.sin(T.time * 7)); run(9 * z, '#ffd98a'); g.restore(); }
+      run(4.2 * z, '#e6d6b0');
       P.fill(g, P.circle(e[0], e[1], 5 * z), '#cdb88f');   /* tied on */
     }
-    function arrow(g, tm, t) {
-      if (!tm.m.length) return;
-      const q = teamSpot(tm), need = G.phase === 'count' ? T.clamp((tm.drag - 0.08) / 0.4) : 0, k = 1 + 0.1 * need * Math.sin(t * 8);
-      const shape = P.poly([[-34, -22], [10, -22], [10, -44], [52, 0], [10, 44], [10, 22], [-34, 22]]);
-      g.save(); g.translate(q[0], q[1]); g.scale(-tm.dir * k * 0.6, k * 0.6); g.globalAlpha = G.a * (0.4 + 0.6 * need);
-      if (need > 0.05) P.glow(g, 8, 0, 90, '#ffd98a', 0.5 * need, 'source-over');
-      g.lineJoin = 'round'; g.lineWidth = 7; g.strokeStyle = 'rgba(40,32,56,0.45)'; g.stroke(shape);   /* readable on a bright sky */
-      P.fill(g, shape, need > 0.3 ? '#ffd98a' : '#fff6e4');
+    function cue(g, p, t) {
+      const c = cueAt(p);
+      if (!c) return;
+      const [x, y] = c, q = p.q, R = 15, j = p.a.j;
+      if (p.puff > 0.01) {   /* the breath let out: a little cloud from the mouth, drifting off */
+        const u = 1 - p.puff, m = scr(j.head[0] + fx * j.R * 1.05, j.head[1] + j.R * 0.5), zz = zoom();
+        g.save(); g.globalAlpha *= Math.min(1, p.puff * 1.6) * 0.85;
+        [[0, 0, 4.2], [7, -3, 5.4], [14, -1, 3.6]].forEach(([dx, dy, r]) => P.fill(g, P.circle(m[0] + fx * (dx + 4 + u * 16) * zz, m[1] + (dy - u * 6) * zz, r * (0.7 + u * 0.6) * zz), '#fbf8f2'));
+        g.restore();
+      }
+      const on = q.s === 'ready' || (q.s === 'pull' && G.phase === 'heave');
+      P.fill(g, P.circle(x, y, R + 3.5), 'rgba(38,30,54,0.34)');   /* a backing, so it reads on a bright sky */
+      if (on) {
+        const pop = p.pop, tired = p.tr, rr = R * (1 + 0.35 * pop) * (1 - 0.14 * tired * (0.5 + 0.5 * Math.sin(t * 34)));
+        P.glow(g, x, y, rr * 2.8, '#ffd98a', 0.5 * (1 - 0.45 * tired) + 0.3 * G.glow);
+        P.fill(g, P.circle(x, y, rr), tired > 0.5 ? '#f6c873' : '#ffd98a');
+        P.fill(g, P.circle(x - rr * 0.32, y - rr * 0.32, rr * 0.32), 'rgba(255,252,240,0.85)');
+        if (G.glow > 0.05) { g.save(); g.globalAlpha *= G.glow; g.strokeStyle = '#fff6e0'; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, rr + 6 + 2 * Math.sin(t * 7), 0, Math.PI * 2); g.stroke(); g.restore(); }
+      } else {
+        g.save(); g.strokeStyle = 'rgba(255,246,228,0.8)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R - 1.5, 0, Math.PI * 2); g.stroke(); g.restore();
+        if (q.s === 'tire' && q.since < 0.35) { const u = 1 - q.since / 0.35; P.fill(g, P.circle(x, y, (R - 3) * u), T.rgba('#ffd98a', 0.4 + 0.5 * u)); }   /* the light going out of it */
+        if (q.s === 'prep' && q.k > 0.01) {
+          const pth = new Path2D(); pth.moveTo(x, y); pth.arc(x, y, R - 3.5, -Math.PI / 2, -Math.PI / 2 + q.k * Math.PI * 2); pth.closePath();
+          P.fill(g, pth, T.mix('#fff3d6', '#ffd98a', q.k));
+        }
+      }
+    }
+    function speech(g, p) {   /* a word from one of them, in a little bubble over the circle */
+      if (p.sayT <= 0 || !p.say) return;
+      const c = cueAt(p);
+      if (!c) return;
+      /* it opens away from what is going up, where the line is lower and the sky is clear */
+      const w = P.text(g, p.say, 0, 0, { size: 32, alpha: 0 }).w, y = c[1] - 46, x = c[0] - fx * (w / 2 - 4);
+      g.save(); g.globalAlpha *= T.clamp(p.sayT * 3);
+      P.fill(g, P.rr(x - w / 2 - 15, y - 31, w + 30, 44, 22), 'rgba(58,47,62,0.25)');
+      P.fill(g, P.rr(x - w / 2 - 13, y - 33, w + 26, 42, 21), '#fff8ea'); P.fill(g, P.poly([[c[0] - 9, y + 7], [c[0] + 9, y + 7], [c[0], y + 21]]), '#fff8ea');
+      P.text(g, p.say, x, y, { size: 32, color: '#3a2f3e', seed: 5 + p.i });
+      g.restore();
+    }
+    function wind(g) {   /* a gust coming up the hill */
+      const k = G.gust, a = Math.sin(k * Math.PI) * 0.55;
+      g.save(); g.globalAlpha *= a; g.strokeStyle = '#fbf6ec'; g.lineWidth = 3; g.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const x = -fx * (900 - (1 - k) * 2000) + i * 70 * -fx, y = 240 + i * 62 + Math.sin(i * 2.3) * 20, L2 = 150 + (i % 3) * 40;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + fx * L2 * 0.5, y - 14, x + fx * L2, y + 4); g.stroke();
+      }
       g.restore();
     }
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
-      const z = zoom(), e = ends(G.k);
+      const z = zoom();
       g.save(); g.globalAlpha = G.a;
-      if (G.h > 0.02 && Math.abs(G.L) > 0.12 && !G.done) {   /* where straight is */
-        const c = e[2], foot = gAt(c[0]), q0 = BEAM ? scr(c[0] - BEAM / 2 - 30, c[1]) : scr(c[0], foot), q1 = BEAM ? scr(c[0] + BEAM / 2 + 30, c[1]) : scr(c[0], c[1] - 30);
-        g.save(); g.globalAlpha *= T.clamp((Math.abs(G.L) - 0.12) * 2) * 0.6; g.strokeStyle = '#fff6e0'; g.lineWidth = 2; g.setLineDash([8, 8]);
-        g.beginPath(); g.moveTo(q0[0], q0[1]); g.lineTo(q1[0], q1[1]); g.stroke(); g.restore();
+      if (o.stake != null) stake(g, z);
+      if (BEAM) beam(g, z, t);
+      rope(g, z);
+      if (!G.done) act().forEach((p) => cue(g, p, t));
+      ppl.forEach((p) => speech(g, p));
+      if (G.gust > 0.01) wind(g);
+      if (G.word > 0.01) P.text(g, '영차!', 0, 190 - (1 - G.word) * 16, { size: 120 * (1 + 0.12 * Math.max(0, G.word - 0.8) * 5), color: '#ffd98a', alpha: G.a * T.clamp(G.word * 2.2), seed: 7, glow: 'rgba(14,20,32,0.7)' });
+      for (let i = 0; i < N; i++) {   /* how far up: a dot a notch */
+        const x = -((N - 1) * 34) / 2 + i * 34, f = T.clamp(G.peg * N - i);
+        P.fill(g, P.circle(x, 262, 10), 'rgba(38,30,54,0.3)'); P.fill(g, P.circle(x, 262, 8), 'rgba(243,234,216,0.45)');
+        if (f > 0.02) { g.save(); g.globalAlpha *= f; P.fill(g, P.circle(x, 262, 9 * (1 + 0.4 * (G.pops[i] || 0))), '#ffd98a'); g.restore(); }
       }
-      if (BEAM) {   /* the ridge beam, tipping as it comes up */
-        const c = scr(e[2][0], e[2][1]);
-        g.save(); g.translate(c[0], c[1]); g.scale(z, z); g.rotate(e[3]);
-        P.fill(g, P.rr(-BEAM / 2, -8, BEAM, 16, 6), '#b98a5a'); P.fill(g, P.rr(-BEAM / 2, -8, BEAM, 5, 3), '#d1a676');
-        P.fill(g, P.ellipse(-BEAM / 2, 0, 5, 8), '#d9b384'); P.fill(g, P.ellipse(BEAM / 2, 0, 5, 8), '#d9b384');
-        g.restore();
-      }
-      rope(g, teams[0], e[0], z); rope(g, teams[1], e[1], z);
-      arrow(g, teams[0], t); arrow(g, teams[1], t);
-      /* the count, word by word as it is called */
-      if (G.phase === 'count' && !G.done) {
-        const words = G.cyc.map((c, i) => [c, i]).filter((q) => q[0].w), n = words.length, gap = n > 3 ? 200 : 220;
-        words.forEach(([c, i], j) => {
-          if (i > G.bi) return;
-          const now = i === G.bi || (c.three && inWindow()) || (cur().hold && i === G.bi - 1), x = (j - (n - 1) / 2) * gap;   /* 「둘…」 held */
-          const col = !now ? 'rgba(243,234,216,0.4)' : c.three ? '#ffd98a' : c.tease ? '#f6a6bd' : '#fff6e4';
-          P.text(g, c.w, x, 170, { size: c.three ? 124 : c.tease ? 78 : 90, color: col, alpha: G.a, seed: 3 + j, glow: 'rgba(14,20,32,0.7)' });
-        });
-        const c = cur();
-        if (c && c.hold) { const nx = words.findIndex((q) => q[0].three); P.text(g, '…', (nx - (n - 1) / 2) * gap, 160, { font: 'serif', size: 60, color: 'rgba(243,234,216,0.5)', alpha: G.a * (0.5 + 0.5 * Math.sin(t * 9)), glow: 'rgba(14,20,32,0.6)' }); }
-      }
-      /* how far up: a dot a pull, filling as it rises and emptying if it sinks */
-      for (let i = 0; i < N; i++) {
-        const x = -((N - 1) * 30) / 2 + i * 30, f = T.clamp(G.k * N - i);
-        P.fill(g, P.circle(x, 250, 9), 'rgba(243,234,216,0.35)');
-        if (f > 0.02) { g.save(); g.globalAlpha *= f; P.fill(g, P.circle(x, 250, 9), '#ffd98a'); g.restore(); }
+      /* left alone a while: a ring round the one they are waiting for, or (all set) on the rope */
+      const hint = G.phase === 'go' && G.idle > 8;
+      if (hint) {
+        if (G.set) { const q = ropeMid(); P.beacon(g, q[0], q[1], 46, t, G.a, '#fff0c8'); }
+        else { const w = waitingFor(), c = w && cueAt(w); if (c) P.beacon(g, c[0], c[1], 34, t, G.a, '#fff0c8'); }
       }
       g.restore();
-      G.hintRing(g, t);
-      G.caption(g, G.phase === 'gather' ? '양쪽으로 나뉘어 줄을 잡아요' : BEAM ? '「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 처지는 쪽 줄을 ← → 로 당겨 수평을 맞춰요' : '「셋!」에 맞춰 눌러 다 같이 당겨요 · 기울면 끌려가는 쪽 줄을 ← → 로 당겨 바로 세워요');
+      G.caption(g, G.phase === 'take' ? '한 줄로 서서 다 같이 줄을 잡아요' : G.phase === 'join' ? '마지막 한 번은, 다 같이' : hint ? '머리 위 동그라미가 모두 환해지면, 그때 눌러요 · 스페이스 / 엔터' : '모두 몸을 젖히고 숨을 모으면, 그때 눌러요 · 스페이스 / 엔터');
     };
     return G;
   };
