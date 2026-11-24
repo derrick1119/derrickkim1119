@@ -150,7 +150,6 @@ T = [
     ("손도 잡고, 말도 하지.\n깨고 나면 꿈인 줄 알겠지만.", "You can hold hands. Talk.\nShe'll wake thinking it was only a dream."),
     ("나 다녀온 날, 마르타가\n웃으면서 깨더군. 여기서 다 봤지.", "The morning after I went, Marta woke up smiling.\nI saw it all from here."),
     ("아나가 그 부엌에 혼자 있는 걸 보니까….", "Seeing Ana alone in that kitchen...."),
-    ("빨리 짓고 싶어요.\n아나 오면 바로 들어올 집.", "I want it built soon.\nA house she can walk right into."),
     ("그럼 돌부터 놓세.\n주춧돌이 기울면 집이 다 기울어.", "Then stones first.\nIf the footings lean, the whole house leans."),
     ("구덩이마다 깊이가 달라.\n돌 머리가 한 줄로 맞게 놓게.", "Every hole's a different depth.\nSet them so the tops line up."),
     ("됐네. 이제 뭘 올려도\n안 기울어.", "There. Whatever goes on top now,\nit won't lean."),
@@ -419,7 +418,7 @@ T = [
     # ---- evenings: the stars (chapter 2) and the story blanket (last chapter)
     ("마지막 건 아저씨가 그렸지?\n그거 냄비 맞아?", "You drew the last one, didn't you?\nIs that a pot?"),
     ("아나가 스튜 끓이던 냄비.\n…그 앞에 있을 때 제일 좋아 보였거든.", "The pot Ana made her stew in.\n...She always looked happiest in front of it."),
-    ("집", "House"), ("배", "Boat"), ("아나의 냄비", "Ana's pot"),
+    ("집", "House"), ("아나의 냄비", "Ana's pot"),
     ("그림이랑 모양이 달라요. 피피의 그림을 다시 봐요", "That's not the same shape. Look at Pippi's drawing again"),
     ("이번 별자리는 기울어져 있어요. 그림과 같은 모양이 되는 별을 눌러 고르세요", "This one is tilted. Tap the stars that make the same shape as the drawing"),
     ("피피가 그린 모양을 하늘에서 찾아, 그 별들을 눌러 고르세요", "Find Pippi's drawing in the sky, and tap the stars that make it"),
@@ -608,7 +607,6 @@ T = [
     ("네 아빠, 거기서 여태\n혼자 기다렸잖니. 이번엔 엄마가 가야지.", "Your father's waited over there\nall on his own. This time I should go."),
     ("자네 어머니가 부탁해 뒀네.\n일 년 되는 날, 호수에 데려가 달라고.", "Your mother asked me.\nTake him to the lake when it's been a year."),
     ("…엄마가요? 언제요?", "...Mom did? When?"),
-    ("자네 오기 전부터. 아들 오면\n자긴 오래 못 있을 거라고.", "Long before you came. She said once her boy\ngot here, she wouldn't stay long."),
     ("…겨우 세운 건데.", "...And I'd only just got it up."),
     ("고마우면 나랑 호수 좀 같이 가 줘.\n밤새 바람 소리에 그 애 우는 소리가 섞여서.", "If you're grateful, come to the lake with me.\nAll night I heard him crying in the wind."),
     ("스튜 김, 자장가, 이 빛….\n셋 다 모였네.", "The stew's steam, the lullaby, this light....\nThat's all three."),
@@ -863,6 +861,13 @@ T = [
     ("아직 숨을 고르던 사람이 있었어요. 모두 환해질 때 눌러요", "Someone was still catching their breath. Press when every circle is lit."),
     ("괜찮아요. 이번엔 다들 숨을 조금 더 오래 참아 줄 거예요", "That's all right. This time everyone will hold their breath a little longer."),
     ("머리 위 동그라미가 모두 환해지면, 그때 눌러요", "When every circle overhead is lit, press"),
+    # ---- phase 2: prologue, ch1, ch2
+    ("…소매가 짧네.\n엄마 어림이 또 모자랐구나.", "...The sleeves are short.\nMy guess fell short again."),
+    ("…딱 맞는데?", "...Fits me just right?"),
+    ("오래전에. 아들 오면\n자긴 오래 못 있을 거라고.", "Long ago. She said once her boy\ngot here, she wouldn't stay long."),
+    ("…저도 손이 놀면 안 되겠어요.", "...I shouldn't leave my hands idle either."),
+    ('브램: "돌 하나가 솟았네. 들어내 보게."', 'Bram: "One stone sits proud. Lift it out."'),
+    ('브램: "꺼진 데가 있구먼. 들어내 보게."', 'Bram: "One\'s sunk too low. Lift it out."'),
 ]
 
 HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.

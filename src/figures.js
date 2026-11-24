@@ -13,7 +13,7 @@
     lily: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'apple', tie: '#c9573f', top: '#7fb0c9', bottom: '#7fb0c9', skirt: 17, shoe: '#c9573f', kid: true },
     /* chapter one */
     anaBlack: { skin: '#f0c7a9', hair: '#2a2024', hairStyle: 'bob', top: '#2f2b35', bottom: '#2f2b35', skirt: 30, shoe: '#221d24' },
-    leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#eee3d0', scarf: '#c9443a', bottom: '#4b5669', shoe: '#33291f' },
+    leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#eee3d0', scarf: '#c9443a', bottom: '#4b5669', shoe: '#33291f', wrist: 1.8 },   /* her guess at his size: a little short in the sleeves */
     leoKid: { skin: '#f0c4a6', hair: '#3a2b25', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
     /* his mother: she has been here since he was seven, and has let herself grow old watching him */
     mom: { skin: '#eec3a6', hair: '#a59a94', hairStyle: 'bun', top: '#7b5a86', scarf: '#e9dcc3', bottom: '#3f6b70', skirt: 34, shoe: '#4a3530' },
@@ -195,8 +195,11 @@
     const drawArm = (a, color, finger) => {
       limb(g, a, K.armW, color);
       const an = Math.atan2(a[5] - a[3], a[4] - a[2]), cx = Math.cos(an), cy = Math.sin(an);
+      /* style.wrist: a sleeve that stops short of the hand (units of bare wrist): the jumper Mom knitted to a guess */
+      const w = st.wrist || 0, e = w ? 2.6 + w : 1.3;
+      if (w) { g.strokeStyle = st.skin; g.lineWidth = K.armW; g.lineCap = 'butt'; g.beginPath(); g.moveTo(a[4] - cx * e, a[5] - cy * e); g.lineTo(a[4] - cx, a[5] - cy); g.stroke(); }
       g.strokeStyle = T.shade(color, -0.12); g.lineWidth = K.armW + 0.5; g.lineCap = 'butt';   /* cuff */
-      g.beginPath(); g.moveTo(a[4] - cx * 2.8, a[5] - cy * 2.8); g.lineTo(a[4] - cx * 1.3, a[5] - cy * 1.3); g.stroke();
+      g.beginPath(); g.moveTo(a[4] - cx * (e + 1.5), a[5] - cy * (e + 1.5)); g.lineTo(a[4] - cx * e, a[5] - cy * e); g.stroke();
       g.fillStyle = st.skin;
       g.beginPath(); g.ellipse(a[4] + cx * 1.1, a[5] + cy * 1.1, K.hand * 1.3, K.hand * 0.98, an, 0, TAU); g.fill();
       g.beginPath(); g.arc(a[4] + cx * 0.5 - cy * K.hand * 0.8, a[5] + cy * 0.5 + cx * K.hand * 0.8, K.hand * 0.5, 0, TAU); g.fill();   /* thumb */
