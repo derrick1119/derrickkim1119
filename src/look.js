@@ -49,7 +49,9 @@
     /* Ana's kitchen at night: one lamp overhead */
     kitchen: look({ g0: '#4c4a88', g1: '#c08470', g2: '#eaa45c', gA: 0.5, bloom: 0.5, glow: '#ffc070', glowA: 0.32, core: '#ffe8c0', coreA: 0.2, motes: 0.4, mote: '#ffe6c4', vig: 0.42, vigC: '#0b101a', grain: 0.13, lit: '#ffd8a0', litA: 0.34, shade: '#20203c', shadeA: 0.44, dx: 0.1, dy: -0.99 }),
     /* the memories: warm drawing paper under everything, crayon or paint */
-    memory: look({ g0: '#a07a7a', g1: '#e8a484', g2: '#f2c68e', gA: 0.46, bloom: 0.38, glow: '#ffd8a8', glowA: 0.24, core: '#fff2dc', coreA: 0.16, motes: 0.45, mote: '#fff0d8', vig: 0.2, vigC: '#5a4630', grain: 0.2, paper: 0.2, lit: '#ffe8c8', litA: 0.28, shade: '#5a3a44', shadeA: 0.32 }),
+    memory: look({ g0: '#a8748e', g1: '#e8a484', g2: '#f2c68e', gA: 0.46, bloom: 0.38, glow: '#ffd8a8', glowA: 0.24, core: '#fff2dc', coreA: 0.16, motes: 0.45, mote: '#fff0d8', vig: 0.2, vigC: '#5a4630', grain: 0.2, paper: 0.2, lit: '#ffe8c8', litA: 0.28, shade: '#5a3a44', shadeA: 0.32 }),
+    /* the same paper, for a memory at night (their first home: one window lit in the dark building) */
+    memoryNight: look({ g0: '#6c50b8', g1: '#e87c86', g2: '#ffad5c', gA: 0.6, bloom: 0.38, glow: '#ffd8a8', glowA: 0.22, core: '#fff2dc', coreA: 0.16, motes: 0.4, mote: '#fff0d8', vig: 0.22, vigC: '#2a2440', grain: 0.2, paper: 0.2, lit: '#ffe8c8', litA: 0.28, shade: '#2e2a4a', shadeA: 0.36 }),
     /* the list at the end, on white paper; then the sea of cloud comes up under it */
     paper: look({ g0: '#8a70b0', g1: '#e8a0a0', g2: '#ffc890', gA: 0.25, bloom: 0.3, glowA: 0.1, coreA: 0.06, motes: 0.3, vig: 0.14, vigC: '#6a4a6a', grain: 0.12 }),
     endSea: look({ gA: 0.6, vig: 0.24, vigC: '#6a4a6a', grain: 0.12 }),
@@ -82,7 +84,7 @@
   const SCENES = {
     room: roomLook,
     kitchen: 'kitchen',
-    stew: 'memory', walk: 'memory', swing: 'memory', home: 'memory',
+    stew: 'memory', walk: 'memory', swing: 'memory', home: 'memoryNight',
     harbor: (S) => blend(S1, LOOKS.harbour, LOOKS.dusk, T.smooth(S.dusk || 0)),
     ending: (S) => blend(S1, LOOKS.paper, LOOKS.endSea, T.smooth(S.sea ? S.sea.a : 0)),
   };
