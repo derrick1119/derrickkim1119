@@ -35,7 +35,7 @@
     leo: {}, mom: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
     home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
-    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, touch: 0, rise: 0, orb: 0 }, momTo: null, momGone: false, dusk: 0,
+    point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 }, fare: { k: 0, swap: 0, touch: 0, hug: 0, near: 0, rise: 0, orb: 0 }, momTo: null, momGone: false, dusk: 0,
     title: { a: 0 }, place: { a: 0 }, end: { a: 0 }, canLeave: false, hintA: { a: 0 },
     bram: { wave: 0, near: false }, post: { x: 2000, on: false, rang: false }, rosa: { k: 0, done: false }, kidWave: { k: 0 },
     things: { 1: [], 2: [], 3: [] }, banks: null,
@@ -210,7 +210,7 @@
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
     s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0;
-    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.touch = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false; s.dusk = 0;
+    s.point.k = 0; s.lamp.planted = 0; s.rest.k = 0; s.fare.k = 0; s.fare.swap = 0; s.fare.touch = 0; s.fare.hug = 0; s.fare.near = 0; s.fare.rise = 0; s.fare.orb = 0; s.momTo = null; s.momGone = false; s.dusk = 0;
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
@@ -573,16 +573,24 @@
     await TALK.say('mom', '약속 다 지키면,\n저 너머로 건너갈 수 있단다.');
     await TALK.say('mom', '네 아빠, 거기서 여태\n혼자 기다렸잖니. 이번엔 엄마가 가야지.');
     await TALK.say('leo', '이제 겨우 다시 만났는데….', { slow: true });
-    await k.tween(S.fare, 'touch', 1, 1.2, T.ease.io);
+    await k.tween(S.fare, 'swap', 1, 1.0, T.ease.lin);   /* the lantern into her other hand */
+    await k.tween(S.fare, 'touch', 1, 1.5, T.ease.io);
     await TALK.say('mom', '엄마는 또 먼저 가 있을게.\n아빠랑, 맛있는 거 해 놓고.');
     await TALK.say('mom', '그러니까 천천히 와.\n…아주 천천히.', { slow: true });
     await TALK.say('leo', '…응. 천천히 갈게.', { slow: true });
+    /* he steps in and bends down into her arms, and cries; she holds him */
+    T.announce('레오가 허리를 굽혀 엄마 품에 안긴다. 어깨가 들썩인다.');
+    k.tween(S.fare, 'touch', 0, 1.6, T.ease.io);
+    k.tween(S.fare, 'near', 1, 1.1, T.ease.lin);
+    await k.tween(S.fare, 'hug', 1, 2.4, T.ease.lin);
+    await k.wait(0.6);
     await TALK.say('mom', '잘 컸다, 우리 아들.', { slow: true });
-    k.tween(S.fare, 'touch', 0, 1.0, T.ease.io);
-    /* she turns to light and goes up, and then across the sky as a falling star */
+    await k.wait(0.8);
+    /* she turns to light in his arms and goes up, and then across the sky as a falling star; his arms come down after */
     T.announce('엄마가 빛이 되어 하늘로 오른다.');
     A.sfx('join');
     k.tween(S.fare, 'rise', 1, 2.2, T.ease.io);
+    k.wait(0.7).then(() => k.tween(S.fare, 'hug', 0, 2.6, T.ease.lin));
     await k.wait(1.2);
     await k.tween(S.fare, 'orb', 1, 2.6, T.ease.in);
     S.momGone = true;
@@ -595,6 +603,7 @@
     await TALK.say('leo', '…잘 가, 엄마.', { slow: true });
     k.tween(S, 'dusk', 0.7, 3, T.ease.io);
     await k.wait(0.8);
+    S.wx -= (9 * LEO_S) / 100; S.fare.near = 0;   /* he stays where he stepped to her */
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.2);
   }
@@ -1135,24 +1144,58 @@
       if (!S.lampDown) handLamp(g, nj.handF, 1);
       return;
     }
-    /* on the road */
+    /* on the road. First how each of them stands; then her farewell is laid over the two of them together (they
+       reach for each other's joints, src/gestures.js); then they are drawn */
     const who = [{ id: 'n', x: S.nx }, { id: 'l', x: S.wx }];
     const rest = T.ease.io(S.rest.k), pt = T.ease.io(S.point.k);
+    const fk = S.fare.k, rise = T.ease.io(S.fare.rise), touch = T.ease.io(S.fare.touch), hug = S.fare.hug || 0;
+    let no = null, lo;
+    if (!S.momGone) {
+      const gy = groundAt(S.nx), nh = F.hipHeight(ns, MOM_S);
+      const o = (no = { x: S.nx, y: gy - nh, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' }, skip: { armF: true } });
+      if (S.nmoving) { o.walk = S.nph; o.lean = 0.14; }
+      o.armF = { a: 0.95, b: 0.55 };
+      if (pt > 0.02) { o.armB = { a: -(1.5 + Math.sin(t * 2) * 0.03) * pt, b: 0.1 }; o.headTilt = -0.1; }
+      else if (!S.nmoving && !S.moving && target()) { o.armF = { a: 1.5 + Math.sin(t * 2) * 0.1, b: 0.4 }; o.headTilt = -0.15; }
+      if (fk > 0.01) { o.headTilt = -0.16 * fk; o.face = { blush: 0.24, mouth: 'smile', eye: 'open', tear: 0.4 * fk }; }
+    }
+    {
+      const gy = groundAt(S.wx), lh = F.hipHeight(ls, LEO_S);
+      const o = (lo = { x: S.wx, y: gy - lh * (1 - rest * 0.8), s: LEO_S, style: ls, lean: 0.04, face: { blush: 0.14, mouth: 'smile' } });
+      if (rest > 0.02) {
+        o.flip = true; o.legF = { foot: [T.lerp(1, 21, rest), T.lerp(49, 10, rest)] }; o.legB = { foot: [T.lerp(-1, 16, rest), T.lerp(49, 11, rest)] };
+        o.lean = -0.12 * rest; o.headTilt = -0.16 * rest; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 }; o.face.eye = rest > 0.8 ? 'happy' : 'open';
+      } else if (S.moving) { o.walk = S.wph; o.lean = 0.1; o.armB = { a: 0.6, b: 0.5 }; }
+      else { o.headTilt = -0.14 + Math.sin(t * 0.8) * 0.04; o.armB = { a: 0.6, b: 0.5 }; if (S.ph === 'plot' && S.plotGo) o.flip = S.lamp.planted > 0.5; }
+    }
+    const swap = S.fare.swap || 0, lampB = swap >= 0.5;
+    if (no && swap > 0.001) {
+      /* first she takes the lantern into her other hand, so that the near one is free for him */
+      const p = T.pose.torso(no, 9, 13), kin = T.smooth(T.clamp(swap * 2)), kout = T.smooth(T.clamp(swap * 2 - 1));
+      if (swap >= 0.5) { no.armF = { a: 0.25, b: 0.35 }; no.armB = { a: 0.5, b: 0.45 }; }
+      T.pose.reach(no, 'F', [p[0] + (no.flip ? -1 : 1) * 2.5, p[1]], swap < 0.5 ? kin : 1 - kout);
+      T.pose.reach(no, 'B', p, swap < 0.5 ? kin : 1 - kout);
+    }
+    if (rest < 0.02 && S.fare.near > 0.001) T.pose.step(lo, 9, S.fare.near);   /* the step he took in to her */
+    if (no && rest < 0.02 && (touch > 0.001 || hug > 0.001)) {
+      /* her free hand on his cheek (the lantern in the other); he bends to it, eyes shut, and holds her wrist there */
+      if (touch > 0.001) {
+        lo.lean += 0.16 * touch; lo.headTilt = (lo.headTilt || 0) + 0.1 * touch;
+        T.pose.pair('cheek', no, lo, touch, t, { partnerOpts: { cover: true, face: 'teary' } });
+        if (touch > 0.55) lo.face = Object.assign({}, lo.face, { eye: 'closed', roll: t / 1.7, rollA: touch });
+      }
+      /* and then he steps in and bends down into her arms, and cries, the way he did when he was seven; she holds
+         him and rocks him. She goes to light in his arms, and they come down slowly after */
+      if (hug > 0.001) {
+        T.pose.pair('sob-hug', lo, no, T.ease.io(T.clamp((hug - 0.25) / 0.75)), t, { partner: 'hug', aTop: true });
+      }
+    }
+    const late = !!no && (!!no.armOver || touch > 0.001);
     for (const w of who) {
       if (hillOf(w.x) !== h) continue;
       const gy = groundAt(w.x);
       if (w.id === 'n') {
-        if (S.momGone) continue;
-        const fk = S.fare.k, rise = T.ease.io(S.fare.rise), touch = T.ease.io(S.fare.touch);
-        const nh = F.hipHeight(ns, MOM_S);
-        const o = { x: w.x, y: gy - nh, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' }, skip: { armF: true } };
-        if (S.nmoving) { o.walk = S.nph; o.lean = 0.14; }
-        o.armF = { a: 0.95, b: 0.55 };
-        if (pt > 0.02) { o.armB = { a: -(1.5 + Math.sin(t * 2) * 0.03) * pt, b: 0.1 }; o.headTilt = -0.1; }
-        else if (!S.nmoving && !S.moving && target()) { o.armF = { a: 1.5 + Math.sin(t * 2) * 0.1, b: 0.4 }; o.headTilt = -0.15; }
-        if (fk > 0.01) { o.headTilt = -0.16 * fk; o.face = { blush: 0.24, mouth: 'smile', eye: touch > 0.5 ? 'happy' : 'open', tear: 0.4 * fk }; }
-        /* her hand on his cheek, the lantern in the other */
-        if (touch > 0.01 && S.leoHead) { const hx = S.leoHead[0] - 8, hy = S.leoHead[1] + 10; o.armB = { hand: F.local(o, T.lerp(w.x + 20, hx, touch), T.lerp(gy - 70, hy, touch)), bend: 1 }; }
+        if (!no) continue;
         if (fk > 0.01) {
           /* the light comes from inside her and spills out; motes go up off her like sparks off a fire */
           P.glow(g, w.x, gy - 86, 130 + fk * 80, '#fff6d8', 0.8 * fk * (1 - rise * 0.4));
@@ -1165,9 +1208,9 @@
           g.globalAlpha = 1;
         }
         g.save(); g.globalAlpha = 1 - rise;
-        F.person(g, o);
-        const j = F.person(g, Object.assign({}, o, { only: 'armF', skip: null }));
-        handLamp(g, j.handF, 1);
+        const jb = F.person(g, no);
+        if (lampB) handLamp(g, jb.handB, 1);
+        if (!(late && hillOf(S.wx) === h)) { const j = F.person(g, Object.assign({}, no, { only: 'armF', skip: null })); if (!lampB) handLamp(g, j.handF, 1); }
         g.restore();
         if (rise > 0.01) {
           /* what is left of her is one light, rising */
@@ -1176,18 +1219,16 @@
           g.globalAlpha = rise * oa; P.fill(g, P.circle(w.x, oy, 5 + rise * 2), '#fffbee'); g.globalAlpha = 1;
         }
       } else {
-        const lh = F.hipHeight(ls, LEO_S);
-        const o = { x: w.x, y: gy - lh * (1 - rest * 0.8), s: LEO_S, style: ls, lean: 0.04, face: { blush: 0.14, mouth: 'smile' } };
-        if (rest > 0.02) {
-          o.flip = true; o.legF = { foot: [T.lerp(1, 21, rest), T.lerp(49, 10, rest)] }; o.legB = { foot: [T.lerp(-1, 16, rest), T.lerp(49, 11, rest)] };
-          o.lean = -0.12 * rest; o.headTilt = -0.16 * rest; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 }; o.face.eye = rest > 0.8 ? 'happy' : 'open';
-        } else if (S.moving) { o.walk = S.wph; o.lean = 0.1; o.armB = { a: 0.6, b: 0.5 }; }
-        else { o.headTilt = -0.14 + Math.sin(t * 0.8) * 0.04; o.armB = { a: 0.6, b: 0.5 }; if (S.ph === 'plot' && S.plotGo) o.flip = S.lamp.planted > 0.5; }
-        const tc = T.ease.io(S.fare.touch);
-        if (tc > 0.01 && rest < 0.02) { o.lean = 0.04 + tc * 0.2; o.headTilt = 0.22 * tc; o.face.eye = tc > 0.6 ? 'closed' : 'open'; }   /* he stoops to her hand */
-        const j = F.person(g, o);
+        const j = F.person(g, lo);
         S.leoHead = j.head;
         if (S.lamp.planted < 0.01 && !(S.ph === 'plot' && S.plotGo && !S.moving)) handLamp(g, j.handB, 1);
+        /* her hand on his cheek, and then her arm round his back, are over him: drawn after him */
+        if (late && hillOf(S.nx) === h) {
+          g.save(); g.globalAlpha = 1 - rise;
+          const nj = F.person(g, Object.assign({}, no, { only: 'armF', skip: null }));
+          if (!lampB) handLamp(g, nj.handF, 1);
+          g.restore();
+        }
       }
     }
   }

@@ -78,6 +78,7 @@
       await Promise.all([X.walk(bram, SEAT[0], 80), X.walk(leo, SEAT[1], 80)]);
       bram.flip = false; leo.flip = true; bram.pose = onStone; leo.pose = onStone;
       X.tween(leo, 'sit', 1, 0.8); bram.sit = 0; X.tween(bram, 'sit', 1, 0.8);
+      X.idle(bram); X.idle(leo);   /* sitting there they breathe, shift on the stone, look about; a talker's head moves with the talk */
       await X.wait(1);
       await X.TALK.say('leo', '배는 다 돼 가요?');
       await X.TALK.say('bram', '다 돼도 못 띄우지.\n마르타가 와야 띄우는 배라.');
@@ -121,12 +122,12 @@
       leo.pose = (o, a, t) => { if (look0) look0(o, a, t); o.headTilt = -0.34; };
       await X.wait(2.2);
       leo.pose = look0;
-      X.tween(bram, 'sit', 0, 0.6);
+      X.tween(bram, 'sit', 0, 0.6); X.idle(bram, false);
       X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
       /* ---- that night on the quay: what you do while you wait ---- */
       await X.TALK.say('kid', '오늘 밤에 부두 가자.\n내가 만든 별자리 보여 줄게.');
       await X.TALK.say('kid', '아빠 오면 보여 주기로 했거든.\n아저씨가 먼저 찾아봐.');
-      await X.dip(async () => { ps.night = 0.9; }, { color: '#141b36', out: 1, in: 0.6 });
+      await X.dip(async () => { ps.night = 0.9; X.idle(leo, false); }, { color: '#141b36', out: 1, in: 0.6 });
       T.announce('그날 밤, 부두. 피피가 기다리면서 이어 둔 별자리를 종이에 그려 보이고, 레오가 하늘에서 찾는다. 갈수록 별이 많아지고, 마지막 별자리는 기울어져 있다.');
       await X.play(T.puzzle.stars({ rounds: [
         { name: '집', pts: [[-50, 40], [50, 40], [50, -10], [0, -60], [-50, -10]], edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [4, 2]], at: [180, 330], scale: 1.3, filler: 10 },

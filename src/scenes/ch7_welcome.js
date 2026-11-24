@@ -113,7 +113,6 @@
         const k = T.ease.io(a.still);
         q.headTilt = a.look ? T.lerp(0.04, 0, k) : -0.38 + Math.sin(t * 0.5) * 0.04;
         if (a.down) q.headTilt += 0.22;   /* down past the boat, to where the cloud sea goes on below */
-        if (ana.hug && ana.hug.k > 0.01 && Math.abs(ana.x - a.x) < 80) { T.embrace(q, a, ana, ana.hug.k); q.face.eye = 'closed'; q.face.mouth = 'smile'; return; }
         if (a.hold) { q.armF = { hand: F.local(q, (ana.x + a.x) / 2, W.groundAt(a.x) - 44) }; return; }   /* walking with Ana, her hand in Ana's */
         if (a.lay) { q.lean = 0.36; q.headTilt = 0.2; q.armF = { hand: F.local(q, PL.ROOM_X + 4, W.y3(PL.ROOM_X) - 10) }; q.armB = { hand: F.local(q, PL.ROOM_X + 10, W.y3(PL.ROOM_X) - 6) }; return; }
         if (a.family) {   /* between them, a hand in each of theirs */
@@ -126,7 +125,7 @@
       };
       cloud.prop = (g, j, o, a) => { if (a.kept > 0.01) P.glow(g, j.head[0], j.head[1] - 10, 90, '#fff2c8', 0.4 * a.kept); };
       /* Leo: the lamp held up for the boat; the cap off; a hand in hers, or on her shoulder */
-      leo.raise = 0; leo.doff = 0; leo.hug = { k: 0 }; ana.hug = { k: 0 }; ana.pet = 0; bean.jump = 0;
+      leo.raise = 0; leo.doff = 0; ana.pet = 0; bean.jump = 0;
       leo.pose = (o, a, t) => {
         if (a.hand) { const mx = (ana.x + leo.x) / 2, my = W.groundAt(mx) - 58; o.armB = { hand: F.local(o, mx, my) }; o.lean = 0.1; return; }
         if (a.family) { o.armB = { hand: F.local(o, (cloud.x + leo.x) / 2, W.groundAt(leo.x) - 44) }; o.armF = { a: 0.3, b: 0.5 }; o.lean = 0.1; o.headTilt = -0.06; o.face.eye = 'happy'; return; }
@@ -134,10 +133,12 @@
         const d = a.doff;
         if (d > 0 && d < 1) { const k = Math.sin(d * Math.PI); o.armF = { hand: F.local(o, T.lerp(a.x - 14, a.x - 4, k), T.lerp(o.y - 6, o.y - 96, k)), bend: 1 }; }
         else if (d >= 1) o.armF = { a: 0.35, b: 1.3 };   /* the cap held to his chest */
-        if (a.shoulder) o.armB = { hand: F.local(o, ana.x + 4, W.groundAt(ana.x) - 76) };
+        if (a.shoulder) {   /* a hand on her shoulder, wherever it is as she kneels and holds the little one */
+          const sj = ana.lastO ? F.joints(ana.lastO).shoulder : [ana.x + 4, W.groundAt(ana.x) - 76];
+          o.armB = { hand: F.local(o, sj[0], sj[1] - 2) };
+        }
         o.face.tear = a.wet || 0; o.face.tearY = (t * 2) % 3;
         if (a.smile) { o.face.eye = 'happy'; o.face.mouth = 'smile'; }
-        T.embrace(o, leo, ana, a.hug.k, true);
       };
       leo.prop = (g, j, o, a) => { if (a.doff >= 0.5 && !a.hand && !a.family) { g.save(); g.translate(j.handF[0], j.handF[1] + 4); g.rotate(-0.3); P.fill(g, P.soft([[-12, 4], [-11, -6], [0, -11], [11, -6], [12, 4]]), '#d7a23c'); P.fill(g, P.rr(-13, 2, 26, 6, 3), '#e4b85a'); g.restore(); } };
       /* Ana on the quay: laughing at him through tears, then bending to Bean */
@@ -147,7 +148,6 @@
         if (a.laugh) { o.face.eye = 'happy'; o.face.mouth = 'smile'; }
         const pk = T.ease.io(a.pet || 0);
         if (pk > 0.01) { const h = beanHead(); o.lean = (o.lean || 0) + 0.36 * pk; o.headTilt = T.lerp(o.headTilt, 0.34, pk); o.face.eye = 'happy'; o.face.mouth = 'smile'; o.armF = { hand: F.local(o, T.lerp(a.x + (a.flip ? -12 : 12), h[0], pk), T.lerp(o.y + 16, h[1], pk)) }; }
-        T.embrace(o, ana, leo, a.hug.k);
       };
       X.cam(leo.x - 50, 548, 1.5); X.camSnap();
       S.track = { a: leo, dx: -50 };
@@ -198,15 +198,17 @@
       await X.walk(ana, leo.x - 58, 34);
       await X.wait(0.8);
       await X.tap(() => [(ana.x + leo.x) / 2, PIER - 78, 56]);
-      leo.armOver = true; ana.z = 1;
-      X.tween(ana.hug, 'k', 1, 1.1, T.ease.out);
-      await X.tween(leo.hug, 'k', 1, 1.1, T.ease.out);
+      ana.z = 1;
+      X.gesture(leo, 'hug', { with: ana, hold: true, in: 1.4, out: 1.2 });   /* both: arms round each other, rocking a little */
+      X.gesture(ana, 'cry', { hands: 'none', hold: true, in: 1.8, out: 2.6 });   /* and she sobs into his shoulder */
+      await X.wait(1.4);
       T.announce('두 사람이 끌어안는다. 오래도록 아무 말이 없다.');
       bean.sit = 1;
       X.sail(boat, -1500, 20);   /* the boat that brought her goes back out into the mist */
       X.cam((ana.x + leo.x) / 2, 560, 1.95, 0.35);
       await X.wait(6.5);           /* the long quiet */
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
+      X.ungesture(ana, 'cry');   /* the sobbing eases; they go on holding each other */
       await X.wait(2.4);
       /* what he told her in the hospital, forty-five years ago, the other way round */
       await TALK.say('leo', '…천천히 왔네.', { slow: true });
@@ -220,9 +222,8 @@
       await X.wait(0.6);
 
       /* ---- Bean has waited as long as anyone ---- */
-      X.tween(leo.hug, 'k', 0, 1, T.ease.io);
-      await X.tween(ana.hug, 'k', 0, 1, T.ease.io);
-      leo.armOver = false; ana.wet = 0.4; leo.wet = 0.3;
+      await X.ungesture(leo, 'hug');
+      ana.wet = 0.4; leo.wet = 0.3;
       X.cam(70, 548, 1.6, 0.8);
       bean.sit = 0; bean.wag = 1; bean.wagRate = 16; bean.z = 2; bean.run = 0.4;
       A.sfx('bark');
@@ -263,19 +264,14 @@
       X.cam(cloud.x - 30, 560, 1.9, 0.7);
       X.walk(leo, cloud.x + 52, 34).then(() => { leo.flip = true; });   /* he comes round to the little one's other side */
       await X.walk(ana, cloud.x - 44, 34);
-      /* she goes down on one knee in front of her */
-      ana.kneel = 0;
+      /* she goes down on one knee in front of her (the back foot back, the front foot forward, then down) */
       ana.pose = (o, a, t) => {
-        const k = T.ease.io(a.kneel), hh = F.hipHeight(a.style, a.s);
-        o.y += k * hh * 0.42;
-        o.legF = { foot: [T.lerp(1, 17, k), T.lerp(49, 29.5, k)] }; o.legB = { foot: [T.lerp(-1, -22, k), T.lerp(49, 30, k)] };
-        o.lean = 0.08 + 0.06 * k; o.headTilt = 0.04 - 0.06 * k;
+        o.lean = 0.08;
         o.face.eye = a.wet > 0.5 ? 'happy' : 'open'; o.face.mouth = a.wet > 0.5 ? 'smile' : 'line'; o.face.tear = a.wet || 0; o.face.tearY = (t * 2) % 3;
-        if (a.hug && a.hug.k > 0.01) { T.embrace(o, ana, cloud, a.hug.k, true); return; }
-        if (a.touch) o.armF = { hand: F.local(o, cloud.x - 3 + Math.sin(t * 1.3) * 1.5, W.groundAt(cloud.x) - 78) };   /* on the hat, clear of her eyes */
+        if (a.wet > 0.5) { o.face.well = 0.8; o.face.roll = t / 1.9; o.face.rollA = 0.8; }   /* smiling, and the tears coming */
       };
-      await X.tween(ana, 'kneel', 1, 1.4, T.ease.io);
-      ana.touch = true;
+      await X.gesture(ana, 'kneel', { with: cloud, hold: true, in: 1.7, out: 1.4 });
+      X.gesture(ana, 'hand-on-head', { with: cloud, hold: true, in: 1.1, face: false, partnerOpts: { face: false } });   /* a hand on the hat */
       A.note({ m: 76, vel: 0.22, voice: 'glass', dur: 1.2 });
       await X.wait(1.4);
       await TALK.say('ana', '…이 모자, 어디서 났니?');
@@ -331,7 +327,7 @@
       /* and with that, the promise she could not keep is kept: from here, all along */
       A.promise();
       T.announce('구름이에게 빛이 내려앉는다. 지키지 못한 약속이 지켜졌다. 등불 없는 하얀 배가 부두 끝으로 미끄러져 와서 기다린다.');
-      ana.touch = false;
+      X.ungesture(ana, 'hand-on-head');
       X.tween(cloud, 'kept', 1, 1.2).then(() => X.tween(cloud, 'kept', 0.25, 2.4));
       const white = X.boat({ x: -760, hull: '#e9e2d6', lamp: false, riders: [] });
       X.cam(70, 540, 1.5, 0.7);
@@ -376,8 +372,8 @@
       await TALK.say('cloud', '언니 올 때까지,\n여기서 같이 기다릴래.');
       /* she sets her little lamp down on the boards, and Ana holds her */
       cloud.lamp = false; S.cLamp = cloud.x - 24;
-      ana.hug = { k: 0 }; ana.z = 1; cloud.z = 2; ana.armOver = true; leo.shoulder = true;
-      await X.tween(ana.hug, 'k', 1, 1.1, T.ease.out);
+      ana.z = 1; cloud.z = 2; leo.shoulder = true;
+      await X.gesture(ana, 'hug', { with: cloud, hold: true, in: 1.3 });   /* Ana holds her, and she holds on */
       A.motif({ voice: 'box', vel: 0.34, beat: 0.74 });
       T.announce('아나가 아이를 꼭 끌어안는다. 레오가 아나의 어깨에 손을 얹는다. 빈 하얀 배가 안개 속으로 돌아간다.');
       X.sail(white, -1500, 22);
@@ -391,7 +387,8 @@
       await X.dip(async () => {
         S.actors = S.actors.filter((a) => !folk.includes(a)); S.boats = []; S.lampDown = null; S.cLamp = null;
         leo.go = ana.go = bean.go = cloud.go = null; leo.moving = ana.moving = bean.moving = cloud.moving = false;
-        ana.hug = { k: 0 }; ana.kneel = 0; ana.wet = 0; ana.armOver = false; leo.shoulder = false; leo.smile = false; leo.wet = 0;
+        T.gesture.clear(ana); T.gesture.clear(cloud); T.gesture.clear(leo);
+        ana.wet = 0; leo.shoulder = false; leo.smile = false; leo.wet = 0;
         cloud.happy = false; cloud.kept = 0; cloud.down = false; bean.z = 0; bean.wagRate = null; bean.wag = 0.4;
         leo.hand = ana.hand = true; leo.flip = ana.flip = cloud.flip = false; bean.sit = 0;
         cloud.hold = true; cloud.look = true; cloud.prop = null; cloud.z = 0;

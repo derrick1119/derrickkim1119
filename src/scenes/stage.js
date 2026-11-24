@@ -137,6 +137,11 @@
     /* 구름이 seeing someone off, as an actor for a place (X.crossing once put her on the landing at the falls with
        its o.also; a crossing now goes from the quay, where she already is) */
     X.seeOff = () => [{ id: 'cloud', style: F.styles.cloud, s: 100, at: 'landing', dx: -66, headTilt: -0.26, face: { mouth: 'smile' }, pose: (q, t) => { q.armF = { a: 2.2 + Math.sin(t * 4 + 2) * 0.22, b: 0.3 }; } }];
+    /* gestures and idle life from the shared library (src/gestures.js): put on an actor, played on this chapter's
+       clock, laid over whatever pose the actor already has. X.gesture(ana, 'hug', { with: leo, dur: 5 }) */
+    X.gesture = (a, name, o) => T.gesture.play(a, name, Object.assign({ clock: S.clock }, o));
+    X.ungesture = (a, name, alone) => T.gesture.stop(a, name, alone);
+    X.idle = (a, on) => { a.idle = on == null ? true : on; };
     X.walk = function (a, x, v) { return new Promise((res) => { if (Math.abs(a.x - x) < 1) { res(); return; } if (a.go) a.go.res(); a.go = { x, v: v || 72, res }; }); };
     X.wait = (sec) => S.clock.wait(sec);
     X.tween = (o, key, to, dur, ease) => S.clock.tween(o, key, to, dur, ease);
@@ -175,12 +180,14 @@
         o.lean = a.lean - 0.14 * k; o.armF = { a: 0.75, b: 0.95 }; o.armB = { a: 0.7, b: 0.9 };
       } else if (a.moving || (a.boat && a.hop > 0.02 && a.hop < 0.98)) { o.walk = a.boat ? a.hop * 6 : a.ph; o.lean = a.lean + 0.06; }
       if (a.pose) a.pose(o, a, t);
+      if (T.gesture && (a.idle || (a.gestures && a.gestures.length))) T.gesture.apply(o, a, t, { talking: !!(TALK.cur && TALK.cur.who === a.id && !TALK.cur.done) });
       if (S.cross) {   /* a crossing: those going are glad, and those staying look up after the light */
         const c = S.cross;
         if (a.boat === c.b && c.glow > 0.5) o.face = Object.assign({}, o.face, { eye: 'happy', mouth: 'smile' });
         else if (!a.boat && c.look > 0.01) o.headTilt = (o.headTilt || 0) - 0.3 * c.look;
       }
-      if (a.armOver) o.skip = Object.assign({}, o.skip, { armF: true });
+      if (a.armOver || o.armOver) o.skip = Object.assign({}, o.skip, { armF: true });
+      a.lastO = o;   /* what it was drawn with: the other side of a two-person gesture reaches for these joints */
       g.save(); if (a.alpha < 1) g.globalAlpha = a.alpha;
       const j = F.person(g, o);
       if (a.lamp) W_.handLamp(g, a.lampHand === 'F' ? j.handF : j.handB, 1);
@@ -193,7 +200,8 @@
       const t = T.time, W_ = Wd();
       const list = S.actors.filter((a) => !a.hidden && a.alpha > 0.01 && !(a.boat && (a.hop || 0) < 0.4) && (a.boat ? 1 : a.hill || W_.hillOf(a.x)) === h).sort((a, b) => a.z - b.z);
       const over = [];
-      for (const a of list) { const o = drawOne(g, a, t); if (a.armOver && o) over.push([a, o]); }
+      list.forEach((a, i) => { a.drawN = i; });
+      for (const a of list) { const o = drawOne(g, a, t); if (o && (a.armOver || o.armOver)) over.push([a, o]); }
       for (const q of over) { g.save(); if (q[0].alpha < 1) g.globalAlpha = q[0].alpha; F.person(g, Object.assign({}, q[1], { only: 'armF', skip: null })); g.restore(); }
       if (def.onHill) def.onHill(g, h, S);
     }

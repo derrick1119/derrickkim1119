@@ -803,22 +803,33 @@
     const t = T.time, a = S.fam.a;
     if (a <= 0.01) return;
     const cry = S.ana.cry, joy = S.ana.joy;
-    const shake = Math.sin(t * 17) * 1.6 * cry + Math.sin(t * 11) * 1.4 * joy * (0.5 + 0.5 * Math.sin(t * 1.7));
     const ana = {
-      x: ANA.x + shake * 0.5, y: ANA.y, s: ANA.s, style: F.styles.ana, sit: true,
-      lean: 0.06 + cry * 0.16 - joy * 0.03, headTilt: 0.02 + cry * 0.62 - joy * 0.16,
-      face: { eye: cry > 0.3 ? 'closed' : joy > 0.5 ? 'happy' : 'open', mouth: joy > 0.4 ? 'smile' : cry > 0.3 ? 'line' : null, tear: Math.max(cry, joy * 0.7) * 0.9, tearY: (t * 3) % 3, blush: 0.2 + joy * 0.2 },
+      x: ANA.x, y: ANA.y, s: ANA.s, style: F.styles.ana, sit: true, lean: 0.06, headTilt: 0.02,
+      face: { eye: 'open', mouth: null, blush: 0.2 },
       skip: { armF: true },
     };
+    /* she cries: the sobs catch her shoulders and let them go, and her face goes down into Lily's hair; then she
+       laughs through it, the tears still coming (src/gestures.js) */
+    const sobK = T.ease.io(T.clamp(cry)), sob = T.pose.sob(t, 7) * sobK;
     const breathe = Math.sin(t * 1.0) * 0.012;
     const lily = {
-      x: LILY.x + shake * 0.3, y: LILY.y, s: LILY.s, style: F.styles.lily, sit: true,
+      x: LILY.x, y: LILY.y + sob * 1.1, s: LILY.s, style: F.styles.lily, sit: true,   /* she rises and falls a little on her mother's sobs, asleep */
       lean: -0.6 + breathe, headTilt: -0.2, headRot: -0.1,
       legF: { a: Math.PI / 2 - 0.25, b: Math.PI / 2 - 0.05 }, legB: { a: Math.PI / 2 - 0.36, b: Math.PI / 2 + 0.06 },
       face: { eye: 'closed', blush: 0.3 },
       armB: { a: 0.3, b: 0.4 },
     };
     lily.armF = { hand: F.local(lily, LILY_HAND[0], LILY_HAND[1]), bend: -1 };
+    if (sobK > 0.001) {
+      T.pose.cry(ana, sobK, t, { hands: 'none', seed: 7 });
+      const top = F.joints(lily).crown;
+      T.pose.headTo(ana, [top[0] + 4, top[1] + 5], sobK * 0.9, { name: 'cheek', prefTilt: ana.headTilt + 0.1, slack: 1.5 });
+    }
+    if (joy > 0.001) {
+      ana.lean -= 0.03 * joy; ana.headTilt -= 0.16 * joy;
+      T.pose.laugh(ana, joy * 0.55, t, { tl: t, face: false });
+      T.face.set(ana, 'smileTears', joy, t, 3);
+    }
     g.save();
     g.globalAlpha = a;
     F.person(g, ana);

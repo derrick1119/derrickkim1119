@@ -114,23 +114,25 @@
     }
   }
 
-  /* Draws a person. Returns world positions of the joints props attach to. */
-  F.person = function (g, o) {
+  /* The rig: where every joint of a person drawn with options o is, in the figure's own units (origin at the hip,
+     +x the way they face, y down). F.person draws from it; F.rig / F.joints hand it to gestures (src/gestures.js),
+     so a hand can be aimed at someone's back or cheek before anything is drawn.
+     o.shrug (units, default 0): the shoulders drawn up (+) or let down (−) along the spine; the head stays put. */
+  function rig(o) {
     const st = o.style, K = st.kid ? KID : ADULT;
     const u = (o.s || 240) / 100, sx = o.flip ? -1 : 1;
-    const lean = o.lean || 0;
-    const only = o.only || null, skip = o.skip || {};
-    const dark = (c) => T.shade(c, -0.13);
+    const lean = o.lean || 0, sh = o.shrug || 0;
     /* torso axis: straight up, tipped toward +x by `lean` */
     const ax = Math.sin(lean), ay = -Math.cos(lean);
     const hip = [0, 0];
-    const shd = [ax * K.sh, ay * K.sh];
+    const shd = [ax * (K.sh + sh), ay * (K.sh + sh)];
     const nk = [ax * K.torso, ay * K.torso];
     const ha = lean * 0.55 + (o.headTilt || 0);
     const head = [nk[0] + Math.sin(ha) * K.neck + (o.headDx || 0), nk[1] - Math.cos(ha) * K.neck + (o.headDy || 0)];
+    const rootF = [shd[0] + 1.2, shd[1] + 1.5], rootB = [shd[0] - 1.2, shd[1] + 1.5];
 
     function arm(spec, side) {
-      const s0 = [shd[0] + (side === 'B' ? -1.2 : 1.2), shd[1] + 1.5];
+      const s0 = side === 'B' ? rootB : rootF;
       if (spec && spec.hand) {
         const r = ik(s0[0], s0[1], spec.hand[0], spec.hand[1], K.ua, K.fa, spec.bend == null ? 1 : spec.bend);
         return [s0[0], s0[1], r[0], r[1], r[2], r[3]];
@@ -167,11 +169,30 @@
     }
     const lf = leg(legF, 'F'), lb = leg(legB, 'B');
     const af = arm(armF, 'F'), ab = arm(armB, 'B');
+    return { st, K, u, sx, lean, sh, ax, ay, hip, shd, nk, ha, hr: ha + (o.headRot || 0), head, rootF, rootB, lf, lb, af, ab, bob, R: K.R };
+  }
+  /* points on the head, in head units (R = 1), facing +x: for aiming a hand at a cheek or a brow at a brow */
+  const HEAD_PTS = { eye: [0.47, -0.06], mouth: [0.72, 0.6], nose: [1.05, 0.18], brow: [0.62, -0.5], forehead: [0.78, -0.55], cheek: [0.42, 0.42], chin: [0.62, 0.96],
+    crown: [-0.1, -1.08], nape: [-0.72, 0.56], back: [-1.02, -0.12], ear: [-0.2, 0.14], center: [0, 0] };
+  function headPt(r, name) {
+    const q = HEAD_PTS[name] || HEAD_PTS.center, R = r.K.R, c = Math.cos(r.hr), s = Math.sin(r.hr);
+    const x = q[0] * R, y = q[1] * R;
+    return [r.head[0] + x * c - y * s, r.head[1] + x * s + y * c];
+  }
+
+  /* Draws a person. Returns world positions of the joints props attach to. */
+  F.person = function (g, o) {
+    const r = rig(o);
+    const st = r.st, K = r.K, u = r.u, sx = r.sx, lean = r.lean, sh = r.sh;
+    const only = o.only || null, skip = o.skip || {};
+    const dark = (c) => T.shade(c, -0.13);
+    const ax = r.ax, ay = r.ay, shd = r.shd, nk = r.nk, ha = r.ha, head = r.head;
+    const lf = r.lf, lb = r.lb, af = r.af, ab = r.ab, bob = r.bob;
 
     g.save();
     g.translate(o.x, o.y + bob * u);
     g.scale(sx * u, u);
-    const drawArm = (a, color) => {
+    const drawArm = (a, color, finger) => {
       limb(g, a, K.armW, color);
       const an = Math.atan2(a[5] - a[3], a[4] - a[2]), cx = Math.cos(an), cy = Math.sin(an);
       g.strokeStyle = T.shade(color, -0.12); g.lineWidth = K.armW + 0.5; g.lineCap = 'butt';   /* cuff */
@@ -179,6 +200,10 @@
       g.fillStyle = st.skin;
       g.beginPath(); g.ellipse(a[4] + cx * 1.1, a[5] + cy * 1.1, K.hand * 1.3, K.hand * 0.98, an, 0, TAU); g.fill();
       g.beginPath(); g.arc(a[4] + cx * 0.5 - cy * K.hand * 0.8, a[5] + cy * 0.5 + cx * K.hand * 0.8, K.hand * 0.5, 0, TAU); g.fill();   /* thumb */
+      if (finger) {   /* o.fingerF: one finger out along the arm, pointing */
+        g.strokeStyle = st.skin; g.lineWidth = K.hand * 0.62; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(a[4] + cx * 1.6, a[5] + cy * 1.6); g.lineTo(a[4] + cx * (2.2 + K.hand * 1.5 * finger), a[5] + cy * (2.2 + K.hand * 1.5 * finger)); g.stroke();
+      }
     };
     const drawLeg = (l, color) => {
       limb(g, l, K.legW, st.skirt ? st.skin : color);
@@ -192,7 +217,7 @@
       }
     };
 
-    if (only === 'armF') { drawArm(af, st.top); g.restore(); return out(); }
+    if (only === 'armF') { drawArm(af, st.top, o.fingerF); g.restore(); return out(); }
 
     if (!skip.armB) drawArm(ab, dark(st.top));
     if (!o.noLegs) {
@@ -226,7 +251,9 @@
     /* torso */
     {
       const ws = K.torsoW / 17, ts = K.torso / 30, belly = st.kid ? 0.3 : st.belly == null ? 0.4 : st.belly;
-      const at = (t, w) => [ax * t * ts - ay * w * ws, ay * t * ts + ax * w * ws];   /* t up the spine, w out to the front (+) or back (-) */
+      /* t up the spine, w out to the front (+) or back (-); a shrug lifts the top of the torso with the shoulders */
+      const at = sh ? (t, w) => { const tt = t + (sh / ts) * T.clamp((t - 12) / 16); return [ax * tt * ts - ay * w * ws, ay * tt * ts + ax * w * ws]; }
+        : (t, w) => [ax * t * ts - ay * w * ws, ay * t * ts + ax * w * ws];
       const body = T.P.soft([at(-3.6, -6.2), at(4, -8.4), at(14, -8.5), at(22, -8.9), at(28.4, -7.5), at(31.3, -3.2),
         at(31.3, 3.4), at(28.4, 7.7), at(20, 8.8), at(11, 8.5 + belly), at(3, 8.2 + belly * 0.6), at(-3.6, 6)]);
       g.fillStyle = st.top; g.fill(body);
@@ -288,13 +315,34 @@
     /* everyone blinks, each to their own clock */
     const bs = ((st.hair || '#000000').charCodeAt(1) * 7 + (st.top || '#000000').charCodeAt(2) * 3) % 17;
     const blink = (T.time * 0.34 + bs * 0.059) % 1 > 0.958;
-    const sad = face.eye === 'closed' || face.eye === 'sad' || face.tear > 0.3;
-    if (face.eye === 'closed' || (blink && face.eye !== 'happy')) { g.beginPath(); g.moveTo(ex - 1.7, ey - 0.2); g.quadraticCurveTo(ex, ey + 1.2, ex + 1.7, ey - 0.1); g.stroke(); }
-    else if (face.eye === 'happy') { g.beginPath(); g.moveTo(ex - 1.8, ey + 0.7); g.quadraticCurveTo(ex, ey - 1.5, ex + 1.8, ey + 0.6); g.stroke(); }
-    else if (face.eye === 'sad') {
+    const E = face.eye;
+    const sad = E === 'closed' || E === 'sad' || E === 'teary' || E === 'squeeze' || face.tear > 0.3;
+    if (E === 'squeeze') {
+      /* screwed shut, crying: a flat hard line, creased at the corner */
+      g.lineWidth = 1.05; g.beginPath(); g.moveTo(ex - 1.9, ey + 0.35); g.quadraticCurveTo(ex - 0.1, ey - 0.5, ex + 1.7, ey + 0.25); g.stroke();
+      g.lineWidth = 0.55; g.beginPath(); g.moveTo(ex - 2.3, ey - 0.3); g.lineTo(ex - 3.2, ey - 1.0); g.moveTo(ex - 2.3, ey + 0.8); g.lineTo(ex - 3.2, ey + 1.3); g.stroke(); g.lineWidth = 0.9;
+    }
+    else if (E === 'closed' || (blink && E !== 'happy')) { g.beginPath(); g.moveTo(ex - 1.7, ey - 0.2); g.quadraticCurveTo(ex, ey + 1.2, ex + 1.7, ey - 0.1); g.stroke(); }
+    else if (E === 'happy') { g.beginPath(); g.moveTo(ex - 1.8, ey + 0.7); g.quadraticCurveTo(ex, ey - 1.5, ex + 1.8, ey + 0.6); g.stroke(); }
+    else if (E === 'sad') {
       /* looking down, the lid heavy and drooping toward the temple */
       g.beginPath(); g.ellipse(ex + 0.1, ey + 0.55, 0.95, 0.8, 0, 0, Math.PI); g.fill();
       g.lineWidth = 0.95; g.beginPath(); g.moveTo(ex - 1.9, ey + 0.55); g.quadraticCurveTo(ex - 0.1, ey - 0.35, ex + 1.75, ey + 0.05); g.stroke(); g.lineWidth = 0.9;
+    }
+    else if (E === 'teary') {
+      /* open and swimming: the lid low and sloping, the eye catching the light twice */
+      g.beginPath(); g.ellipse(ex, ey + 0.15, 1.05, 1.22, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.95)'; g.beginPath(); g.arc(ex + 0.4, ey - 0.3, 0.42, 0, TAU); g.fill();
+      g.beginPath(); g.arc(ex - 0.3, ey + 0.65, 0.22, 0, TAU); g.fill();
+      g.fillStyle = '#2b2024';
+      g.lineWidth = 0.75; g.beginPath(); g.moveTo(ex - 1.9, ey - 0.45); g.quadraticCurveTo(ex - 0.2, ey - 1.55, ex + 1.75, ey - 0.85); g.stroke(); g.lineWidth = 0.9;
+    }
+    else if (E === 'wide') {
+      /* surprised: round and open, the lid lifted clear of it */
+      g.beginPath(); g.ellipse(ex, ey - 0.1, 1.15, 1.5, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.arc(ex + 0.42, ey - 0.62, 0.4, 0, TAU); g.fill();
+      g.fillStyle = '#2b2024';
+      g.lineWidth = 0.7; g.beginPath(); g.moveTo(ex - 1.8, ey - 1.5); g.quadraticCurveTo(ex - 0.2, ey - 2.75, ex + 1.75, ey - 1.6); g.stroke(); g.lineWidth = 0.9;
     }
     else {
       g.beginPath(); g.ellipse(ex, ey, 1.02, 1.36, 0, 0, TAU); g.fill();
@@ -302,18 +350,55 @@
       g.fillStyle = '#2b2024';
       g.lineWidth = 0.7; g.beginPath(); g.moveTo(ex - 1.8, ey - 0.9); g.quadraticCurveTo(ex - 0.2, ey - 2.0, ex + 1.7, ey - 1.0); g.stroke(); g.lineWidth = 0.9;   /* lid */
     }
-    /* the brow says more than the eye does */
+    /* the brow says more than the eye does. face.brow: 'up' (surprise), 'worry' (the inner end lifted), 'knit' (drawn down) */
     g.strokeStyle = T.shade(st.hair || '#3a2b25', T.hex(st.hair || '#3a2b25')[0] > 190 ? -0.3 : -0.05); g.lineWidth = 0.85;
-    const by = ey - (face.eye === 'happy' ? 4.1 : 3.5);
-    g.beginPath(); g.moveTo(ex - 2.1, by + (sad ? 0.9 : 0.3)); g.quadraticCurveTo(ex, by - (sad ? 0.1 : 0.7), ex + 2.0, by + (sad ? -0.7 : 0.25)); g.stroke();
+    const brow = face.brow || (E === 'squeeze' ? 'worry' : null);
+    const by = ey - (E === 'happy' ? 4.1 : brow === 'up' ? 4.7 : E === 'squeeze' ? 3.0 : 3.5);
+    g.beginPath();
+    if (brow === 'up') { g.moveTo(ex - 2.1, by + 0.5); g.quadraticCurveTo(ex - 0.1, by - 1.0, ex + 2.0, by + 0.1); }
+    else if (brow === 'worry') { g.moveTo(ex - 2.1, by + 1.2); g.quadraticCurveTo(ex - 0.2, by + 0.25, ex + 1.9, by - 1.05); }
+    else if (brow === 'knit') { g.moveTo(ex - 2.1, by - 0.1); g.quadraticCurveTo(ex, by - 0.4, ex + 2.0, by + 0.75); }
+    else { g.moveTo(ex - 2.1, by + (sad ? 0.9 : 0.3)); g.quadraticCurveTo(ex, by - (sad ? 0.1 : 0.7), ex + 2.0, by + (sad ? -0.7 : 0.25)); }
+    g.stroke();
     g.strokeStyle = '#2b2024'; g.lineWidth = 0.9;
     if (face.old) { g.lineWidth = 0.6; g.beginPath(); g.moveTo(ex - 2.6, ey - 1.6); g.lineTo(ex - 4.4, ey - 2.6); g.moveTo(ex - 2.8, ey + 0.4); g.lineTo(ex - 4.8, ey + 0.8); g.moveTo(ex + 0.4, ey + 3.4); g.lineTo(ex + 2.6, ey + 4.2); g.stroke(); g.lineWidth = 0.9; }
+    /* the mouth. face.tremble (0..1) sets any of them shaking: a chin held against crying */
     g.strokeStyle = '#7a3438'; g.lineWidth = 0.85;
-    if (face.mouth === 'smile') { g.beginPath(); g.moveTo(R * 0.9, R * 0.6); g.quadraticCurveTo(R * 0.7, R * 0.72, R * 0.5, R * 0.5); g.stroke(); }
-    else if (face.mouth === 'open') { g.fillStyle = '#7a3438'; g.beginPath(); g.moveTo(R * 0.9, R * 0.56); g.quadraticCurveTo(R * 0.74, R * 0.98, R * 0.5, R * 0.54); g.quadraticCurveTo(R * 0.7, R * 0.62, R * 0.9, R * 0.56); g.fill(); g.fillStyle = '#2b2024'; }
-    else if (face.mouth === 'line') { g.beginPath(); g.moveTo(R * 0.9, R * 0.62); g.lineTo(R * 0.58, R * 0.62); g.stroke(); }
-    else if (face.mouth === 'frown') { g.beginPath(); g.moveTo(R * 0.9, R * 0.66); g.quadraticCurveTo(R * 0.74, R * 0.57, R * 0.54, R * 0.72); g.stroke(); }
+    const M = face.mouth, trem = face.tremble || (M === 'tremble' || M === 'wobble' ? 0.6 : 0);
+    const jy = trem ? (i) => (Math.sin(T.time * 37 + i * 2.3) * 0.24 + Math.sin(T.time * 21.7 + i * 1.7) * 0.14) * trem : () => 0;
+    if (M === 'smile') { g.beginPath(); g.moveTo(R * 0.9, R * 0.6 + jy(0)); g.quadraticCurveTo(R * 0.7, R * 0.72 + jy(1), R * 0.5, R * 0.5 + jy(2)); g.stroke(); }
+    else if (M === 'open') { g.fillStyle = '#7a3438'; g.beginPath(); g.moveTo(R * 0.9, R * 0.56 + jy(0)); g.quadraticCurveTo(R * 0.74, R * 0.98 + jy(1), R * 0.5, R * 0.54 + jy(2)); g.quadraticCurveTo(R * 0.7, R * 0.62 + jy(3), R * 0.9, R * 0.56 + jy(0)); g.fill(); g.fillStyle = '#2b2024'; }
+    else if (M === 'line') { g.beginPath(); g.moveTo(R * 0.9, R * 0.62 + jy(0)); if (trem) g.lineTo(R * 0.74, R * 0.62 + jy(1)); g.lineTo(R * 0.58, R * 0.62 + jy(2)); g.stroke(); }
+    else if (M === 'frown') { g.beginPath(); g.moveTo(R * 0.9, R * 0.66 + jy(0)); g.quadraticCurveTo(R * 0.74, R * 0.57 + jy(1), R * 0.54, R * 0.72 + jy(2)); g.stroke(); }
+    else if (M === 'soft') { g.beginPath(); g.moveTo(R * 0.88, R * 0.63 + jy(0)); g.quadraticCurveTo(R * 0.74, R * 0.6 + jy(1), R * 0.57, R * 0.67 + jy(2)); g.stroke(); }
+    else if (M === 'tremble') {   /* pressed together, and not quite holding */
+      g.beginPath(); g.moveTo(R * 0.9, R * 0.63 + jy(0));
+      for (let i = 1; i <= 4; i++) g.lineTo(R * (0.9 - i * 0.085), R * (0.63 + (i % 2 ? -0.025 : 0.02) + i * 0.012) + jy(i));
+      g.stroke();
+    }
+    else if (M === 'wobble') {   /* a smile through tears: it keeps nearly going */
+      g.beginPath(); g.moveTo(R * 0.9, R * 0.6 + jy(0));
+      for (let i = 1; i <= 5; i++) { const q = i / 5, mx = (1 - q) * (1 - q) * 0.9 + 2 * q * (1 - q) * 0.71 + q * q * 0.52, my = (1 - q) * (1 - q) * 0.6 + 2 * q * (1 - q) * 0.69 + q * q * 0.53; g.lineTo(R * mx, R * my + jy(i)); }
+      g.stroke();
+    }
+    else if (M === 'o') { g.fillStyle = '#7a3438'; g.beginPath(); g.ellipse(R * 0.78, R * 0.64 + jy(0), R * 0.11, R * 0.15, 0, 0, TAU); g.fill(); g.fillStyle = '#2b2024'; }
+    else if (M === 'cry') {   /* open, the corner pulled down */
+      g.fillStyle = '#7a3438'; g.beginPath(); g.moveTo(R * 0.9, R * 0.58 + jy(0)); g.quadraticCurveTo(R * 0.72, R * 0.55 + jy(1), R * 0.53, R * 0.73 + jy(2));
+      g.quadraticCurveTo(R * 0.7, R * 0.98 + jy(3), R * 0.9, R * 0.66 + jy(4)); g.closePath(); g.fill(); g.fillStyle = '#2b2024';
+    }
+    else if (M === 'laugh') {   /* wide open, the corner lifted */
+      g.fillStyle = '#7a3438'; g.beginPath(); g.moveTo(R * 0.93, R * 0.53 + jy(0)); g.quadraticCurveTo(R * 0.7, R * 0.6 + jy(1), R * 0.47, R * 0.45 + jy(2));
+      g.quadraticCurveTo(R * 0.62, R * 1.02 + jy(3), R * 0.92, R * 0.62 + jy(4)); g.closePath(); g.fill();
+      g.fillStyle = '#c8686a'; g.beginPath(); g.ellipse(R * 0.72, R * 0.83, R * 0.11, R * 0.06, -0.3, 0, TAU); g.fill(); g.fillStyle = '#2b2024';
+    }
     g.strokeStyle = '#2b2024'; g.lineWidth = 0.9;
+    if (face.well > 0) {   /* tears standing in the eye, not yet fallen */
+      const w = T.clamp(face.well), shut = E === 'closed' || E === 'squeeze' || E === 'happy';
+      g.fillStyle = T.rgba('#cfeaf8', 0.85 * w);
+      g.beginPath(); g.ellipse(ex + (shut ? 0.9 : 0.1), ey + (shut ? 0.75 : 1.2), shut ? 0.85 * w + 0.2 : 1.35, (shut ? 0.55 : 0.48) * (0.5 + 0.5 * w), shut ? 0.2 : 0.06, 0, TAU); g.fill();
+      g.fillStyle = T.rgba('#ffffff', 0.9 * w); g.beginPath(); g.arc(ex + (shut ? 1.15 : 0.75), ey + (shut ? 0.6 : 1.05), 0.22, 0, TAU); g.fill();
+      g.fillStyle = '#2b2024';
+    }
     if (face.tear > 0.45) {   /* the wet track down the cheek */
       g.strokeStyle = T.rgba('#d2ebf8', (face.tear - 0.45) * 0.9); g.lineWidth = 0.7;
       g.beginPath(); g.moveTo(ex + 0.5, ey + 1.6); g.quadraticCurveTo(ex + 1.1, ey + 3.6, ex + 0.7, ey + 6.2); g.stroke();
@@ -322,6 +407,20 @@
     if (face.tear) {
       g.fillStyle = T.rgba('#bfe0f2', face.tear);
       g.beginPath(); g.ellipse(ex + 0.6, ey + 3.2 + (face.tearY || 0), 0.9, 1.5, 0, 0, TAU); g.fill();
+    }
+    if (face.roll != null && face.rollA !== 0) {
+      /* one tear rolling down the cheek to the jaw (face.roll is how far: its whole part counts the tears), leaving a wet line */
+      const ph = ((face.roll % 1) + 1) % 1, A = face.rollA == null ? 1 : face.rollA;
+      const q = T.clamp(ph / 0.82), qe = q * q * 0.55 + q * 0.45;
+      const P0 = [ex + 0.3, ey + 1.5], P1 = [ex + 1.5, ey + 4.6], P2 = [R * 0.6, R * 0.9];
+      const bz = (v) => [(1 - v) * (1 - v) * P0[0] + 2 * v * (1 - v) * P1[0] + v * v * P2[0], (1 - v) * (1 - v) * P0[1] + 2 * v * (1 - v) * P1[1] + v * v * P2[1]];
+      const a = A * T.clamp(ph / 0.07) * (1 - T.clamp((ph - 0.84) / 0.16));
+      g.strokeStyle = T.rgba('#d6eef9', 0.55 * A); g.lineWidth = 0.6;
+      g.beginPath(); g.moveTo(P0[0], P0[1]); for (let i = 1; i <= 6; i++) { const b = bz((qe * i) / 6); g.lineTo(b[0], b[1]); } g.stroke();
+      const b = bz(qe), rr = 0.62 + q * 0.32;
+      g.fillStyle = T.rgba('#bfe0f2', 0.95 * a); g.beginPath(); g.ellipse(b[0], b[1], rr * 0.82, rr * 1.25, -0.15, 0, TAU); g.fill();
+      g.fillStyle = T.rgba('#ffffff', 0.85 * a); g.beginPath(); g.arc(b[0] + rr * 0.25, b[1] - rr * 0.4, rr * 0.28, 0, TAU); g.fill();
+      g.strokeStyle = '#2b2024'; g.lineWidth = 0.9; g.fillStyle = '#2b2024';
     }
     if (st.hairStyle === 'beanie' && st.hair) {
       /* short hair under the hat, cropped close at the back down to the nape. It stays inside the line
@@ -382,20 +481,30 @@
       g.fillStyle = 'rgba(160,120,110,0.25)'; g.beginPath(); g.arc(-R * 0.3, -R * 1.42, 1.5, 0, TAU); g.fill();
     }
     g.restore();
-    if (!skip.armF) drawArm(af, st.top);
+    if (!skip.armF) drawArm(af, st.top, o.fingerF);
     g.restore();
     return out();
 
-    function out() {
-      const W = (p) => [o.x + sx * u * p[0], o.y + u * (p[1] + bob)];
-      return {
-        handF: W([af[4], af[5]]), handB: W([ab[4], ab[5]]), elbowF: W([af[2], af[3]]),
-        head: W(head), shoulder: W(shd), neck: W(nk), footF: W([lf[4], lf[5]]), footB: W([lb[4], lb[5]]),
-        kneeF: W([lf[2], lf[3]]), hip: [o.x, o.y + u * bob], u, sx,
-        R: K.R * u,
-      };
-    }
+    function out() { return joints(o, r); }
   };
+  function joints(o, r) {
+    const u = r.u, sx = r.sx, bob = r.bob, af = r.af, ab = r.ab, lf = r.lf, lb = r.lb;
+    const W = (p) => [o.x + sx * u * p[0], o.y + u * (p[1] + bob)];
+    return {
+      handF: W([af[4], af[5]]), handB: W([ab[4], ab[5]]), elbowF: W([af[2], af[3]]),
+      head: W(r.head), shoulder: W(r.shd), neck: W(r.nk), footF: W([lf[4], lf[5]]), footB: W([lb[4], lb[5]]),
+      kneeF: W([lf[2], lf[3]]), hip: [o.x, o.y + u * bob], u, sx,
+      R: r.K.R * u,
+      elbowB: W([ab[2], ab[3]]), kneeB: W([lb[2], lb[3]]), rootF: W(r.rootF), rootB: W(r.rootB),
+      face: W(headPt(r, 'eye')), mouth: W(headPt(r, 'mouth')), forehead: W(headPt(r, 'forehead')), cheek: W(headPt(r, 'cheek')),
+      chin: W(headPt(r, 'chin')), crown: W(headPt(r, 'crown')), nape: W(headPt(r, 'nape')),
+    };
+  }
+  /* the same joints without drawing anything: F.joints in the world, F.rig in the figure's own units */
+  F.joints = function (o) { return joints(o, rig(o)); };
+  F.rig = function (o) { const r = rig(o); r.pt = (name) => headPt(r, name); return r; };
+  F.dims = function (style) { return style.kid ? KID : ADULT; };
+  F.HEAD_PTS = HEAD_PTS;
   /* world → the figure's local units, for aiming hands at things */
   F.local = function (o, wx, wy) {
     const u = (o.s || 240) / 100, sx = o.flip ? -1 : 1;
