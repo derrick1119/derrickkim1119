@@ -424,10 +424,10 @@ function wingTexture() {
     };
     // 안쪽: 맑은 물빛 → 끝으로 갈수록 분홍·보라 무지갯빛
     const g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, 'rgba(210,250,255,0.5)');
-    g.addColorStop(0.45, 'rgba(200,235,255,0.32)');
-    g.addColorStop(0.75, 'rgba(255,200,245,0.38)');
-    g.addColorStop(1, 'rgba(220,190,255,0.5)');
+    g.addColorStop(0, 'rgba(210,250,255,0.6)');
+    g.addColorStop(0.45, 'rgba(200,235,255,0.42)');
+    g.addColorStop(0.75, 'rgba(255,200,245,0.48)');
+    g.addColorStop(1, 'rgba(220,190,255,0.6)');
     shape();
     ctx.fillStyle = g;
     ctx.fill();
@@ -462,7 +462,7 @@ function wingTexture() {
     // 테두리(외곽선 색)
     shape();
     ctx.strokeStyle = 'rgba(43,26,94,0.95)';
-    ctx.lineWidth = 4.5;
+    ctx.lineWidth = 5.5;
     ctx.stroke();
   });
   return wingTex;
@@ -579,7 +579,7 @@ registerDeco('stars', (a) => {
   orbit.position.set(0, cy, 0);
   orbit.rotation.set(0.26, 0, 0.12);
   group.add(orbit);
-  const sr = D * 0.25; // 별 반지름
+  const sr = D * 0.28; // 별 반지름
   const m0 = gloss('#ffcf3a', { metal: 0.35, rough: 0.28, emissive: '#ff9a00', glow: 0.36, env: 1.1 });
   const stars = [];
   for (let i = 0; i < 3; i++) {
@@ -641,7 +641,8 @@ function limb(A, B, rad, material, olTh) {
 /** 금방울(입구가 아래, 가운데 원점이 꼭지). 단위 1 = 방울 키. */
 function bellGeo() {
   return geo('bell', () => {
-    const pts = [[0.001, 0.02], [0.12, 0.0], [0.26, -0.12], [0.33, -0.36], [0.38, -0.62], [0.46, -0.8], [0.44, -0.86], [0.3, -0.84], [0.001, -0.84]];
+    // 윤곽은 아래 → 위 순서여야 겉면이 바깥을 본다
+    const pts = [[0.001, -0.84], [0.3, -0.84], [0.44, -0.86], [0.46, -0.8], [0.38, -0.62], [0.33, -0.36], [0.26, -0.12], [0.12, 0.0], [0.001, 0.02]];
     return new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 20);
   });
 }
@@ -653,18 +654,18 @@ function ribbonBell(red, olTh) {
   for (const s of [-1, 1]) {
     const l = mesh(lobe, red, { pos: [s * 0.55, 0.1, 0], scale: [0.55, 0.36, 0.26], rot: [0, 0, s * 0.35] });
     ink(l, olTh / 0.4);
-    const tail = mesh(lobe, red, { pos: [s * 0.28, -0.5, 0.02], scale: [0.16, 0.45, 0.1], rot: [0, 0, s * 0.35] });
+    const tail = mesh(lobe, red, { pos: [s * 0.36, -0.42, 0.02], scale: [0.15, 0.4, 0.1], rot: [0, 0, s * 0.6] });
     ink(tail, olTh / 0.3);
     g.add(l, tail);
   }
   const knot = mesh(lobe, red, { scale: [0.24, 0.26, 0.22], pos: [0, 0, 0.05] });
   ink(knot, olTh / 0.24);
   const bell = new THREE.Group();
-  bell.position.set(0, -0.18, 0.12);
-  const b = mesh(bellGeo(), goldMat(), { scale: 0.72 });
-  ink(b, olTh / 0.72);
-  const slot = mesh(sphereGeo(1, 10, 8), gloss('#6a3a10', { rough: 0.5 }), { pos: [0, -0.58, 0.12], scale: [0.09, 0.04, 0.04] });
-  const clap = mesh(sphereGeo(1, 10, 8), goldMat(), { pos: [0, -0.64, 0], scale: 0.1 });
+  bell.position.set(0, -0.14, 0.26);
+  const b = mesh(bellGeo(), goldMat(), { scale: 0.95 });
+  ink(b, olTh / 0.95);
+  const slot = mesh(sphereGeo(1, 10, 8), gloss('#6a3a10', { rough: 0.5 }), { pos: [0, -0.62, 0.36], scale: [0.12, 0.05, 0.04] });
+  const clap = mesh(sphereGeo(1, 10, 8), goldMat(), { pos: [0, -0.84, 0], scale: 0.13 });
   bell.add(b, slot, clap);
   g.add(knot, bell);
   return { group: g, bell };
@@ -703,8 +704,8 @@ registerDeco('antlers', (a) => {
     sides.push({ sway, side });
     if (side > 0) {
       // 오른쪽 뿔 밑동에 빨간 리본 + 금방울
-      const rb = ribbonBell(red, th / 0.27);
-      rb.group.position.set(0.04, 0.22, 0.13);
+      const rb = ribbonBell(red, (th * 0.6) / 0.27); // 작은 부품이라 외곽선을 가늘게
+      rb.group.position.set(0.07, 0.4, 0.12);
       rb.group.scale.setScalar(0.27);
       rb.group.rotation.y = -0.2;
       sway.add(rb.group);
@@ -932,6 +933,56 @@ registerDeco('flag', (a) => {
 
 // ───────── 7. 리본 ─────────
 
+/**
+ * 납작한 리본 띠: pts([[x, y, z], ...]) 를 잇는 곡선을 따라 폭 w·두께 th 의 납작한 관. 폭 방향은 wd 를 곡선에
+ * 수직으로 맞춘 것. 끝은 제비꼬리(V)로 파이고 두께가 0 으로 모여 닫힌다. 둘레를 이어 붙여 법선이 매끈하다(외곽선용).
+ */
+function ribbonGeo(pts, wd, w, th, notch = 0.1) {
+  const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])));
+  const N = 30;
+  const M = 14;
+  const pos = new Float32Array((N + 1) * M * 3);
+  const P = new THREE.Vector3();
+  const T = new THREE.Vector3();
+  const W = new THREE.Vector3();
+  const B = new THREE.Vector3();
+  for (let j = 0; j < M; j++) {
+    const phi = (j / M) * TAU;
+    const cx = Math.cos(phi);
+    const sy = Math.sin(phi);
+    const L = 1 - notch * (1 - Math.abs(cx)); // 가운데일수록 짧다 → 제비꼬리
+    for (let i = 0; i <= N; i++) {
+      const u = i / N;
+      curve.getPointAt(u * L, P);
+      curve.getTangentAt(u * L, T);
+      W.copy(wd).addScaledVector(T, -wd.dot(T)).normalize();
+      B.crossVectors(T, W);
+      const ww = w * 0.5 * (0.8 + 0.25 * u) * Math.min(1, 0.4 + u * 5);
+      const tt = th * 0.5 * Math.min(1, (1 - u) * 8, 0.4 + u * 6);
+      const k = (i * M + j) * 3;
+      pos[k] = P.x + W.x * ww * cx + B.x * tt * sy;
+      pos[k + 1] = P.y + W.y * ww * cx + B.y * tt * sy;
+      pos[k + 2] = P.z + W.z * ww * cx + B.z * tt * sy;
+    }
+  }
+  const idx = [];
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < M; j++) {
+      const a0 = i * M + j;
+      const b0 = i * M + ((j + 1) % M);
+      const c0 = (i + 1) * M + j;
+      const d0 = (i + 1) * M + ((j + 1) % M);
+      idx.push(a0, b0, c0, b0, d0, c0);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+
 let dotTex = null;
 /** 분홍 바탕에 흰 물방울무늬(가로로 이어 붙여도 이음매 없이). */
 function dotTexture() {
@@ -999,32 +1050,27 @@ registerDeco('bow', (a) => {
   const knot = mesh(sphereGeo(1, 18, 12), plain, { scale: [0.24, 0.27, 0.2], pos: [0, 0, 0.04] });
   ink(knot, (OL_R * R) / S / 0.22);
   bow.add(knot);
-  // 꼬리 두 가닥: 매듭에서 윗면을 따라 테두리 너머로 늘어진다(기체 좌표로 마디를 잇는다)
+  // 꼬리 두 가닥: 매듭 밑에서 나와 윗면을 따라 테두리 너머로 늘어진 납작한 띠(끝은 제비꼬리)
   const at = (rr, a2, y) => [Math.sin(a2) * rr, y, Math.cos(a2) * rr];
+  const wd = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az)); // 폭 방향 = 둘레 방향
   for (const s of [-1, 1]) {
-    const pts = [
-      at(r + S * 0.02, az + s * 0.03, knotY - S * 0.12),
-      at(R * 0.93, az + s * 0.1, hullTop(a, R * 0.93) + R * 0.045),
-      at(R * 1.03, az + s * 0.14, R * 0.07),
-      at(R * 1.06, az + s * 0.19, -R * 0.03),
-    ];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const A = pts[i];
-      const B = pts[i + 1];
-      const dir = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
-      const len = dir.length();
-      dir.normalize();
-      // 넓은 면이 바깥(위)을 보도록: 폭 = 둘레 방향, 두께 = 그 둘에 수직
-      const tang = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az));
-      const zx = new THREE.Vector3().crossVectors(tang, dir).normalize();
-      const xx = new THREE.Vector3().crossVectors(dir, zx).normalize();
-      const w = S * (0.34 + 0.03 * i);
-      const seg = mesh(capsuleGeo(0.5, +((len + w * 0.9) / w).toFixed(2), 6, 12), plain, { pos: [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2] });
-      seg.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xx, dir, zx));
-      seg.scale.set(w, w, S * 0.085);
-      ink(seg, (OL_R * R) / w);
-      group.add(seg);
-    }
+    const g = geo(`bowTail|${a.form}|${R}|${s}`, () =>
+      ribbonGeo(
+        [
+          at(r + S * 0.02, az + s * 0.02, knotY - S * 0.08),
+          at(R * 0.9, az + s * 0.08, hullTop(a, R * 0.9) + R * 0.05),
+          at(R * 1.0, az + s * 0.12, R * 0.085),
+          at(R * 1.05, az + s * 0.15, R * 0.03),
+          at(R * 1.065, az + s * 0.18, -R * 0.05),
+        ],
+        wd,
+        S * 0.4,
+        S * 0.09,
+      ),
+    );
+    const tail = mesh(g, plain);
+    ink(tail, OL_R * R * 0.9);
+    group.add(tail);
   }
   const clk = clock();
   const st = { amp: 1 };
@@ -1117,7 +1163,7 @@ registerDeco('propeller', (a) => {
     spinner.add(arm);
   }
   hat.add(cap, band, stem, spinner);
-  const st = { sp: 8, ph: 0, tilt: 0 };
+  const st = { sp: 8, ph: 0 };
   const clk = clock();
   return {
     group,
@@ -1128,8 +1174,9 @@ registerDeco('propeller', (a) => {
       st.sp += (sp - st.sp) * (sp < st.sp ? k * 0.5 : k);
       st.ph = snap ? t * st.sp : st.ph + st.sp * dt;
       spinner.rotation.y = st.ph;
+      // 멋 부려 왼쪽으로 삐딱하게(돔 중심을 축으로 돌려 돔 면을 따라 미끄러진다). 피포의 더듬이 전구가 기둥 오른쪽으로 보인다
       const tilt = mood === 'shock' ? Math.sin(t * 30) * 0.04 : Math.sin(t * 1.6) * 0.03;
-      hat.rotation.set(tilt * 0.5, 0, tilt);
+      hat.rotation.set(tilt * 0.5, 0, 0.15 + tilt);
     },
   };
 });
@@ -1147,12 +1194,16 @@ function crownBandGeo() {
 registerDeco('crown', (a) => {
   const D = a.domeR;
   const group = new THREE.Group();
+  // 돔 가운데를 축으로 뒤로 젖혀 쓴다(돔 면을 따라 미끄러져 앞 띠가 피포의 눈을 가리지 않는다. 더듬이는 왕관 안으로 솟는다)
+  const pivot = new THREE.Group();
+  pivot.position.y = a.domeY;
+  pivot.scale.setScalar(D);
+  group.add(pivot);
   const crown = new THREE.Group();
   // 띠 밑동 반지름 0.52 가 돔 면에 닿는 높이(돔은 세로 1.1 배)
   const baseY = 1.1 * Math.sqrt(1 - 0.52 * 0.52) - 0.02;
-  crown.position.y = a.domeY + baseY * D;
-  crown.scale.setScalar(D);
-  group.add(crown);
+  crown.position.y = baseY;
+  pivot.add(crown);
   const gold = goldMat();
   const band = mesh(crownBandGeo(), gold);
   ink(band, OL_D);
@@ -1214,8 +1265,8 @@ registerDeco('crown', (a) => {
       const hop = mood === 'shock' ? 0.12 : mood === 'hide' ? -0.04 : 0;
       st.hop += (hop - st.hop) * k;
       const bounce = mood === 'happy' ? Math.abs(Math.sin(t * 7)) * 0.06 : 0;
-      crown.position.y = a.domeY + (baseY + st.hop + bounce) * D;
-      crown.rotation.set(0, 0, 0.06 + (mood === 'shock' ? Math.sin(t * 30) * 0.05 : Math.sin(t * 1.2) * 0.02));
+      crown.position.y = baseY + st.hop + bounce;
+      pivot.rotation.set(-0.3, 0, 0.07 + (mood === 'shock' ? Math.sin(t * 30) * 0.05 : Math.sin(t * 1.2) * 0.02));
       for (let i = 0; i < sparks.length; i++) {
         // 세 개가 차례로 다섯 뾰족이 중 하나에서 반짝
         const c = t * 0.9 + i * 0.37;
@@ -1274,7 +1325,7 @@ registerDeco('halo', (a) => {
       // 둥실둥실
       halo.position.y = y0 + D * (st.y + Math.sin(t * 1.8) * 0.05);
       // 앞으로 더 숙여 동그란 고리가 또렷한 타원으로 보이게
-      halo.rotation.set(0.42 + Math.sin(t * 1.1) * 0.05, 0, Math.sin(t * 1.3) * 0.07 + (mood === 'shock' ? Math.sin(t * 28) * 0.06 : 0));
+      halo.rotation.set(0.22 + Math.sin(t * 1.1) * 0.05, 0, Math.sin(t * 1.3) * 0.07 + (mood === 'shock' ? Math.sin(t * 28) * 0.06 : 0));
       const L = lit * st.glow;
       ringMat.emissiveIntensity = 0.3 + 0.9 * L;
       hazeMat.opacity = 0.17 * L + 0.04 * Math.sin(t * 2.4) * L;

@@ -130,14 +130,24 @@ function catArt() {
     (ctx, s) => {
       ctx.fillStyle = '#ffa445';
       ctx.fillRect(0, 0, s, s);
-      // 턱 아래(u 0·1 근처)와 안쪽 면은 크림색으로 부드럽게
-      const g = ctx.createLinearGradient(0, 0, s, 0);
+      // 턱 아래(u 0·1 근처, 가장자리 가까이만)는 크림색으로 부드럽게: 가로 그러데이션을 세로 그러데이션으로 가린다
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = s;
+      const c2 = cv.getContext('2d');
+      const g = c2.createLinearGradient(0, 0, s, 0);
       g.addColorStop(0, '#fff0d8');
       g.addColorStop(0.12, 'rgba(255,240,216,0)');
       g.addColorStop(0.88, 'rgba(255,240,216,0)');
       g.addColorStop(1, '#fff0d8');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, s, s);
+      c2.fillStyle = g;
+      c2.fillRect(0, 0, s, s);
+      c2.globalCompositeOperation = 'destination-in';
+      const fade = c2.createLinearGradient(0, (1 - 0.6) * s, 0, (1 - RIM_V) * s);
+      fade.addColorStop(0, 'rgba(0,0,0,0)');
+      fade.addColorStop(1, 'rgba(0,0,0,1)');
+      c2.fillStyle = fade;
+      c2.fillRect(0, 0, s, s);
+      ctx.drawImage(cv, 0, 0);
       ctx.fillStyle = '#fff0d8';
       ctx.fillRect(0, (1 - RIM_V) * s, s, RIM_V * s);
       // 붓 자국 줄무늬: (u, 시작 v, 끝 v, 굵기 u, 휘어짐)
@@ -189,7 +199,7 @@ registerOutfit('cat', () => {
   const orange = mat('#ffa445', { rough: 0.6, emissive: '#c0601a', emissiveIntensity: 0.22 });
   const pink = mat('#ff9ec4', { rough: 0.5, emissive: '#c0306a', emissiveIntensity: 0.2 });
   const hood = part(og('cat-hood', () => shellGeo(HOOD_AXIS, CAT_A, 1.09, 0.96)), fur, 0.035);
-  const rim = part(og('cat-rim', () => edgeGeo(HOOD_AXIS, CAT_A, 1.075, 0.075, 26, 0.12)), cream, 0.03);
+  const rim = part(og('cat-rim', () => edgeGeo(HOOD_AXIS, CAT_A, 1.075, 0.064, 26, 0.12)), cream, 0.028);
   // 귀: 통통한 둥근 삼각형(끝이 살짝 바깥으로) + 분홍 속귀. 밑동은 후드 속에 묻는다
   const ears = [-1, 1].map((side) => {
     const outer = part(
@@ -301,7 +311,7 @@ function dinoArt() {
 }
 
 let plateMat = null;
-/** 등판 재질: 밑동 주황 → 끝 노랑(꼭짓점 색). */
+/** 등 가시 재질: 꼭짓점 색(밑동 → 끝으로 밝게). */
 const dinoPlateMat = () => (plateMat ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.36, envMapIntensity: 0.8, emissive: new THREE.Color('#c05000'), emissiveIntensity: 0.18 }));
 
 registerOutfit('dino', () => {
@@ -334,39 +344,40 @@ registerOutfit('dino', () => {
     white,
     0.02,
   );
-  // 등판: 이마에서 뒤통수까지 정수리 가운데를 따라 좌우로 엇갈린 한 줄(가운데가 가장 크다). 더듬이(호 1.85)는
-  // 가운데 두 판 사이로 나온다. 앞에서 보면 판이 모로 서서 막대처럼 보이므로 바깥으로 눕히고 조금 돌려 면이 보이게 한다
+  // 등 가시: 이마에서 뒤통수까지 정수리 가운데를 따라 좌우로 엇갈린 한 줄(가운데가 가장 크다). 납작한 판은 앞에서 보면
+  // 모로 서서 막대처럼 보이므로, 밑동이 통통하고 끝이 둥근 원뿔이라 어느 쪽에서 봐도 세모로 읽힌다.
+  // 더듬이(호 1.85)는 가운데 두 가시 사이로 나온다. 왼쪽은 노랑, 오른쪽은 주황(밑동 → 끝으로 밝게)
   const plates = part(
     og('dino-plates', () => {
-      const lo = new THREE.Color('#ff7a26');
-      const hi = new THREE.Color('#ffd84a');
+      const tone = { 1: [new THREE.Color('#ff7424'), new THREE.Color('#ffae3c')], [-1]: [new THREE.Color('#ffb42a'), new THREE.Color('#ffe46c')] };
       const c = new THREE.Color();
       // [호 위치(이마 0.95 → 정수리 π/2 → 뒤통수), 높이, 쪽(+1 = 보는 사람의 오른쪽)]
-      const list = [[0.97, 0.19, 1], [1.21, 0.26, -1], [1.47, 0.33, 1], [1.8, 0.36, -1], [2.12, 0.31, 1], [2.42, 0.24, -1], [2.72, 0.17, 1]];
+      const list = [[1.0, 0.25, 1], [1.26, 0.33, -1], [1.53, 0.41, 1], [1.84, 0.44, -1], [2.16, 0.38, 1], [2.47, 0.3, -1], [2.76, 0.21, 1]];
       return mergeGeometries(
         list.map(([s, h, sd]) => {
-          const w = h * 0.46 + 0.03;
-          const shape = roundPoly([V2(-w, -0.12), V2(w, -0.12), V2(w * 0.82, h * 0.42), V2(0, h), V2(-w * 0.82, h * 0.42)], [0.02, 0.02, h * 0.35, h * 0.28, h * 0.35]);
-          const g = slabGeo(shape, { depth: 0.07, bevel: 0.05, seg: 3 });
-          g.translate(0, 0, -0.085);
+          const rb = h * 0.4 + 0.02;
+          const prof = new THREE.SplineCurve([[rb, -0.14], [rb, 0], [rb * 0.8, h * 0.32], [rb * 0.48, h * 0.66], [rb * 0.2, h * 0.92], [0.001, h]].map(([x, y]) => V2(x, y))).getPoints(14);
+          const g = new THREE.LatheGeometry([V2(0.001, -0.14), ...prof], 18);
           const p = g.attributes.position;
           const col = [];
           for (let i = 0; i < p.count; i++) {
-            c.copy(lo).lerp(hi, smooth01(0, h, p.getY(i)));
+            c.copy(tone[sd][0]).lerp(tone[sd][1], smooth01(0, h, p.getY(i)));
             col.push(c.r, c.g, c.b);
           }
           g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-          // 가운데 줄에서 옆으로 살짝 비켜(경도 ±0.13) 머리 표면에 세운다
-          const off = sd * 0.1;
+          // 가운데 줄에서 옆으로 살짝 비켜(경도 ±0.13) 머리 표면에 거의 곧게 세우고(바깥으로 눕히면 앞에서 리본처럼 보인다),
+          // 끝은 뒤로 조금 눕힌다
+          const off = sd * 0.13;
           const at = V(Math.sin(off), Math.sin(s) * Math.cos(off), Math.cos(s) * Math.cos(off)).multiply(HS).multiplyScalar(1.07);
           const n = normalAt(at);
           const tng = V(0, Math.cos(s) * HS.y, -Math.sin(s) * HS.z);
           tng.addScaledVector(n, -tng.dot(n)).normalize();
           const side = V().crossVectors(tng, n);
           const M = new THREE.Matrix4().makeBasis(tng, n, side).setPosition(at);
-          // 바깥으로 눕히고(roll) 앞 모서리를 바깥으로 돌린다(yaw)
-          M.multiply(new THREE.Matrix4().makeRotationY(sd * 0.3)).multiply(new THREE.Matrix4().makeRotationX(sd * 0.24));
-          return finishSlab(g).applyMatrix4(M);
+          M.multiply(new THREE.Matrix4().makeRotationX(sd * 0.04)).multiply(new THREE.Matrix4().makeRotationZ(-0.12));
+          // 옆(앞에서 보이는 폭)은 그대로, 줄 방향으로 조금 길쭉하게(옆에서 보면 판 같은 세모)
+          M.multiply(new THREE.Matrix4().makeScale(1.25, 1, 1));
+          return smoothed(g).applyMatrix4(M);
         }),
       );
     }),
@@ -467,7 +478,7 @@ const wingMat = () =>
     color: '#ffffff',
     roughness: 0.12,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.78,
     side: THREE.DoubleSide,
     depthWrite: false,
     iridescence: 1,
@@ -520,17 +531,18 @@ registerOutfit('bee', () => {
     0.035,
   );
   // 보송한 목털
-  const ruff = part(og('bee-ruff', () => neckRing(0.48, 0.13, 0.03, 16, 0.16)), mat('#fff3c8', { rough: 0.85, emissive: '#c8a050', emissiveIntensity: 0.28 }), 0.028);
-  // 날개: 등에 두 쌍(큰 앞날개 + 작은 뒷날개), 바깥 위로 펼쳐 빠르게 파닥
+  const ruff = part(og('bee-ruff', () => neckRing(0.49, 0.125, 0.03, 24, 0.1)), mat('#fff0b4', { rough: 0.9, emissive: '#c89a40', emissiveIntensity: 0.3 }), 0.028);
+  // 날개: 등에 두 쌍(큰 앞날개 + 작은 뒷날개). 머리가 커서 위로 펼치면 가려지므로 옆으로 펼쳐 머리 아래 몸 양옆에 보이게,
+  // 막은 반투명 무지갯빛이라 외곽선 대신 테두리 관을 두른다(외곽선 뒷면이 막을 통해 비쳐 어두워진다)
   const edgeMat = mat('#3a2f7a', { rough: 0.4, emissive: '#2b1a5e', emissiveIntensity: 0.3 });
   const wings = [-1, 1].map((side) => {
     const root = new THREE.Group();
     root.position.set(side * 0.2, 0.03, -0.35);
     const fore = new THREE.Group();
-    const big = wingGeos('bee-wing', side, 0.86, 0.34);
+    const big = wingGeos('bee-wing', side, 0.92, 0.38);
     fore.add(part(big.membrane, wingMat()), part(big.edge, edgeMat));
     const hind = new THREE.Group();
-    const small = wingGeos('bee-hwing', side, 0.6, 0.22);
+    const small = wingGeos('bee-hwing', side, 0.64, 0.25);
     hind.add(part(small.membrane, wingMat()), part(small.edge, edgeMat));
     hind.rotation.z = -side * 0.5;
     hind.position.set(0, -0.03, -0.01);
@@ -544,7 +556,7 @@ registerOutfit('bee', () => {
   const band = part(
     og('bee-band', () => {
       const pts = [];
-      for (let i = 0; i <= 40; i++) pts.push(bandAt(-1.8 + (3.6 * i) / 40));
+      for (let i = 0; i <= 40; i++) pts.push(bandAt(-1.68 + (3.36 * i) / 40));
       const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.055, 8, false);
       const caps = [pts[0], pts[pts.length - 1]].map((c) => baked(sphere(10, 8), compose([c.x, c.y, c.z], [0, 0, 0], [0.055, 0.055, 0.055])));
       return mergeGeometries([smoothed(tube), ...caps.map((g) => smoothed(g))]);
@@ -662,11 +674,28 @@ registerOutfit('frog', () => {
     const low = new THREE.Group();
     low.scale.setScalar(1.04); // 감을 때 윗눈꺼풀 위로 겹쳐 덮는다(같은 크기면 겹친 면이 깜빡인다)
     low.add(part(lidGeo, green, 0.022));
+    // 감은 눈의 속눈썹 선: 아랫눈꺼풀 테를 따라 앞쪽만(눈꺼풀을 거꾸로 돌려 쓰므로 둘레 φ = π 쪽이 앞)
+    const lash = part(
+      og('frog-lash', () => {
+        const pts = [];
+        for (let i = 0; i <= 16; i++) {
+          const phi = Math.PI - 1.15 + (2.3 * i) / 16;
+          const al = 1.34 - 0.08 * Math.abs(Math.sin((phi - Math.PI) * 1.2)); // 양 끝을 살짝 올려 웃는 눈꼬리
+          const r = 1.1 * R * 1.04 + 0.004;
+          pts.push(V(r * Math.sin(al) * Math.sin(phi), r * Math.cos(al), r * Math.sin(al) * Math.cos(phi)));
+        }
+        const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.016, 6, false);
+        const caps = [pts[0], pts[pts.length - 1]].map((c) => baked(sphere(8, 6), compose([c.x, c.y, c.z], [0, 0, 0], [0.016, 0.016, 0.016])));
+        return mergeGeometries([smoothed(g), ...caps.map((x) => smoothed(x))]);
+      }),
+      mat('#2a1660', { rough: 0.5 }),
+    );
+    low.add(lash);
     eye.add(lid, low);
-    eye.userData = { side, look, lid, low };
+    eye.userData = { side, look, lid, low, lash };
     return eye;
   });
-  // 연잎 목깃: 오른쪽 앞에 V 자 홈이 난 둥근 잎을 목에 끼우고 가장자리는 아래로 살짝 늘어뜨린다
+  // 연잎 목깃: 정면 조금 왼쪽에 V 자 홈이 난 둥근 잎을 목에 끼우고 가장자리는 아래로 살짝 늘어뜨린다
   const lily = part(
     og('frog-lily', () => {
       const Ro = 0.76;
@@ -740,6 +769,7 @@ registerOutfit('frog', () => {
       let lookX = 0;
       let lookY = 0;
       let k = 1;
+      let pk = 1; // 눈동자 크기
       const blink = t % 3.9 > 3.76 || (t + 1.7) % 6.3 > 6.17;
       if (mood === 'happy') {
         // 피포의 ^^ 와 같은 때에 감고(처음 1.4초, 그 뒤 3초마다 1.7초), 뜰 땐 눈을 반짝 위로
@@ -755,19 +785,23 @@ registerOutfit('frog', () => {
       } else if (mood === 'shock') {
         lidA = -1.15;
         k = 1.12;
+        pk = 0.6;
       } else if (mood === 'alert') {
-        lidA = -0.65;
-        lookY = -0.1;
+        // 긴장: 눈을 크게 뜨고 눈동자는 콩알만 하게
+        lidA = -1.1;
+        pk = 0.72;
       } else if (mood === 'hide') {
         // 실눈으로 두리번두리번
         lidA = 0.05;
         lookX = Math.sin(t * 3.1) * 0.45;
       } else if (blink) lidA = 0.95;
       for (const eye of eyes) {
-        const { look, lid, low, side } = eye.userData;
+        const { look, lid, low, lash, side } = eye.userData;
         lid.rotation.x = lidA;
         low.rotation.x = Math.PI + 1.15 - lowK * 1.72;
+        lash.visible = lowK > 0.5;
         look.rotation.set(lookY - 0.04, lookX - side * 0.06, 0);
+        look.scale.set(pk, pk, 1);
         eye.scale.setScalar(k);
       }
     },
@@ -787,8 +821,8 @@ function knitArt() {
       ctx.fillStyle = KNIT_RED;
       ctx.fillRect(0, 0, s, s);
       // 뜨개 코: 세로 줄마다 V 자
-      const cols = 72;
-      const rows = 40;
+      const cols = 44;
+      const rows = 18;
       ctx.lineCap = 'round';
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
@@ -796,14 +830,15 @@ function knitArt() {
           const y = ((j + 0.5) / rows) * s;
           const w = (s / cols) * 0.42;
           const h = (s / rows) * 0.42;
-          ctx.strokeStyle = 'rgba(120,0,30,0.32)';
-          ctx.lineWidth = s * 0.004;
+          const fadeTop = 1 - smooth01(0.82, 0.97, 1 - y / s); // 꼭대기(뒤통수 쪽 극)에선 코가 몰리므로 흐리게
+          ctx.strokeStyle = `rgba(120,0,30,${0.3 * fadeTop})`;
+          ctx.lineWidth = s * 0.005;
           ctx.beginPath();
           ctx.moveTo(x - w, y - h);
           ctx.lineTo(x, y + h);
           ctx.lineTo(x + w, y - h);
           ctx.stroke();
-          ctx.strokeStyle = 'rgba(255,200,200,0.16)';
+          ctx.strokeStyle = `rgba(255,200,200,${0.16 * fadeTop})`;
           ctx.beginPath();
           ctx.moveTo(x - w * 0.8, y - h * 1.2);
           ctx.lineTo(x, y + h * 0.6);
@@ -892,16 +927,44 @@ registerOutfit('winter', () => {
   // 가장자리: 앞은 이마 위(위도 0.69), 옆으로는 귀덮개가 볼 옆까지 내려온다
   const A = (phi) => 1.18 + 0.9 * plateau(phi, 1.6, 0.1, 0.38);
   // 정수리를 조금 높여 니트 모자답게(가장자리 쪽은 그대로)
-  const crown = (geo) => {
+  const crown = (geo, seg) => {
     const p = geo.attributes.position;
     for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) + 0.12 * smooth01(0.68, 1.1, p.getY(i)));
     geo.computeVertexNormals();
+    // 이음매(둘레 첫 줄 = 끝 줄) 법선을 다시 맞춘다(shellGeo 와 같이)
+    const nr = geo.attributes.normal;
+    const P = p.count / (seg + 1);
+    const v = V();
+    for (let i = 0; i < P; i++) {
+      const j = seg * P + i;
+      v.set(nr.getX(i) + nr.getX(j), nr.getY(i) + nr.getY(j), nr.getZ(i) + nr.getZ(j)).normalize();
+      nr.setXYZ(i, v.x, v.y, v.z);
+      nr.setXYZ(j, v.x, v.y, v.z);
+    }
     return geo;
   };
   const knit = texMat('winter-knit', knitArt(), { rough: 0.75, glow: 0.2, env: 0.4 });
   const wool = mat(KNIT_WHITE, { rough: 0.85, emissive: '#d8b8c0', emissiveIntensity: 0.3 });
   const red = mat(KNIT_RED, { rough: 0.75, emissive: '#a01030', emissiveIntensity: 0.22 });
-  const hat = part(og('winter-hat', () => crown(shellGeo(axis, A, 1.1, 0.96, 72))), knit, 0.035);
+  // 그림 v 를 꼭대기 축에서 잰 실제 각으로 다시 매긴다(귀덮개에선 v < RIM_V = 무늬 없는 니트). 그래야 눈송이 띠가
+  // 귀덮개를 따라 흘러내리지 않고 머리를 수평으로 두른다
+  const KNIT_A = 1.18;
+  const hat = part(
+    og('winter-hat', () => {
+      const g = shellGeo(axis, A, 1.1, 0.96, 72);
+      const p = g.attributes.position;
+      const uv = g.attributes.uv;
+      const d = V();
+      for (let i = 0; i < p.count; i++) {
+        d.set(p.getX(i) / HS.x, p.getY(i) / HS.y, p.getZ(i) / HS.z).normalize();
+        const th = Math.acos(Math.max(-1, Math.min(1, d.dot(axis))));
+        uv.setY(i, Math.max(0, RIM_V + (1 - RIM_V) * (1 - th / KNIT_A)));
+      }
+      return crown(g, 72);
+    }),
+    knit,
+    0.035,
+  );
   const cuff = part(og('winter-cuff', () => edgeGeo(axis, A, 1.085, 0.095, 64, 0.1, 384)), wool, 0.028);
   // 털방울: 정수리 앞쪽(더듬이는 그 뒤로 나온다)
   const pom = new THREE.Group();

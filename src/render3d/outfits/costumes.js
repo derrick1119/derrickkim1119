@@ -27,6 +27,7 @@ const {
   wrapBody,
   finishSlab,
   chestMatrix,
+  starShape,
   part,
   compose,
   baked,
@@ -95,8 +96,8 @@ function leafGeo(w, L, d) {
 }
 
 /** 몽글몽글한 털방울(반지름 1): 고르게 흩은 혹 n 개를 부풀린 구. */
-function fluffGeo(n = 18, amp = 0.16, sharp = 9) {
-  const g = sphere(36, 26);
+function fluffGeo(n = 18, amp = 0.16, sharp = 9, w = 36, h = 26) {
+  const g = sphere(w, h);
   const p = g.attributes.position;
   const dirs = [];
   for (let i = 0; i < n; i++) {
@@ -425,11 +426,10 @@ registerOutfit('wizard', () => {
     const q = Math.min(1, Math.abs((s - bm) / bh));
     return rad(s) - 0.012 + 0.062 * Math.pow(1 - q ** 4, 0.4);
   };
-  const band = part(og('wizard-band', () => taperGeo(curve, bandRad, { s0: bm - bh, s1: bm + bh, radial: 44, len: 12 }).applyMatrix4(hatM)), gold, 0.022);
-  // 금빛 초승달과 별(고깔 앞), 끝의 금구슬
-  const deco = part(
-    og('wizard-deco', () => {
-      const parts = [];
+  // 금붙이 한 덩어리: 띠 + 고깔 앞의 초승달과 별 + 끝의 금구슬
+  const goldParts = part(
+    og('wizard-gold', () => {
+      const parts = [taperGeo(curve, bandRad, { s0: bm - bh, s1: bm + bh, radial: 44, len: 12 })];
       const front = frontAngle(curve, sOf(D0 + 0.4));
       const moon = new THREE.Shape();
       {
@@ -446,15 +446,17 @@ registerOutfit('wizard', () => {
       }
       const at = taperAt(curve, rad, sOf(D0 + 0.42), front - 0.42, -0.012);
       parts.push(finishSlab(slabGeo(moon, { depth: 0.03, bevel: 0.024, seg: 3 }).applyMatrix4(surfaceMatrix(at.p, at.n, compose([0, 0, 0], [0, 0, 0.55])))));
-      for (const [d, da, R] of [[D0 + 0.72, -0.05, 0.085], [D0 + 0.12, 0.62, 0.07], [D0 + 0.22, -1.25, 0.075], [D0 + 1.12, -0.6, 0.06]]) {
-        const s = taperAt(curve, rad, sOf(d), front + da, -0.004);
-        parts.push(baked(pillowGeo(starRho(R, R * 0.48), { depth: 0.035, back: 0.01 }), surfaceMatrix(s.p, s.n, compose([0, 0, 0], [0, 0, da * 0.4]))));
+      // 또렷한 금별 둘(작아도 별로 읽히게 뾰족한 판)
+      for (const [d, da, R] of [[D0 + 0.66, 0.42, 0.13], [D0 + 0.3, -1.05, 0.11]]) {
+        const s = taperAt(curve, rad, sOf(d), front + da, -0.01);
+        parts.push(finishSlab(slabGeo(starShape(R, R * 0.47), { depth: 0.022, bevel: 0.02, seg: 2 }).applyMatrix4(surfaceMatrix(s.p, s.n, compose([0, 0, 0], [0, 0, da * 0.3])))));
       }
       parts.push(baked(sphere(14, 10), compose(curve.getPointAt(1).toArray(), [0, 0, 0], [0.075, 0.075, 0.075])));
-      return mergeGeometries(parts.map((g) => { g.deleteAttribute('uv'); return g; })).applyMatrix4(hatM);
+      for (const g of parts) g.deleteAttribute('uv');
+      return mergeGeometries(parts).applyMatrix4(hatM);
     }),
     gold,
-    0.02,
+    0.021,
   );
 
   // 별 지팡이: 갈색 막대 끝에 통통한 금별 + 은은한 빛 + 깜빡이는 반짝이
@@ -478,7 +480,7 @@ registerOutfit('wizard', () => {
   const hold = handHold(wand);
   const dir = V3();
   return {
-    head: [cone, brim, band, deco],
+    head: [cone, brim, goldParts],
     root: [wand],
     hide: ['goggles'],
     update({ t, mood, hands }) {
@@ -581,8 +583,8 @@ registerOutfit('pirate', () => {
     const p = flapPoint(FLAP.front, 0, y, DEPTH + 2 * BEV);
     return surfaceMatrix(p, V3(0, LEAN, 1).normalize(), compose([0, 0, -0.008], [0, 0, 0], [1.08, 1.08, 1.08]));
   })();
-  const skull = part(
-    og('pirate-skull', () => {
+  const emblem = part(
+    og('pirate-emblem', () => {
       const s = new THREE.Shape();
       const cy = 0.035;
       const R = 0.13;
@@ -604,14 +606,7 @@ registerOutfit('pirate', () => {
       s.holes.push(nose);
       const g = slabGeo(s, { depth: 0.03, bevel: 0.014, seg: 2, curve: 16 });
       g.translate(0, 0, 0.025);
-      return finishSlab(g).applyMatrix4(emblemM);
-    }),
-    white,
-    0.016,
-  );
-  const bones = part(
-    og('pirate-bones', () => {
-      const parts = [];
+      const parts = [finishSlab(g)];
       for (const s of [-1, 1]) {
         const a = V3(-0.2 * s, -0.19, 0.012);
         const b = V3(0.2 * s, 0.07, 0.012);
@@ -620,7 +615,7 @@ registerOutfit('pirate', () => {
         const n = V3(-d.y, d.x, 0);
         for (const e of [a, b]) for (const k of [-1, 1]) parts.push(baked(sphere(10, 8), compose(e.clone().addScaledVector(n, k * 0.028).toArray(), [0, 0, 0], [0.036, 0.036, 0.03])));
       }
-      return mergeGeometries(parts.map((g) => smoothed(g))).applyMatrix4(emblemM);
+      return mergeGeometries(parts.map((g, i) => (i ? smoothed(g) : g))).applyMatrix4(emblemM);
     }),
     white,
     0.016,
@@ -640,22 +635,22 @@ registerOutfit('pirate', () => {
   );
   const collar = part(og('pirate-collar', () => smoothed(new THREE.TorusGeometry(0.45, 0.1, 10, 36).rotateX(Math.PI / 2).translate(0, 0.05, 0))), mat('#ff4555', { rough: 0.45, emissive: '#a0101e', emissiveIntensity: 0.25 }), 0.03);
   const sashMat = mat('#c41a34', { rough: 0.5, emissive: '#6a0614', emissiveIntensity: 0.3 });
-  const sash = part(og('pirate-sash', () => bandGeo(-0.47, -0.25, shirtR, 0.05, 0.04)), sashMat, 0.025);
-  // 허리띠 매듭(왼쪽 옆구리)과 늘어진 두 자락
+  // 허리띠 + 왼쪽 옆구리의 매듭과 늘어진 두 자락
   const knotA = -0.95;
-  const knot = part(
-    og('pirate-knot', () => {
+  const sash = part(
+    og('pirate-sash', () => {
       const R = shirtR(-0.36) + 0.07;
       const c = V3(Math.sin(knotA) * R, -0.36, Math.cos(knotA) * R);
       const out = V3(Math.sin(knotA), 0, Math.cos(knotA));
       return mergeGeometries([
+        bandGeo(-0.47, -0.25, shirtR, 0.05, 0.04),
         smoothed(baked(sphere(14, 10), compose(c.toArray(), [0, 0, 0], [0.085, 0.075, 0.075]))),
         smoothed(segGeo(c.clone().addScaledVector(out, 0.02), c.clone().add(V3(-0.07, -0.22, 0)).addScaledVector(out, 0.06), 0.045)),
         smoothed(segGeo(c.clone().addScaledVector(out, 0.03), c.clone().add(V3(0.05, -0.25, 0.05)).addScaledVector(out, 0.07), 0.042)),
       ]);
     }),
     sashMat,
-    0.022,
+    0.024,
   );
   const buckle = part(
     og('pirate-buckle', () => {
@@ -707,8 +702,8 @@ registerOutfit('pirate', () => {
   const hold = handHold(scope);
   const dir = V3();
   return {
-    head: [crown, flaps, trim, skull, bones],
-    body: [shirt, collar, sash, knot, buckle],
+    head: [crown, flaps, trim, emblem],
+    body: [shirt, collar, sash, buckle],
     root: [scope],
     hide: ['goggles', 'scarf'],
     update({ mood, hands }) {
@@ -719,20 +714,24 @@ registerOutfit('pirate', () => {
 });
 
 // ───────── 꼬마 기사 ─────────
-// 얼굴이 동그랗게 열린 반짝이는 은 투구(금 리벳, 위로 솟아 뒤로 휘는 몽실한 빨간 깃털 장식) + 은 가슴받이와 금별 방패 + 짧은 파란 망토.
+// 얼굴이 열린 반짝이는 은 투구(볼가리개, 가운데 볏, 금 리벳, 왼쪽 정수리에서 솟아 뒤로 말리는 몽실한 빨간 깃털)
+// + 은 가슴받이와 금별 방패 + 짧은 파란 망토. 깃털은 더듬이(가운데)와 겹치지 않게 왼쪽에 꽂는다.
 /** 기사 투구의 은빛: 위는 하얗게 빛나고 눈높이 아래로 어두운 띠가 지나는 만화 같은 금속 그라데이션(세로 = 높이). */
 function chromeArt() {
   return faceTexture(
     'costume-knight-chrome',
     (ctx, s) => {
       const g = ctx.createLinearGradient(0, 0, 0, s);
-      g.addColorStop(0, '#ffffff');
-      g.addColorStop(0.16, '#f2f4fa');
-      g.addColorStop(0.36, '#d6dbe8');
-      g.addColorStop(0.5, '#a9b1c8');
-      g.addColorStop(0.58, '#8d97b4');
-      g.addColorStop(0.7, '#c3c9da');
-      g.addColorStop(1, '#dfe3ee');
+      // 세로 = 높이(맨 위 = 정수리, 가운데 = 머리 중심). 정수리 둘레에 하얀 빛 띠, 관자놀이 높이에 어두운 띠
+      g.addColorStop(0, '#dfe3ec');
+      g.addColorStop(0.045, '#ffffff');
+      g.addColorStop(0.085, '#ffffff');
+      g.addColorStop(0.13, '#d3d8e3');
+      g.addColorStop(0.22, '#a3aabf');
+      g.addColorStop(0.3, '#7c839d');
+      g.addColorStop(0.42, '#a7adc0');
+      g.addColorStop(0.7, '#c8cdd9');
+      g.addColorStop(1, '#d4d8e2');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, s, s);
     },
@@ -740,16 +739,17 @@ function chromeArt() {
   );
 }
 
-const knightBuild = (sidePlume) => () => {
+registerOutfit('knight', () => {
   const axis = V3(0, Math.cos(0.12), -Math.sin(0.12));
-  // 앞은 이마 위(위도 0.87)에서 멈추고, 얼굴 양옆은 볼가리개가 턱 높이까지, 뒤는 목가리개(φ = 0 정면)
+  // 앞은 이마 위에서 둥근 아치로 멈추고, 얼굴 양옆은 볼가리개가 턱 높이까지, 뒤는 목가리개(φ = 0 정면)
   const A = (phi) => {
     const f = Math.abs(phi);
-    return 0.82 + 1.43 * THREE.MathUtils.smoothstep(f, 0.66, 1.2) - 0.25 * THREE.MathUtils.smoothstep(f, 1.9, 2.8);
+    return 0.8 + 0.1 * Math.min(1, (f / 0.62) ** 2) + 1.35 * THREE.MathUtils.smoothstep(f, 0.6, 1.25) - 0.25 * THREE.MathUtils.smoothstep(f, 1.9, 2.8);
   };
-  const silver = mat('#ffffff', { metal: 0.25, rough: 0.2, envIntensity: 0.6, map: chromeArt(), emissive: '#5a6080', emissiveIntensity: 0.3 });
-  const plain = mat('#d2d7e5', { metal: 0.25, rough: 0.22, envIntensity: 0.6, emissive: '#5a6080', emissiveIntensity: 0.3 });
-  const steel = mat('#a7b0c8', { metal: 0.25, rough: 0.26, envIntensity: 0.6, emissive: '#3f4768', emissiveIntensity: 0.32 });
+  // 하늘빛 환경을 비추면 푸른 유리처럼 보이므로 금속감은 약하게: 높이를 따르는 은빛 그라데이션 + 스스로 내는 회색 빛
+  const silver = mat('#ffffff', { metal: 0.2, rough: 0.2, envIntensity: 0.45, map: chromeArt(), emissive: '#555a6c', emissiveIntensity: 0.3 });
+  const plain = mat('#cfd3de', { metal: 0.2, rough: 0.22, envIntensity: 0.45, emissive: '#555a6c', emissiveIntensity: 0.3 });
+  const steel = mat('#9aa1b8', { metal: 0.2, rough: 0.26, envIntensity: 0.45, emissive: '#3c4260', emissiveIntensity: 0.32 });
   const gold = GOLD_MAT();
   const helmet = part(
     og('knight-helmet', () => {
@@ -770,20 +770,6 @@ const knightBuild = (sidePlume) => () => {
     const p = d.multiply(HS).multiplyScalar(lift);
     return { p, n: V3(p.x / HS.x ** 2, p.y / HS.y ** 2, p.z / HS.z ** 2).normalize() };
   };
-  // 금 리벳: 이마 테를 따라, 볼가리개를 따라
-  const rivets = part(
-    og('knight-rivets', () => {
-      const parts = [];
-      for (const phi of [-0.42, 0, 0.42, -1.25, 1.25, -1.32, 1.32]) {
-        const al = Math.abs(phi) > 1 ? A(phi) - 0.2 : A(phi) - 0.16;
-        const { p, n } = shellPoint(Math.abs(phi) > 1.3 ? al - 0.55 : al, Math.abs(phi) > 1.3 ? Math.sign(phi) * 1.25 : phi, 1.1);
-        parts.push(baked(sphere(12, 8), surfaceMatrix(p, n, compose([0, 0, 0], [0, 0, 0], [0.06, 0.06, 0.04]))));
-      }
-      return mergeGeometries(parts);
-    }),
-    gold,
-    0.018,
-  );
   // 가운데 등줄기(이마에서 정수리 너머로 솟은 볏)
   const comb = part(
     og('knight-comb', () => {
@@ -798,56 +784,45 @@ const knightBuild = (sidePlume) => () => {
     steel,
     0.022,
   );
-  // 깃털 장식: 몽실한 빨간 덩어리들이 솟았다가 뒤로 휘어 늘어진다
+  // 깃털 장식: 왼쪽 정수리의 금 꽂이에서 몽실몽실 솟아 뒤로 말려 늘어진다(가운데 더듬이와 겹치지 않게)
+  const base = headAt(-0.52, 0.98, 1.1);
   const plume = new THREE.Group();
-  const plumeMat = mat('#ff3d55', { rough: 0.6, emissive: '#b0102a', emissiveIntensity: 0.3 });
-  let PIVOT;
-  let blobs;
-  if (sidePlume) {
-    // 왼쪽 정수리 꽂이에서 위로 솟아 뒤로 말린다(더듬이와 겹치지 않게)
-    const base = headAt(-0.55, 0.98, 1.1);
-    PIVOT = base.p.clone();
-    blobs = [[-0.04, 0.12, 0.0, 0.12], [-0.1, 0.3, -0.04, 0.16], [-0.14, 0.48, -0.14, 0.19], [-0.16, 0.6, -0.3, 0.21], [-0.16, 0.62, -0.5, 0.2], [-0.15, 0.55, -0.68, 0.18], [-0.13, 0.42, -0.82, 0.15], [-0.11, 0.27, -0.9, 0.12]];
-  } else {
-    PIVOT = V3(0, 1.0, -0.1);
-    blobs = [];
-    const N = 11;
-    for (let i = 0; i < N; i++) {
-      const u = i / (N - 1);
-      const g = -0.5 + u * 2.0;
-      const surf = V3(0, Math.cos(g), -Math.sin(g)).multiply(HS).multiplyScalar(1.1);
-      const n = V3(surf.x / HS.x ** 2, surf.y / HS.y ** 2, surf.z / HS.z ** 2).normalize();
-      const r = 0.16 + 0.11 * Math.sin(Math.PI * Math.min(1, 0.1 + u * 0.95));
-      const out = r * 0.5 + 0.24 * Math.sin(Math.PI * Math.min(1, u * 1.1)) + 0.1 * Math.max(0, u - 0.6) / 0.4;
-      const c = surf.addScaledVector(n, out).sub(PIVOT);
-      blobs.push([c.x, c.y, c.z, r, g]);
-    }
-  }
-  plume.position.copy(PIVOT);
+  plume.position.copy(base.p);
+  const plumeMat = mat('#ff3d55', { rough: 0.7, emissive: '#b0102a', emissiveIntensity: 0.32 });
+  // [x, y, z, 반지름] (꽂이 기준)
+  const BLOBS = [[-0.04, 0.13, 0.02, 0.14], [-0.12, 0.32, -0.02, 0.18], [-0.22, 0.49, -0.1, 0.21], [-0.34, 0.6, -0.23, 0.23], [-0.47, 0.6, -0.38, 0.22], [-0.56, 0.51, -0.52, 0.2], [-0.6, 0.38, -0.62, 0.17], [-0.61, 0.24, -0.68, 0.14]];
   plume.add(
     part(
-      og(sidePlume ? 'knight-plumeB' : 'knight-plume', () =>
+      og('knight-plume', () =>
         mergeGeometries(
-          blobs.map(([x, y, z, r], i) => {
-            const prev = blobs[Math.max(0, i - 1)];
-            const next = blobs[Math.min(blobs.length - 1, i + 1)];
+          BLOBS.map(([x, y, z, r], i) => {
+            const prev = BLOBS[Math.max(0, i - 1)];
+            const next = BLOBS[Math.min(BLOBS.length - 1, i + 1)];
             const dir = V3(next[0] - prev[0], next[1] - prev[1], next[2] - prev[2]).normalize();
-            return baked(sphere(18, 14), new THREE.Matrix4().compose(V3(x, y, z), rotTo(V3(0, 0, 1), dir), V3(r * 0.95, r * 0.9, r * 1.12)));
+            const m = new THREE.Matrix4().compose(V3(x, y, z), rotTo(V3(0, 0, 1), dir).multiply(new THREE.Quaternion().setFromAxisAngle(V3(0, 0, 1), i * 1.3)), V3(r, r * 0.95, r * 1.1));
+            return baked(fluffGeo(10, 0.2, 7, 24, 18), m);
           }),
         ),
       ),
       plumeMat,
-      0.026,
+      0.024,
     ),
   );
-  // 깃털 꽂이(금 구슬)
-  const socket = part(
-    og(sidePlume ? 'knight-socketB' : 'knight-socket', () => {
-      const at = sidePlume ? headAt(-0.55, 0.98, 1.1) : headAt(0, 1.08, 1.12);
-      return baked(sphere(14, 10), surfaceMatrix(at.p, at.n, compose([0, 0, 0.01], [0, 0, 0], [0.09, 0.09, 0.07])));
+  // 금붙이: 깃털 꽂이(금 구슬) + 리벳(볏 양옆 이마 위에 둘, 볼가리개마다 둘). 리벳 자리 = [꼭대기에서 잰 각, 둘레 각 φ]
+  const studs = part(
+    og('knight-studs', () => {
+      const spots = [[A(-0.22) - 0.17, -0.22], [A(0.22) - 0.17, 0.22]];
+      for (const sd of [-1, 1]) spots.push([1.5, sd * 1.3], [1.95, sd * 1.3]);
+      return mergeGeometries([
+        baked(sphere(14, 10), surfaceMatrix(base.p, base.n, compose([0, 0, 0.01], [0, 0, 0], [0.095, 0.095, 0.075]))),
+        ...spots.map(([al, phi]) => {
+          const { p, n } = shellPoint(al, phi, 1.1);
+          return baked(sphere(12, 8), surfaceMatrix(p, n, compose([0, 0, 0], [0, 0, 0], [0.062, 0.062, 0.04])));
+        }),
+      ]);
     }),
     gold,
-    0.02,
+    0.019,
   );
   // 은 가슴받이(몸통을 두르는 갑옷) + 목 고리
   const cuirR = (y) => bodyR(y) * 1.04 + 0.02;
@@ -870,10 +845,9 @@ const knightBuild = (sidePlume) => () => {
     g.translate(0, EY, 0);
     return finishSlab(wrapBody(g, { ref: cuirR(EY) + 0.05, lift, radius: cuirR }));
   };
-  const shield = part(og('knight-shield', () => shieldAt(1, 0.05, 0.02)), gold, 0.02);
+  const shield = part(og('knight-shield', () => mergeGeometries([shieldAt(1, 0.05, 0.02), baked(pillowGeo(starRho(0.085, 0.04, 1.4), { depth: 0.028, back: 0.01 }), chestMatrix(0, EY, cuirR(EY) - bodyR(EY) + 0.13))])), gold, 0.018);
   const field = part(og('knight-field', () => shieldAt(0.78, 0.08, 0.012)), mat('#3b5bff', { rough: 0.3, emissive: '#1a2aa0', emissiveIntensity: 0.3, envIntensity: 1.2 }));
-  const star = part(og('knight-star', () => baked(pillowGeo(starRho(0.085, 0.04, 1.4), { depth: 0.028, back: 0.01 }), chestMatrix(0, EY + 0.0, cuirR(EY) - bodyR(EY) + 0.13))), gold, 0.016);
-  // 짧은 파란 망토(등 뒤, 금빛 테)
+  // 짧은 파란 망토(등 뒤, 진한 파랑 테)
   const capeR = (y) => (y > -0.5 ? cuirR(y) + 0.06 : cuirR(-0.5) + 0.06 + (-0.5 - y) * 0.35);
   const cape = new THREE.Group();
   cape.position.y = 0.06;
@@ -891,26 +865,23 @@ const knightBuild = (sidePlume) => () => {
       g.translate(0, -0.06, 0);
       return finishSlab(wrapBody(g, { a0: Math.PI, ref: 0.5, lift: 0.0, radius: capeR }));
     }),
-    [mat('#3554e8', { rough: 0.55, emissive: '#16238a', emissiveIntensity: 0.35 }), gold],
+    [mat('#3554e8', { rough: 0.55, emissive: '#16238a', emissiveIntensity: 0.35 }), mat('#2638b8', { rough: 0.55, emissive: '#101a70', emissiveIntensity: 0.35 })],
     0.025,
   );
   capeMesh.position.y = -0.06;
   cape.add(capeMesh);
   return {
-    head: [helmet, rim, rivets, comb, plume, socket],
-    body: [cape, cuirass, gorget, shield, field, star],
+    head: [helmet, rim, comb, plume, studs],
+    body: [cape, cuirass, gorget, shield, field],
     hide: ['goggles', 'scarf'],
-    antenna: sidePlume ? 0 : 0.3,
     update({ t, mood, spring }) {
       const k = mood === 'happy' ? 2.2 : mood === 'shock' ? 3 : 1;
-      // 깃털은 더듬이처럼 통통 흔들린다(뒤로 휘는 끝이 더 크게)
-      plume.rotation.set(Math.sin(t * 2.3) * 0.03 * k - 0.02, 0, spring * 0.18 + Math.sin(t * 1.7) * 0.025);
+      // 깃털은 꽂이를 축으로 더듬이처럼 통통 흔들린다
+      plume.rotation.set(Math.sin(t * 2.3) * 0.04 * k, 0, spring * 0.2 + Math.sin(t * 1.7) * 0.03);
       cape.rotation.set(0.03 + Math.abs(Math.sin(t * 2.1)) * 0.035 * k, Math.sin(t * 1.3) * 0.05 * k, 0);
     },
   };
-};
-registerOutfit('knight', knightBuild(false));
-registerOutfit('knightB', knightBuild(true));
+});
 
 // ───────── 꽃 화관 ─────────
 // 이마·관자놀이 높이로 머리를 두르는 통통한 다섯 잎 꽃 여덟 송이(분홍·노랑·하양·라벤더, 노란 꽃술)와 작은 잎,
@@ -936,8 +907,8 @@ registerOutfit('flower', () => {
   const leafMat = mat('#5ed36e', { rough: 0.45, emissive: '#1f7a32', emissiveIntensity: 0.25 });
   const vineMat = mat('#3fae58', { rough: 0.5, emissive: '#1a6a2a', emissiveIntensity: 0.25 });
   // [둘레 각 φ(0 = 정면, + = 보는 사람의 오른쪽), 색, 크기]
-  const RING = [[0, 'pink', 0.2], [0.66, 'white', 0.185], [-0.62, 'yellow', 0.185], [1.32, 'lilac', 0.18], [1.98, 'yellow', 0.17], [2.65, 'pink', 0.17], [-2.65, 'white', 0.17], [-1.98, 'lilac', 0.17]];
-  const BIG = { lon: -1.18, lat: 0.2, col: 'pink', size: 0.3 };
+  const RING = [[0, 'pink', 0.24], [0.68, 'white', 0.225], [-0.64, 'yellow', 0.225], [1.36, 'lilac', 0.215], [2.02, 'yellow', 0.2], [2.68, 'pink', 0.2], [-2.68, 'white', 0.2], [-2.02, 'lilac', 0.2]];
+  const BIG = { lon: -1.2, lat: 0.18, col: 'pink', size: 0.34 };
   const flowerFrame = ([phi, , size], i) => {
     const { p, n } = ringAt(phi, 1.06);
     // 옆 꽃도 화면에서 보이게 얼굴을 조금 앞으로 돌린다
@@ -948,7 +919,7 @@ registerOutfit('flower', () => {
     const { p, n } = headAt(BIG.lon, BIG.lat, 1.05);
     return surfaceMatrix(p, n.clone().lerp(VIEW, 0.35).normalize(), compose([0, 0, 0], [0, 0, 0.3], [BIG.size, BIG.size, BIG.size]));
   };
-  const petals = () => pillowGeo(flowerRho(1, 0.5), { depth: 0.24, back: 0.14, cup: 0.22 });
+  const petals = () => pillowGeo(flowerRho(1, 0.5), { depth: 0.24, back: 0.14, cup: 0.22, rings: 5, segs: 60 });
   const dome = () => baked(sphere(16, 10), compose([0, 0, 0.26], [0, 0, 0], [0.34, 0.34, 0.2]));
   const parts = [];
   for (const col of Object.keys(COLS)) {
@@ -1021,8 +992,8 @@ registerOutfit('party', () => {
   const at = headAt(-0.55, 1.08, 0.93);
   const up = at.n.clone().multiply(V3(1.25, 1, 0.35)).normalize();
   const hatM = new THREE.Matrix4().compose(at.p, rotTo(YV, up), V3(1, 1, 1));
-  const H = 1.0;
-  const RB = 0.44;
+  const H = 1.08;
+  const RB = 0.47;
   const hat = part(
     og('party-hat', () => {
       const pts = [new THREE.Vector2(0.001, -0.08), new THREE.Vector2(RB * 0.7, -0.05), new THREE.Vector2(RB, 0)];
@@ -1070,15 +1041,16 @@ registerOutfit('party', () => {
     og('party-string', () => {
       const a = V3(-RB * 0.92, 0.04, 0.1).applyMatrix4(hatM);
       const b = V3(RB * 0.92, 0.04, 0.1).applyMatrix4(hatM);
-      const path = [a, onHead(-1.12, 0.35, 1.025), onHead(-1.12, -0.25, 1.025), onHead(-0.95, -0.75, 1.025), onHead(-0.5, -1.12, 1.025), onHead(0, -1.22, 1.025), onHead(0.5, -1.12, 1.025), onHead(0.95, -0.75, 1.025), onHead(1.12, -0.25, 1.025), onHead(1.1, 0.35, 1.025), onHead(0.75, 0.88, 1.025), b];
-      return smoothed(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path), 90, 0.02, 6, false));
+      const L = (lon, lat) => onHead(lon, lat, 1.03);
+      const path = [a, L(-1.1, 0.5), L(-1.08, 0.0), L(-0.95, -0.55), L(-0.6, -1.0), L(0, -1.12), L(0.6, -1.0), L(0.95, -0.55), L(1.08, 0.0), L(1.06, 0.5), L(0.76, 0.98), b];
+      return smoothed(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path), 100, 0.018, 6, false));
     }),
-    mat('#fff3fa', { rough: 0.4, emissive: '#ffe0f0', emissiveIntensity: 0.25 }),
-    0.012,
+    mat('#ffc4e2', { rough: 0.4, emissive: '#ff8cc0', emissiveIntensity: 0.2 }),
+    0.008,
   );
   // 나비넥타이: 바깥으로 갈수록 넓어지는 두 날개 + 가운데 매듭(빨강에 흰 땡땡이, 앞에서 비춘 평면 uv)
   const dots = mat('#ffffff', { rough: 0.4, map: dotsArt(), emissive: '#a01030', emissiveIntensity: 0.2 });
-  const bowM = compose([0, -0.09, 0.52], [-0.32, 0, 0]);
+  const bowM = compose([0, -0.1, 0.52], [-0.32, 0, 0], [1.15, 1.15, 1.15]);
   const bow = part(
     og('party-bow', () => {
       const list = [];
