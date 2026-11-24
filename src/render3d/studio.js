@@ -4,6 +4,8 @@ import { THREE } from './kit.js';
 import { createUfo, UFO_TILT } from './ufo3d.js';
 import { createWatcher } from './people3d.js';
 import { createSpecimen } from './specimens3d.js';
+import { createPipo } from './pipo.js';
+import { makeBeamCone } from './beams.js';
 
 const MAX_PX = 256;
 let studio = null;
@@ -35,22 +37,35 @@ function setup() {
 const box = new THREE.Box3();
 const sphere = new THREE.Sphere();
 
-/** 물체를 정면 살짝 위에서 화면에 꽉 차게 찍는다. */
-function shoot(object, px, { fill = 0.86, lift = 0.18 } = {}) {
-  const s = studio || setup();
-  const { renderer, scene, camera, holder } = s;
-  holder.clear();
-  holder.add(object);
+/** 물체를 감싸는 상자(몸체 메시로만 잰다. 빛 번짐 스프라이트·반투명 꼬리까지 넣으면 그림이 작게 찍힌다). */
+function measure(object, out = box) {
   object.updateMatrixWorld(true);
-  box.makeEmpty();
-  // 크기는 몸체(메시)로만 잰다. 빛 번짐 스프라이트·반투명 꼬리까지 넣으면 그림이 작게 찍힌다.
+  out.makeEmpty();
   object.traverse((o) => {
     if (!o.isMesh || !o.visible || o.name === 'outline') return;
     const m = o.material;
     if (m && (m.blending === THREE.AdditiveBlending || (m.transparent && m.opacity < 0.5))) return;
-    box.expandByObject(o);
+    out.expandByObject(o);
   });
-  box.getBoundingSphere(sphere);
+  return out;
+}
+
+/** 물체를 정면 살짝 위에서 화면에 꽉 차게 찍는다. frame = 직접 정한 화면 틀(Box3, 없으면 물체 크기). */
+function shoot(object, px, { fill = 0.86, lift = 0.18, frame = null } = {}) {
+  const s = studio || setup();
+  const { renderer, scene, camera, holder } = s;
+  holder.clear();
+  holder.add(object);
+  if (frame) {
+    object.updateMatrixWorld(true);
+    // 틀의 가로·세로 중 긴 쪽이 화면에 꽉 차게(대각선으로 재면 너무 작게 찍힌다)
+    frame.getCenter(sphere.center);
+    const sz = frame.getSize(new THREE.Vector3());
+    sphere.radius = Math.max(sz.x, sz.y) / 2;
+  } else {
+    measure(object);
+    box.getBoundingSphere(sphere);
+  }
   const r = Math.max(sphere.radius, 1e-3);
   const dist = r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) / fill;
   const dir = new THREE.Vector3(0, lift, 1).normalize();
@@ -64,10 +79,60 @@ function shoot(object, px, { fill = 0.86, lift = 0.18 } = {}) {
 }
 
 /**
+ * 꾸미기 아이콘의 물체와 화면 틀. id = 'outfit:bunny' | 'paint:galaxy' | 'beam:rainbow'.
+ *   outfit: 의상을 입은 피포 가슴 위 모습(카메라를 본다), paint: 그 도색의 2형태 기체, beam: 그 빔을 쏘는 1형태 기체.
+ */
+function cosmeticShot(id, o) {
+  const [kind, cid] = String(id).split(':');
+  if (kind === 'outfit') {
+    const p = createPipo(1, { outfit: cid });
+    const mood = o.mood || 'idle';
+    p.update({ t: 0, mood });
+    p.update({ t: o.t ?? 1.6, mood, look: new THREE.Vector3(0, 1.3, 12) });
+    // 가슴 위: 머리·모자·더듬이는 다 넣고 몸은 배꼽 위까지
+    const frame = measure(p.group, new THREE.Box3());
+    frame.min.y = Math.max(frame.min.y, -0.5);
+    const w = Math.max(Math.abs(frame.min.x), Math.abs(frame.max.x));
+    frame.min.x = -w;
+    frame.max.x = w;
+    return { object: p.group, opts: { frame, fill: 0.94, lift: 0.1 } };
+  }
+  if (kind === 'paint') {
+    const u = createUfo(2, { paint: cid });
+    u.root.rotation.x = UFO_TILT;
+    u.root.updateMatrixWorld(true);
+    u.update({ t: o.t ?? 0.6, mood: o.mood || 'idle', lit: 1, beam: 0, look: new THREE.Vector3(0, 0.4, 10) });
+    // 납작한 기체는 감싸는 구로 재면 작게 찍힌다. 가로·세로 틀로 꽉 채운다
+    return { object: u.root, opts: { frame: measure(u.root, new THREE.Box3()), fill: 0.9, lift: 0.08 } };
+  }
+  if (kind === 'beam') {
+    const t = o.t ?? 0.6;
+    const g = new THREE.Group();
+    const u = createUfo(1, { beam: cid });
+    u.root.rotation.x = UFO_TILT;
+    u.update({ t, mood: o.mood || 'happy', lit: 1, beam: 1, look: new THREE.Vector3(0, 0.4, 10) });
+    g.add(u.root);
+    g.updateMatrixWorld(true);
+    const belly = new THREE.Vector3(0, u.bellyY, 0).applyMatrix4(u.root.matrixWorld);
+    const len = 1.05;
+    // 아이콘은 투명 바탕이라 덧그리기 대신 보통 반투명으로(색이 배경 없이도 남게)
+    const cone = makeBeamCone(cid, { additive: false, t });
+    cone.position.copy(belly);
+    cone.rotation.x = Math.PI;
+    cone.scale.set(0.5, len, 0.5);
+    g.add(cone);
+    const frame = measure(u.root, new THREE.Box3());
+    frame.min.y = Math.min(frame.min.y, belly.y - len);
+    return { object: g, opts: { frame, fill: 0.95, lift: 0.05 } };
+  }
+  return null;
+}
+
+/**
  * 아이콘 한 장을 2D 캔버스로 찍는다. 찍을 수 없는 종류면 null.
- * @param {'specimen'|'watcher'|'form'} kind
+ * @param {'specimen'|'watcher'|'form'|'cosmetic'} kind  cosmetic: id = 'outfit:bunny' | 'paint:galaxy' | 'beam:rainbow'
  * @param {{mood?: string, look?: number, wave?: boolean, shock?: boolean, walk?: number, t?: number}} [o]
- *   form: mood = 피포 표정, look = 1 이면 보는 사람(카메라)을 본다. watcher: 자세.
+ *   form·cosmetic: mood = 피포 표정, look = 1 이면 보는 사람(카메라)을 본다. watcher: 자세.
  */
 export function renderIcon3d(kind, id, px, o = {}) {
   const size = Math.min(MAX_PX, Math.max(32, Math.round(px)));
@@ -91,6 +156,9 @@ export function renderIcon3d(kind, id, px, o = {}) {
     u.update({ t: o.t ?? 0.6, mood: o.mood || 'idle', lit: o.lit ?? 1, beam: 0, look: o.look ? new THREE.Vector3(0, 0.4, 10) : undefined });
     object = u.root;
     opts = { fill: 0.95, lift: 0.05 };
+  } else if (kind === 'cosmetic') {
+    const c = cosmeticShot(id, o);
+    if (c) ({ object, opts } = c);
   }
   if (!object) return null;
   const glCanvas = shoot(object, size, opts);

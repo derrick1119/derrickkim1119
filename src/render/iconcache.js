@@ -74,8 +74,104 @@ function paintIcon(ctx, kind, id, size) {
       drawUfo(ctx, { form: id, t: 0.6, mood: 'idle', lit: 1, beam: 0 });
       break;
     }
+    case 'cosmetic':
+      paintCosmetic(ctx, String(id), size);
+      break;
   }
   ctx.restore();
+}
+
+/** 2D 대체 그림의 꾸미기 색 견본(3D 를 못 쓸 때만). [주색, 보조색] */
+const COSMETIC_SWATCH = {
+  'outfit:none': ['#dc84ff', '#ff8a3c'],
+  'outfit:cadet': ['#c27a45', '#fff1d8'],
+  'outfit:agent': ['#1b1733', '#ffffff'],
+  'outfit:star': ['#2a2f8f', '#ffc444'],
+  'outfit:bunny': ['#fffafc', '#ff9cc8'],
+  'outfit:raincoat': ['#ffd13a', '#3b4f9e'],
+  'outfit:chef': ['#ffffff', '#ff8a3c'],
+  'outfit:astro': ['#ffffff', '#5f86ff'],
+  'paint:navy': ['#352c94', '#ffc444'],
+  'paint:sunset': ['#ff8466', '#fff1d6'],
+  'paint:mint': ['#8ff2b4', '#ff7fcf'],
+  'paint:galaxy': ['#3a2088', '#d48cff'],
+  'paint:gold': ['#ffc23a', '#262a78'],
+  'beam:cyan': ['#5ff0ff', '#c6fdff'],
+  'beam:pink': ['#ff78d8', '#ffd0f2'],
+  'beam:gold': ['#ffc93c', '#fff0b8'],
+  'beam:rainbow': ['#ff8af0', '#8ad8ff'],
+};
+
+/** 꾸미기 2D 대체 그림: 의상 = 보라 피포 얼굴 + 모자 색, 도색 = 그 색 접시, 빔 = 그 색 빛기둥. */
+function paintCosmetic(ctx, id, size) {
+  const [a, b] = COSMETIC_SWATCH[id] || ['#8a6ad8', '#ffffff'];
+  const kind = id.split(':')[0];
+  const c = size / 2;
+  ctx.lineWidth = Math.max(1.5, size * 0.035);
+  ctx.strokeStyle = '#2b1a5e';
+  if (kind === 'outfit') {
+    ctx.fillStyle = '#dc84ff';
+    ctx.beginPath();
+    ctx.ellipse(c, c + size * 0.06, size * 0.34, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (id !== 'outfit:none') {
+      ctx.fillStyle = a;
+      ctx.beginPath();
+      ctx.ellipse(c, c - size * 0.06, size * 0.36, size * 0.2, 0, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = b;
+      ctx.beginPath();
+      ctx.arc(c, c - size * 0.2, size * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#2a1660';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(c + s * size * 0.12, c + size * 0.08, size * 0.05, size * 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === 'paint') {
+    ctx.fillStyle = 'rgba(198,246,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(c, c - size * 0.04, size * 0.17, size * 0.17, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = a;
+    ctx.beginPath();
+    ctx.ellipse(c, c + size * 0.06, size * 0.42, size * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = b;
+    ctx.lineWidth = Math.max(1, size * 0.025);
+    ctx.beginPath();
+    ctx.ellipse(c, c + size * 0.04, size * 0.34, size * 0.07, 0, Math.PI, 0, true);
+    ctx.stroke();
+  } else {
+    const g = ctx.createLinearGradient(0, size * 0.3, 0, size * 0.95);
+    if (id === 'beam:rainbow') ['#ff7a9a', '#ffd25a', '#7dffb0', '#6ac8ff', '#c08aff'].forEach((col, i) => g.addColorStop(i / 4, col));
+    else {
+      g.addColorStop(0, b);
+      g.addColorStop(1, a);
+    }
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(c - size * 0.08, size * 0.32);
+    ctx.lineTo(c + size * 0.08, size * 0.32);
+    ctx.lineTo(c + size * 0.3, size * 0.94);
+    ctx.lineTo(c - size * 0.3, size * 0.94);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#352c94';
+    ctx.beginPath();
+    ctx.ellipse(c, size * 0.3, size * 0.36, size * 0.11, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 
 const sprites = new Map();
@@ -100,7 +196,7 @@ export function spriteCanvas(kind, id, px, opts = null) {
 
 /**
  * 아이콘 이미지 주소.
- * @param {'specimen'|'watcher'|'emblem'|'form'} kind
+ * @param {'specimen'|'watcher'|'emblem'|'form'|'cosmetic'} kind  cosmetic: id = 'outfit:bunny' | 'paint:galaxy' | 'beam:rainbow'
  * @param {string|number} id
  * @param {number} [size] CSS 픽셀 한 변
  * @param {boolean} [silhouette] 잠긴 항목용 실루엣

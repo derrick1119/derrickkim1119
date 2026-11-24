@@ -18,6 +18,7 @@ import {
   canvasTexture,
 } from './kit.js';
 import { createPipo } from './pipo.js';
+import { BEAM_STYLES, beamColor } from './beams.js';
 
 /** 윗면이 카메라를 보도록 앞으로 기울이는 각도(라디안). */
 export const UFO_TILT = 0.36;
@@ -36,49 +37,111 @@ const LINE = '#2b1a5e';
 
 // ───────── 선체 재질(모든 기체가 함께 쓴다) ─────────
 
-let hullTexCache = null;
-/** 윗면 칠: 테두리(v=0)는 조금 짙고 꼭대기(v=1)로 갈수록 밝다 + 방사형 판 이음매 8줄 + 동심 홈 한 줄. 색은 재질 색이 곱한다. */
-function hullTexture() {
-  if (hullTexCache) return hullTexCache;
-  hullTexCache = canvasTexture(512, 256, (ctx, w, h) => {
-    // 캔버스 아래 = 테두리(v=0), 위 = 꼭대기(v=1)
-    const g = ctx.createLinearGradient(0, h, 0, 0);
-    g.addColorStop(0, '#b4b4c8');
-    g.addColorStop(0.35, '#d6d6e4');
-    g.addColorStop(0.75, '#f4f4fa');
-    g.addColorStop(1, '#ffffff');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    // 판 이음매(새긴 선: 짙은 선 + 옆의 밝은 선), 꼭대기 단 아래까지만
-    const y0 = h * 0.08;
-    const y1 = h * 0.52;
-    for (let i = 0; i < 8; i++) {
-      const x = ((i + 0.5) / 8) * w;
-      ctx.fillStyle = 'rgba(40,36,90,0.42)';
-      ctx.fillRect(x - 1.5, h - y1, 3, y1 - y0);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillRect(x + 1.5, h - y1, 2, y1 - y0);
-    }
-    // 동심 홈
-    ctx.fillStyle = 'rgba(40,36,90,0.35)';
-    ctx.fillRect(0, h - h * 0.3 - 2, w, 3);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(0, h - h * 0.3 + 1, w, 2);
-  });
-  hullTexCache.anisotropy = 8;
-  return hullTexCache;
+/** 판 이음매 8줄 + 동심 홈 한 줄(새긴 선: 짙은 선 + 옆의 밝은 선). 캔버스 아래 = 테두리(v=0). */
+function hullSeams(ctx, w, h, dark = 'rgba(40,36,90,0.42)', light = 'rgba(255,255,255,0.35)') {
+  const y0 = h * 0.08;
+  const y1 = h * 0.52;
+  for (let i = 0; i < 8; i++) {
+    const x = ((i + 0.5) / 8) * w;
+    ctx.fillStyle = dark;
+    ctx.fillRect(x - 1.5, h - y1, 3, y1 - y0);
+    ctx.fillStyle = light;
+    ctx.fillRect(x + 1.5, h - y1, 2, y1 - y0);
+  }
+  ctx.fillStyle = dark.replace(/[\d.]+\)$/, '0.35)');
+  ctx.fillRect(0, h - h * 0.3 - 2, w, 3);
+  ctx.fillStyle = light.replace(/[\d.]+\)$/, '0.3)');
+  ctx.fillRect(0, h - h * 0.3 + 1, w, 2);
 }
 
-let hullGlossCache = null;
+const hullTexCache = new Map();
 /**
- * 윗면의 칠한 광택(발광 지도): 바탕은 아주 짙은 남보라(그늘에서도 색이 살아 있게), 앞 왼쪽 비탈에는
+ * 윗면 칠. 기본은 회색 그라데이션(테두리 v=0 은 조금 짙고 꼭대기 v=1 로 갈수록 밝다)이라 재질 색이 곱해진다.
+ * 도색이 grad(테두리 → 꼭대기 색)나 galaxy(별·성운)를 가지면 색 그림을 그린다(재질 색은 흰색).
+ */
+function hullTexture(paint = PAINTS.navy) {
+  const key = paint.grad ? paint.grad.join() : paint.galaxy ? 'galaxy' : 'grey';
+  let tex = hullTexCache.get(key);
+  if (tex) return tex;
+  tex = canvasTexture(512, 256, (ctx, w, h) => {
+    // 캔버스 아래 = 테두리(v=0), 위 = 꼭대기(v=1)
+    const g = ctx.createLinearGradient(0, h, 0, 0);
+    const stops = paint.grad || (paint.galaxy ? ['#24125e', '#3a2088', '#5a34b4'] : null);
+    if (stops) stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+    else {
+      g.addColorStop(0, '#b4b4c8');
+      g.addColorStop(0.35, '#d6d6e4');
+      g.addColorStop(0.75, '#f4f4fa');
+      g.addColorStop(1, '#ffffff');
+    }
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    if (paint.galaxy) galaxyPaint(ctx, w, h);
+    if (stops) hullSeams(ctx, w, h, 'rgba(60,20,60,0.3)', 'rgba(255,255,255,0.3)');
+    else hullSeams(ctx, w, h);
+  });
+  tex.anisotropy = 8;
+  hullTexCache.set(key, tex);
+  return tex;
+}
+
+/** 은하수 칠: 분홍·하늘빛 성운 얼룩과 반짝이는 별(가로로 이어 붙여도 이음매 없이). */
+function galaxyPaint(ctx, w, h) {
+  let a = 11;
+  const rnd = () => ((a = (a * 16807) % 2147483647) / 2147483647);
+  const wrap = (fn) => {
+    for (const dx of [-w, 0, w]) fn(dx);
+  };
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [x, y, r, col] of [[0.1, 0.35, 0.16, '255,90,200'], [0.38, 0.6, 0.2, '90,170,255'], [0.62, 0.3, 0.17, '255,120,220'], [0.86, 0.62, 0.18, '110,140,255'], [0.25, 0.8, 0.12, '200,110,255']]) {
+    wrap((dx) => {
+      const g = ctx.createRadialGradient(x * w + dx, (1 - y) * h, 0, x * w + dx, (1 - y) * h, r * w);
+      g.addColorStop(0, `rgba(${col},0.42)`);
+      g.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    });
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < 120; i++) {
+    const x = rnd() * w;
+    const y = rnd() * h;
+    const r = 0.8 + rnd() * 2;
+    ctx.fillStyle = rnd() < 0.25 ? '#ffe9a0' : '#ffffff';
+    ctx.globalAlpha = 0.55 + rnd() * 0.45;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // 큰 별 몇 개(네 갈래 반짝)
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 9; i++) {
+    const x = rnd() * w;
+    const y = h * (0.2 + rnd() * 0.7);
+    const R = 5 + rnd() * 4;
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const ang = (k * Math.PI) / 4;
+      const rr = k % 2 ? R * 0.28 : R;
+      ctx.lineTo(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+const hullGlossCache = new Map();
+/**
+ * 윗면의 칠한 광택(발광 지도): 바탕은 아주 짙은 제 색(그늘에서도 색이 살아 있게, 도색마다 다르다), 앞 왼쪽 비탈에는
  * 장난감 래커처럼 또렷한 흰 반사 줄 하나와 작은 점 하나. 기체는 y 축으로 돌지 않으므로 반사가 늘 왼쪽 위에 머문다.
  * u = 0 이 정면(+z), u = 0.75 가 왼쪽(−x).
  */
-function hullGloss() {
-  if (hullGlossCache) return hullGlossCache;
-  hullGlossCache = canvasTexture(512, 256, (ctx, w, h) => {
-    ctx.fillStyle = '#100f48';
+function hullGloss(base = '#100f48') {
+  let tex = hullGlossCache.get(base);
+  if (tex) return tex;
+  tex = canvasTexture(512, 256, (ctx, w, h) => {
+    ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);
     const streak = (u0, u1, v, th, a) => {
       // 캔버스 아래 = 테두리(v=0)
@@ -98,7 +161,8 @@ function hullGloss() {
     streak(0.69, 0.92, 0.25, 20, 1);
     streak(0.76, 0.9, 0.86, 13, 0.8);
   });
-  return hullGlossCache;
+  hullGlossCache.set(base, tex);
+  return tex;
 }
 
 const hullMats = new Map();
@@ -129,37 +193,98 @@ function lacquer(color, kind = 'plain') {
   return m;
 }
 
+// ───────── 도색(꾸미기) ─────────
+
+/**
+ * 기체 도색(catalog.js 의 paint 와 같은 id). 능력치 없음. 모양은 그대로 두고 선체 재질만 바꾼다(메시를 더하지 않는다).
+ * top = 윗면 색(grad 가 있으면 테두리 → 꼭대기 색 그림), under = 아랫면, bumper = 범퍼·받침, trim = 장식 테(trimKind:
+ * gold 금속 | plain 래커), fin = 순찰선 날개, light = 알약 조명·청록 선 빛, pill = 켜진 알약 색, dim = 꺼진 알약 색,
+ * gloss = 윗면 그늘 빛 바탕, metal = 윗면도 금속, deck = 창문 갑판 색.
+ */
+export const PAINTS = {
+  navy: { top: HULL, under: HULL_DARK, bumper: BUMPER, trim: GOLD, trimKind: 'gold', fin: '#ec3d52', light: PAL.glow, pill: '#bffaff', dim: DIM, gloss: '#100f48', deck: tone(HULL, 0.05) },
+  sunset: { top: '#ff8a6a', grad: ['#ff5f6d', '#ff8466', '#ffb35c', '#ffd772'], under: '#c63f5f', bumper: '#e2546a', trim: '#fff1d6', trimKind: 'plain', fin: '#ffd25a', light: '#ffd36b', pill: '#fff4d6', dim: '#5c3a2c', gloss: '#4a1424', deck: '#ff9c6a' },
+  mint: { top: '#8ff2b4', under: '#3cb488', bumper: '#f6fff8', trim: '#ffffff', trimKind: 'plain', fin: '#ff8fc4', light: '#ff7fcf', pill: '#ffe2f2', dim: '#5c3550', gloss: '#0c3a22', deck: '#a6f5c6' },
+  galaxy: { top: '#ffffff', galaxy: true, under: '#1d0f47', bumper: '#2b1766', trim: GOLD, trimKind: 'gold', fin: '#ff6fd0', light: '#d48cff', pill: '#f3dcff', dim: '#3c2a5c', gloss: '#1a0a3a', deck: '#3e2690' },
+  gold: { top: '#ffc23a', metal: true, under: '#e09a1c', bumper: '#22216a', trim: '#262a78', trimKind: 'plain', fin: '#262a78', light: PAL.glow, pill: '#bffaff', dim: DIM, gloss: '#6a3600', deck: '#ffcf52' },
+};
+
+const paintMats = new Map();
+/** 도색 재질(캐시). role: top(윗면, amt = 위층마다 밝히는 정도) | under | bumper | trim | fin | deck */
+function paintMat(id, role, amt = 0) {
+  const P = PAINTS[id] || PAINTS.navy;
+  if (P === PAINTS.navy) {
+    // 기본 남색은 원래 재질 그대로
+    if (role === 'top') return lacquer(amt ? tone(HULL, amt) : HULL, 'top');
+    if (role === 'trim') return lacquer(GOLD, 'gold');
+    if (role === 'deck') return lacquer(P.deck);
+    return lacquer({ under: HULL_DARK, bumper: BUMPER, fin: P.fin }[role] || HULL);
+  }
+  const key = `${id}|${role}|${amt}`;
+  let m = paintMats.get(key);
+  if (m) return m;
+  if (role === 'top') {
+    const colored = !!(P.grad || P.galaxy);
+    m = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(colored ? (amt ? tone('#ffffff', amt * 0.5) : '#ffffff') : amt ? tone(P.top, amt) : P.top),
+      map: hullTexture(P),
+      // 금빛 칠은 금속성을 조금만: 하늘이 비치면 빛이 바래 베이지가 된다. 반짝임은 투명 코팅이 맡는다
+      metalness: P.metal ? 0.32 : 0.1,
+      roughness: P.metal ? 0.26 : 0.34,
+      clearcoat: 1,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: P.metal ? 1.1 : 0.85,
+      emissive: new THREE.Color('#ffffff'),
+      emissiveMap: hullGloss(P.gloss),
+      emissiveIntensity: 1,
+    });
+  } else if (role === 'trim') {
+    m = lacquer(P.trim, P.trimKind === 'gold' ? 'gold' : 'plain');
+  } else {
+    m = lacquer({ under: P.under, bumper: P.bumper, fin: P.fin, deck: P.deck }[role] || P.top);
+  }
+  paintMats.set(key, m);
+  return m;
+}
+
+/** 도색이 바뀌는 메시를 만든다(어떤 역할인지 기억해 두었다가 setPaint 가 재질을 갈아 끼운다). */
+function pmesh(o, geo, role, opts, amt = 0) {
+  const m = mesh(geo, paintMat(o.paint, role, amt), opts);
+  m.userData.paint = [role, amt];
+  o.painted.push(m);
+  return m;
+}
+
 // ───────── 부품 ─────────
 
 /**
  * 접시 하나. 윤곽을 R 배로 키운다. 돌려주는 값: 부품과 윗면 높이(돔을 올릴 자리).
  */
-function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier = true }) {
+function saucer(o, R, { pills = 10, ambers = 3, topTone = 0, emitter = true, tier = true }) {
   const g = new THREE.Group();
   const P = (pts) => pts.map(([r, y]) => [r * R, y * R]);
   const ol = 0.026 * R;
   // 아랫면: 배꼽에서 테두리까지 매끈한 사발(짙은 남색 래커)
-  const under = mesh(latheGeo(P([[0.0, -0.2], [0.2, -0.196], [0.4, -0.178], [0.6, -0.145], [0.76, -0.105], [0.87, -0.066], [0.94, -0.03], [0.965, 0.0]]), 44, `ufoUnder${R}`), lacquer(HULL_DARK));
+  const under = pmesh(o, latheGeo(P([[0.0, -0.2], [0.2, -0.196], [0.4, -0.178], [0.6, -0.145], [0.76, -0.105], [0.87, -0.066], [0.94, -0.03], [0.965, 0.0]]), 44, `ufoUnder${R}`), 'under');
   // 테두리 범퍼: 통통한 고리(알약 조명이 박힌다)
-  const bumper = mesh(torusGeo(R * 0.955, R * 0.052, 10, 60), lacquer(BUMPER), { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.012, 0] });
+  const bumper = pmesh(o, torusGeo(R * 0.955, R * 0.052, 10, 60), 'bumper', { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.012, 0] });
   // 윗면 + 가운데 솟은 단(둥글린 턱)
   const topPts = tier
     ? [[0.975, 0.045], [0.94, 0.085], [0.86, 0.12], [0.76, 0.152], [0.67, 0.178], [0.64, 0.19], [0.625, 0.21], [0.615, 0.24], [0.59, 0.262], [0.52, 0.276], [0.3, 0.286], [0.001, 0.29]]
     : [[0.975, 0.045], [0.93, 0.09], [0.8, 0.14], [0.62, 0.185], [0.42, 0.215], [0.2, 0.232], [0.001, 0.236]];
-  const upper = mesh(latheGeo(P(topPts), 52, `ufoTop${R}|${tier}`), lacquer(top, 'top'));
+  const upper = pmesh(o, latheGeo(P(topPts), 52, `ufoTop${R}|${tier}`), 'top', undefined, topTone);
   addOutline(under, ol, LINE);
   addOutline(bumper, ol * 0.8, LINE);
   addOutline(upper, ol, LINE);
   g.add(under, bumper, upper);
   // 금빛 장식: 윗면 가장자리 테 + 솟은 단 밑동 테 + 단 둘레 둥근 징(적고 크게)
-  const gold = lacquer(GOLD, 'gold');
-  const trim = mesh(torusGeo(R * 0.9, R * 0.02, 6, 56), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.107, 0], cast: false });
+  const trim = pmesh(o, torusGeo(R * 0.9, R * 0.02, 6, 56), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.107, 0], cast: false });
   g.add(trim);
   if (tier) {
-    g.add(mesh(torusGeo(R * 0.648, R * 0.018, 6, 48), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.188, 0], cast: false }));
+    g.add(pmesh(o, torusGeo(R * 0.648, R * 0.018, 6, 48), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, R * 0.188, 0], cast: false }));
     for (let i = 0; i < 8; i++) {
       const a = ((i + 0.5) / 8) * Math.PI * 2;
-      g.add(mesh(sphereGeo(1, 10, 6), gold, { pos: [Math.sin(a) * R * 0.622, R * 0.226, Math.cos(a) * R * 0.622], scale: [R * 0.03, R * 0.03, R * 0.022], cast: false }));
+      g.add(pmesh(o, sphereGeo(1, 10, 6), 'trim', { pos: [Math.sin(a) * R * 0.622, R * 0.226, Math.cos(a) * R * 0.622], scale: [R * 0.03, R * 0.03, R * 0.022], cast: false }));
     }
   }
   // 범퍼 위 청록 선
@@ -173,7 +298,8 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
     holder.rotation.y = a;
     const p = mesh(capsuleGeo(R * 0.04, R * 0.16, 3, 10), o.pillMat, { cast: false, rot: [0, 0, Math.PI / 2], pos: [0, R * 0.012, R * 0.995] });
     holder.add(p);
-    const sp = glowSprite(PAL.glow, R * 0.24, 0.6);
+    const sp = glowSprite(o.light(), R * 0.24, 0.6);
+    o.lightSprites.push(sp);
     sp.position.set(0, R * 0.012, R * 1.07);
     holder.add(sp);
     sprites.push({ sp, i });
@@ -187,7 +313,7 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
     const z = Math.cos(a) * R * 0.8;
     // 금테 두른 호박색 보석 등
     const b = mesh(sphereGeo(1, 10, 6), o.amberMat, { cast: false, pos: [x, R * 0.136, z], scale: [R * 0.03, R * 0.022, R * 0.03] });
-    const rim = mesh(torusGeo(R * 0.032, R * 0.008, 6, 18), lacquer(GOLD, 'gold'), { cast: false, pos: [x, R * 0.132, z], rot: [Math.PI / 2 - 0.12, 0, 0] });
+    const rim = pmesh(o, torusGeo(R * 0.032, R * 0.008, 6, 18), 'trim', { cast: false, pos: [x, R * 0.132, z], rot: [Math.PI / 2 - 0.12, 0, 0] });
     const sp = glowSprite(AMBER, R * 0.09, 0.5);
     sp.position.set(x, R * 0.15, z);
     g.add(b, rim, sp);
@@ -198,7 +324,7 @@ function saucer(o, R, { pills = 10, ambers = 3, top = HULL, emitter = true, tier
   if (emitter) {
     bowl = mesh(sphereGeo(1, 24, 10), o.bowlMat, { cast: false, pos: [0, -R * 0.19, 0], scale: [R * 0.3, R * 0.1, R * 0.3] });
     g.add(bowl);
-    g.add(mesh(torusGeo(R * 0.3, R * 0.022, 6, 36), gold, { rot: [Math.PI / 2, 0, 0], pos: [0, -R * 0.19, 0], cast: false }));
+    g.add(pmesh(o, torusGeo(R * 0.3, R * 0.022, 6, 36), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, -R * 0.19, 0], cast: false }));
   }
   return { group: g, sprites, amberSprites, topY: (tier ? 0.29 : 0.236) * R, bellyY: -0.27 * R };
 }
@@ -262,7 +388,7 @@ function dome(o, y, r, withPilot = true) {
   // 조종석 돔은 큰 머리가 들어가게 조금 높게
   const sy = withPilot ? 1.1 : 1;
   if (withPilot) {
-    pilot = createPipo(r * 0.5);
+    pilot = createPipo(r * 0.5, { outfit: o.outfit });
     const seat = new THREE.Group();
     seat.position.y = r * 0.1; // 스카프·조종간 손잡이가 받침 위로 보이게
     seat.rotation.x = -0.16; // 의자에 살짝 기대 앉아 얼굴이 화면을 향한다(기체가 앞으로 기울어 있으므로)
@@ -286,11 +412,13 @@ function antenna(o, x, y, len, lean, color) {
   const g = new THREE.Group();
   g.position.set(x, y, 0);
   g.rotation.z = lean;
-  const rod = mesh(cylGeo(0.014, 0.02, len, 8), lacquer(GOLD, 'gold'), { pos: [0, len / 2, 0] });
-  g.add(mesh(sphereGeo(1, 10, 8), lacquer(BUMPER), { pos: [0, 0.01, 0], scale: 0.035 }));
-  const tipMat = color === AMBER ? o.amberMat : o.pillMat;
+  const rod = pmesh(o, cylGeo(0.014, 0.02, len, 8), 'trim', { pos: [0, len / 2, 0] });
+  g.add(pmesh(o, sphereGeo(1, 10, 8), 'bumper', { pos: [0, 0.01, 0], scale: 0.035 }));
+  const lit = color !== AMBER;
+  const tipMat = lit ? o.pillMat : o.amberMat;
   const tip = mesh(sphereGeo(1, 12, 8), tipMat, { cast: false, pos: [0, len, 0], scale: 0.035 });
-  const sp = glowSprite(color, 0.22, 0.7);
+  const sp = glowSprite(lit ? o.light() : color, 0.22, 0.7);
+  if (lit) o.lightSprites.push(sp);
   sp.position.set(0, len, 0);
   g.add(rod, tip, sp);
   return { group: g, sprite: sp };
@@ -312,16 +440,26 @@ const SPECS = [
 
 /**
  * 기체를 만든다.
+ * @param {number} form 형태(0..7)
+ * @param {{paint?: string, outfit?: string, beam?: string}} [look] paint = 도색(PAINTS), outfit = 피포 의상, beam = 빔 색(beams.js)
  * @returns {{ root: THREE.Group, update(o: {t:number, mood?:string, lit?:number, beam?:number}): void,
- *             halfWidth: number, bellyY: number, topY: number }}
+ *             halfWidth: number, bellyY: number, topY: number, body: THREE.Group, pilot: object,
+ *             setPaint(id: string): void, setOutfit(id: string): void, setBeam(id: string): void, paint: string }}
  *   bellyY = 빔이 나오는 자리, topY = 꼭대기(말풍선 자리). 둘 다 기울이기 전 모델 단위.
  */
-export function createUfo(form) {
+export function createUfo(form, { paint = 'navy', outfit = 'none', beam = 'cyan' } = {}) {
   const spec = SPECS[Math.min(Math.max(form, 0), SPECS.length - 1)];
+  if (!PAINTS[paint]) paint = 'navy';
   // 이 기체만 쓰는 빛 재질(밝기를 매 프레임 바꾼다)
   const o = {
-    pillMat: new THREE.MeshStandardMaterial({ color: '#bffaff', emissive: new THREE.Color(PAL.glow), emissiveIntensity: 2, roughness: 0.3 }),
-    lineMat: new THREE.MeshBasicMaterial({ color: new THREE.Color(PAL.glow), transparent: true, opacity: 0.9 }),
+    paint,
+    outfit,
+    painted: [], // 도색이 바뀌는 메시
+    lightSprites: [], // 조명 빛 번짐(도색의 빛 색을 따른다)
+    lightMats: [], // 에너지 고리처럼 조명 색을 따르는 재질
+    light: () => PAINTS[o.paint].light,
+    pillMat: new THREE.MeshStandardMaterial({ color: PAINTS[paint].pill, emissive: new THREE.Color(PAINTS[paint].light), emissiveIntensity: 2, roughness: 0.3 }),
+    lineMat: new THREE.MeshBasicMaterial({ color: new THREE.Color(PAINTS[paint].light), transparent: true, opacity: 0.9 }),
     amberMat: new THREE.MeshStandardMaterial({ color: '#ffd9a0', emissive: new THREE.Color(AMBER), emissiveIntensity: 1.6, roughness: 0.4 }),
     bowlMat: new THREE.MeshStandardMaterial({ color: '#d8fdff', emissive: new THREE.Color(PAL.glow), emissiveIntensity: 1.2, roughness: 0.25 }),
     glassMat: new THREE.MeshStandardMaterial({
@@ -350,7 +488,7 @@ export function createUfo(form) {
   if (spec.tiers) {
     for (let k = 0; k < spec.tiers; k++) {
       const r2 = R * (k === 0 ? 0.6 : 0.36);
-      const t = saucer(o, r2, { pills: Math.round(spec.pills * (k === 0 ? 0.7 : 0.5)), ambers: 0, emitter: false, top: tone(HULL, 0.06 + k * 0.05) });
+      const t = saucer(o, r2, { pills: Math.round(spec.pills * (k === 0 ? 0.7 : 0.5)), ambers: 0, emitter: false, topTone: 0.06 + k * 0.05 });
       t.group.position.y = topY - r2 * 0.02;
       body.add(t.group);
       sprites.push(...t.sprites);
@@ -362,7 +500,7 @@ export function createUfo(form) {
   if (spec.deck) {
     const deckR = R * 0.55;
     const deckH = R * 0.12;
-    const deck = mesh(latheGeo([[deckR * 1.04, 0], [deckR * 1.05, deckH * 0.15], [deckR * 1.03, deckH * 0.85], [deckR * 0.99, deckH], [0.001, deckH]], 56, `ufoDeck${R}`), lacquer(tone(HULL, 0.05)), { pos: [0, topY - 0.01, 0] });
+    const deck = pmesh(o, latheGeo([[deckR * 1.04, 0], [deckR * 1.05, deckH * 0.15], [deckR * 1.03, deckH * 0.85], [deckR * 0.99, deckH], [0.001, deckH]], 56, `ufoDeck${R}`), 'deck', { pos: [0, topY - 0.01, 0] });
     addOutline(deck, 0.02 * R, LINE);
     body.add(deck);
     for (let i = 0; i < 16; i++) {
@@ -372,7 +510,7 @@ export function createUfo(form) {
       holder.add(mesh(roundBoxGeo(0.1, 0.075, 0.03, 0.025, 2), o.pillMat, { cast: false, pos: [0, topY + deckH / 2 - 0.01, deckR * 1.055] }));
       body.add(holder);
     }
-    const cap = mesh(torusGeo(deckR * 0.99, R * 0.016, 8, 64), lacquer(GOLD, 'gold'), { rot: [Math.PI / 2, 0, 0], pos: [0, topY + deckH - 0.005, 0] });
+    const cap = pmesh(o, torusGeo(deckR * 0.99, R * 0.016, 8, 64), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, topY + deckH - 0.005, 0] });
     body.add(cap);
     topY += deckH;
     domeY = topY;
@@ -382,8 +520,8 @@ export function createUfo(form) {
   const d = dome(o, domeY, domeR);
   body.add(d.group);
   // 조종석 받침: 돔 고리 바깥을 두르는 금빛 테와 남색 래커 받침(돔 자체는 건드리지 않는다)
-  const seatRing = mesh(torusGeo(domeR * 1.13, domeR * 0.055, 8, 48), lacquer(GOLD, 'gold'), { rot: [Math.PI / 2, 0, 0], pos: [0, domeY + domeR * 0.005, 0], cast: false });
-  const seatBase = mesh(cylGeo(domeR * 1.17, domeR * 1.2, domeR * 0.07, 48), lacquer(BUMPER), { pos: [0, domeY - domeR * 0.03, 0], cast: false });
+  const seatRing = pmesh(o, torusGeo(domeR * 1.13, domeR * 0.055, 8, 48), 'trim', { rot: [Math.PI / 2, 0, 0], pos: [0, domeY + domeR * 0.005, 0], cast: false });
+  const seatBase = pmesh(o, cylGeo(domeR * 1.17, domeR * 1.2, domeR * 0.07, 48), 'bumper', { pos: [0, domeY - domeR * 0.03, 0], cast: false });
   addOutline(seatBase, 0.012 * R, LINE);
   body.add(seatBase, seatRing);
   const pilot = d.pilot;
@@ -392,7 +530,7 @@ export function createUfo(form) {
   // 안테나
   if (spec.antennas) {
     for (const s of [-1, 1]) {
-      const a = antenna(o, s * R * (spec.deck ? 0.42 : 0.3), main.topY * 0.92, R * 0.42, -s * 0.35, s < 0 ? PAL.glow : AMBER);
+      const a = antenna(o, s * R * (spec.deck ? 0.42 : 0.3), main.topY * 0.92, R * 0.42, -s * 0.35, s < 0 ? o.light() : AMBER);
       body.add(a.group);
       blinkers.push(a.sprite);
     }
@@ -406,9 +544,9 @@ export function createUfo(form) {
       fg.scale(0.21, 0.05, 0.12);
       fg.translate(s * 0.17, 0, 0);
       fg.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, -0.55 * s, 0, 1, 0, 0, 0, 0, 1));
-      const fin = mesh(fg, lacquer('#ec3d52'), { pos: [s * R * 0.93, 0.02, 0.02], rot: [0, 0, s * 0.22] });
+      const fin = pmesh(o, fg, 'fin', { pos: [s * R * 0.93, 0.02, 0.02], rot: [0, 0, s * 0.22] });
       addOutline(fin, 0.016, LINE);
-      fin.add(mesh(sphereGeo(1, 10, 8), lacquer(GOLD, 'gold'), { pos: [s * 0.36, 0.0, -0.2], scale: [0.04, 0.04, 0.04], cast: false }));
+      fin.add(pmesh(o, sphereGeo(1, 10, 8), 'trim', { pos: [s * 0.36, 0.0, -0.2], scale: [0.04, 0.04, 0.04], cast: false }));
       body.add(fin);
     }
   }
@@ -424,7 +562,7 @@ export function createUfo(form) {
   if (spec.radar) {
     radar = new THREE.Group();
     radar.position.set(-R * 0.48, main.topY, -R * 0.2);
-    radar.add(mesh(cylGeo(0.016, 0.022, 0.2, 8), lacquer(GOLD, 'gold'), { pos: [0, 0.1, 0] }));
+    radar.add(pmesh(o, cylGeo(0.016, 0.022, 0.2, 8), 'trim', { pos: [0, 0.1, 0] }));
     const dish = mesh(latheGeo([[0.001, 0], [0.08, 0.02], [0.15, 0.07], [0.17, 0.09]], 24, 'radar'), mat('#eef0ff', { rough: 0.35, side: THREE.DoubleSide, envIntensity: 1.1 }), { pos: [0, 0.22, 0], rot: [-0.9, 0, 0] });
     addOutline(dish, 0.009, LINE);
     dish.add(mesh(sphereGeo(1, 8, 6), o.pillMat, { pos: [0, 0.1, 0], scale: 0.025, cast: false }));
@@ -438,9 +576,12 @@ export function createUfo(form) {
     ring = new THREE.Group();
     ring.rotation.set(Math.PI / 2 + 0.12, 0.1, 0);
     ring.add(mesh(torusGeo(R * 1.42, 0.018, 8, 96), new THREE.MeshBasicMaterial({ color: '#e8ffff' }), { cast: false }));
-    ring.add(mesh(torusGeo(R * 1.42, 0.06, 10, 96), new THREE.MeshBasicMaterial({ color: PAL.glow, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }), { cast: false }));
+    const haze = new THREE.MeshBasicMaterial({ color: o.light(), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+    o.lightMats.push(haze);
+    ring.add(mesh(torusGeo(R * 1.42, 0.06, 10, 96), haze, { cast: false }));
     for (let i = 0; i < 3; i++) {
-      const sp = glowSprite(PAL.glow, 0.3, 0.9);
+      const sp = glowSprite(o.light(), 0.3, 0.9);
+      o.lightSprites.push(sp);
       ring.add(sp);
       ringSprites.push(sp);
     }
@@ -466,7 +607,8 @@ export function createUfo(form) {
     const L = Math.min(Math.max(lit, 0), 1);
     // 빛 번짐은 블룸이 맡으므로 조명 자체와 스프라이트는 은은하게
     o.pillMat.emissiveIntensity = 0.15 + 1.1 * L;
-    o.pillMat.color.set(L > 0.3 ? '#bffaff' : DIM);
+    o.pillMat.color.set(L > 0.3 ? PAINTS[o.paint].pill : PAINTS[o.paint].dim);
+    if (beamStyle.hue) beamColor(beamId, t, 0, undefined, o.bowlMat.emissive);
     o.lineMat.opacity = 0.15 + 0.8 * L;
     o.amberMat.emissiveIntensity = 0.1 + 1.5 * L;
     o.bowlMat.emissiveIntensity = 0.15 + Math.max(beam * 1.9, L * 0.9);
@@ -495,11 +637,49 @@ export function createUfo(form) {
       e.rotation.y = -a;
     });
   }
+
+  /** 도색을 바꾼다(선체 재질만 갈아 끼운다. 재질은 도색마다 캐시해 함께 쓰므로 지우지 않는다). */
+  function setPaint(id) {
+    if (!PAINTS[id]) id = 'navy';
+    if (id === o.paint) return;
+    o.paint = id;
+    for (const m of o.painted) m.material = paintMat(id, ...m.userData.paint);
+    const P = PAINTS[id];
+    o.pillMat.emissive.set(P.light);
+    o.pillMat.color.set(P.pill);
+    o.lineMat.color.set(P.light);
+    for (const sp of o.lightSprites) sp.material.color.set(P.light);
+    for (const m of o.lightMats) m.color.set(P.light);
+  }
+  /** 빔 색(beams.js)에 맞춰 아래 발광부 빛을 바꾼다. */
+  let beamId = 'cyan';
+  let beamStyle = BEAM_STYLES.cyan;
+  function setBeam(id) {
+    beamId = BEAM_STYLES[id] ? id : 'cyan';
+    beamStyle = BEAM_STYLES[beamId];
+    o.bowlMat.emissive.set(beamStyle.color);
+  }
+  setBeam(beam);
   update({});
 
   // 기체는 높이 떠 있어 땅에 그림자를 드리우지 않는다(컨셉에도 없다)
   root.traverse((m) => {
     if (m.isMesh) m.castShadow = false;
   });
-  return { root, update, halfWidth: spec.hw, bellyY, topY, body };
+  return {
+    root,
+    update,
+    halfWidth: spec.hw,
+    bellyY,
+    topY,
+    body,
+    pilot,
+    setPaint,
+    setBeam,
+    /** 조종사 피포의 의상을 바꾼다. */
+    setOutfit: (id) => pilot.setOutfit(id),
+    get paint() {
+      return o.paint;
+    },
+  };
 }

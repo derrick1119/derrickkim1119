@@ -9,6 +9,7 @@ import { Engine, PX } from './engine.js';
 
 export { webglAvailable } from './engine.js';
 import { createUfo, UFO_TILT } from './ufo3d.js';
+import { paintBeam } from './beams.js';
 import { createWatcher, WATCHER_TYPES } from './people3d.js';
 import { createSpecimen } from './specimens3d.js';
 import { buildStage } from './stages.js';
@@ -25,8 +26,6 @@ const SPECIMEN_SCALE = 1.12;
 const CHASE_SHARE = 0.32;
 const CHASE_TIME = 1.3;
 const BEAM = PAL.glow;
-const BEAM_AUTO = '#8dffc8';
-const BEAM_CAUGHT = '#ff6b5e';
 const CONE = '#fff3a8';
 const CONE_SPOTTED = '#ff6b5e';
 const CONE_CLOAKED = '#b79cff';
@@ -224,6 +223,15 @@ export class Scene3D extends Scene {
       this.burst = null;
       this.culprit = null;
     });
+    // 꾸미기(피포 의상·기체 도색·빔 색)를 바꾸면 기체를 새로 만들지 않고 갈아입힌다
+    game.on('monetize:look', (look) => {
+      this.ufo3d?.setOutfit?.(look.outfit);
+      this.ufo3d?.setPaint?.(look.paint);
+      this.ufo3d?.setBeam?.(look.beam);
+    });
+    game.on('replaced', () => {
+      this.ufoForm = -1; // 다른 저장본: 그 꾸미기로 기체를 다시 만든다
+    });
     game.on('formUp', () => {
       this.rays = 1.6;
     });
@@ -341,11 +349,16 @@ export class Scene3D extends Scene {
     }
   }
 
+  /** 지금 장착한 꾸미기. */
+  _look() {
+    return this.game.fx.monetize?.look?.() || { outfit: 'none', paint: 'navy', beam: 'cyan' };
+  }
+
   _ensureUfo() {
     const form = this.game.formIndex;
     if (this.ufoForm === form && this.ufo3d) return;
     if (this.ufo3d) this.engine.actors.remove(this.ufo3d.root);
-    this.ufo3d = createUfo(form);
+    this.ufo3d = createUfo(form, this._look());
     this.ufoForm = form;
     this.engine.actors.add(this.ufo3d.root);
     this.ufoScale = this.ufoTargetW / PX / (2 * this.ufo3d.halfWidth);
@@ -632,19 +645,17 @@ export class Scene3D extends Scene {
 
     // 견인 빔
     let bi = 0;
+    const beamLook = this._look().beam;
     if (visible) {
       for (const sp of world.specimens) {
         let target = null;
-        let color = BEAM;
         let strength = 1;
         if (sp.state === 'beam') {
           const k = easeIn(sp.bt);
           target = this._w(lerp(sp.bx, belly.x, k), lerp(this._beamStartY(sp), belly.y + 6, k), tmpV2);
-          color = sp.auto ? BEAM_AUTO : BEAM;
           strength = 1 - sp.bt * 0.4;
         } else if (sp.state === 'caught') {
           target = this._w(sp.x, this._specimenY(sp), tmpV2);
-          color = BEAM_CAUGHT;
           strength = 0.6 + 0.3 * Math.sin(t * 40);
         }
         if (!target) continue;
@@ -653,7 +664,8 @@ export class Scene3D extends Scene {
         cone.visible = true;
         // 좁은 끝 = 기체 배, 넓은 끝 = 표본
         placeCone(cone, bellyW, target, 0.32);
-        cone.material.color.set(color);
+        // 빔 색(꾸미기): 들킨 빔은 어떤 색이든 빨강
+        paintBeam(cone.material, beamLook, t, { auto: sp.auto, caught: sp.state === 'caught' });
         cone.material.opacity = 0.55 * strength;
       }
     }
