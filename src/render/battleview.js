@@ -206,7 +206,7 @@ export class BattleView {
     if (pix && ((this.ter && this.ter.river) || (kout > 0 && this.oldTer.river))) lowres(g, river); else river(g);
     // 갈림길: 흙길이 갈래로 나뉘는 바닥 그림 (닿은 뒤 걸음이 조금 더 갔으면 그 자리로 살며시 옮긴다). 고른 갈래가 싸움터면 옅어진다
     if (this.fork) { const f = this.fork, dt = opt.dt || 0; if (f.target !== undefined) f.wx += (f.target - f.wx) * Math.min(1, dt * 8); if (f.fade) f.alpha = Math.max(0, f.alpha - dt * 1.4); if (f.pick) f.pickT += dt;
-      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { const paintFork = q => { q.globalAlpha = f.alpha; q.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); q.globalAlpha = 1; }; if (pix) lowres(g, paintFork); else paintFork(g); if (f.alpha > 0.5) drawForkGlow(g, f, ox, T); } }
+      const ox = f.wx - sc; if (f.alpha <= 0 || ox < -700) this.fork = null; else if (ox < W + 700) { const paintFork = q => { q.globalAlpha = f.alpha; q.drawImage(f.art.img, ox + f.art.x0, f.art.y0, f.art.w, f.art.h); q.globalAlpha = 1; }; if (pix) lowres(g, paintFork); else paintFork(g); if (f.alpha > 0.5) { if (pix) lowres(g, q => drawForkGlow(q, f, ox, T)); else drawForkGlow(g, f, ox, T); } } }
     // 큰 소나무와 둔덕·들꽃: 바닥과 함께 흐른다
     if (pix) { /* 도트: 앞 풀숲까지 배경 겹이 그린다 */ }
     else if (paint) { strip(g, paintFront(this.theme), GW, sc, 520);

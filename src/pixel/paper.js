@@ -15,8 +15,12 @@ export function pxPaperSpr(spr, k = 1) {
   const cols = []; for (const v of A.d) if (v !== -1) cols.push(v);
   if (cols.length) { const pal = medianCut(cols, 16).map(v => (lum(v) < 0.14 ? INK : v)), memo = new Map(); for (let i = 0; i < A.d.length; i++) { const v = A.d[i]; if (v === -1) continue; let q = memo.get(v); if (q === undefined) { let bd = 1e12; for (const p of pal) { const dd = d2(v, p); if (dd < bd) { bd = dd; q = p; } } memo.set(v, q); } A.d[i] = q; } }
   const t = new Spr(A.w, A.h, Math.round(spr.ox * f), Math.round(spr.oy * f)); t.d = A.d;
-  s = t.outline(INK); m.set(key, s); return s;
+  s = crop(t.outline(INK)); m.set(key, s); return s;
 }
+// 둘레의 빈 곳을 잘라 낸다 (기준점은 그대로)
+function crop(s) { let x0 = s.w, y0 = s.h, x1 = -1, y1 = -1; for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) if (s.d[y * s.w + x] !== -1) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === s.w - 1 && y1 === s.h - 1)) return s;
+  const o = new Spr(x1 - x0 + 1, y1 - y0 + 1, s.ox - x0, s.oy - y0); for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) o.d[(y - y0) * o.w + x - x0] = s.d[y * s.w + x]; return o; }
 // 2배 격자에 찍는다 (기울이거나 찌그러뜨리지 않는다)
 export function pxPaper(g, spr, x, y, k = 1, flip = false) {
   const s = pxPaperSpr(spr, k), X = Math.round(x / 2), Y = Math.round(y / 2);

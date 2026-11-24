@@ -2,10 +2,10 @@
 import { tinted } from './px.js';
 import { LOWQ, pxPaper } from './paper.js';
 import { PXH } from './hook.js';
-import { pxUnit, pxFlip, pxKeys } from './units.js';
+import { pxUnit, pxFlip, pxKeys, pxIsHand } from './units.js';
 import { pxField, drawPxWeather, prewarmPxField } from './field.js';
 export { prewarmPxField };
-import { PORTRAIT } from '../render/sprites.js';
+import { PORTRAIT, getLook } from '../render/sprites.js';
 import { GFX } from './gfx.js';
 
 export const skyKey = a => (a.rain > 0.5 ? 'rain' : a.night > 0.5 ? 'night' : 'day');
@@ -33,10 +33,15 @@ export function pxBody(g, lookKey, wpn, x, y, dir, frame, fl, grow = 1) {
   if (fl > 0.02) { const a0 = g.globalAlpha; g.globalAlpha = a0 * Math.min(1, fl); g.drawImage(tinted(s, 0xffffff).canvas(), dx, dy, w, h); g.globalAlpha = a0; }
   return Y * 2 - P.h * q;
 }
+// 초상 배율: 붓 그림의 키에 맞춘다. 크면 정수 배율, 작아야 하면(도감의 큰 두목) 반 배율까지
+function portraitK(key, P, s) { let L = null; try { L = getLook(key); } catch (e) { /* 없는 모습 */ }
+  // 손으로 찍은 인형은 같은 틀이라 키를 하나로 잰다 (창·깃대가 길다고 작아지지 않게)
+  const ph = pxIsHand(key) ? 42 : P.h, ideal = L ? (L.h * L.scale * s) / Math.max(1, ph) : s * 1.5;
+  return ideal >= 0.8 ? Math.max(1, Math.round(ideal + 0.15)) : 0.5; }
 // 패·인형극·도감의 초상: 정수 배율로만 키운다
 export function pxPortrait(g, lookKey, x, y, s, t = 0, bob = false, wpn) {
   if (LOWQ.on) { const m = LOWQ.main, sv = m.getTransform().multiply(new DOMMatrix().scale(2, 2).multiply(g.getTransform())), a0 = g.globalAlpha; LOWQ.q.push(() => { m.save(); m.setTransform(sv); m.globalAlpha = a0; pxPortrait(m, lookKey, x, y, s, t, bob, wpn); m.restore(); }); return; }
-  const P = pxUnit(lookKey, wpn), sp = P.stand, n = Math.max(1, Math.ceil(s * 1.5 - 0.15)), yy = y - (bob ? Math.round(Math.abs(Math.sin(t * 5)) * 3 * s) : 0);
+  const P = pxUnit(lookKey, wpn), sp = P.stand, n = portraitK(lookKey, P, s), yy = y - (bob ? Math.round(Math.abs(Math.sin(t * 5)) * 3 * s) : 0);
   g.save(); g.imageSmoothingEnabled = false; g.drawImage(sp.canvas(), Math.round(x - sp.ox * n), Math.round(yy - sp.oy * n), sp.w * n, sp.h * n); g.restore();
 }
 if (GFX.pixel) { PORTRAIT.px = pxPortrait; PXH.paper = pxPaper; }
