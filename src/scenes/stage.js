@@ -530,9 +530,26 @@
     };
     /* the accompaniment: where in the tune, how loud, what kind of place. Views bring their own and hand it back */
     X.bed = function (i, level, mood) { if (i != null && !S.view) S.bedNow = [i, level, mood]; T.audio.bed(i, level, mood); };
+    /* a deliberate silence: the music stops for `sec` seconds (or until the next X.bed) and comes back where it was */
+    X.hush = function (sec) {
+      T.audio.bed(null);
+      if (!sec) return Promise.resolve();
+      return S.clock.wait(sec).then(() => { if (S.bedNow && !S.view) T.audio.bed(S.bedNow[0], S.bedNow[1], S.bedNow[2]); });
+    };
+    /* a camera for views (lake, dream, wedding, memories), which otherwise fill the screen as drawn: x, y is the
+       point looked at (the view's own coordinates, centre 0, 450), z the zoom. Not for use while a view's puzzle
+       takes input (its taps are in unzoomed coordinates): put it back with X.vcam() first. Resets with each view */
+    X.vcam = function (x, y, z, dur) {
+      const c = S.vcam || (S.vcam = { x: 0, y: 450, z: 1 });
+      const to = { x: x == null ? 0 : x, y: y == null ? 450 : y, z: z == null ? 1 : z };
+      if (!dur) { Object.assign(c, to); return Promise.resolve(); }
+      const e = T.ease.io;
+      S.clock.tween(c, 'x', to.x, dur, e); S.clock.tween(c, 'y', to.y, dur, e);
+      return S.clock.tween(c, 'z', to.z, dur, e);
+    };
     X.view = function (v, o) {
       return X.dip(() => {
-        S.view = v; S.spot = null;
+        S.view = v; S.spot = null; S.vcam = { x: 0, y: 450, z: 1 };
         if (v && v.enter) v.enter(S);
         if (v && v.quiet) T.audio.bed(null);
         else if (v && v.mood) T.audio.bed(v.chord == null ? 4 : v.chord, 0.13, v.mood);
@@ -685,7 +702,11 @@
     }
     S.draw = function (g) {
       const V = T.view, W = V.W, t = T.time;
-      if (S.view) S.view.draw(g, t, S); else Wd().draw(g);
+      if (S.view) {
+        const c = S.vcam;
+        if (c && (c.z !== 1 || c.x !== 0 || c.y !== 450)) { g.save(); g.translate(0, 450); g.scale(c.z, c.z); g.translate(-c.x, -c.y); S.view.draw(g, t, S); g.restore(); }
+        else S.view.draw(g, t, S);
+      } else Wd().draw(g);
       /* invitations and hints */
       if (S.spot && !TALK.cur && !S.game && S.dip.a < 0.3) { const q = spotScreen(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
       else if (S.sw && !S.sw.ok && !S.sw.asked && !S.view && !TALK.cur && S.dip.a < 0.3) { const q = lampSpot(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
