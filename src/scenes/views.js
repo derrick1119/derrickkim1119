@@ -75,13 +75,30 @@
     }
     const thingAt = (x, y) => { let best = -1, bd = 78; if (y < 268) things().forEach((q, i) => { const d = Math.abs(x - q.x); if (!q.lock && d < bd) { bd = d; best = i; } }); return best; };
     const rhNext = () => (L.rh && !L.rh.solved ? things().findIndex((q) => !q.lock) : -1);
-    /* begin sliding: resolves when every shadow has found its place */
-    L.rhyme = function () { return new Promise((res) => { L.rh = { sel: -1, held: -1, dx: 0, moved: false, idle: 0, solved: false, t: 0, n: 0, res }; L.amp = 0.3; }); };
+    /* begin sliding: resolves when every shadow has found its place. The help (T.puzzle.coach) is the one every
+       puzzle has; skipped, each shadow slides to its place by itself */
+    L.rhyme = function () {
+      return new Promise((res) => {
+        const R = (L.rh = { sel: -1, held: -1, dx: 0, moved: false, idle: 0, solved: false, t: 0, n: 0, res });
+        R.coach = T.puzzle.coach({ idle: () => R.idle, live: () => L.rh === R && !R.solved, hintAt: () => L.hintAt(), r: 44, tip: '물가의 것들을 좌우로 끌어 보세요', solve: () => { R.held = -1; R.sel = -1; things().forEach((q) => { if (!q.lock) q.go = q.to; }); } });
+        L.amp = 0.3;
+      });
+    };
     const ringNext = () => { const R = L.ring; if (!R || R.solved) return -1; for (let i = R.n - 1; i >= 0; i--) if (R.rot[i] % 8) return i; return -1; };
     /* o: { start: [notches off, innermost first], couple: a ring drags the one inside it } */
-    L.calm = function (o) { const n = o.start.length; return new Promise((res) => { L.ring = { n, rot: o.start.slice(), vis: o.start.slice(), couple: !!o.couple, rad: RADS[n], solved: false, idle: 0, taps: 0, t: 0, res }; L.amp = 0.35; }); };
+    L.calm = function (o) {
+      const n = o.start.length;
+      return new Promise((res) => {
+        const R = (L.ring = { n, rot: o.start.slice(), vis: o.start.slice(), couple: !!o.couple, rad: RADS[n], solved: false, idle: 0, taps: 0, t: 0, res, focus: -1 });
+        /* skipped: every ring turns on round to where it belongs */
+        R.coach = T.puzzle.coach({ idle: () => R.idle, live: () => L.ring === R && !R.solved, hintAt: () => L.hintAt(), r: 44, tip: '고리를 눌러 돌려요. 여덟 번이면 한 바퀴예요', solve: () => { R.rot = R.rot.map((v) => Math.ceil(v / 8) * 8); R.focus = -1; R.solved = true; R.t = 1.3; L.amp = 0; T.audio.promise(); } });
+        L.amp = 0.35;
+      });
+    };
     L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel === h ? [q.to, q.depth - (person(q) ? 60 : 0)] : [q.x, BANK - 46]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
     L.pointer = function (type, x, y) {
+      const C = (L.rh && L.rh.coach) || (L.ring && L.ring.coach);
+      if (C && C.pointer(type, x, y)) return true;
       if (L.rh && !L.rh.solved) {
         const R = L.rh, Q = things();
         if (type === 'down') {
@@ -95,7 +112,7 @@
         return true;
       }
       if (L.ring && !L.ring.solved) {
-        if (type === 'down') { const d = Math.hypot(x, y - RCY), R = L.ring; for (let i = 0; i < R.n; i++) if (d < R.rad[i + 1]) { turn(i); break; } }
+        if (type === 'down') { const d = Math.hypot(x, y - RCY), R = L.ring; R.focus = -1; for (let i = 0; i < R.n; i++) if (d < R.rad[i + 1]) { turn(i); break; } }
         return true;
       }
       const m = L.mote;
@@ -106,27 +123,40 @@
       return false;
     };
     L.key = function (key) {
+      const C = (L.rh && L.rh.coach) || (L.ring && L.ring.coach);
+      if (C && C.key(key)) return true;
       if (L.rh && !L.rh.solved) {
         const R = L.rh, Q = things();
         if (key >= '1' && key <= String(Q.length)) { if (!Q[+key - 1].lock) { R.sel = +key - 1; R.idle = 0; T.audio.sfx('step'); } return true; }
+        if (key === ' ' || key === 'Enter') {   /* the next one still to place, round and round */
+          const free = Q.map((q, i) => i).filter((i) => !Q[i].lock);
+          if (free.length) { R.sel = free[(free.indexOf(R.sel) + 1) % free.length]; R.idle = 0; T.audio.sfx('step'); }
+          return true;
+        }
         if ((key === 'ArrowLeft' || key === 'ArrowRight') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel], left = key === 'ArrowLeft'; q.go = null; if (turns(q)) q.flip = left; q.x = clampX(q.x + (left ? -16 : 16)); q.ph = (q.ph || 0) + (left && !turns(q) ? -1.8 : 1.8); R.idle = 0; settle(q); return true; }
         return false;
       }
-      if (L.ring && !L.ring.solved) { if (key >= '1' && key <= String(L.ring.n)) { turn(+key - 1); return true; } return false; }
+      if (L.ring && !L.ring.solved) {
+        const R = L.ring;
+        if (key >= '1' && key <= String(R.n)) { R.focus = -1; turn(+key - 1); return true; }
+        if (key === 'ArrowLeft' || key === 'ArrowRight') { R.focus = R.focus < 0 ? (key === 'ArrowLeft' ? R.n - 1 : 0) : T.clamp(R.focus + (key === 'ArrowLeft' ? -1 : 1), 0, R.n - 1); R.idle = 0; T.audio.sfx('step'); return true; }   /* inner to outer */
+        if (key === ' ' || key === 'Enter') { if (R.focus < 0) { R.focus = 0; T.audio.sfx('step'); } else turn(R.focus); return true; }
+        return false;
+      }
       if (L.mote && !L.mote.gone && (key === ' ' || key === 'Enter' || key === 'ArrowDown')) { L.mote.x = 40; L.mote.y = 520; L.release(); return true; } return false; };
     L.want = function () { const h = rhNext(); if (h >= 0) { const q = things()[h]; return 'key:' + (L.rh.sel !== h ? h + 1 : q.x > q.to ? 'ArrowLeft' : 'ArrowRight'); } if (L.rh) return 'busy'; const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
     L.release = function () { const m = L.mote; if (!m || m.gone) return; m.gone = true; L.rip.push({ x: m.x, y: m.y, t: T.time }); L.amp = 1; if (m.res) m.res(); };
     L.update = function (dt) {
       const H = L.rh;
       if (H) {
-        H.idle += dt;
+        H.idle += dt; if (H.coach) H.coach.update(dt);
         for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + (turns(q) ? Math.abs(st) : st) / 9; if (st && turns(q)) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
         if (H.solved) { H.t -= dt; if (H.t <= 0) { L.rh = null; H.res(); } } else L.amp = Math.max(L.amp, 0.2);
       }
       for (const q of things()) { const id = idOf(q); L.lit[id] += ((q.lock ? 1 : 0) - L.lit[id]) * Math.min(1, dt * 1.8); }
       const R = L.ring;
       if (R) {
-        R.idle += dt;
+        R.idle += dt; if (R.coach) R.coach.update(dt);
         for (let i = 0; i < R.n; i++) R.vis[i] += (R.rot[i] - R.vis[i]) * Math.min(1, dt * 9);
         if (R.solved) { R.t -= dt; if (R.t <= 0) { L.ring = null; R.res(); } } else L.amp = Math.max(L.amp, 0.3);
       }
@@ -204,8 +234,15 @@
       }
       g.restore();
       if (R && !R.solved) {
-        P.text(g, R.couple ? '고리를 눌러 돌려 주세요. 바깥 고리는 안쪽 고리를 함께 끌고 가요' : '물결의 고리를 눌러 돌려서, 흩어진 모습을 맞춰 주세요', 0, 866, { font: 'serif', size: 24, color: '#f3ead8', alpha: 0.9 });
-        if (R.idle > 9) { const q = L.hintAt(); if (q) P.beacon(g, q[0], q[1], 44, t, 1, '#fff0c8'); }
+        P.text(g, T.puzzle.withKeys(R.couple ? '고리를 눌러 돌려 주세요. 바깥 고리는 안쪽 고리를 함께 끌고 가요' : '물결의 고리를 눌러 돌려서, 흩어진 모습을 맞춰 주세요', 'pick'), 0, 866, { font: 'serif', size: 24, color: '#f3ead8', alpha: 0.9 });
+        if (R.focus >= 0) {   /* the ring the keyboard is on */
+          const p = 0.5 + 0.5 * Math.sin(t * 4), r0 = R.rad[R.focus], r1 = R.rad[R.focus + 1];
+          g.save(); g.strokeStyle = '#fffaec'; g.lineWidth = 3 + p;
+          g.beginPath(); g.arc(0, RCY, r1 - 3, 0, TAU); g.stroke();
+          if (r0 > 0) { g.beginPath(); g.arc(0, RCY, r0 + 3, 0, TAU); g.stroke(); }
+          g.restore();
+        }
+        if (R.coach) { R.coach.glow(g, t, 1, 44); R.coach.draw(g, t); }
       }
       /* rings where a finger went in */
       g.save(); g.lineWidth = 2;
@@ -384,11 +421,15 @@
       g.strokeStyle = '#2f4a48'; g.lineCap = 'round'; g.lineWidth = 3;
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
-        /* no instructions up front: the dotted shapes in the water say enough. Only if he is stuck a while does a
-           line come, first the gesture, and much later what goes where */
-        const cap = R.idle > 16 ? (L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 물가에서 좌우로 끌어 점선에 맞춰 보세요') : R.idle > 6 ? '물가의 것들을 좌우로 끌어 보세요' : null;
-        if (cap) { const ca = T.clamp((R.idle - 6) / 1.2); g.save(); g.globalAlpha = ca; T.band(g, 1); g.restore(); P.text(g, cap, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94 * ca, glow: 'rgba(8,12,22,0.9)' }); }
-        if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
+        /* no instructions up front: the dotted shapes in the water say enough. Stuck a while, the help every puzzle
+           has: a glow on the next thing, then the gesture at the top and what goes where at the foot, then the skip */
+        const C = R.coach, ca = C ? C.tipA : 0;
+        if (ca > 0.01) {
+          const cap = L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 아나가 앉던 조리대 자리에. 물가에서 좌우로 끌어 점선에 맞춰 보세요';
+          g.save(); g.globalAlpha = ca; T.band(g, 1); g.restore();
+          P.text(g, T.puzzle.withKeys(cap, 'move'), 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94 * ca, glow: 'rgba(8,12,22,0.9)' });
+        }
+        if (C) { C.glow(g, t, 1, 44); C.draw(g, t); }
       } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }
     const draw0 = L.draw;
@@ -675,14 +716,20 @@
       }
       if (D.gq && !D.gq.done) {
         T.band(g, 1);
-        P.text(g, '꿈속에서는 아무것도 제자리에 있지 않아요. 떠다니는 것들을 눌러 제자리로 돌려 주세요', 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
-        if (D.gq.idle > 9) { const h = D.hintAt(); if (h) P.beacon(g, h[0], h[1], 52, t, 1, '#fff0c8'); }
+        P.text(g, T.puzzle.withKeys('꿈속에서는 아무것도 제자리에 있지 않아요. 떠다니는 것들을 눌러 제자리로 돌려 주세요', 'pick'), 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
+        const f = D.gq.focus >= 0 && D.items[D.gq.focus];
+        if (f && !f.done) { const q0 = itemAt(f, t), q = toScr(q0[0], q0[1]); T.puzzle.focusRing(g, q[0], q[1], 44, t, 1); }
+        D.gq.coach.glow(g, t, 1, 52); D.gq.coach.draw(g, t);
       }
     };
     /* put the room back together, a thing at a time; resolves when all of it is home */
     D.gather = function () {
       D.items = ITEMS.map((it, i) => Object.assign({ k: 0, ph: i * 1.7, done: false }, it));
-      return new Promise((res) => { D.gq = { idle: 0, done: false, res, n: 0 }; });
+      return new Promise((res) => {
+        const q = (D.gq = { idle: 0, done: false, res, n: 0, focus: -1, auto: 0 });
+        /* the help every puzzle has; skipped, the things drift home by themselves, one after another */
+        q.coach = T.puzzle.coach({ idle: () => q.idle, live: () => D.gq === q && !q.done, hintAt: () => D.hintAt(), r: 52, tip: '떠다니는 것을 하나씩 눌러 제자리로 보내요', solve: () => { q.auto = 0.01; q.focus = -1; } });
+      });
     };
     function put(i) {
       const it = D.items && D.items[i];
@@ -695,18 +742,38 @@
       if (D.items) for (const it of D.items) if (it.done && it.k < 1) it.k = Math.min(1, it.k + dt * 1.6);
       const q = D.gq;
       if (!q) return;
+      if (q.coach) q.coach.update(dt);
+      if (q.auto > 0 && !q.done && (q.auto -= dt) <= 0) { put(D.items.findIndex((it) => !it.done)); q.auto = 0.3; }
       if (!q.done) q.idle += dt;
       else if (q.wait > 0) { q.wait -= dt; if (q.wait <= 0) q.res(); }
     };
     D.pointer = function (type, x, y) {
+      if (D.gq && D.gq.coach && D.gq.coach.pointer(type, x, y)) return true;
       if (!D.gq || D.gq.done || type !== 'down') return false;
+      D.gq.focus = -1;
       const t = T.time;
       let best = -1, bd = 70;
       D.items.forEach((it, i) => { if (it.done) return; const q0 = itemAt(it, t), q = toScr(q0[0], q0[1]), d = Math.hypot(x - q[0], y - q[1]); if (d < bd) { bd = d; best = i; } });
       if (best >= 0) put(best);
       return true;
     };
-    D.key = function (key) { if (!D.gq || D.gq.done) return false; const n = +key - 1; if (n >= 0 && n < 5) { put(n); return true; } return false; };
+    D.key = function (key) {
+      const q = D.gq;
+      if (!q || q.done) return false;
+      if (q.coach.key(key)) return true;
+      const n = +key - 1;
+      if (n >= 0 && n < 5) { q.focus = -1; put(n); return true; }
+      /* ← → go round the things still adrift, left to right; Space / Enter sends home the one the ring is on */
+      const free = D.items.map((it, i) => i).filter((i) => !D.items[i].done).sort((a, b) => itemAt(D.items[a], T.time)[0] - itemAt(D.items[b], T.time)[0]);
+      if (key === 'ArrowLeft' || key === 'ArrowRight' || ((key === ' ' || key === 'Enter') && q.focus < 0)) {
+        if (!free.length) return true;
+        const i = free.indexOf(q.focus), d = key === 'ArrowLeft' ? -1 : 1;
+        q.focus = free[i < 0 ? (d > 0 ? 0 : free.length - 1) : (i + d + free.length) % free.length]; q.idle = 0; T.audio.sfx('step');
+        return true;
+      }
+      if (key === ' ' || key === 'Enter') { put(q.focus); q.focus = -1; return true; }
+      return false;
+    };
     D.want = function () { if (!D.gq || D.gq.done) return null; const i = D.items.findIndex((q) => !q.done); return i >= 0 ? 'key:' + (i + 1) : null; };
     D.hintAt = function () { if (!D.gq || D.gq.done) return null; const it = D.items.find((q) => !q.done); if (!it) return null; const q = itemAt(it, T.time); return toScr(q[0], q[1]); };
     D.spot = () => { const G = T.scenes.home.GEO, q = toScr(G.ROOM.x + 290, G.FLOOR - 110); return [q[0], q[1], 90]; };

@@ -32,11 +32,13 @@
     const r0 = T.rng(41);
     for (let i = 0; i < 46; i++) V.petals.push({ x: (r0() - 0.5) * 2000, y: r0() * 470, v: 26 + r0() * 30, ph: r0() * 9, c: ['#f6b6c2', '#fbe3a8', '#ffffff', '#e58aa0'][i % 4] });
     V.walked = new Promise((res) => { V.res = res; });
-    V.pointer = function (type) { if (V.done) return false; if (type === 'down') V.held = true; else if (type === 'up') V.held = false; return true; };
-    V.key = function (key) { if (V.done) return false; if (key === 'ArrowRight' || key === ' ' || key === 'Enter') { V.until = T.time + 0.3; return true; } return false; };
+    /* the controls every puzzle has (puzzles.js): a tap sets him walking beside her and another stops him; nothing
+       has to be held down. → walks while it is pressed; Space / Enter is the tap */
+    V.pointer = function (type) { if (V.done) return false; if (type === 'down') V.on = !V.on; return true; };
+    V.key = function (key) { if (V.done) return false; if (key === 'ArrowRight') { V.until = T.time + 0.3; return true; } if (key === ' ' || key === 'Enter') { V.on = !V.on; return true; } return false; };
     V.want = function () { return V.done ? null : 'hold'; };
     V.update = function (dt, S) {
-      const going = !V.done && (V.held || T.time < V.until);
+      const going = !V.done && (V.on || T.time < V.until);
       V.going = going;
       V.stir += ((going ? 1 : 0) - V.stir) * Math.min(1, dt * 2);
       if (going) {
@@ -143,7 +145,7 @@
       for (let i = 0; i < 16; i++) { const y = SHORE + 14 + i * 27, off = Math.sin(t * 1.1 + i * 1.7) * 30; g.beginPath(); g.moveTo(-W / 2, y); for (let x = -W / 2; x <= W / 2; x += 80) g.quadraticCurveTo(x + 40 + off * 0.2, y + Math.sin(x * 0.01 + t * 1.6 + i) * 5, x + 80, y); g.stroke(); }
       g.fillStyle = 'rgba(255,240,205,0.5)'; g.fillRect(-W / 2, SHORE - 1, W, 3);
       if (!V.done && hint > 0) {
-        P.text(g, '꾹 누른 채로, 릴리 곁을 걸어 주세요', 0, 852, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * hint });
+        P.text(g, T.puzzle.withKeys('눌러서 릴리 곁을 걸어요. 한 번 더 누르면 멈춰요', 'act'), 0, 852, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * hint });
         P.beacon(g, LX, SHORE - 90, 70, t, hint, '#fff0c8');
       }
     };
@@ -549,7 +551,7 @@
       const V = wedding();
       await X.view(V, { out: 1.4, in: 1.6 });
 
-      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르고 있으면 걷는다.');
+      T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르면 걷고, 한 번 더 누르면 멈춘다.');
       await V.walked;
       await X.tween(V.hug, 'k', 1, 1.2);
       X.tween(V.bow, 'k', 1, 1.4);

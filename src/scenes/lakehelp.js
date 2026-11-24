@@ -246,6 +246,13 @@
     V.start = function () {
       if (V.started) return;
       V.started = true; V.idle = 0; V.t0 = 0; V.rh = { live: true };   /* (V.rh: the test menu's solver looks for it) */
+      /* the help every puzzle has. Steps 2 and 3 count only the time she has been left standing; skipped, the
+         things on the bank go where she needs them by themselves, and she walks home a little quicker */
+      V.coach = T.puzzle.coach({
+        idle: () => V.idle, stuck: () => { const q = nextObs(); return q && !L.moving && !met(q) ? Math.min(V.idle, q.waited) : 0; },
+        live: () => V.started && !V.finished && !V.auto, hintAt: () => V.hintAt(), r: 46,
+        tip: '물가의 것을 끌어서 막힌 길 위에 놓아요', solve: () => { V.auto = true; held = -1; helpers.forEach((h) => { h.held = false; }); },
+      });
     };
     V.done = function () { V.start(); return V.promise; };
     V.enter = function (S) { V.S = S; snapCam(); };
@@ -271,6 +278,7 @@
     }
     V.pointer = function (type, x, y) {
       if (!V.started || V.finished) return false;
+      if (V.coach && V.coach.pointer(type, x, y)) return true;
       if (type === 'down') {
         const i = hitHelper(x, y);
         if (i >= 0) { pick(i); held = i; dragDx = helpers[i].x - (x + V.camX); moved = false; ptrX = x; helpers[i].go = null; helpers[i].held = true; }
@@ -287,7 +295,9 @@
     };
     V.key = function (key) {
       if (!V.started || V.finished) return false;
+      if (V.coach && V.coach.key(key)) return true;
       if (key >= '1' && key <= String(helpers.length)) { pick(+key - 1); return true; }
+      if (key === ' ' || key === 'Enter') { pick((sel + 1) % helpers.length); return true; }   /* the next thing on the bank, round and round */
       if ((key === 'ArrowLeft' || key === 'ArrowRight') && sel >= 0) { nudge(key === 'ArrowLeft' ? -1 : 1); return true; }
       return false;
     };
@@ -313,6 +323,11 @@
     /* ---------- time passing ---------- */
     V.update = function (dt, S) {
       V.idle += dt; V.amp = Math.max(0, V.amp - dt * 0.5);
+      if (V.coach) V.coach.update(dt);
+      if (V.auto && V.started && !V.finished) {   /* skipped: whatever she needs next goes there of itself */
+        const n = nextNeed(), h = n && helpers[n.h];
+        if (h && h.go == null && !h.held) { const to = clampX(n.tx); if (Math.abs(to - h.x) > 0.5) { sel = n.h; if (h.kind === 'bean') h.run = 0; h.go = to; } }
+      }
       if (V.sky) V.sky.update(dt);
       for (const h of helpers) {
         h.pop = Math.max(0, h.pop - dt * 1.8);
@@ -345,7 +360,7 @@
         burst(L.x + 40, GROUND - 40, '#fff6e6');
       }
       const happy = b && b.run > 0;
-      const v = L.v * (happy ? 1.12 : 1) * (o.speed || 1);
+      const v = L.v * (happy ? 1.12 : 1) * (o.speed || 1) * (V.auto ? 1.8 : 1);
       const step = Math.max(0, Math.min(v * dt, limit - L.x));
       const was = L.moving;
       L.moving = step > 0.01;
@@ -840,11 +855,13 @@
         let line = o.caption || lv.caption;
         if (waiting) { const miss = q.needs.filter((k) => !has(q, k)); line = SAY[miss.length > 1 ? miss.join('+') : miss[0]] || SAY[miss[0]]; }
         else if (bean() && bean().run > 0) line = named('빈의 그림자가 릴리 곁을 따라 걸어요');
-        else if (V.idle > 6 && sel < 0) line = '끌어서 옮기거나, 숫자 키로 고르고 좌우 화살표로 옮겨요';
         T.band(g, 1);
-        P.text(g, line, 0, 866, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.95, glow: 'rgba(8,12,22,0.9)', fit: W - 120 });
+        P.text(g, waiting || V.auto ? line : T.puzzle.withKeys(line, 'move'), 0, 866, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.95, glow: 'rgba(8,12,22,0.9)', fit: W - 120 });
         if (line !== V.said) { V.said = line; T.announce(line); }
-        if (V.idle > 9 || (waiting && q.waited > 7 && V.idle > 4)) { const h = V.hintAt(); if (h) P.beacon(g, h[0], h[1], 46, t, 1, '#fff0c8'); }
+        /* the glow: after the usual while, or sooner once she has been kept waiting */
+        if (waiting && q.waited > 7 && V.idle > 4 && V.coach.glowA < 0.5 && !V.auto) { const h = V.hintAt(); if (h) P.beacon(g, h[0], h[1], 46, t, 1, '#fff0c8'); }
+        if (!V.auto) V.coach.glow(g, t, 1, 46);
+        V.coach.draw(g, t);
       } else if (V.finished) {
         /* the arrival line stands alone: once someone speaks it gives the bottom of the screen to them */
         const cur = T.director && T.director.cur, talking = !!(cur && cur.X && cur.X.TALK && cur.X.TALK.cur);

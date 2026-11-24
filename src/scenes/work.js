@@ -107,6 +107,10 @@
     };
     G.next = () => (G.done || G.rest > 0 ? null : G.side ? 'ArrowRight' : 'ArrowLeft');
     G.hintAt = () => [G.side ? 330 : -330, 470];
+    G.keys = 'sides';
+    G.tip = '빛나는 화살표 쪽을 눌러요. 왼쪽, 오른쪽 번갈아';
+    /* skipped: the last strokes go through, and the cut log drops */
+    G.solve = function () { G.i = G.logs; G.n = G.strokes; G.rest = 1; leo.pose = null; T.audio.sfx('knock', 0.3); G.finish(1.0); };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       const z = zoom(), yb = base(), o0 = scr(X0, yb), top = logTop() - yb, bot = top + 28, RL = rightLen();
@@ -145,7 +149,9 @@
       for (const d of [0, 1]) {
         const on = G.side === d && G.rest <= 0, x = d ? 330 : -330, k = on ? 1 + 0.08 * Math.sin(t * 6) : 1;
         g.save(); g.translate(x, 470); g.scale((d ? 1 : -1) * k, k); g.globalAlpha = G.a * (on ? 0.9 : 0.22);
-        P.fill(g, P.poly([[-34, -22], [10, -22], [10, -44], [52, 0], [10, 44], [10, 22], [-34, 22]]), '#fff0c8');
+        const arrow = P.poly([[-34, -22], [10, -22], [10, -44], [52, 0], [10, 44], [10, 22], [-34, 22]]);
+        g.strokeStyle = 'rgba(48,44,78,0.6)'; g.lineWidth = 5; g.lineJoin = 'round'; g.stroke(arrow);   /* an edge, so it shows on a pale sky */
+        P.fill(g, arrow, '#fff0c8');
         g.restore();
       }
       G.hintRing(g, t);
@@ -481,6 +487,11 @@
     };
     return G;
   };
+
+  /* everyone on the rope (Z.heave, above) gets the same help as every puzzle, through the frame; this is its
+     line for the second step, kept out here so the rope itself can change freely */
+  const heave0 = Z.heave;
+  Z.heave = function (o) { const G = heave0(o); if (G.tip == null) G.tip = '「셋!」 소리가 들릴 때 맞춰 눌러요'; return G; };
 })();
 
 /* ---------- cooking her stew, at his own stove on the hill ----------
@@ -601,6 +612,10 @@
     };
     G.next = () => { if (G.done || G.bend > 0) return null; if (!G.on) return '1'; const b = band(); return G.heat > b[0] + 0.02 && G.heat < b[1] - 0.02 ? '1' : null; };
     G.hintAt = () => { const a = o.at(); return [a[0], a[1] - 60 * a[2]]; };
+    G.keys = 'act';
+    G.tip = '눌러서 김을 쬐고, 노란 눈금이 초록 칸에 들면 또 눌러요';
+    /* skipped: every plank comes out of the steam at the right moment, and is laid round the ribs */
+    G.solve = function () { G.on = false; G.heat = 0; G.bend = 0; G.crack = 0; G.i = o.bands.length; T.audio.sfx('knock', 0.5); T.audio.promise(); G.finish(1.2); };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       const a = o.at(), s = a[2], x = a[0], y = a[1];
@@ -639,7 +654,8 @@
     const seq = () => o.rounds[Math.min(G.r, o.rounds.length - 1)];
     async function show(sec) { G.phase = 'show'; G.peek = 1; await G.clock.wait(sec); G.clock.tween(G, 'peek', 0, 0.6); G.phase = 'knit'; G.idle = 0; }
     G.start = () => show(o.show || 3);
-    G.hit = (x, y) => { const a = o.at(), s = a[2]; for (let n = 0; n < 4; n++) if (Math.hypot(x - (a[0] + (n - 1.5) * 110 * s), y - (a[1] + 150 * s)) < 46 * s) return n; return -1; };
+    const ball = (n) => { const a = o.at(), s = a[2]; return [a[0] + (n - 1.5) * 110 * s, a[1] + 150 * s]; };
+    G.hit = (x, y) => { let best = -1, bd = Math.max(54, 50 * o.at()[2]); for (let n = 0; n < 4; n++) { const q = ball(n), d = Math.hypot(x - q[0], y - q[1]); if (d < bd) { bd = d; best = n; } } return best; };
     G.tap = function (n) {
       if (G.phase !== 'knit' || n > 3) return;
       G.idle = 0;
@@ -652,6 +668,11 @@
     };
     G.next = () => (G.phase === 'knit' && !G.done ? String(seq()[G.i] + 1) : null);
     G.hintAt = () => { if (G.phase !== 'knit') return null; const a = o.at(), s = a[2]; return [a[0] + (seq()[G.i] - 1.5) * 110 * s, a[1] + 150 * s]; };
+    G.keys = () => (G.phase === 'knit' ? 'pick' : null);
+    G.tip = '보여 준 줄무늬 차례대로 실타래를 눌러요'; G.hintR = 54;
+    G.spots = () => (G.phase !== 'knit' ? [] : [0, 1, 2, 3].map((n) => { const q = ball(n); return [n, q[0], q[1], 40 * o.at()[2]]; }));
+    /* skipped: the last stripes are knitted from memory, as they were */
+    G.solve = function () { G.r = o.rounds.length; G.rows = seq().slice(); G.i = G.rows.length; G.phase = 'pause'; G.peek = 0; T.audio.sfx('crayon'); T.audio.promise(); G.finish(1.2); };
     G.draw = function (g, t) {
       if (G.a < 0.005) return;
       const a = o.at(), s = a[2], sq = seq();

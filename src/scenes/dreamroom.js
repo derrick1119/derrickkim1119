@@ -170,7 +170,20 @@
       pos = settle(B, B.toks.map((q) => q.p), 0).pos;
       anim = null; busy = false; idle = 0;
     }
-    D.solve = function () { load(0); return new Promise((res) => { D.gq = { res, done: false }; }); };
+    let stuckN = 0, skipping = false;
+    D.solve = function () {
+      load(0); stuckN = 0; skipping = false;
+      return new Promise((res) => {
+        const q = (D.gq = { res, done: false });
+        /* the help every puzzle has; a room jammed shut counts as a slip. Skipped, the room comes right of itself
+           and the dream goes on, as it does when the last of them is out of the door */
+        q.coach = T.puzzle.coach({
+          idle: () => idle, misses: () => stuckN, live: () => D.gq === q && !q.done && !skipping && D.fall.k >= 1, hintAt: () => D.hintAt(), r: 60,
+          tip: '왼쪽이나 오른쪽을 눌러 방을 돌려요',
+          solve: () => { skipping = true; anim = null; busy = true; say = ''; T.audio.promise(); fade(0, 0.9).then(() => { q.done = true; busy = false; q.res(); }); },
+        });
+      });
+    };
     function turn(dr) {
       if (!D.gq || D.gq.done || busy) return;
       busy = true; idle = 0; say = '';
@@ -191,27 +204,30 @@
       if (pos.every((p) => !p)) {
         T.audio.promise(); busy = true;
         fade(0, 0.9).then(() => {
+          if (skipping) return;
           if (round + 1 < BOARDS.length) { load(round + 1); return fade(1, 0.9); }
           D.gq.done = true; busy = false; D.gq.res();
         });
         return;
       }
       if (plan(B, r, pos) == null) {
-        say = '방이 꽉 막혔어요. 꿈이 처음으로 돌아가요'; sayT = 2.4; busy = true;
-        fade(0, 0.7).then(() => { load(round); return fade(1, 0.7); });
+        say = '방이 꽉 막혔어요. 꿈이 처음으로 돌아가요'; sayT = 2.4; busy = true; stuckN++;
+        fade(0, 0.7).then(() => { if (skipping) return; load(round); return fade(1, 0.7); });
         return;
       }
       busy = false;
     }
     D.update = function (dt) {
       idle += dt; sayT = Math.max(0, sayT - dt); sparkle = Math.max(0, sparkle - dt * 1.4);
+      if (D.gq && D.gq.coach) D.gq.coach.update(dt);
       for (let i = tw.length - 1; i >= 0; i--) { const q = tw[i]; q.t += dt; D.room.k = T.lerp(q.from, q.to, T.ease.io(T.clamp(q.t / q.dur))); if (q.t >= q.dur) { tw.splice(i, 1); q.res(); } }
       if (!anim) return;
       anim.t += dt;
       if (anim.kind === 'turn') { const k = T.ease.io(T.clamp(anim.t / anim.dur)); ang = T.lerp(anim.from, anim.to, k); if (anim.t >= anim.dur) { ang = anim.to; r = anim.r2; afterTurn(); } }
       else if (anim.t >= anim.dur) afterSlide();
     };
-    D.pointer = function (type, x) {
+    D.pointer = function (type, x, y) {
+      if (D.gq && D.gq.coach && D.gq.coach.pointer(type, x, y)) return true;
       if (!D.gq || D.gq.done || type !== 'down') return false;
       if (busy) return true;
       turn(x < 0 ? -1 : 1);
@@ -219,6 +235,7 @@
     };
     D.key = function (key) {
       if (!D.gq || D.gq.done) return false;
+      if (D.gq.coach && D.gq.coach.key(key)) return true;
       if (key === 'ArrowLeft' || key === '1') { turn(-1); return true; }
       if (key === 'ArrowRight' || key === '2') { turn(1); return true; }
       return false;
@@ -381,12 +398,13 @@
       }
       if (solving) {
         arrows(g, t, busy ? 0.45 : 1);
-        if (idle > 9 && !busy) { const h = D.hintAt(); if (h) P.beacon(g, h[0], h[1], 60, t, 1, '#fff0c8'); }
+        if (!busy) D.gq.coach.glow(g, t, 1, 60);
         T.band(g, 1);
         const cap = sayT > 0 ? say : round === 2 ? '빈의 공도 같이 내보내 주세요. 왼쪽·오른쪽을 눌러 방을 돌려요' : round === 1 ? '이번엔 아빠랑 릴리, 둘이 같이 문 밖으로. 방을 돌리면 떠 있는 것은 모두 미끄러져요' : '꿈속의 방이 기울어져 있어요. 왼쪽·오른쪽을 눌러 방을 돌려, 아빠 인형을 문 밖 꽃길로 내보내세요';
-        P.text(g, cap, 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
+        P.text(g, sayT > 0 ? cap : T.puzzle.withKeys(cap, 'sides'), 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
         for (let i = 0; i < BOARDS.length; i++) P.fill(g, P.circle(-((BOARDS.length - 1) * 26) / 2 + i * 26, 806, 7), i < round ? '#ffd98a' : i === round ? '#fbf6ff' : 'rgba(251,246,255,0.35)');
       }
+      if (D.gq && D.gq.coach) D.gq.coach.draw(g, t);
     };
     D.BOARDS = BOARDS; D.plan = () => (B ? plan(B, r, pos) : null);
     return D;

@@ -251,7 +251,8 @@
     V.ensure = function () { if (!V.L || V.gen !== T.gen) { V.L = V.bake(); V.gen = T.gen; } };
     V.build = function () { V.L = null; };   /* the stage calls this after a resize: paint again on the next frame */
     V.blit = function (g, name, depth, dx, dy) { const L = V.L[name]; if (!L) return; const p = T.par(depth); T.blit(g, L, p[0] + (dx || 0), p[1] + (dy || 0)); };
-    V.caption = function (g) { if (!V.note) return; T.band(g, 1); P.text(g, V.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' }); };
+    /* the line at the foot of the screen; while something is to be done in the place, its keys after it (V.noteKeys) */
+    V.caption = function (g) { if (!V.note) return; T.band(g, 1); P.text(g, T.puzzle.withKeys(V.note, V.noteKeys), 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' }); };
     return V;
   }
 

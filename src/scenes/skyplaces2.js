@@ -325,8 +325,10 @@
       for (const n of c.phr) { A.note({ m: n[0], at, vel: vel || 0.36, voice: 'hum', dur: Math.max(0.55, n[1] * BEAT * 1.15) }); at += n[1] * BEAT; }
     }
     V.find = function () {
-      V.finding = true; V.picked = null; V.tries = 0; V.idle = 0;
+      V.finding = true; V.picked = null; V.tries = 0; V.idle = 0; V.focus = -1; V.noteKeys = 'pick';
       V.note = '빛을 눌러 들어 보세요. 아나가 릴리에게 불러 주던 노래를 찾아요';
+      /* the help every puzzle has; skipped, the right light sings and comes down, as it does when it is found */
+      V.coach = T.puzzle.coach({ idle: () => V.idle, misses: () => V.tries, live: () => V.finding && !V.picked, hintAt: () => V.hintAt(), r: 44, tip: '빛을 하나씩 눌러 노래를 들어 봐요', solve: () => tap(V.answer) });
       return new Promise((res) => { V.foundRes = res; });
     };
     function tap(i) {
@@ -336,7 +338,7 @@
       if (!playing) hum(i);   /* already singing (the pointer rested on it): let it finish, do not start it over */
       if (c.right) {
         V.picked = { i, phase: 'hum', t0: playing ? c.song : V.t };
-        V.note = null;
+        V.note = null; V.noteKeys = null; V.focus = -1;
         return;
       }
       c.sway = 1; V.tries++;
@@ -351,6 +353,8 @@
     let hov = -1, hovT = 0;
     V.pointer = function (type, x, y) {
       if (!V.finding || V.picked) { hov = -1; return false; }
+      if (V.coach && V.coach.pointer(type, x, y)) return true;
+      if (type === 'down') V.focus = -1;
       const i = hit(x, y);
       if (type === 'move') { if (i !== hov) { hov = i; hovT = 0; } T.cursor(i >= 0 ? 'pointer' : 'default'); return i >= 0; }
       if (type === 'down' && i >= 0) { tap(i); return true; }
@@ -358,7 +362,16 @@
     };
     V.key = function (key) {
       if (!V.finding || V.picked) return false;
-      if (key >= '1' && key <= '4') { tap(+key - 1); return true; }
+      if (V.coach && V.coach.key(key)) return true;
+      if (key >= '1' && key <= '4') { V.focus = -1; tap(+key - 1); return true; }
+      /* ← → go along the lights, left to right; Space / Enter listens to the one the ring is on */
+      const act = key === ' ' || key === 'Enter';
+      if (key === 'ArrowLeft' || key === 'ArrowRight' || (act && V.focus < 0)) {
+        const order = [0, 1, 2, 3].sort((a, b) => candScreen(a)[0] - candScreen(b)[0]), i = order.indexOf(V.focus), d = key === 'ArrowLeft' ? -1 : 1;
+        V.focus = order[i < 0 ? (d > 0 ? 0 : 3) : (i + d + 4) % 4]; V.idle = 0; AU().sfx('step');
+        return true;
+      }
+      if (act) { tap(V.focus); return true; }
       return false;
     };
     V.want = () => (V.finding && !V.picked ? 'key:' + (V.answer + 1) : V.finding ? 'busy' : null);
@@ -369,6 +382,7 @@
 
     V.update = function (dt) {
       V.t += dt; V.idle += dt;
+      if (V.coach) V.coach.update(dt);
       V.stepWalkers(dt);
       const g0 = layout(), A = AU();
       for (const c of C) { c.sway = Math.max(0, c.sway - dt * 0.5); }
@@ -482,12 +496,16 @@
       /* the one in his hands */
       const h = V.held;
       if (h && h.a > 0.01) { g.save(); g.globalAlpha = h.a; husk(g, h.x, h.y, C[V.answer].col, 1.1, t, 9); steam(g, h.x, h.y - 16, t, 0.8); g.restore(); }
-      if (V.finding && !V.picked && V.idle > (V.tries >= 2 ? 5 : 10)) { const q = lightPos(g0.cand[V.answer], tt); P.beacon(g, q[0], q[1], 44, t, T.clamp((V.idle - 5) / 2), '#fff0c8'); }
       g.restore();
+      if (V.finding && !V.picked && V.coach) {   /* the help, on the screen (the lights' places already have the parallax in them) */
+        V.coach.glow(g, t, 1, 44);
+        if (V.focus >= 0) { const q = candScreen(V.focus); T.puzzle.focusRing(g, q[0], q[1], 40, t, 1); }
+      }
       V.blit(g, 'front', 1.2, Math.sin(t * 0.3) * 4);
       for (const f of flies) if (f.front) { const a = 0.5 + 0.5 * Math.sin(t * 2 + f.ph * 3); P.glow(g, f.x * 1.1, f.y + 20, 14, '#e8ffb0', 0.5 * a); P.glow(g, f.x * 1.1, f.y + 20, 3, '#ffffff', 0.8 * a); }
       if (V.fade.a < 1) { g.fillStyle = T.rgba('#151a36', 1 - V.fade.a); g.fillRect(-W / 2, 0, W, 900); }
       V.caption(g);
+      if (V.coach) V.coach.draw(g, t);
     };
     /* a lantern-fruit: a papery husk, glowing from inside */
     function husk(g, x, y, c, k, t, seed) {
@@ -748,7 +766,7 @@
       if (!V.catching || V.caught) return;
       V.idle = 0;
       if (L.mark === 'star') {
-        V.caught = L; L.phase = 'caught'; L.k = 0; L.from = [L.x, L.y]; V.note = null;
+        V.caught = L; L.phase = 'caught'; L.k = 0; L.from = [L.x, L.y]; V.note = null; V.noteKeys = null;
         AU().sfx('paper'); AU().sfx('join');
         return;
       }
@@ -759,12 +777,15 @@
     let hov = null;
     V.catchLetter = function () {
       layout();
-      V.catching = true; V.caught = null; V.idle = 0; V.misses = 0;
+      V.catching = true; V.caught = null; V.idle = 0; V.misses = 0; V.noteKeys = 'act';
       V.note = '날아다니는 편지 가운데, 크레파스 별이 그려진 걸 눌러 잡아요';
+      /* the help every puzzle has; skipped, Lily's letter comes to his hand as if he had caught it */
+      V.coach = T.puzzle.coach({ idle: () => V.idle, misses: () => V.misses, live: () => V.catching && !V.caught, hintAt: () => V.hintAt(), r: 46, tip: '별 그림 편지가 레오 손 가까이 올 때 눌러요', solve: () => { const L = layout().loops.find((q) => q.mark === 'star' && q.phase === 'fly'); if (L) grab(L); } });
       return new Promise((res) => { V.caughtRes = res; });
     };
     V.pointer = function (type, x, y) {
       if (!V.catching || V.caught) { hov = null; return false; }
+      if (V.coach && V.coach.pointer(type, x, y)) return true;
       const L = nearest(x, y, 62);
       if (type === 'move') { hov = L; T.cursor(L ? 'pointer' : 'default'); return !!L; }
       if (type === 'down' && L) { grab(L); return true; }
@@ -775,6 +796,7 @@
     const reachable = () => { let best = null, bd = 96; for (const L of layout().loops) { const d = inReach(L); if (L.phase === 'fly' && d < bd) { bd = d; best = L; } } return best; };
     V.key = function (key) {
       if (!V.catching || V.caught) return false;
+      if (V.coach && V.coach.key(key)) return true;
       if (key !== ' ' && key !== 'Enter') return false;
       const L = reachable();
       if (L) grab(L); else V.reach = 1;
@@ -790,6 +812,7 @@
 
     V.update = function (dt) {
       V.t += dt; V.idle += dt; V.reach = Math.max(0, (V.reach || 0) - dt * 2);
+      if (V.coach) V.coach.update(dt);
       V.stepWalkers(dt);
       const g0 = layout(), A = AU();
       for (const L of g0.loops) {
@@ -887,12 +910,13 @@
       if (V.catching && !V.caught) {
         const R = g0.R, near = g0.loops.some((L) => inReach(L) < 96);
         if (near || V.reach > 0) { g.save(); g.strokeStyle = T.rgba('#fff6e0', 0.4 + 0.3 * (V.reach || 0)); g.lineWidth = 2; g.setLineDash([4, 7]); g.lineDashOffset = -t * 8; g.beginPath(); g.arc(R[0], R[1], 50, 0, TAU); g.stroke(); g.restore(); }
-        if (V.idle > (V.misses >= 2 ? 5 : 10)) { const L = g0.loops[0]; P.beacon(g, L.x, L.y, 46, t, T.clamp((V.idle - 5) / 2), '#fff0c8'); }
       }
       g.restore();
+      if (V.catching && !V.caught && V.coach) V.coach.glow(g, t, 1, 46);
       V.blit(g, 'front', 1.2, Math.sin(t * 0.25) * 8);
       if (V.fade.a < 1) { g.fillStyle = T.rgba('#fff6e6', 1 - V.fade.a); g.fillRect(-W / 2, 0, W, 900); }
       V.caption(g);
+      if (V.coach) V.coach.draw(g, t);
     };
     return V;
   }
