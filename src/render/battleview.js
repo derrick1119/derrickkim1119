@@ -444,7 +444,7 @@ export class BattleView {
         // 사기는 싸움터 한복판이 아니라 왼쪽 아래 사기 표시 위에서 오른다
         case 'morale': { const p = fx.p.find(q => q.mor && q.t < 0.45); if (p) { p.val += e.n; p.s = '사기 +' + Math.round(p.val * 10) / 10; p.t = Math.min(p.t, 0.1); } else fx.add({ k: 'text', mor: true, val: e.n, x: 132, y: 548, vy: -34, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); } fx.star(e.x, e.y - 30, 11, '#f0d264'); sfx('coin'); break;
         case 'synergy': case 'chase': case 'formation': case 'formLost': out.push(e); break;
-        case 'mail': case 'reinf': case 'spin': case 'decline': out.push(e); break;   // 결재함·원군 슬롯 (ui/dispatch.js)
+        case 'call': fx.ring(e.x, e.y, 40, '#2a2430', 0.5, 4); fx.puff(e.x, e.y - 10, 4, '#3a3440', 10); break;   // 붓으로 부른 병사: 먹이 번지며 선다
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 8, e.boss ? 14 : 4, '#e8dcc0', e.boss ? 20 : 11); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });

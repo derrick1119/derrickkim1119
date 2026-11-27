@@ -27,7 +27,7 @@ export const FEATS = [
   { id: 'relic10', name: '보물 보따리', how: '한 원정에서 보물 열 개를 지닌다', merit: 10, ok: c => c.r.relics.length >= 10 },
   { id: 'legend', name: '전설', how: '전설의 보물을 얻는다', merit: 15, ok: c => c.n.legend >= 1 },
   { id: 'cursed', name: '도깨비와 한통속', how: '부정 셋을 지고 평정한다', merit: 25, ok: c => c.win && c.n.curses >= 3 },
-  { id: 'thin', name: '날랜 덱', how: '덱 열두 장 이하로 평정한다', merit: 25, ok: c => c.win && c.r.deck.length <= 12 },
+  { id: 'thin', name: '날랜 군대', how: '병사 명부 열둘 이하로 평정한다', merit: 25, ok: c => c.win && c.r.deck.length <= 12 },
   { id: 'fat', name: '큰 살림', how: '한 원정에서 덱이 서른 장을 넘는다', merit: 10, ok: c => c.r.deck.length >= 30 },
   { id: 'promo4', name: '무예도보', how: '한 원정에서 병력 넷을 승급한다', merit: 15, ok: c => c.n.branches >= 4 },
   { id: 'lv9', name: '백전노장', how: '병력 하나를 9단까지 올린다', merit: 15, ok: c => c.n.unitMax >= 9 },

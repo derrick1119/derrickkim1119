@@ -63,17 +63,17 @@ function spotFor(b, c, foes, mine, sharp) {
   return null;
 }
 function command(b) {
-  if (mode === 'auto') { for (const m of [...b.mail]) b.approve(m.id); if (b.canRequest()) b.request(); return; } // 무조작: 원군만 청하고 모두 윤허한다
+  // 붓으로 병사를 부른다: 앞엔 근접, 뒤엔 활·치유 (봇은 한 명씩 자리를 골라 세운다)
+  const callOne = () => { const e = b.roster.filter(q => q.left > 0).sort((p, q) => q.left - p.left)[0]; if (!e) return false; const t = spotFor(b, { id: e.c.id }, [], [], true), sq = b.call(e, t.x, t.y); if (sq) used_.call = (used_.call || 0) + 1; return !!sq; };
+  if (mode === 'auto') { if (b.canCall() && b.callCost() === 0) callOne(); return; } // 무조작: 공짜일 때만 부른다
   const foes = b.units.filter(u => !u.dead && u.team === 1 && u.hidden <= 0 && u.x < VIEW.x1), mine = b.units.filter(u => !u.dead && u.team === 0 && !u.temp && !u.def.structure);
   const sharp = mode !== 'casual';
   if (!sharp && b.rand() < 0.4) return;
   // 두목의 수에 맞서기: 소품(종·여의주·업경대·명부 든 사자)이 서면 원거리 부대를 붙이고, 홀린 부대는 깨운다. 서툰 봇은 셋에 한 번만 알아챈다
   if (sharp || b.rand() < 0.34) { const p = b.squads.find(q => q.team === 1 && q.alive > 0 && q.def.prop && !(q.units[0].ai && q.units[0].ai.rest > b.time)); for (const q of b.playerSquads()) { if (q.units.some(u => u.charm > 0)) b.orderAuto(q); if ((q.def.range && !q.def.heal) || (p && sharp && !q.hero && p.type !== 'bell' && Math.hypot(q.cx - p.cx, q.cy - p.cy) < 260)) { if (p) { if (q.order.target !== p) b.orderFocus(q, p); } else if (q.order.kind === 'focus' && q.order.target && q.order.target.def.prop) b.orderAuto(q); } } }
-  // 원군 장계는 윤허한다 (능숙한 봇은 사기가 넉넉할 때 보통 병사를 물리고 다시 청해 본다)
-  for (const m of [...b.mail]) { if (sharp && m.tier === 'common' && !m.elite && b.morale >= 7 && b.squadCount() >= 2 && b.rand() < 0.3) { b.decline(m.id); used_.decline = (used_.decline || 0) + 1; } else if (b.approve(m.id)) { used_['reinf_' + m.tier] = (used_['reinf_' + m.tier] || 0) + 1; return; } }
-  // 원군을 먼저 청한다. 전술은 원군 청할 사기를 남겨 두고 쓴다 (한도까지 찼으면 마음껏)
-  if (b.canRequest() && (foes.length || b.squadCount() < 2)) { b.request(); used_.request = (used_.request || 0) + 1; return; }
-  const keep = b.squadCount() + b.mail.length + b.coming.length >= b.cap ? 0 : sharp ? 2 : 2.5;
+  // 준비 중(공짜)엔 가득 부르고, 싸움 중엔 요괴가 있을 때 사기를 내고 부른다
+  if (b.canCall() && (b.callCost() === 0 || foes.length)) { if (callOne()) return; }
+  const keep = 0;
   for (let i = 0; i < HAND; i++) {
     const c = b.hand[i]; if (!c || isUnit(c) || !b.canPlay(i)) continue;
     if (b.morale < b.costOf(c) + keep) continue;

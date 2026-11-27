@@ -172,7 +172,7 @@ class PlaceScene extends Overlay {
     // 현판·엽전·덱 단추는 막보다 위에 (막이 걷히는 동안에도 보인다)
     hangSign(g, 640, 8, cf.title, { w: Math.max(240, cf.title.length * 30 + 80), h: 50, size: 26, rope: false });
     panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (!this.pick && button(g, 'plDeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    if (!this.pick && button(g, 'plDeck', 14, 12, 220, 52, `병사 명부 · ${r.deck.length}`, { style: 'wood', size: 21 })) this.deck({});
     if (this.pick) this.drawPick(g, dt);
   }
   // 고르기 창: 패 고르기(cards) · 시험(quiz)
@@ -415,10 +415,10 @@ class SeodangScene extends PlaceScene {
   acts() {
     const r = G.run, gold = c => r.gold < c ? `엽전 ${c} 부족` : null, d = id => this.done[id] ? '이번에는 했습니다' : null;
     return [
-      { id: 'study', label: '글을 익힌다', cost: PLACE_COST.study, sub: '전술 패 하나를 익힌다 (+)', why: () => d('study') || (r.deck.some(c => !isUnit(c) && canUp(c)) ? null : '익힐 전술 패가 없다') || gold(PLACE_COST.study),
-        go: () => this.deck({ mode: 'up', title: '익힐 전술 패', filter: c => !isUnit(c), onPick: uid => { const s = place.study(uid); this.sub = null; if (!s) return; this.done.study = 1; sfx('star'); this.say('그렇지! 한 번 익힌 것은 잊지 않는 법이야.'); this.show('훈장에게 글을 배웠습니다', [s]); } }) },
-      { id: 'read', label: '병법서를 읽는다', sub: '패 하나를 덜어 내고, 새 전술 패 셋 중 하나', why: () => d('read') || (r.deck.length > 6 ? null : '덱이 너무 얇다'),
-        go: () => this.deck({ mode: 'burn', title: '덜어 낼 패', onPick: uid => { this.sub = null; const opts = place.readOffer(); if (!opts.length) return; this.pick = { kind: 'cards', title: '병법서에서 고른 수', sub: '셋 중 하나를 익혀 덱에 넣습니다', opts: opts.map(id => ({ id })), cancel: false, onPick: i => { const out = place.read(uid, opts[i]); if (!out) return; this.done.read = 1; this.say('옛 병법에 길이 있지. 잘 골랐네.'); this.show('병법서를 읽었습니다', out); } }; } }) },
+      { id: 'study', label: '글을 익힌다', cost: PLACE_COST.study, sub: '병사 하나 +1단', why: () => d('study') || (r.deck.some(c => isUnit(c) && canUp(c)) ? null : '더 오를 병사가 없다') || gold(PLACE_COST.study),
+        go: () => this.deck({ mode: 'up', title: '글을 익힐 병사', filter: c => isUnit(c), onPick: uid => { const s = place.study(uid); this.sub = null; if (!s) return; this.done.study = 1; sfx('star'); this.say('그렇지! 한 번 익힌 것은 잊지 않는 법이야.'); this.show('훈장에게 글을 배웠습니다', [s]); } }) },
+      { id: 'read', label: '병법서를 읽는다', sub: '병사 하나를 내보내고, 새 병력 셋 중 하나', why: () => d('read') || (r.deck.length > 6 ? null : '병사가 너무 적다'),
+        go: () => this.deck({ mode: 'burn', title: '내보낼 병사', onPick: uid => { this.sub = null; const opts = place.readOffer(); if (!opts.length) return; this.pick = { kind: 'cards', title: '병법서에서 찾은 장정', sub: '셋 중 하나를 명부에 올립니다', opts: opts.map(id => ({ id })), cancel: false, onPick: i => { const out = place.read(uid, opts[i]); if (!out) return; this.done.read = 1; this.say('옛 병법에 길이 있지. 잘 골랐네.'); this.show('병법서를 읽었습니다', out); } }; } }) },
       { id: 'quiz', label: '훈장의 시험', sub: '옛이야기 문제를 맞히면 엽전 +40, 공적 +3', why: () => d('quiz'),
         go: () => { const q = place.quiz(); this.done.quiz = 1; this.say('자, 그동안 들은 이야기를 얼마나 기억하나 보세.'); this.pick = Object.assign({ kind: 'quiz', ans: -1, onDone: ok => { if (ok) { const out = place.quizWin(); this.say('옳거니! 이야기를 귀담아들었구먼.'); this.show('훈장의 시험에 붙었습니다', out); } else { this.say('허허, 주막에서 이야기를 더 들어 보게.'); this.show('훈장의 시험에 떨어졌습니다', ['훈장이 혀를 찹니다']); } } }, q); } },
     ];
@@ -521,8 +521,8 @@ class GambleScene extends PlaceScene {
     return [
       { id: 'bet', label: '투전 한 판', cost: PLACE_COST.bet, sub: `이길 확률 ${Math.round(BET_WIN * 100)}% · 이기면 엽전 ${PLACE_COST.bet * 2}`, why: () => (this.rounds >= 3 ? '오늘은 세 판까지만' : null) || (r.gold < PLACE_COST.bet ? `엽전 ${PLACE_COST.bet} 부족` : null),
         go: () => { const win = place.bet(); this.rounds++; const me = win ? 4 + ((Math.random() * 6) | 0) : 1 + ((Math.random() * 5) | 0), you = win ? 1 + ((Math.random() * (me - 1)) | 0) : Math.min(9, me + 1 + ((Math.random() * (9 - me)) | 0)); this.deal = { t: 0, win, me, you }; sfx('card'); } },
-      { id: 'wager', label: '도깨비와 내기', sub: '패 한 장을 건다 · 반반: 보물 하나 / 그 패를 잃는다', why: () => d('wager') || (r.deck.filter(c => CARDS[c.id].kind !== 'lead').length && r.deck.length > 6 ? null : '걸 패가 없다'),
-        go: () => { this.say('뭘 걸 테야? 이기면 내 보물 하나 주지!'); this.deckPick('걸 패 고르기', '이기면 보물 하나, 지면 이 패를 도깨비가 가져갑니다 (반반)', c => CARDS[c.id].kind !== 'lead', c => { const res = place.wager(c.uid); if (!res) return; this.done.wager = 1; this.shake = 0.8; if (res.win) { sfx('star'); juice.burst(700, 360, '#f0d264', 16); this.say('에잇, 졌다! 약속은 약속이지.'); this.show('도깨비와의 내기에서 이겼습니다', res.lines); } else { sfx('deny'); this.say('헤헤헤, 이 패는 내 거야!'); this.show('도깨비와의 내기에서 졌습니다', res.lines); } }); } },
+      { id: 'wager', label: '도깨비와 내기', sub: '병사 하나를 건다 · 반반: 보물 하나 / 그 병사를 잃는다', why: () => d('wager') || (r.deck.filter(c => CARDS[c.id].kind !== 'lead').length && r.deck.length > 6 ? null : '걸 패가 없다'),
+        go: () => { this.say('뭘 걸 테야? 이기면 내 보물 하나 주지!'); this.deckPick('걸 병사 고르기', '이기면 보물 하나, 지면 이 병사를 도깨비가 데려갑니다 (반반)', c => CARDS[c.id].kind !== 'lead', c => { const res = place.wager(c.uid); if (!res) return; this.done.wager = 1; this.shake = 0.8; if (res.win) { sfx('star'); juice.burst(700, 360, '#f0d264', 16); this.say('에잇, 졌다! 약속은 약속이지.'); this.show('도깨비와의 내기에서 이겼습니다', res.lines); } else { sfx('deny'); this.say('헤헤헤, 이 패는 내 거야!'); this.show('도깨비와의 내기에서 졌습니다', res.lines); } }); } },
     ];
   }
   scene(g, t, dt) {

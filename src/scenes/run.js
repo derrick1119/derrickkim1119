@@ -15,12 +15,12 @@ import { AFFIX, TWIST, BOSS_VAR } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { WEAPONS } from '../data/weapons.js';
 import { eventView, beastEventView } from '../data/events.js';
-import { Brush, BRUSH_MIN, applyBrush, drawBrushPreview, sealImg } from '../ui/brushform.js';
+import { Brush, BRUSH_MIN, applyBrush, drawBrushPreview, sealImg, applyInk, drawInkPreview } from '../ui/brushform.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES, synLv, synDesc } from '../data/units.js';
 import { HERO_TRAIT2, DAILY_RULES } from '../data/progress.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
-import { portrait, getLook } from '../render/sprites.js';
+import { portrait, getLook, lookOf } from '../render/sprites.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped, foil, goldText, hangSign } from '../ui/ui.js';
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
 import { Coach } from '../ui/coach.js';
@@ -30,7 +30,7 @@ import { FORK_JX, LM_K } from '../render/forkmap.js';
 import { EventScene } from '../ui/roadevent.js';
 import { PLACE_SCENES, PlaceScene } from '../ui/places2.js';
 import { PromoOverlay } from '../ui/promote.js';
-import { Dispatch, TRAY, drawTray, drawRoster, drawPeek } from '../ui/dispatch.js';
+import { drawReserve, inkMode } from '../ui/reserve.js';
 import { FORMS, FORM_DIAG, FORM_ORDER } from '../data/formations.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted, bgm } from '../audio.js';
@@ -53,7 +53,7 @@ export class RunScene {
     this.b = new Battle(battleSetup()); for (const u of this.b.units) u.born = -9; this.view = new BattleView(chapterOf(r.ch).theme, r.ch * 31 + 7);
     this.T = 0; this.dt = 0; this.speed = 1; this.slow = 1; this.menu = false; this.over = null; this.sub = null;
     this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0; this.joinQ = [];
-    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.coach = new Coach(); this.disp = new Dispatch(); this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
+    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.coach = new Coach(); this.ink = null; this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     juice.clear();
     if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chFull(r), sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.intermission = { s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
@@ -195,9 +195,9 @@ export class RunScene {
   // ───────── 입력 ─────────
   input(i) {
     const b = this.b, fx = this.view.fx;
-    if (i.pressed && i.y < BAR_Y - 4 && i.y > HUD_H + 4 && i.x > TRAY.w) {
+    if (i.pressed && i.y < BAR_Y - 4 && i.y > HUD_H + 4) {
       if (this.aim && this.aim.armed) this.aim.live = true;
-      else if (!this.aim) { const sq = b.squadNear(i.x, i.y, 0, 48); if (sq && !sq.def.banner) { this.order = { sq, moved: false, target: null }; sfx('click'); }
+      else if (!this.aim) { const inking = inkMode(this, b) !== 'form', sq = inking ? null : b.squadNear(i.x, i.y, 0, 48); if (sq && !sq.def.banner) { this.order = { sq, moved: false, target: null }; sfx('click'); }
         // 빈 땅을 누르면 붓을 든다: 끌어서 그은 획을 따라 진을 친다 (싸움 준비·싸움 중에만)
         else if (!sq && (this.phase === 'prep' || this.phase === 'fight')) this.brush = new Brush(i.x, i.y, performance.now() / 1000); }
     }
@@ -205,11 +205,14 @@ export class RunScene {
     if (br && !br.done) {
       if (i.down) br.add(i.x, i.y, performance.now() / 1000);
       else { br.done = true; this.brush = null;
-        const n = b.formSquads().length;
+        const n = b.formSquads().length, mode = inkMode(this, b);
         if (this.phase !== 'prep' && this.phase !== 'fight') { /* 싸움이 끝난 뒤 손을 뗀 획은 버린다 */ }
+        else if (mode !== 'form' && br.len >= BRUSH_MIN) { const got = applyInk(b, br, mode === 'auto' ? null : mode); br.fade = 1; (this.inked = this.inked || []).push(br); if (this.inked.length > 3) this.inked.shift();
+          if (got) { sfx('place'); sfx('card'); const last = br.pts[br.pts.length - 1]; br.seal = { x: last.x, y: last.y, t: 0 }; fx.txt(last.x, last.y - 70, `${got}명이 섰다`, INK, 24, 0.9); }
+          else { sfx('deny'); this.toast(b.squadCount() >= b.fieldCap() ? `전장에는 병사가 ${b.fieldCap()}명까지 설 수 있습니다` : b.reserveN() ? '사기가 모자랍니다 — 요괴 무리를 물리치면 찹니다' : '이번 싸움에 부를 병사가 남지 않았습니다', 2.4); } }
         else if (br.len >= BRUSH_MIN && n) { const res = applyBrush(b, br); br.fade = 1; (this.inked = this.inked || []).push(br); if (this.inked.length > 3) this.inked.shift(); sfx('order'); sfx('card');
           const last = br.pts[br.pts.length - 1]; br.seal = { x: last.x, y: last.y, t: 0 }; if (res.hero) fx.ring(res.hero.x, res.hero.y, 40, INK, 0.5, 4); }
-        else if (br.len >= BRUSH_MIN && !n) this.toast('진을 칠 병사가 없습니다 — 원군을 먼저 청하세요', 2.2); }
+        else if (br.len >= BRUSH_MIN && !n) this.toast('진을 칠 병사가 없습니다 — 대기 병사를 골라 붓으로 그으세요', 2.2); }
     }
     const o = this.order;
     if (o) {
@@ -225,7 +228,7 @@ export class RunScene {
     const a = this.aim;
     if (a) {
       if (b.hand[a.slot] !== a.card || !b.canPlay(a.slot)) this.aim = null;
-      else if ((a.drag || a.live) && !i.down) { if (i.y < BAR_Y - 8 && i.y > HUD_H + 4 && i.x > TRAY.w && (a.live || i.dragged)) { const y0 = a.slot; if (b.play(a.slot, i.x, i.y)) sfx('card'); this.aim = null; } else { a.drag = false; a.live = false; a.armed = true; } }
+      else if ((a.drag || a.live) && !i.down) { if (i.y < BAR_Y - 8 && i.y > HUD_H + 4 && (a.live || i.dragged)) { const y0 = a.slot; if (b.play(a.slot, i.x, i.y)) sfx('card'); this.aim = null; } else { a.drag = false; a.live = false; a.armed = true; } }
     }
   }
   key(k) {
@@ -239,7 +242,7 @@ export class RunScene {
     const n = '123'.indexOf(k);
     if (n >= 0 && b.hand[n]) { if (this.aim && this.aim.slot === n) this.aim = null; else if (b.canPlay(n)) { this.aim = { slot: n, card: b.hand[n], drag: false, armed: true, live: false }; this.order = null; sfx('click'); } else this.deny(n); }
     else if (k === 'q' || k === 'Q') this.allOrder(true); else if (k === 'e' || k === 'E') this.allOrder(false);
-    else if (k === 'r' || k === 'R') { if (!(this.disp.spin && this.disp.spin.t < 1.2) && b.spin()) sfx('horn'); else sfx('deny'); } else if (k === 'f' || k === 'F') this.speed = this.speed === 1 ? 2 : 1;
+    else if (k === 'r' || k === 'R') { this.ink = this.ink === 'form' ? 'auto' : 'form'; sfx('click'); } else if (k === 'f' || k === 'F') this.speed = this.speed === 1 ? 2 : 1;
   }
   deny(n) { const why = this.b.whyNot(n); sfx('deny'); this.toast(why === 'nobench' ? '이번 싸움에 쓰러진 병사가 없습니다' : why === 'cap' ? `부대는 ${this.b.cap}개까지 세울 수 있습니다` : why === 'hero' ? (CARDS[this.b.hand[n].id].kind === 'lead' ? '영웅은 이미 전장에 있습니다' : '영웅이 전장에 있어야 씁니다') : '사기가 부족합니다', 1.4); }
   allOrder(hold) { const b = this.b, mine = b.squads.filter(q => q.team === 0 && q.alive > 0 && !q.def.banner); for (const q of mine) hold ? b.orderHold(q) : b.orderAuto(q); this.view.fx.txt(640, 330, hold ? '전군 대기!' : '전군 돌격!', hold ? INDIGO : RED, 38, 1); sfx(hold ? 'order' : 'horn'); }
@@ -304,9 +307,9 @@ export class RunScene {
         this.talkTick(dt * ts);
         if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
         settleBattle(b);
-        for (const e of view.handle(b, sfx)) { if (e.type === 'mail' || e.type === 'reinf' || e.type === 'spin') this.disp.event(e, view, b); if (e.type === 'squadLost') { this.routN = (this.routN || 0) + 1; if (e.wpn && loseWeapon(e.uid)) { const wn = WEAPONS[e.wpn] ? WEAPONS[e.wpn].name : '무기'; view.fx.txt(e.x, e.y - 96, `${wn} 부서짐`, '#7a4a2c', 22, 1.4); this.toast(`[${CARDS[e.id].name}] 부대가 무너져 무기 [${wn}]도 잃었습니다`, 3); } } else if (e.type === 'porterDown' || e.type === 'escaped' || e.type === 'rescue' || e.type === 'rescueLost') this.twistEvent(e); else if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'armyDown' && this.phase !== 'over') this.armyDown(); else if (e.type === 'formation') { this.formBanner = { name: e.name, bonus: e.bonus, t: 0 }; sfx('star'); if (!(r.forms || (r.forms = [])).includes(e.id)) r.forms.push(e.id); } else if (e.type === 'synergy') { this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); r.synMax = Math.max(r.synMax || 0, ...Object.values(b.syn).map(v => +v || 0)); } else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardFace(gg, { id: e.id, up: e.up }, x - 46 * s, y - 62 * s, 92 * s, 124 * s), x0: clamp(e.x, 150, 1130), y0: clamp(e.y - 56, HUD_H + 90, BAR_Y - 80), x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 1, s1: 0.22, arc: 90, dur: 0.6, hold: 0.55, onArrive: () => { this.lootT = 1; } }); else this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차(${b.mods.pouch}장) 패를 못 주웠습니다`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        for (const e of view.handle(b, sfx)) { if (e.type === 'squadLost') { this.routN = (this.routN || 0) + 1; if (e.wpn && loseWeapon(e.uid)) { const wn = WEAPONS[e.wpn] ? WEAPONS[e.wpn].name : '무기'; view.fx.txt(e.x, e.y - 96, `${wn} 부서짐`, '#7a4a2c', 22, 1.4); this.toast(`[${CARDS[e.id].name}] 부대가 무너져 무기 [${wn}]도 잃었습니다`, 3); } } else if (e.type === 'porterDown' || e.type === 'escaped' || e.type === 'rescue' || e.type === 'rescueLost') this.twistEvent(e); else if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'armyDown' && this.phase !== 'over') this.armyDown(); else if (e.type === 'formation') { this.formBanner = { name: e.name, bonus: e.bonus, t: 0 }; sfx('star'); if (!(r.forms || (r.forms = [])).includes(e.id)) r.forms.push(e.id); } else if (e.type === 'synergy') { this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); r.synMax = Math.max(r.synMax || 0, ...Object.values(b.syn).map(v => +v || 0)); } else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardFace(gg, { id: e.id, up: e.up }, x - 46 * s, y - 62 * s, 92 * s, 124 * s), x0: clamp(e.x, 150, 1130), y0: clamp(e.y - 56, HUD_H + 90, BAR_Y - 80), x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 1, s1: 0.22, arc: 90, dur: 0.6, hold: 0.55, onArrive: () => { this.lootT = 1; } }); else this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차(${b.mods.pouch}장) 패를 못 주웠습니다`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
-      if (this.phase === 'fight' && !this.emptyWarned) { const am = b.army(); if (am.field === 0 && am.reserve > 0) { this.emptyWarned = true; this.toast('전장에 아군이 없습니다 — 원군을 청하세요 (지금은 사기 없이)', 3.2); sfx('warn'); } }
+      if (this.phase === 'fight' && !this.emptyWarned) { const am = b.army(); if (am.field === 0 && am.reserve > 0) { this.emptyWarned = true; this.toast('전장에 아군이 없습니다 — 붓으로 그어 병사를 부르세요 (지금은 사기 없이)', 3.2); sfx('warn'); } }
       view.fx.update(dt * Math.max(0.35, ts));
       if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.afterWave(); }
       if (this.phase === 'over') { this.endT -= dt; if (this.endT <= 0 && !this.gone) { this.gone = true; nav.go('end', { win: false }); } }
@@ -332,10 +335,8 @@ export class RunScene {
       g.globalAlpha = 1 - Math.abs(this.fade - 0.5) * 2; g.fillStyle = '#f8f0dc'; g.fillRect(0, HUD_H, W, BAR_Y - HUD_H); g.globalAlpha = 1;
     }
     this.drawHud(g, b);
-    drawTray(this, g, b, i, live && this.phase !== 'clear', this.chips);
     const cv = this.curtain;   // 마당이 바뀌는 막이 닫혀 있는 동안은 곁의 표시를 숨긴다
-    if (!cv || cv.t > 2.5) { g.save(); if (cv) g.globalAlpha = clamp((cv.t - 2.5) / 0.4, 0, 1); g.translate(TRAY.w + 6, 0); this.drawSide(g, b); g.restore(); }
-    drawPeek(this, g, b);
+    if (!cv || cv.t > 2.5) { g.save(); if (cv) g.globalAlpha = clamp((cv.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
     if (this.phase === 'prep' && (!cv || cv.t > 2.5)) this.drawPreview(g, b);
     // 진형이 선 순간: 화면 위쪽에 금박 붓글씨로 진의 이름과 힘을 크게 띄운다
     if (this.formBanner) { const fb = this.formBanner; fb.t += this.dt || 0.016; const k = clamp(fb.t / 0.25, 0, 1) * clamp((2.6 - fb.t) / 0.5, 0, 1); if (fb.t > 2.6) this.formBanner = null; else if (k > 0) {
@@ -366,7 +367,7 @@ export class RunScene {
       this.inked = this.inked.filter(br => br.fade > 0); }
     // 긋는 중인 획은 인형들 위에 (붓끝이 잘 보이게), 손을 떼면 땅에 스며들어 인형들 아래로
     const br = this.brush; if (!br) return;
-    br.draw(g, T, 0.92); drawBrushPreview(g, this.b, br, T);
+    br.draw(g, T, 0.92); if (inkMode(this, this.b) === 'form') drawBrushPreview(g, this.b, br, T); else { const m = inkMode(this, this.b); drawInkPreview(g, this.b, br, m === 'auto' ? null : m, T, (gg, e, x, y) => portrait(gg, lookOf(CARDS[e.c.id].unit, e.c.br), x, y, 0.85, T)); }
   }
   drawOrder(g, i) {
     const o = this.order, a = this.aim, T = this.T, b = this.b;
@@ -408,7 +409,7 @@ export class RunScene {
     const am = b.army(), none = am.field === 0 && fight, pulse = none ? 0.6 + 0.4 * Math.sin(T * 8) : 1;
     g.globalAlpha = pulse; icon.people(g, 30, 31, 2, none ? RED : '#8fb6e6'); g.globalAlpha = 1;
     text(g, '남은 병력', 52, 19, { size: 13, fill: '#cfe0f4', align: 'left' });
-    text(g, `전장 ${am.field}명 · 명부 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
+    text(g, `전장 ${am.field}명 · 대기 ${am.reserve}`, 52, 42, { size: 16, font: FONT_B, fill: none ? '#ff9a86' : C.cream, align: 'left', maxW: 186 });
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
     text(g, chName(r) || chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right', maxW: 150 });
@@ -431,13 +432,12 @@ export class RunScene {
     if (iconBtn(g, 'menu', 1206, 13, 60, 38, icon.menu)) this.menu = true;
     // 싸움 중: 전공 조건과 두목 체력
     if (b.sky !== 'day' && (fight || this.phase === 'prep')) { const lit = b.sky === 'night' && b.torch > 0; g.globalAlpha = 0.95; panel(g, 284, 74, lit ? 100 : 60, 28, 'tag'); g.globalAlpha = 1; text(g, lit ? `횃불 ${Math.ceil(b.torch)}초` : SKY[b.sky].name, lit ? 334 : 314, 89, { size: 15, fill: lit ? '#d9702a' : b.sky === 'night' ? '#3d3560' : '#2f6f9a', maxW: 90 }); if (tapped('sky', 284, 74, 100, 28)) this.toast(`${SKY[b.sky].name} — ${SKY[b.sky].desc}`, 4); }
-    this.chips = null;
     if (fight && this.enc) {
       const e = this.enc, cl = b.chaseLeft();
       if (cl < 40) { g.globalAlpha = 0.95; panel(g, 1016, 74, 126, 28, 'tag'); g.globalAlpha = 1; text(g, cl > 0 ? `본대 ${Math.ceil(cl)}초` : '본대 도착!', 1079, 89, { size: 15, fill: cl < 12 ? RED : INK }); }
       // 전공 조건: 한도를 넘기면 분수 대신 넘긴 값만 붉게 쓴다 (✕ 가 이미 실패를 알린다)
       const lostOk = b.waveLost <= e.starDeaths, timeOk = b.waveT <= e.starTime;
-      this.chips = [[lostOk ? `잃은 병사 ${b.waveLost}/${e.starDeaths}` : `잃은 병사 ${b.waveLost}명`, lostOk], [timeOk ? `시간 ${Math.ceil(b.waveT)}/${e.starTime}초` : `시간 ${Math.ceil(b.waveT)}초`, timeOk]];
+      [[lostOk ? `잃은 병사 ${b.waveLost}/${e.starDeaths}` : `잃은 병사 ${b.waveLost}명`, lostOk], [timeOk ? `시간 ${Math.ceil(b.waveT)}/${e.starTime}초` : `시간 ${Math.ceil(b.waveT)}초`, timeOk]].forEach(([s, ok], k) => { const x = 16 + k * 134; g.globalAlpha = 0.95; panel(g, x, 74, 130, 28, 'tag'); g.globalAlpha = 1; if (ok) icon.check(g, x + 15, 88, 0.7, true); else text(g, '✕', x + 15, 89, { size: 15, fill: RED }); text(g, s, x + 74, 89, { size: 15, fill: ok ? INK : RED, maxW: 100 }); });
       const left = b.count(1) + b.pending; g.globalAlpha = 0.95; panel(g, 1150, 74, 114, 28, 'tag'); g.globalAlpha = 1; text(g, `요괴 ${left}`, 1207, 89, { size: 15, fill: RED });
       const boss = b.units.find(u => !u.dead && u.def.boss);
       if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, boss.open > 0 ? '#d9a41e' : RED, { back: '#d9cdb0' }); if (boss.tails !== undefined) for (let n = 1; n < 9; n++) { const tx = 584 + 296 * n / 9; line(g, [tx, 79, tx, 99], INK, 2); } if (boss.tails !== undefined) { if (this.tailsSeen !== boss.tails) { this.tailsSeen = boss.tails; this.tailT = 1.6; } const k = this.tailT > 0 ? (this.tailT -= 1 / 60) : 0, sc = 1 + 0.25 * Math.max(0, k - 1.2) / 0.4; g.save(); g.translate(944, 89); g.scale(sc, sc); panel(g, -48, -17, 96, 34, 'tag'); text(g, `꼬리 ${boss.tails}`, 0, 1, { size: 19, font: FONT_B, fill: RED }); g.restore(); } }
@@ -485,12 +485,12 @@ export class RunScene {
     let yy = y + 60 + rows * 46;
     text(g, `지형 · ${ter.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B }); if (ter.tip) { textBlock(g, ter.tip, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); yy += 56; } else yy += 26;
     if (e.sky !== 'day') { text(g, `하늘 · ${sky.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B, fill: e.sky === 'night' ? '#3d3560' : '#2f6f9a' }); textBlock(g, sky.desc, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); }
-    if (e.boss) this.drawBossTip(g, e, 1); else if (this.toastT <= 0) text(g, '진형을 고칠 틈 — 병사를 옮기고 원군을 미리 청하세요', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
+    if (e.boss) this.drawBossTip(g, e, 1); else if (this.toastT <= 0) text(g, '싸움 준비 — 붓으로 그어 병사를 세우세요 (지금은 사기가 들지 않는다)', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
   }
   // 두목의 수: 이 두목과 어떻게 싸워야 하는지 (싸움이 시작된 뒤에도 잠시 남는다)
   drawBossTip(g, e, a, y = 440) {
     const d = UNITS[e.key]; if (!d || !d.tip || a <= 0) return;
-    const X = 500; g.save(); g.globalAlpha = a * 0.95; panel(g, X, y, 640, 112); g.globalAlpha = a; rr(g, X, y, 8, 112, 4, RED);
+    const X = 300; g.save(); g.globalAlpha = a * 0.95; panel(g, X, y, 640, 112); g.globalAlpha = a; rr(g, X, y, 8, 112, 4, RED);
     text(g, `${d.name} — 이렇게 싸운다`, X + 24, y + 22, { size: 19, font: FONT_B, align: 'left', fill: RED }); textBlock(g, d.tip, X + 24, y + 47, 598, 21, { size: 15.5, align: 'left', weight: 400 }); g.restore();
   }
   drawBar(g, b, i, live) {
@@ -499,17 +499,11 @@ export class RunScene {
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.fieldCap();
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `병사 ${n} / ${b.fieldCap()}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });
-    // 주머니: 남은 전술 패 / 한도. 그 옆의 점은 노획까지 물리칠 무리
-    const stock = this.stock = {}; let pn = 0; for (const c of this.r.deck) if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { stock[c.id] = (stock[c.id] || 0) + 1; pn++; }
-    const cap = b.mods.pouch, lf = this.lootT > 0 ? (this.lootT = Math.max(0, this.lootT - this.dt * 1.6)) : 0;
-    g.save(); g.translate(150, 690); g.scale(1 + lf * 0.35, 1 + lf * 0.35); icon.sack(g, 0, 0, 0.86); g.restore();
-    text(g, `${pn}/${cap}`, 164, 691, { size: 16, font: FONT_B, align: 'left', fill: pn === 0 ? '#f39a82' : pn >= cap ? C.gilt : C.cream });
-    for (let k = 0; k < b.mods.lootEvery; k++) ell(g, 213 + k * 10, 691, 3.6, 3.6, k < b.lootN ? C.gilt : 'rgba(6,10,22,0.45)', 'rgba(154,166,196,0.6)', 1);
-    if (tapped('pouch', 140, 676, 100, 30)) this.toast(`주머니: 전술 패 ${pn}/${cap}장 · 무리 ${NUM[b.mods.lootEvery] || b.mods.lootEvery}을 물리칠 때마다 한 장`, 4.5);
-    drawRoster(this, g, b, i, 248, 574, 680, 138, live);
+    const stock = this.stock = {};
+    drawReserve(this, g, b, i, 248, 574, 680, 138, live && this.phase !== 'clear');
     if (button(g, 'allhold', 936, 574, 162, 62, '전군 대기', { style: 'indigo', size: 24, r: 10 }) && live) this.allOrder(true);
     if (button(g, 'allgo', 1106, 574, 162, 62, '전군 돌격', { style: 'red', size: 24, r: 10 }) && live) this.allOrder(false);
-    if (button(g, 'deck', 936, 646, 332, 62, `명부와 패 살피기 · ${this.r.deck.length}`, { style: this.r.items.length ? 'teal' : 'paper', size: 22, r: 10 }) && !this.over) this.sub = new DeckView({ P: b.power * b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
+    if (button(g, 'deck', 936, 646, 332, 62, `병사 명부 · ${this.r.deck.length}`, { style: this.r.items.length ? 'teal' : 'paper', size: 22, r: 10 }) && !this.over) this.sub = new DeckView({ P: b.power * b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
   }
   drawNotes(g, b) {
     const nt = this.over || this.sub ? null : this.note, gr = this.grade;
@@ -539,12 +533,12 @@ export class RunScene {
     text(g, `${r.daily ? '오늘의 원정  ·  ' : r.hard ? `험로 ${r.hard}  ·  ` : ''}${chapterOf(r.ch).name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${(r.alt ? HERO_TRAIT2 : HERO_TRAIT)[r.hero].name}'`, 640, r.daily ? 160 : 172, { size: 18, fill: SUB, maxW: 560 });
     if (r.daily) r.daily.rules.forEach((k, n) => { const x = 330 + n * 314; rr(g, x, 174, 306, 22, 11, 'rgba(138,42,38,0.1)', 'rgba(138,42,38,0.5)', 1); text(g, `${DAILY_RULES[k].name} · ${DAILY_RULES[k].desc}`, x + 153, 185.5, { size: 13, fill: '#8a2a26', maxW: 292 }); });
     if (button(g, 'm1', 450, 200, 380, 66, '계속하기', { size: 32 })) this.menu = false;
-    if (button(g, 'm2', 450, 278, 380, 56, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 25 })) this.sub = new DeckView({ P: this.b.power * this.b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
+    if (button(g, 'm2', 450, 278, 380, 56, `병사 명부 · ${r.deck.length}`, { style: 'paper', size: 25 })) this.sub = new DeckView({ P: this.b.power * this.b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
     if (button(g, 'm4', 450, 410, 380, 56, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 25 })) setMuted(!audio.muted);
     if (button(g, 'm5', 450, 476, 380, 56, '처음 화면으로', { style: 'paper', size: 25 })) nav.go('title');
-    text(g, '슬롯 = 맞은 그림대로 원군  ·  투서에 윤허·불허  ·  병사 끌기 = 이동·집중 공격', 640, 550, { size: 16, fill: '#4a4034', maxW: 644 });
-    text(g, '빈 땅에 붓으로 긋기 = 그 획을 따라 진을 친다 (둥글게 감싸면 영웅이 가운데)', 640, 573, { size: 16, fill: '#4a4034', maxW: 644 });
-    text(g, '키보드  ·  1~3 투서 윤허  ·  R 슬롯 돌리기  ·  Q 전군 대기  ·  E 전군 돌격  ·  F 빠르기  ·  스페이스 멈춤', 640, 597, { size: 15, fill: '#4a4034', weight: 400, maxW: 644 });
+    text(g, '대기 병사를 고르고 붓으로 긋기 = 획을 따라 병사가 선다  ·  병사 끌기 = 이동·집중 공격', 640, 550, { size: 16, fill: '#4a4034', maxW: 644 });
+    text(g, '"진형" 붓으로 긋기 = 선 병사들이 그 획을 따라 진을 친다 (둥글게 감싸면 영웅이 가운데)', 640, 573, { size: 16, fill: '#4a4034', maxW: 644 });
+    text(g, '키보드  ·  R 진형 붓/부르기 붓  ·  Q 전군 대기  ·  E 전군 돌격  ·  F 빠르기  ·  스페이스 멈춤', 640, 597, { size: 15, fill: '#4a4034', weight: 400, maxW: 644 });
   }
 }

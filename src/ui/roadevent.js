@@ -124,7 +124,7 @@ export class EventScene extends Overlay {
     scroll(g, nx, ny, nw, nh);
     { const s = said, n = String(s).split('\n').length; g.save(); g.globalAlpha = k; textBlock(g, s, nx + nw / 2, ny + nh / 2 - (n - 1) * 13.5 + 1 + (1 - k) * 5, nw - 40, 27, { size: 20, font: FONT_B }); g.restore(); }
     panel(g, GOLD_AT[0] - 34, 12, 190, 48, 'tag'); icon.coin(g, GOLD_AT[0] - 8, GOLD_AT[1], 13); text(g, `엽전 ${r.gold}`, GOLD_AT[0] + 66, GOLD_AT[1] + 1, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'evdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    if (button(g, 'evdeck', 14, 12, 220, 52, `병사 명부 · ${r.deck.length}`, { style: 'wood', size: 21 })) this.deck({});
     // 구경꾼: 장대 아래 앉은 마을 사람들의 뒷모습 (등불에 테두리가 밝다)
     for (const [x, s2, kind] of [[96, 1.1, 0], [150, 0.95, 1], [1130, 1.0, 2], [1188, 1.12, 0], [60, 0.85, 2], [1236, 0.9, 1]]) audience(g, x, 548, s2, kind, t);
     motes(g, t, 180, 60, 920, 380, 18, '255,236,190', 0.4);

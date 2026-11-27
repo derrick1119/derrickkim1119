@@ -16,13 +16,12 @@ const squadBox = q => { let x = 0, y = 0, n = 0; for (const u of q.units) if (!u
 
 // 차례대로: 앞의 안내를 봐야 다음 안내가 뜬다 (after)
 export const TIPS = [
-  { id: 'army', when: s => s.phase === 'prep', at: () => ({ x: 6, y: 4, w: 236, h: 58 }), s: '남은 병력입니다.\n전장의 아군과 명부에 남은 원군이 모두 바닥나면 원정이 끝납니다.' },
-  { id: 'request', after: 'army', when: s => (s.phase === 'prep' || fight(s)) && s.b.canRequest(), at: () => ({ x: 248, y: 574, w: 680, h: 138 }), s: '원군 슬롯입니다. 명부의 병사들이 릴의 그림이 됩니다.\n가운데 칸의 병사가 오고, 맞은 줄마다 한 명 더 — 가운데 줄이 맞으면 정예!' },
-  { id: 'letter', after: 'request', when: s => (s.phase === 'prep' || fight(s)) && (s.b.mail.length > 0 || s.b.hand.some(Boolean)), at: () => ({ x: 4, y: 108, w: 244, h: 100 }), s: '왼쪽 결재함에 투서가 올라옵니다.\n윤허를 누르면 바로 전장에 반영되고, 불허를 누르면 물립니다.' },
-  { id: 'morale', after: 'letter', when: s => s.phase === 'prep' || fight(s), at: () => ({ x: 6, y: 574, w: 232, h: 104 }), s: '원군과 전술에는 사기가 듭니다.\n요괴 무리를 물리치면 사기가 차오릅니다.' },
-  { id: 'tactic', after: 'morale', when: s => fight(s) && s.b.waveT > 3 && s.b.hand.some(c => c && CARDS[c.id].kind !== 'curse'), at: () => ({ x: 4, y: 108, w: 244, h: 100 }), s: '전술 투서는 윤허하면 쓰이고 이번 원정에서 사라집니다.\n불허하면 더미 밑으로 돌아갑니다.' },
-  { id: 'order', after: 'tactic', when: s => fight(s) && s.b.waveT > 8 && !!mySquad(s), at: s => squadBox(mySquad(s)), s: '병사를 끌어 옮길 수 있습니다.\n요괴 위에 놓으면 그 요괴를 집중 공격합니다.' },
-  { id: 'brush', after: 'order', when: s => fight(s) && s.b.waveT > 10 && s.b.formSquads().length >= 3, at: () => ({ x: 300, y: 150, w: 560, h: 360 }), s: '빈 땅을 끌어 붓으로 그어 보세요.\n병사들이 그 획을 따라 진을 칩니다. 세로로 그으면 일자진,\n양 끝을 앞으로 휘면 학익진, 둥글게 감싸면 방원진.' },
+  { id: 'army', when: s => s.phase === 'prep', at: () => ({ x: 6, y: 4, w: 236, h: 58 }), s: '남은 병력입니다.\n전장의 아군과 대기 병사가 모두 바닥나면 원정이 끝납니다.' },
+  { id: 'ink', after: 'army', when: s => s.phase === 'prep' && s.b.reserveN() > 0, at: () => ({ x: 248, y: 574, w: 680, h: 138 }), s: '대기 병사입니다. 하나를 누르면 붓에 그 병사의 먹이 묻습니다.\n"알아서"는 앞쪽에 근접, 뒤쪽에 활·치유 병사를 세웁니다.' },
+  { id: 'draw', after: 'ink', when: s => s.phase === 'prep' && s.b.reserveN() > 0, at: () => ({ x: 300, y: 150, w: 560, h: 360 }), s: '전장에 붓으로 그어 보세요.\n그은 획을 따라 병사가 한 명씩 섭니다. 지금은 사기가 들지 않습니다.' },
+  { id: 'morale', after: 'draw', when: s => fight(s), at: () => ({ x: 6, y: 574, w: 232, h: 104 }), s: '싸움 중에 병사를 부르면 한 명당 사기 1이 듭니다.\n요괴 무리를 물리치면 사기가 차오릅니다.' },
+  { id: 'order', after: 'morale', when: s => fight(s) && s.b.waveT > 8 && !!mySquad(s), at: s => squadBox(mySquad(s)), s: '병사를 끌어 옮길 수 있습니다.\n요괴 위에 놓으면 그 요괴를 집중 공격합니다.' },
+  { id: 'brush', after: 'order', when: s => fight(s) && s.b.waveT > 10 && s.b.formSquads().length >= 3, at: () => ({ x: 248, y: 574, w: 150, h: 138 }), s: '"진형" 붓을 고르고 그으면\n선 병사들이 그 획을 따라 진을 칩니다. 세로로 그으면 일자진, 양 끝을 앞으로 휘면 학익진.' },
   { id: 'hero', after: 'order', when: s => fight(s) && s.b.waveT > 13 && s.b.units.some(u => !u.dead && u.team === 0 && u.def.hero), at: s => { const u = s.b.units.find(q => !q.dead && q.team === 0 && q.def.hero); return { x: u.x - 56, y: u.y - 152, w: 112, h: 156 }; }, s: '머리 위 금빛 띠가 영웅의 기력입니다.\n가득 차면 고유기를 스스로 씁니다.' },
   { id: 'all', after: 'hero', when: s => fight(s) && s.b.waveT > 18, at: () => ({ x: 934, y: 574, w: 336, h: 66 }), s: '모든 병사를 한꺼번에\n물리거나 돌격시킵니다.' },
   { id: 'reward', when: s => ov(s, RewardOverlay), at: () => ({ x: 254, y: 92, w: 772, h: 370 }), s: '셋 중 하나를 고르세요.\n이렇게 군대가 조금씩 커집니다.' },

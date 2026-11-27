@@ -210,7 +210,7 @@ export class MarketOverlay extends Overlay {
     stageCurtain(g, t, openOf(t));
     // 엽전 주머니와 덱 단추는 막보다 위에
     panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'mkdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    if (button(g, 'mkdeck', 14, 12, 220, 52, `병사 명부 · ${r.deck.length}`, { style: 'wood', size: 21 })) this.deck({});
   }
   buy(it, d) {
     const r = G.run, s = this.spots().find(q => q.i === this.items.indexOf(it)) || { x: 640, y: 400 };
@@ -448,7 +448,7 @@ export class TavernOverlay extends Overlay {
     }
     stageCurtain(g, t, openOf(t));
     panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'tvdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    if (button(g, 'tvdeck', 14, 12, 220, 52, `병사 명부 · ${r.deck.length}`, { style: 'wood', size: 21 })) this.deck({});
   }
 }
 
@@ -751,7 +751,7 @@ export class ForgeScene extends Overlay {
     // 현판·엽전·덱 단추는 막보다 위에
     hangSign(g, 640, 8, '대장간', { w: 240, h: 50, size: 26, rope: false });
     panel(g, 1078, 14, 186, 48, 'tag'); icon.coin(g, 1104, 38, 13); text(g, `엽전 ${r.gold}`, 1180, 39, { size: 22, font: FONT_B, maxW: 140 });
-    if (button(g, 'fgdeck', 14, 12, 220, 52, `덱 살피기 · ${r.deck.length}장`, { style: 'wood', size: 21 })) this.deck({});
+    if (button(g, 'fgdeck', 14, 12, 220, 52, `병사 명부 · ${r.deck.length}`, { style: 'wood', size: 21 })) this.deck({});
   }
 }
 import { stopSprite } from '../render/terrain.js';

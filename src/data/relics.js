@@ -78,7 +78,7 @@ export const RELICS = {
   hangari: { name: '부정 먹는 항아리', axis: 'omen', desc: '지닌 부정 하나마다 모든 아군 피해 +6%', mod: m => { m.curseDmg += 0.06; } },
   yakjo: { name: '도깨비와의 약조', axis: 'omen', desc: '전술 패 위력 +25% — 대신 싸움이 시작될 때 사기 -1', mod: m => { m.cardPow *= 1.25; m.startMorale -= 1; } },
   heuksal: { name: '흉살 부적', axis: 'omen', desc: '모든 아군 받는 피해 -10% — 대신 엽전 수입 -20%', mod: m => { m.allGuard = 1 - (1 - m.allGuard) * 0.9; m.gold *= 0.8; } },
-  dokkaebiwang: { name: '도깨비 왕의 감투', axis: 'omen', legend: true, desc: '전설 — 지닌 부정 하나마다 모든 아군 피해 +10%, 전술 패 위력 +5%', mod: m => { m.curseDmg += 0.1; m.cardPow *= 1 + 0.05 * m.curses; } },
+  dokkaebiwang: { name: '도깨비 왕의 감투', axis: 'omen', legend: true, desc: '전설 — 지닌 부정 하나마다 모든 아군 피해 +10%', mod: m => { m.curseDmg += 0.1; } },
   // ── 두루 쓰는 보물 ──
   bokjori: { name: '복조리', desc: '장터 값 -15%', mod: m => { m.shopAll *= 0.85; } },
   jeoul: { name: '놋 저울', desc: '전리품 다시 뽑기가 싸움마다 한 번 더 무료', mod: m => { m.freeReroll += 1; } },
@@ -90,15 +90,15 @@ export const RELICS = {
   // ── 두목 보물: 두목을 물리치면 셋 중 하나를 고른다. 세지만 값을 치른다 (boss: true, 전리품·장터에는 나오지 않는다) ──
   b_yeougusul: { name: '여우 구슬', boss: true, desc: '전술 패 위력 +30% — 대신 영웅 체력 -20%', mod: m => { m.cardPow *= 1.3; m.heroHp *= 0.8; } },
   b_cheoltoe: { name: '두억시니의 철퇴', boss: true, desc: '근접 병종 체력 +25% — 대신 원거리 사거리 -15%', mod: m => { m.hpInf *= 1.25; m.rangeMul *= 0.85; } },
-  b_beonggeoji: { name: '김서방의 벙거지', boss: true, desc: '싸움에서 병사 한도 +2 — 대신 투서가 20% 늦게 올라온다', mod: m => { m.capPlus += 1; m.drawRate *= 1.2; } },
+  b_beonggeoji: { name: '김서방의 벙거지', boss: true, desc: '싸움에서 병사 한도 +2 — 대신 싸움을 사기 1 덜 갖고 시작한다', mod: m => { m.capPlus += 1; m.startMorale -= 1; } },
   b_beomsuyeom: { name: '범의 수염', boss: true, desc: '영웅 공격력 +40% — 대신 싸움이 시작될 때 사기 -1', mod: m => { m.heroAtk *= 1.4; m.startMorale -= 1; } },
   b_jeoljong: { name: '절의 종', boss: true, desc: '싸움이 시작될 때 사기 +3 — 대신 엽전 수입 -25%', mod: m => { m.startMorale += 3; m.gold *= 0.75; } },
   b_ppuri: { name: '당산나무 뿌리', boss: true, desc: '모든 아군 체력 +20% — 대신 원거리 공격 속도 -10%', mod: m => { m.hpAll *= 1.2; m.rangedAS *= 0.9; } },
   b_soetjogak: { name: '불가사리 쇳조각', boss: true, desc: '모든 아군 받는 피해 -15% — 대신 치유량 -30%', mod: m => { m.allGuard = 1 - (1 - m.allGuard) * 0.85; m.priestHeal *= 0.7; } },
   b_cheoyongtal: { name: '처용탈', boss: true, desc: '해로운 효과 -60%, 무리를 물리칠 때마다 사기 +0.5 — 대신 엽전 수입 -15%', mod: m => { m.debuff *= 0.4; m.killMorale += 0.5; m.gold *= 0.85; } },
-  b_yeouiju: { name: '여의주 조각', boss: true, desc: '전술 패 위력 +20%, 투서가 15% 빨리 올라온다 — 대신 병사 한도 -2', mod: m => { m.cardPow *= 1.2; m.drawRate *= 0.85; m.capPlus -= 1; } },
+  b_yeouiju: { name: '여의주 조각', boss: true, desc: '모든 아군 체력 +20% — 대신 병사 한도 -2', mod: m => { m.hpAll *= 1.2; m.capPlus -= 1; } },
   b_deungjan: { name: '어둑시니의 등잔', boss: true, desc: '밤에도 사거리가 줄지 않고 원거리 사거리 +15% — 대신 영웅 체력 -15%', mod: m => { m.nightOk = 1; m.rangeMul *= 1.15; m.heroHp *= 0.85; } },
-  b_myeongbu: { name: '명부 한 장', boss: true, desc: '싸움마다 한 번, 쓰러진 병사를 바로 명부로 되돌린다 — 대신 주머니 -2', mod: m => { m.rally = 1; m.pouch -= 2; } },
+  b_myeongbu: { name: '명부 한 장', boss: true, desc: '싸움마다 한 번, 쓰러진 병사가 바로 대기로 돌아온다 — 대신 싸움을 사기 1 덜 갖고 시작한다', mod: m => { m.rally = 1; m.startMorale -= 1; } },
   b_eopgyeong: { name: '업경대 조각', boss: true, desc: '근접으로 맞으면 피해 30%를 되돌려 준다 — 대신 치유량 -20%', mod: m => { m.thornAll += 0.3; m.priestHeal *= 0.8; } },
   // ── 부정 ──
   c_trick: { name: '도깨비 장난', curse: true, desc: '싸움이 시작될 때마다 사기 -2', mod: m => { m.startMorale -= 2; } },
@@ -108,3 +108,5 @@ export const RELICS = {
 };
 for (const k of Object.keys(RELICS)) RELICS[k].id = k;
 export const CURSES = Object.keys(RELICS).filter(k => RELICS[k].curse);
+// 전술 패가 사라져 쓸모가 없어진 보물: 전리품·장터에 나오지 않는다
+export const CARD_RELICS = new Set(['bujeokjip', 'gong', 'hopae', 'yut', 'tactics', 'kkokdu', 'meokbyeoru', 'obangbuchae', 'horibyeong', 'yakjo', 'b_yeougusul']);

@@ -7,6 +7,7 @@
 import { VIEW } from '../config.js';
 import { TAU, FONT_B, text, rr, clamp, makeCanvas } from '../render/draw.js';
 import { UNITS } from '../data/units.js';
+import { CARDS } from '../data/cards.js';
 
 const INKC = '20,18,28';
 export const BRUSH_MIN = 70;
@@ -130,4 +131,45 @@ export function sealImg() {
   g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 46; i++) { g.globalAlpha = 0.3 + R() * 0.6; g.beginPath(); g.arc((R() - 0.5) * 34, (R() - 0.5) * 34, 0.3 + R() * 1.1, 0, TAU); g.fill(); }
   for (let i = 0; i < 4; i++) { g.globalAlpha = 0.5; g.lineWidth = 0.6; g.beginPath(); const x = (R() - 0.5) * 30, y = (R() - 0.5) * 30; g.moveTo(x, y); g.lineTo(x + (R() - 0.5) * 12, y + (R() - 0.5) * 4); g.stroke(); }
   SEAL = c; return c;
+}
+
+// ───────── 먹을 묻혀 그린다: 대기 병사를 획을 따라 한 명씩 부른다 ─────────
+// pick = 대기 병사 한 갈래의 열쇠(병력 id|갈래) — 없으면 '알아서': 획 앞쪽(요괴 쪽)엔 근접, 뒤쪽엔 활·치유
+export const INK_GAP = 58;   // 획 위 병사 사이 (이만큼 그을 때마다 한 명)
+export const inkKey = c => c.id + '|' + (c.br || '');
+// 지금 부를 수 있는 사람 수 (병사 한도·사기·대기 수)
+export function inkRoom(b, pick) {
+  const pool = b.roster.filter(e => e.left > 0 && (!pick || inkKey(e.c) === pick)), have = pool.reduce((a, e) => a + e.left, 0);
+  const room = b.fieldCap() - b.squadCount(), cost = b.callCost(), free = Math.max(0, (b.mods.freeCalls || 0) - (b.freeCallN || 0)), money = cost === 0 ? 99 : b.waveOn && !b.emptyField() ? Math.floor(b.morale) + free : 99;
+  return Math.max(0, Math.min(have, room, money));
+}
+// 획 위에 몇 명, 누가 어디에 설지
+export function inkPlan(b, brush, pick) {
+  const room = inkRoom(b, pick), want = brush.closed ? Math.max(1, Math.round(brush.len / INK_GAP)) : Math.floor(brush.len / INK_GAP) + 1, n = Math.min(room, want); if (n <= 0) return [];
+  // 고를 병사들: 한 갈래면 그 갈래에서, 알아서면 갈래를 돌아가며 고르게
+  const pool = b.roster.filter(e => e.left > 0 && (!pick || inkKey(e.c) === pick)).map(e => ({ e, left: e.left })), take = [];
+  pool.sort((p, q) => q.left - p.left);
+  for (let g = 0; take.length < n && g < 99; g++) { let any = false; for (const q of pool) if (q.left > 0 && take.length < n) { q.left--; take.push(q.e); any = true; } if (!any) break; }
+  // 자리: 획을 고르게 나누고, 앞(오른쪽) 자리엔 앞에 설 병사부터
+  const spots = brush.sample(take.length).map(p => { const [x, y] = b.spot(p.x, p.y); return { x, y }; });
+  const fr = e => frontness({ def: UNITS[CARDS_UNIT(e)] || {} });
+  const order = take.slice().sort((p, q) => fr(q) - fr(p)), sorted = spots.slice().sort((p, q) => q.x - p.x);
+  return order.map((e, i) => ({ e, x: sorted[i].x, y: sorted[i].y }));
+}
+const CARDS_UNIT = e => CARDS[e.c.id].unit;   // 병력 패 → 병종
+// 그은 획을 따라 병사를 세운다 (선 뒤로는 알아서 싸운다 · 세워 두려면 '전군 대기'). 돌려주는 값: 선 병사 수
+export function applyInk(b, brush, pick) {
+  const plan = inkPlan(b, brush, pick); let n = 0;
+  for (const p of plan) { const sq = b.call(p.e, p.x, p.y); if (!sq) break; n++; }
+  return n;
+}
+// 그리는 동안: 병사가 설 자리를 먹점과 옅은 초상으로 미리 보여 준다
+export function drawInkPreview(g, b, brush, pick, T, face) {
+  if (brush.len < BRUSH_MIN * 0.6) return;
+  const plan = inkPlan(b, brush, pick), ok = brush.len >= BRUSH_MIN;
+  g.save();
+  for (const p of plan) { const a = ok ? 1 : 0.45, gr = g.createRadialGradient(p.x, p.y + 4, 1, p.x, p.y + 4, 18); gr.addColorStop(0, `rgba(${INKC},${0.6 * a})`); gr.addColorStop(1, `rgba(${INKC},0)`); g.fillStyle = gr; g.beginPath(); g.ellipse(p.x, p.y + 4, 19, 10, 0, 0, TAU); g.fill(); if (face) { g.globalAlpha = 0.55 * a; face(g, p.e, p.x, p.y); g.globalAlpha = 1; } }
+  const room = inkRoom(b, pick), cost = b.callCost(), msg = !room ? (b.squadCount() >= b.fieldCap() ? `전장이 가득 찼습니다 (${b.fieldCap()}명)` : b.reserveN() ? '사기가 모자랍니다' : '부를 병사가 없습니다') : !ok ? '조금 더 길게 그으세요' : `병사 ${plan.length}명을 부른다${cost && plan.length ? ` — 사기 ${plan.length}` : ''}`;
+  rr(g, 640 - 230, VIEW.y0 + 4, 460, 34, 17, `rgba(${INKC},0.72)`); text(g, msg, 640, VIEW.y0 + 21, { size: 19, font: FONT_B, fill: '#fbf3df', maxW: 430 });
+  g.restore();
 }

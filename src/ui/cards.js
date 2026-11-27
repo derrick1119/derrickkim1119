@@ -12,6 +12,7 @@ import { portrait, weaponIcon, lookOf } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { symbol } from '../render/symbols.js';
 import { sfx } from '../audio.js';
+import { levyOf, defOf } from '../sim/battle.js';
 // 패 그림 속 인형의 크기·높이 보정: 탈것은 조금 작게, 작은 영물은 크게, 날짐승은 가운데로 내린다
 const CARD_K = { knight: 0.82, cannon: 0.82, magpie: 1.55, sapsal: 1.4, samjoko: 1.35, haetae: 0.88, tiger: 0.9 }, CARD_Y = { magpie: 1.0, samjoko: 0.98 };
 
@@ -102,8 +103,8 @@ export class DeckView {
     this.t += dt; const r = G.run, deck = r.deck, mode = this.mode;
     g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672);
-    brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'temper' ? '무기 벼리기' : mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
-    text(g, mode === 'temper' ? '무기를 벼릴 병력을 고르세요' : mode === 'up' ? '강화할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
+    brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'temper' ? '무기 벼리기' : mode === 'up' ? '병사 다듬기' : mode === 'burn' ? '병사 내보내기' : '병사 명부'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
+    text(g, mode === 'temper' ? '무기를 벼릴 병력을 고르세요' : mode === 'up' ? '+1단 올릴 병사를 고르세요' : mode === 'burn' ? '내보낼 병사를 고르세요' : `병력 ${deck.filter(isUnit).length}줄 · 싸움마다 병사 ${deck.filter(isUnit).reduce((a, c) => a + levyOf(defOf(CARDS[c.id].unit, c.wpn, c.br, c.tp), c.lv), 0)}명까지`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
     if (mode === 'view') { const st2 = activeSetText(deck); if (st2) text(g, `세트 효과 · ${st2}`, 1226, 62, { size: 15, font: FONT_B, fill: '#8a5a10', align: 'right', maxW: 380 }); }
     // 같은 전술 패는 한 칸에 모은다 (병력·영웅 패는 한 장씩)
     const count = new Map(), list = [];

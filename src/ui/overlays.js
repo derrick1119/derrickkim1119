@@ -108,7 +108,7 @@ export class RewardOverlay extends Overlay {
       const rc = p.free > 0 ? 0 : 15 + p.rerolls * 10;
       const two = this.kind === 'treasure' || this.kind === 'boss', bx = two ? 128 : 0;   // 단추가 둘뿐이면 가운데로 모은다
       if (button(g, 'reroll', 264 + bx, 520, 240, 54, rc ? `다시 뽑기 · 엽전 ${rc}` : '다시 뽑기 · 무료', { style: r.gold >= rc ? 'paper' : 'grey', size: 21 })) { if (r.gold >= rc) { r.gold -= rc; if (p.free > 0) p.free--; else p.rerolls++; p.opts = rollRewards(this.kind); this.t = 0; save(); sfx('card'); } else sfx('deny'); }
-      if (button(g, 'rwdeck', 520 + bx, 520, 240, 54, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 21 })) this.deck({});
+      if (button(g, 'rwdeck', 520 + bx, 520, 240, 54, `병사 명부 · ${r.deck.length}`, { style: 'paper', size: 21 })) this.deck({});
       if (this.kind !== 'treasure' && this.kind !== 'boss' && button(g, 'skip', 776, 520, 240, 54, '건너뛴다 · 엽전 +15', { style: 'paper', size: 21 })) { this.taken = -2; r.gold += 15; r.pending = null; save(); sfx('coin'); }
     } else if (done && !this.sub) { this.doneT += dt; if (this.doneT > 0.7) this.finish(); }
   }
@@ -160,7 +160,7 @@ export function restChoices() {
   return [
     { id: 'rest', label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
     // 수련: 병력·영웅 패는 +1단(조련), 전술 패는 강화판(+)으로 — 덱에서 하나를 고른다
-    r.deck.some(c => canUp(c)) ? { id: 'train', label: '수련한다', desc: '패 하나를 +1단 · 전술 패는 강화(+)', deck: 'up', filter: c => canUp(c), story: '주막 마당에서 밤새 합을 맞추고 병법을 가다듬었습니다.' } : null,
+    r.deck.some(c => canUp(c)) ? { id: 'train', label: '수련한다', desc: '병사 하나 +1단', deck: 'up', filter: c => canUp(c), story: '주막 마당에서 밤새 합을 맞추고 병법을 가다듬었습니다.' } : null,
     { id: 'feast', label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
   ].filter(Boolean);
 }
