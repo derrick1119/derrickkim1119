@@ -103,7 +103,7 @@ export class DeckView {
     g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672);
     brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'temper' ? '무기 벼리기' : mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
-    text(g, mode === 'temper' ? '무기를 벼릴 병력 패를 고르세요' : mode === 'up' ? '강화할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
+    text(g, mode === 'temper' ? '무기를 벼릴 병력을 고르세요' : mode === 'up' ? '강화할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
     if (mode === 'view') { const st2 = activeSetText(deck); if (st2) text(g, `세트 효과 · ${st2}`, 1226, 62, { size: 15, font: FONT_B, fill: '#8a5a10', align: 'right', maxW: 380 }); }
     // 같은 전술 패는 한 칸에 모은다 (병력·영웅 패는 한 장씩)
     const count = new Map(), list = [];
@@ -131,7 +131,7 @@ export class DeckView {
       return;
     }
     const act = mode === 'temper' ? '벼린다' : mode === 'up' ? (isUnit(c) ? '조련한다' : '익힌다') : '태운다';
-    if (!ok) text(g, mode === 'temper' ? (c.tp ? '이미 벼린 무기입니다' : '병력 패만 벼릴 수 있습니다') : mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 474, { size: 18, fill: RED, maxW: 330 });
+    if (!ok) text(g, mode === 'temper' ? (c.tp ? '이미 벼린 무기입니다' : '병력만 벼릴 수 있습니다') : mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 474, { size: 18, fill: RED, maxW: 330 });
     else { textBlock(g, mode === 'temper' ? '이 패의 부대 공격력 +20%, 체력 +10%.' : mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '이 패가 모두 강화판(+)이 됩니다') : '덱에서 사라집니다. 무기는 보관함으로', px + 182, 466, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
     if (button(g, 'dkno', px + 62, 628, 240, 54, '그만두기', { style: 'paper', size: 24 })) { if (this.onClose) this.onClose(); }
   }

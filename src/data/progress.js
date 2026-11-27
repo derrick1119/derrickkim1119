@@ -8,10 +8,10 @@ export const MASTERY_GIFT = ['', '처음', '두 번째 병법', '시작 엽전 +
 // 두 번째 병법: 숙련 2에 열린다. 영웅 고르기에서 바꿔 고른다
 export const HERO_TRAIT2 = {
   commander: { name: '진법가', desc: '학익진을 알고 시작하고, 진형의 힘이 50% 세진다.', play: '부대를 진형으로 세워 싸운다' },
-  blade: { name: '검무', desc: '부대 한도가 줄지 않고, 검객의 공격 속도 +30%, 영웅기 패의 사기 -1.', play: '영웅기를 쉬지 않고 쓴다' },
+  blade: { name: '검무', desc: '병사 한도가 줄지 않고, 검객의 공격 속도 +30%, 영웅기 패의 사기 -1.', play: '영웅기를 쉬지 않고 쓴다' },
   hunter: { name: '덫 사냥', desc: '마름쇠+ 두 장으로 시작하고, 전술 패 위력 +15%.', play: '덫으로 묶어 놓고 쏜다' },
   bishop: { name: '탁발', desc: '엽전 수입 +40%, 요괴 무리를 물리칠 때마다 사기 +0.5.', play: '엽전과 사기를 모은다' },
-  archmage: { name: '둔갑술', desc: '부대 한도가 줄지 않고, 전술 패 위력 +15%.', play: '병력과 도술을 함께 쓴다' },
+  archmage: { name: '둔갑술', desc: '병사 한도가 줄지 않고, 전술 패 위력 +15%.', play: '병력과 도술을 함께 쓴다' },
   sangsoe: { name: '사물놀이', desc: '얻는 사기 +30%, 싸움이 시작될 때마다 사기 +2, 무리를 물리칠 때마다 사기 +0.5.', play: '사기를 넉넉히 쓴다' },
   chief: { name: '의적', desc: '의병 봉기 세 장으로 시작하고, 불려 온 아군이 8초 더 싸운다.', play: '의병을 불러 물량으로 민다' },
 };
@@ -40,7 +40,7 @@ export const VOWS = {
   noshop: { name: '장터 없는 길', desc: '장터 대신 사건이 기다린다', bonus: 10 },
   elite: { name: '강적의 길', desc: '모든 요괴 무리에 강적의 특성이 붙는다', bonus: 25 },
   norelic: { name: '보물 없이', desc: '보물을 얻지 못한다 (엽전으로 받는다)', bonus: 30 },
-  onearm: { name: '한 병종', desc: '새 병력 패를 얻지 못한다', bonus: 20 },
+  onearm: { name: '한 병종', desc: '새 병력을 얻지 못한다', bonus: 20 },
   chase: { name: '짧은 밤', desc: '본대가 20초 일찍 따라붙는다', bonus: 15 },
 };
 export const vowBonus = vs => (vs || []).reduce((a, k) => a + (VOWS[k] ? VOWS[k].bonus : 0), 0);

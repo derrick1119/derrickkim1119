@@ -4,7 +4,7 @@ export const AXIS_CARDS = {
   // ── 사격진: 원거리 물량 ──
   pyeonjeon: { name: '편전 세례', kind: 'attack', axis: 'volley', cost: 2, r: 74, target: true, rare: 1, v: { dmg: 150, amt: 20 }, up: { dmg: 210, amt: 30 }, desc: v => `범위 피해 ${v.dmg}, 6초간 받는 피해 +${v.amt}%`,
     fx: [{ op: 'aoe', dmg: 'dmg' }, { op: 'mark', amt: 'amt', dur: 6 }] },
-  hwasal: { name: '화살 보급', kind: 'support', axis: 'volley', cost: 1, target: false, rare: 0, v: { dur: 6 }, up: { dur: 9 }, desc: v => `원거리 아군이 ${v.dur}초간 공격 속도 증가, 빈 손패를 바로 채운다`,
+  hwasal: { name: '화살 보급', kind: 'support', axis: 'volley', cost: 1, target: false, rare: 0, v: { dur: 6 }, up: { dur: 9 }, desc: v => `원거리 아군이 ${v.dur}초간 공격 속도 증가, 빈 투서 자리를 바로 채운다`,
     fx: [{ op: 'buff', who: 'ranged', haste: 1, dur: 'dur' }, { op: 'draw' }] },
   sadae: { name: '사대 세우기', kind: 'support', axis: 'volley', cost: 2, target: false, rare: 1, v: { dur: 10, amt: 20 }, up: { dur: 13, amt: 30 }, desc: v => `원거리 아군이 ${v.dur}초간 주는 피해 +${v.amt}%, 받는 피해 -25%`,
     fx: [{ op: 'buff', who: 'ranged', dmgUp: 'amt', guard: 25, dur: 'dur' }] },
@@ -40,7 +40,7 @@ export const AXIS_CARDS = {
     fx: [{ op: 'aoe', dmg: 'dmg', slow: 'slow', slowT: 4 }] },
   byeorak: { name: '벼락 부적', kind: 'attack', axis: 'talisman', cost: 3, r: 72, target: true, rare: 1, v: { dmg: 270, stun: 1.5, amt: 20 }, up: { dmg: 360, stun: 2, amt: 30 }, desc: v => `범위 피해 ${v.dmg}, 기절 ${v.stun}초, 6초간 받는 피해 +${v.amt}%`,
     fx: [{ op: 'aoe', dmg: 'dmg', stun: 'stun' }, { op: 'mark', amt: 'amt', dur: 6 }] },
-  dungapbu: { name: '둔갑 부적', kind: 'support', axis: 'talisman', cost: 2, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `다음 패 ${v.n}장은 사기가 들지 않고, 빈 손패를 바로 채운다`,
+  dungapbu: { name: '둔갑 부적', kind: 'support', axis: 'talisman', cost: 2, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `다음 패 ${v.n}장은 사기가 들지 않고, 빈 투서 자리를 바로 채운다`,
     fx: [{ op: 'free', n: 'n' }, { op: 'draw' }] },
   bujeokbi: { name: '부적 비', kind: 'attack', axis: 'talisman', cost: 4, r: 110, target: true, rare: 2, v: { dmg: 210, burn: 14, dps: 12 }, up: { dmg: 280, burn: 18, dps: 16 }, desc: v => `범위 피해 ${v.dmg} + 화상, 6초간 그 자리 적 속도 -30%·초당 피해 ${v.dps}`,
     fx: [{ op: 'aoe', dmg: 'dmg', burn: 'burn' }, { op: 'zone', dur: 6, slow: 30, dps: 'dps' }] },

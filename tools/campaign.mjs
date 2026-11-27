@@ -63,15 +63,17 @@ function spotFor(b, c, foes, mine, sharp) {
   return null;
 }
 function command(b) {
-  if (mode === 'auto') { for (let i = 0; i < HAND; i++) { const c = b.hand[i]; if (c && isUnit(c) && b.canPlay(i)) { const t = spotFor(b, c, [], [], true); b.play(i, t.x, t.y); return; } } return; } // 무조작: 병력만 낸다
+  if (mode === 'auto') { for (const m of [...b.mail]) b.approve(m.id); if (b.canRequest()) b.request(); return; } // 무조작: 원군만 청하고 모두 윤허한다
   const foes = b.units.filter(u => !u.dead && u.team === 1 && u.hidden <= 0 && u.x < VIEW.x1), mine = b.units.filter(u => !u.dead && u.team === 0 && !u.temp && !u.def.structure);
   const sharp = mode !== 'casual';
   if (!sharp && b.rand() < 0.4) return;
   // 두목의 수에 맞서기: 소품(종·여의주·업경대·명부 든 사자)이 서면 원거리 부대를 붙이고, 홀린 부대는 깨운다. 서툰 봇은 셋에 한 번만 알아챈다
   if (sharp || b.rand() < 0.34) { const p = b.squads.find(q => q.team === 1 && q.alive > 0 && q.def.prop && !(q.units[0].ai && q.units[0].ai.rest > b.time)); for (const q of b.playerSquads()) { if (q.units.some(u => u.charm > 0)) b.orderAuto(q); if ((q.def.range && !q.def.heal) || (p && sharp && !q.hero && p.type !== 'bell' && Math.hypot(q.cx - p.cx, q.cy - p.cy) < 260)) { if (p) { if (q.order.target !== p) b.orderFocus(q, p); } else if (q.order.kind === 'focus' && q.order.target && q.order.target.def.prop) b.orderAuto(q); } } }
-  // 병력을 먼저 세운다. 전술은 병력 낼 사기를 남겨 두고 쓴다 (부대가 한도까지 찼으면 마음껏)
-  for (let i = 0; i < HAND; i++) { const c = b.hand[i]; if (c && isUnit(c) && b.canPlay(i)) { const t = spotFor(b, c, foes, mine, sharp); if (b.play(i, t.x, t.y)) { used_[c.id] = (used_[c.id] || 0) + 1; return; } } }
-  const keep = b.squadCount() >= b.cap ? 0 : sharp ? 2 : 2.5;
+  // 원군 장계는 윤허한다 (능숙한 봇은 사기가 넉넉할 때 보통 병사를 물리고 다시 청해 본다)
+  for (const m of [...b.mail]) { if (sharp && m.tier === 'common' && !m.elite && b.morale >= 7 && b.squadCount() >= 2 && b.rand() < 0.3) { b.decline(m.id); used_.decline = (used_.decline || 0) + 1; } else if (b.approve(m.id)) { used_['reinf_' + m.tier] = (used_['reinf_' + m.tier] || 0) + 1; return; } }
+  // 원군을 먼저 청한다. 전술은 원군 청할 사기를 남겨 두고 쓴다 (한도까지 찼으면 마음껏)
+  if (b.canRequest() && (foes.length || b.squadCount() < 2)) { b.request(); used_.request = (used_.request || 0) + 1; return; }
+  const keep = b.squadCount() + b.mail.length + b.coming.length >= b.cap ? 0 : sharp ? 2 : 2.5;
   for (let i = 0; i < HAND; i++) {
     const c = b.hand[i]; if (!c || isUnit(c) || !b.canPlay(i)) continue;
     if (b.morale < b.costOf(c) + keep) continue;
@@ -80,7 +82,8 @@ function command(b) {
   }
   // 패가 떨어졌으면 사기가 넉넉할 때 줍는다. 손이 막혔으면 갈아 본다
   if (foes.length && b.morale >= (b.mods.scavAny ? 4.5 : sharp ? 5 : 7)) for (let i = 0; i < HAND; i++) if (b.canScavenge(i)) { b.scavenge(i); return; }
-  if (sharp && b.morale >= 9.5 && b.canRedraw()) b.redraw();
+  // 오래 묵은 투서는 물린다
+  b.ageT = b.ageT || []; for (let i = 0; i < HAND; i++) { const c = b.hand[i]; if (!c) { b.ageT[i] = 0; continue; } b.ageT[i] = (b.ageT[i] || 0) + 1; if (b.ageT[i] > (sharp ? 40 : 25) && b.shelve(i)) { b.ageT[i] = 0; return; } }
 }
 function autoEquip() { const r = G.run; for (const wid of [...r.items]) { const c = unitCards().find(q => canEquip(CARDS[q.id].unit, wid) && !q.wpn); if (c) equip(c.uid, wid); } }
 function sync(b) { const r = G.run; settleBattle(b); autoEquip(); b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.lootTable = lootTable(); b.mastery = r.mastery || {}; b.syncDeck(r.deck); }
@@ -142,4 +145,4 @@ console.log('싸움당 잃은 병사:', dmg.map((d, i) => `${i + 1}고개 ${(d /
 console.log('본대가 따라붙은 횟수/싸움', (chaseN / nB).toFixed(2), ' 싸움 뒤 남은 전술 패 평균', (stockN / Math.max(1, stockB)).toFixed(1));
 console.log('도달:', reach.map((n, i) => `${i < N_CH ? i + 1 : '평정'}×${n}`).join(' '));
 console.log('고개별 패배 [싸움/강적/두목]:', lossCh.map((c, i) => `${i + 1}[${['battle', 'elite', 'boss'].map(k => c[k][0] ? (c[k][1] / c[k][0]).toFixed(2) : '-').join('/')}]`).join(' '));
-console.log('싸움당 쓴 패:', Object.keys(used_).sort((a, b) => used_[b] - used_[a]).slice(0, 16).map(k => `${CARDS[k].name} ${(used_[k] / nB).toFixed(2)}`).join('  '));
+console.log('싸움당 쓴 패:', Object.keys(used_).sort((a, b) => used_[b] - used_[a]).slice(0, 16).map(k => `${CARDS[k] ? CARDS[k].name : k} ${(used_[k] / nB).toFixed(2)}`).join('  '));

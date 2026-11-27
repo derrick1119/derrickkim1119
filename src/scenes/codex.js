@@ -84,7 +84,7 @@ export class CodexScene {
       if (ok) { goldText(g, R.name, cx, 362, { size: 30, glow: false }); const ax = R.axis && AXES[R.axis]; text(g, R.curse ? '부정' : ax ? `빌드 축 · ${ax.name}` : R.req ? `${UNITS[R.req].name} 전용` : '보물', cx, 396, { size: 16, font: FONT_B, fill: R.curse ? '#6a3a7a' : ax ? ax.col : '#8a6a3a' }); textBlock(g, R.desc, cx, 436, 380, 24, { size: 17, fill: '#3a2a1a' }); }
       else unknown(g, cx, '아직 얻지 못한 보물입니다');
     } else {
-      if (ok) { cardFace(g, { id }, cx - 111, 118, 222, 294); const d = CARDS[id]; text(g, d.kind === 'lead' ? '영웅 패' : d.kind === 'unit' ? (UNITS[d.unit].beast ? '영물 패' : '병력 패') : d.hero ? `${UNITS[d.hero].name} 영웅기${d.mastery ? ` · 숙련 ${d.mastery}` : ''}` : d.axis ? `전술 패 · ${AXES[d.axis].name}` : '전술 패', cx, 446, { size: 18, font: FONT_B, fill: '#5a4a3a' }); }
+      if (ok) { cardFace(g, { id }, cx - 111, 118, 222, 294); const d = CARDS[id]; text(g, d.kind === 'lead' ? '영웅 패' : d.kind === 'unit' ? (UNITS[d.unit].beast ? '영물 패' : '명부 병력') : d.hero ? `${UNITS[d.hero].name} 영웅기${d.mastery ? ` · 숙련 ${d.mastery}` : ''}` : d.axis ? `전술 패 · ${AXES[d.axis].name}` : '전술 패', cx, 446, { size: 18, font: FONT_B, fill: '#5a4a3a' }); }
       else { cardBack(g, cx - 111, 118, 222, 294); unknown(g, cx, '아직 쥐어 보지 못한 패입니다', 448); }
     }
     if (button(g, 'back', 964, 606, 290, 84, '장부로', { style: 'paper', size: 32 })) nav.go('meta');

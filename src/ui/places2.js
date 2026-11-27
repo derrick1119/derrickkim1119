@@ -606,10 +606,10 @@ class MusterScene extends PlaceScene {
   acts() {
     const r = G.run, gold = c => r.gold < c ? `엽전 ${c} 부족` : null, d = id => this.done[id] ? '이번에는 했습니다' : null;
     return [
-      { id: 'recruit', label: '장정을 고른다', sub: '병력 패 셋 중 하나를 데려간다', why: () => d('recruit'),
-        go: () => { const opts = place.musterOffer(); this.pick = { kind: 'cards', title: '함께 갈 장정', sub: '셋 중 하나를 골라 병력 패로 데려갑니다', opts, cancel: true, onPick: i => { const s = place.recruit(opts[i]); this.done.recruit = 1; sfx('place'); this.say('잘 부탁하오. 저들은 물러서지 않을 게요.'); this.show('장정이 군대에 들어왔습니다', [s]); } }; } },
+      { id: 'recruit', label: '장정을 고른다', sub: '병력 셋 중 하나를 데려간다', why: () => d('recruit'),
+        go: () => { const opts = place.musterOffer(); this.pick = { kind: 'cards', title: '함께 갈 장정', sub: '셋 중 하나를 골라 명부에 올립니다', opts, cancel: true, onPick: i => { const s = place.recruit(opts[i]); this.done.recruit = 1; sfx('place'); this.say('잘 부탁하오. 저들은 물러서지 않을 게요.'); this.show('장정이 군대에 들어왔습니다', [s]); } }; } },
       { id: 'call', label: '격문을 붙인다', cost: PLACE_COST.call, sub: '의병 봉기 패 두 장', why: () => d('call') || gold(PLACE_COST.call), go: () => { const out = place.call(); this.done.call = 1; sfx('star'); this.say('격문을 보고 고을마다 장정들이 일어설 게요.'); this.show('고을에 격문을 붙였습니다', out); } },
-      { id: 'feed', label: '군량을 댄다', cost: PLACE_COST.feed, sub: `부대 한도 +1 (지금 ${r.cap})`, why: () => d('feed') || (r.fed ? '이번 원정에는 이미 군량을 댔다' : null) || (r.cap >= MAX_CAP ? '부대 한도가 가득 찼다' : null) || gold(PLACE_COST.feed), go: () => { const out = place.feed(); this.done.feed = 1; sfx('coin'); this.say('배가 든든해야 싸우지요. 고맙소!'); this.show('의병들에게 군량을 댔습니다', out); } },
+      { id: 'feed', label: '군량을 댄다', cost: PLACE_COST.feed, sub: `병사 한도 +2 (지금 ${r.cap})`, why: () => d('feed') || (r.fed ? '이번 원정에는 이미 군량을 댔다' : null) || (r.cap >= MAX_CAP ? '부대 한도가 가득 찼다' : null) || gold(PLACE_COST.feed), go: () => { const out = place.feed(); this.done.feed = 1; sfx('coin'); this.say('배가 든든해야 싸우지요. 고맙소!'); this.show('의병들에게 군량을 댔습니다', out); } },
     ];
   }
   scene(g, t) {

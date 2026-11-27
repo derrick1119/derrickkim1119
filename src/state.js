@@ -63,7 +63,7 @@ export const UNLOCKS = [
   { id: 'cannon', name: '병력 · 화차', desc: '전리품과 장터에 화차 패가 나옵니다', cost: 35, unit: 'cannon' },
   { id: 'p_gold', name: '노잣돈', desc: '엽전 60을 들고 출발합니다', cost: 20 },
   { id: 'p_reroll', name: '눈썰미', desc: '전리품 다시 뽑기가 싸움마다 한 번 무료', cost: 25 },
-  { id: 'p_cap', name: '넉넉한 군량', desc: '부대 한도 +1로 출발합니다', cost: 40 },
+  { id: 'p_cap', name: '넉넉한 군량', desc: '병사 한도 +2로 출발합니다', cost: 40 },
   { id: 'p_relic', name: '집안의 가보', desc: '무작위 보물 하나를 들고 출발합니다', cost: 50 },
 ];
 export const has = id => !!meta.unlocked[id];
@@ -108,11 +108,11 @@ export const HARD = [
   { name: '짙은 안개', desc: '원거리 사거리 -10%' },
   { name: '바가지 장', desc: '장터 값 +25%' },
   { name: '단단한 강적', desc: '강적 무리 체력 +25%' },
-  { name: '더딘 손', desc: '손패가 15% 늦게 찬다' },
+  { name: '더딘 손', desc: '투서가 15% 늦게 올라온다' },
   { name: '두목의 분노', desc: '두목 체력 +20% 더' },
   { name: '부정 탄 길', desc: '부정 하나를 지고 떠난다' },
   { name: '꺼진 기세', desc: '얻는 사기 -15%' },
-  { name: '좁은 군막', desc: '부대 한도 -1로 떠난다' },
+  { name: '좁은 군막', desc: '병사 한도 -2로 떠난다' },
   { name: '쇠가죽 요괴', desc: '요괴 체력 +12% 더' },
   { name: '긴 밤의 끝', desc: '요괴 공격력 +12% 더' },
 ];
@@ -267,10 +267,11 @@ export function advance() {
 // ───────── 싸움 준비 ─────────
 // 원정을 시작하거나 이어 할 때 전장에 미리 서 있는 부대: 영웅과 병력 패 셋
 export function startDeploy() {
-  const r = G.run, out = [], lead = r.deck.find(c => CARDS[c.id].kind === 'lead'); if (lead) out.push([lead.uid, 330, MID_Y]);
-  const units = r.deck.filter(c => CARDS[c.id].kind === 'unit').slice(0, Math.min(2, r.cap)), front = units.filter(c => !UNITS[CARDS[c.id].unit].soft), back = units.filter(c => UNITS[CARDS[c.id].unit].soft);
-  front.forEach((c, n) => out.push([c.uid, 450, MID_Y + (n - (front.length - 1) / 2) * 150]));
-  back.forEach((c, n) => out.push([c.uid, 210, MID_Y + (n - (back.length - 1) / 2) * 170 + (back.length % 2 ? 110 : 0)]));
+  // 처음엔 영웅과 명부의 병사 둘이 선다 (영웅 곁 앞줄과 뒷줄)
+  const r = G.run, out = [], lead = r.deck.find(c => CARDS[c.id].kind === 'lead'); if (lead) out.push([lead.uid, VIEW.x0 + 250, MID_Y]);
+  const units = r.deck.filter(c => CARDS[c.id].kind === 'unit').slice(0, 2), front = units.filter(c => !UNITS[CARDS[c.id].unit].soft), back = units.filter(c => UNITS[CARDS[c.id].unit].soft);
+  front.forEach((c, n) => out.push([c.uid, VIEW.x0 + 360, MID_Y + (n - (front.length - 1) / 2) * 120]));
+  back.forEach((c, n) => out.push([c.uid, VIEW.x0 + 150, MID_Y + (n - (back.length - 1) / 2) * 140 + (back.length % 2 ? 90 : 0)]));
   return out;
 }
 export function battleSetup(seed) { const r = G.run, m = mods(); return { mods: m, seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: Math.max(2, Math.min(MAX_CAP, r.cap + m.capPlus)), start: startDeploy(), morale: r.nextMorale || 0, loot: lootTable(), mastery: r.mastery || {}, lead: r.hero }; }
@@ -292,7 +293,7 @@ export const canUp = c => isUnit(c) ? (c.lv || 1) < MAX_LV : !mastered(c.id) && 
 // 병과 승급: 4단에 오른 병력 패는 두 갈래 중 하나를 고른다 (data/branches.js)
 export const pendingPromos = () => (G.run ? G.run.deck.filter(c => CARDS[c.id].kind === 'unit' && canBranch(CARDS[c.id].unit, c.lv, c.br)) : []);
 export function promote(uid, br) { const c = cardOf(uid), B = branchOf(br); if (!c || !B || B.type !== CARDS[c.id].unit || c.br) return null; c.br = br; save(); return c; }
-// 대장간: 병력 패 하나의 무기를 벼린다 (한 장에 한 번)
+// 대장간: 병력 하나의 무기를 벼린다 (한 장에 한 번)
 export const canTemper = c => CARDS[c.id].kind === 'unit' && !c.tp;
 export function temper(uid) { const c = cardOf(uid); if (!c || !canTemper(c)) return null; c.tp = 1; save(); return c; }
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) { c.lv = (c.lv || 1) + 1; save(); } else master(c.id); return c; }
@@ -337,8 +338,8 @@ export function describeReward(o) {
   if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${(u => u.length > 3 ? u.slice(0, 3).join('·') + ' 외 ' + (u.length - 3) : u.join('·'))(usersOf(o.id))}`, col: 'blue', weapon: o.id }; }
   if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 씻기 (${RELICS[o.id].desc})`, col: 'gold', relic: o.id };
   if (o.kind === 'burn') return { title: '패 태우기', name: '패 한 장 없애기', desc: '패 한 장을 덱에서 없앱니다. 덱이 얇으면 좋은 패가 자주 옵니다', col: 'red', misc: 'burn' };
-  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 패 조련', desc: '병력·영웅 패 하나 +1단 (체력·공격 +20%)', col: 'green', misc: 'train' };
-  return { title: '군량 수레', name: '부대 한도 +1', desc: `부대 한도 ${G.run.cap} → ${G.run.cap + 1}`, col: 'gold', misc: 'cap' };
+  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 조련', desc: '병력·영웅 하나 +1단 (체력·공격 +20%)', col: 'green', misc: 'train' };
+  return { title: '군량 수레', name: '병사 한도 +2', desc: `부대 한도 ${G.run.cap} → ${G.run.cap + 1}`, col: 'gold', misc: 'cap' };
 }
 function makeReward(kind, keys) {
   const r = G.run, types = unitPool(), owned = ownedTypes(), vw = r.vows || [];
@@ -417,9 +418,9 @@ export const place = {
   // 투전판: 엽전을 건다 (이길 확률은 숨기지 않는다) / 패 한 장을 걸고 도깨비와 내기
   bet() { const r = G.run, win = rnd() < BET_WIN; r.gold -= PLACE_COST.bet; if (win) r.gold += PLACE_COST.bet * 2; save(); return win; },
   wager(uid) { const c = cardOf(uid); if (!c || CARDS[c.id].kind === 'lead') return null; const nm = cardName(c); if (rnd() < 0.5) { const s = act.relic(); save(); return { win: true, lines: [s] }; } if (removeCard(uid)) { save(); return { win: false, lines: [`패 [${nm}] 를 잃었습니다`] }; } const s = act.gold(-20); save(); return { win: false, lines: [s] }; },
-  // 의병 모집소: 병력 패 셋 중 하나를 데려가고, 격문을 붙여 의병 봉기 패를 얻고, 군량을 대어 부대를 늘린다
+  // 의병 모집소: 병력 셋 중 하나를 데려가고, 격문을 붙여 의병 봉기 패를 얻고, 군량을 대어 부대를 늘린다
   musterOffer() { const r = G.run, types = unitPool(), owned = ownedTypes(), out = []; for (let g = 0; out.length < 3 && g < 60; g++) { const fresh = types.filter(t => !owned.includes(t) && !out.includes(t)), t = fresh.length && rnd() < 0.55 ? pick(fresh) : pick(types); if (!out.includes(t)) out.push(t); } return out.map(t => ({ id: 'u_' + t, lv: 1 + Math.floor(r.ch * 0.8) })); },
-  recruit(o) { addCard(o.id, { lv: o.lv }); save(); return `병력 패 [${CARDS[o.id].name}]${o.lv > 1 ? ` ${o.lv}단` : ''}`; },
+  recruit(o) { addCard(o.id, { lv: o.lv }); save(); return `명부에 [${CARDS[o.id].name}]${o.lv > 1 ? ` ${o.lv}단` : ''}`; },
   call() { G.run.gold -= PLACE_COST.call; const s = act.card('uibyeong', false, 2); save(); return [s]; },
   feed() { G.run.gold -= PLACE_COST.feed; G.run.fed = true; const s = act.cap(1); save(); return [s]; },
   // 숨은 길: 금줄 너머의 보물 둘을 챙기면 부정도 함께 따라온다
@@ -454,7 +455,7 @@ export const act = {
   beast(id, up) { addCard('u_' + id, { lv: up ? 2 : 1 }); return `영물 패 [${UNITS[id].name}]${up ? ' +1단' : ''}`; },
   // 사건에서 영물을 부르는 길을 골랐다: 다음 행군 길에 그 영물이 찾아온다 (이미 덱에 있으면 대신 엽전)
   call(id) { const r = G.run; if (r.deck.some(c => c.id === 'u_' + id) || (r.beastQ || []).includes(id)) return act.gold(40); r.beastQ = (r.beastQ || []).concat(id); save(); return `영물 [${UNITS[id].name}] — 곧 은혜를 갚으러 찾아온다`; },
-  recruit() { if ((G.run.vows || []).includes('onearm')) return act.gold(40); const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `병력 패 [${CARDS[o.id].name}]`; },
+  recruit() { if ((G.run.vows || []).includes('onearm')) return act.gold(40); const o = makeReward('unit', new Set()); if (!o) return act.gold(40); addCard(o.id); return `명부에 [${CARDS[o.id].name}]`; },
   hero() { const c = G.run.deck.filter(c => CARDS[c.id].kind === 'lead' && (c.lv || 1) < MAX_LV); if (!c.length) return act.gold(40); return lvUp(c[0]); },
   cap(n) { const r = G.run; r.cap = Math.max(3, Math.min(MAX_CAP, r.cap + n)); return n > 0 ? `부대 한도 +${n}` : `부대 한도 ${n}`; },
   morale(n) { G.run.nextMorale = n; return `다음 싸움을 사기 +${n} 로 시작`; },

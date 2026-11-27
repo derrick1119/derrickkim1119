@@ -339,7 +339,7 @@ function tavernBG() {
   return TBG;
 }
 // 이름판에 쓰는 짧은 쓰임
-const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전술 강화', feast: '엽전 90 → 병력 패 둘 +1단' };
+const SHORT = { rest: '다음 싸움 사기 +4', train: '패 하나 +1단 · 전술 강화', feast: '엽전 90 → 병력 둘 +1단' };
 // 조각보 보따리: 여러 빛깔 천 조각을 이어 붙인 보자기로 싸서, 위에서 두 귀를 묶었다
 export function bojagi(g, x, y, s = 1, R = rng(31), peek = null) {
   const cols = ['#b8322a', '#2f4d7e', '#e0b23c', '#3f6b5c', '#f3e6c4', '#c8587a', '#5a3a6a'];
@@ -695,7 +695,7 @@ function forgeBG() {
   return FGBG;
 }
 const FORGE_ACT = [
-  { id: 'temper', label: '무기 벼리기', cost: 40, sub: '병력 패 하나 · 공격 +20%, 체력 +10%' },
+  { id: 'temper', label: '무기 벼리기', cost: 40, sub: '병력 하나 · 공격 +20%, 체력 +10%' },
   { id: 'buy', label: '무기 사기', cost: 70, sub: '대장장이가 아끼는 무기 하나' },
   { id: 'sell', label: '쇠붙이 팔기', cost: 0, sub: '보관함의 무기 하나 → 엽전 +35' },
 ];

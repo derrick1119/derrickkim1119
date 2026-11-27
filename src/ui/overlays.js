@@ -116,17 +116,17 @@ export class RewardOverlay extends Overlay {
 
 // ───────── 결과 한 줄 (사건·주막·장터가 함께 쓴다) ─────────
 export function resultIcon(s) {
-  const m = /(보물|부정|무기|패 강화:|병력 패|패) \[([^\]]+?)\+?\]/.exec(s); if (!m) return null;
+  const m = /(보물|부정|무기|패 강화:|명부에|병력 패|패) \[([^\]]+?)\+?\]/.exec(s); if (!m) return null;
   const name = m[2], find = tbl => Object.keys(tbl).find(k => tbl[k].name === name);
   if (m[1] === '보물' || m[1] === '부정') { const id = find(RELICS); return id ? (g, x, y) => relicIcon(g, id, x, y, 0.74) : null; }
   if (m[1] === '무기') { const id = find(WEAPONS); return id ? (g, x, y) => weaponIcon(g, id, x, y, 0.56) : null; }
-  if (m[1] === '병력 패') { const id = Object.keys(UNITS).find(k => UNITS[k].name === name); return id ? (g, x, y) => portrait(g, id, x, y + 20, 0.62) : null; }
+  if (m[1] === '명부 병력') { const id = Object.keys(UNITS).find(k => UNITS[k].name === name); return id ? (g, x, y) => portrait(g, id, x, y + 20, 0.62) : null; }
   const id = Object.keys(CARDS).find(k => !isUnit({ id: k }) && CARDS[k].name === name); return id ? (g, x, y) => cardIcon(g, id, x, y, 0.74) : null;
 }
 // 결과 한 줄이 손해인지 가리는 낱말
 // 얻은 물건(무기·보물·패)은 설명에 '-30%' 같은 글이 섞여 있어도 얻은 것이다
 // 고개의 풍경 → 작은 무대의 걸개그림
-export const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
+export const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|명부에|조련|패 강화)/;
 // ───────── 이야기 한 장면: 두목의 사연, 영웅의 인연 (한 줄씩 눌러 넘긴다) ─────────
 // lines: [[말하는 이(병종 id) 또는 null(해설), 글], …]
 export class StoryOverlay extends Overlay {
@@ -161,6 +161,6 @@ export function restChoices() {
     { id: 'rest', label: '푹 쉰다', desc: '다음 싸움 사기 +4로 시작', pick: () => ['뜨끈한 국밥에 다들 기운을 차렸습니다.', act.morale(4)] },
     // 수련: 병력·영웅 패는 +1단(조련), 전술 패는 강화판(+)으로 — 덱에서 하나를 고른다
     r.deck.some(c => canUp(c)) ? { id: 'train', label: '수련한다', desc: '패 하나를 +1단 · 전술 패는 강화(+)', deck: 'up', filter: c => canUp(c), story: '주막 마당에서 밤새 합을 맞추고 병법을 가다듬었습니다.' } : null,
-    { id: 'feast', label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 패 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
+    { id: 'feast', label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 병력 둘 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.train(), act.train()]; } },
   ].filter(Boolean);
 }

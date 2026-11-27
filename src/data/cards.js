@@ -33,7 +33,7 @@ export const CARDS = {
   bujeok: { name: '불 부적', kind: 'support', axis: 'talisman', cost: 2, r: 110, target: true, rare: 1, v: { dur: 10, burn: 14 }, up: { dur: 13, burn: 20 }, desc: v => `범위 내 아군이 ${v.dur}초간 때리면 3초 화상 (초당 ${v.burn})` },
   daedong: { name: '대동굿', kind: 'support', axis: 'gut', cost: 2, target: false, rare: 1, v: { dur: 15, gain: 1 }, up: { dur: 20, gain: 1.5 }, desc: v => `${v.dur}초간 요괴 무리를 물리칠 때마다 사기 +${v.gain} 더` },
   uibyeong: { name: '의병 봉기', kind: 'tactic', axis: 'militia', cost: 2, r: 50, target: true, rare: 0, v: { n: 8, life: 20 }, up: { n: 10, life: 26 }, desc: v => `의병 ${v.n}명이 일어나 ${v.life}초간 싸운다 (환도 무사보다 약하다)` },
-  gyeokmun: { name: '격문', kind: 'support', axis: 'militia', cost: 3, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `이번 싸움에서 전멸한 부대 패 ${v.n}장이 손으로 돌아온다` },
+  gyeokmun: { name: '격문', kind: 'support', axis: 'militia', cost: 3, target: false, rare: 1, v: { n: 1 }, up: { n: 2 }, desc: v => `이번 싸움에서 쓰러진 병사 ${v.n}명이 원군으로 다시 온다 (사기 없이)` },
   // ── 영웅 전용 ──
   strike: { name: '언월 강타', kind: 'hero', hero: 'commander', cost: 3, r: 85, target: true, v: { dmg: 330, stun: 2 }, up: { dmg: 440, stun: 2.5 }, desc: v => `장군이 뛰어들어 범위 피해 ${v.dmg}, 기절 ${v.stun}초` },
   order: { name: '호령', kind: 'hero', hero: 'commander', cost: 1, target: false, v: { dur: 9 }, up: { dur: 13 }, desc: v => `장군 주변 아군 ${v.dur}초간 공격 속도 +30%, 피해 +20%` },
@@ -44,7 +44,7 @@ export const CARDS = {
   veil: { name: '안개 걸음', kind: 'hero', hero: 'blade', cost: 1, target: false, v: { dur: 4 }, up: { dur: 6 }, desc: v => `검객이 ${v.dur}초간 모든 공격을 흘리고 공격 속도 +30%` },
   mark: { name: '표적', kind: 'hero', hero: 'hunter', cost: 1, r: 100, target: true, v: { amt: 30, dur: 10 }, up: { amt: 45, dur: 12 }, desc: v => `범위 내 적이 ${v.dur}초간 받는 피해 +${v.amt}%` },
   snare: { name: '올가미', kind: 'hero', hero: 'hunter', cost: 2, r: 85, target: true, v: { dmg: 130, root: 3.5 }, up: { dmg: 190, root: 5 }, desc: v => `범위 내 적에게 피해 ${v.dmg}, ${v.root}초간 발 묶기` },
-  pangut: { name: '판굿', kind: 'hero', hero: 'sangsoe', cost: 2, target: false, v: { free: 1 }, up: { free: 2 }, desc: v => `손패를 모두 새로 뽑고, 다음 패 ${v.free}장은 공짜` },
+  pangut: { name: '판굿', kind: 'hero', hero: 'sangsoe', cost: 2, target: false, v: { free: 1 }, up: { free: 2 }, desc: v => `투서를 모두 새로 받고, 다음 패 ${v.free}장은 공짜` },
   deong: { name: '덩더쿵', kind: 'hero', hero: 'sangsoe', cost: 3, target: false, v: { stun: 2, dur: 7 }, up: { stun: 2.8, dur: 9 }, desc: v => `모든 적 ${v.stun}초 기절(두목은 감속), 전군 ${v.dur}초간 공격 속도 +30%` },
   bulwark: { name: '버티기', kind: 'hero', hero: 'chief', cost: 2, target: false, v: { guard: 75, dur: 8 }, up: { guard: 88, dur: 10 }, desc: v => `두령이 ${v.dur}초간 받는 피해 -${v.guard}%, 주변 적을 끌어모은다` },
   raid: { name: '산채 패거리', kind: 'hero', hero: 'chief', cost: 3, r: 46, target: true, v: { n: 5, life: 18 }, up: { n: 6, life: 22 }, desc: v => `철퇴 장사 ${v.n}명이 ${v.life}초간 달려와 참전` },
