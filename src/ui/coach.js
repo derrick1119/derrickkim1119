@@ -17,7 +17,7 @@ const squadBox = q => { let x = 0, y = 0, n = 0; for (const u of q.units) if (!u
 // 차례대로: 앞의 안내를 봐야 다음 안내가 뜬다 (after)
 export const TIPS = [
   { id: 'army', when: s => s.phase === 'prep', at: () => ({ x: 6, y: 4, w: 236, h: 58 }), s: '남은 병력입니다.\n전장의 아군과 명부에 남은 원군이 모두 바닥나면 원정이 끝납니다.' },
-  { id: 'request', after: 'army', when: s => (s.phase === 'prep' || fight(s)) && s.b.canRequest(), at: () => ({ x: 248, y: 574, w: 680, h: 138 }), s: '원군을 청하면 잠시 뒤 장계가 옵니다.\n명부에서 누가 올지는 운입니다 — 귀한 병사일수록 드뭅니다.' },
+  { id: 'request', after: 'army', when: s => (s.phase === 'prep' || fight(s)) && s.b.canRequest(), at: () => ({ x: 248, y: 574, w: 680, h: 138 }), s: '원군 슬롯입니다. 명부의 병사들이 릴의 그림이 됩니다.\n가운데 칸의 병사가 오고, 맞은 줄마다 한 명 더 — 가운데 줄이 맞으면 정예!' },
   { id: 'letter', after: 'request', when: s => (s.phase === 'prep' || fight(s)) && (s.b.mail.length > 0 || s.b.hand.some(Boolean)), at: () => ({ x: 4, y: 108, w: 244, h: 100 }), s: '왼쪽 결재함에 투서가 올라옵니다.\n윤허를 누르면 바로 전장에 반영되고, 불허를 누르면 물립니다.' },
   { id: 'morale', after: 'letter', when: s => s.phase === 'prep' || fight(s), at: () => ({ x: 6, y: 574, w: 232, h: 104 }), s: '원군과 전술에는 사기가 듭니다.\n요괴 무리를 물리치면 사기가 차오릅니다.' },
   { id: 'tactic', after: 'morale', when: s => fight(s) && s.b.waveT > 3 && s.b.hand.some(c => c && CARDS[c.id].kind !== 'curse'), at: () => ({ x: 4, y: 108, w: 244, h: 100 }), s: '전술 투서는 윤허하면 쓰이고 이번 원정에서 사라집니다.\n불허하면 더미 밑으로 돌아갑니다.' },

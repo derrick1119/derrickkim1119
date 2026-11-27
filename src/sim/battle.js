@@ -38,7 +38,12 @@ export const HAND = 3, REFILL = 3.2, MAX_CAP = 9;
 // 원정의 병력은 '원군 명부'에 오른다. 싸움 중에 원군을 청하면(사기 REQ_COST) 잠시 뒤 명부에서 무작위로 병사 한 명이 장계와 함께 온다.
 // 명부의 한 줄(병력)은 싸움마다 LEVY 명까지 보낼 수 있고, 쓰러진 병사는 싸움이 끝나야 다시 보낼 수 있다.
 // 귀한 병종일수록 드물게 온다 (TIER). 가끔 정예(ELITE_P)가 온다
-export const REQ_COST = 1, CAP_K = 2, DECLINE_BACK = 0, REQ_DELAY = 1.7, ELITE_P = 0.08, ELITE_LV = 3;
+export const REQ_COST = 2, CAP_K = 2, DECLINE_BACK = 0, REQ_DELAY = 1.7, ELITE_P = 0.08, ELITE_LV = 3;
+// ───── 원군 슬롯 (3×3) ─────
+// 명부의 병종이 릴의 그림이 된다 (흔할수록 칸이 많다). 군기는 아무 그림이나 대신하고, 엽전은 사기가 된다.
+// 가운데 칸의 병사가 오고, 맞은 줄마다 한 명 더. 가운데 줄이 맞으면 정예, 세 줄 이상이면 대박(모두 정예)
+export const SPIN_T = 1.5, SYM_N = { common: 4, rare: 3, epic: 2, legend: 1 }, WILD_N = 1, COIN_N = 2;
+export const LINES = [[[0, 0], [0, 1], [0, 2]], [[1, 0], [1, 1], [1, 2]], [[2, 0], [2, 1], [2, 2]], [[0, 0], [1, 1], [2, 2]], [[2, 0], [1, 1], [0, 2]]];
 export const TIER = { common: { w: 10, name: '보통' }, rare: { w: 5, name: '귀함' }, epic: { w: 2.2, name: '희귀' }, legend: { w: 1.1, name: '전설' } };
 const TIER_ORDER = ['common', 'rare', 'epic', 'legend'];
 const BASE_RARE = { knight: 1, wizard: 1, priest: 1, berserk: 1, cannon: 1 };
@@ -46,7 +51,7 @@ const BASE_RARE = { knight: 1, wizard: 1, priest: 1, berserk: 1, cannon: 1 };
 export function tierOf(c) { const u = UNITS[CARDS[c.id].unit]; if (!u) return 'common'; if (u.beast) return 'legend'; return TIER_ORDER[Math.min(3, (BASE_RARE[CARDS[c.id].unit] ? 1 : 0) + (c.br ? 1 : 0))]; }
 // 한 줄이 싸움마다 보내는 병사 수와, 한 명에 몰아 준 힘 (예전 부대 n명의 힘을 levy 명이 나눠 갖는다)
 export const levyOf = (def, lvl) => Math.max(1, Math.round(squadN(def.n, lvl || 1) / 2));
-export const SOLO_K = 0.8, FOE_THIN = 0.45, FOE_K = 0.92;
+export const SOLO_K = 0.74, FOE_THIN = 0.45, FOE_K = 0.92;
 const soloBoost = (def, lvl) => (squadN(def.n, lvl || 1) / levyOf(def, lvl)) * SOLO_K;
 // 사기는 가만히 있어도 차오르는 자원이 아니다: 물결이 시작될 때 한 몫, 요괴 무리를 하나 물리칠 때마다 한 닢.
 // 싸우는 동안에는 아주 천천히, 행군하며 숨을 고를 때는 조금 더 빨리 돌아온다. 아낀 사기는 다음 싸움으로 넘어간다
@@ -130,7 +135,8 @@ export class Battle {
   fieldCap() { return this.cap * CAP_K; }
   reserveN() { let n = 0; for (const e of this.roster) n += e.left; return n + this.mail.length + this.coming.length; }
   // ── 원군 청하기: 사기를 내면 잠시 뒤 장계가 온다 ──
-  reqCost() { if (this.freeReq > 0) return 0; return this.emptyField() ? 0 : Math.max(0, REQ_COST - (this.mods.reqDisc || 0)); }
+  // 한 싸움에서 돌릴수록 비싸진다 (1·1·1·2·2·2·3…). 전장이 비면 공짜
+  reqCost() { if (this.freeReq > 0) return 0; return this.emptyField() ? 0 : Math.max(0, REQ_COST + Math.floor((this.spinN || 0) / 3) - (this.mods.reqDisc || 0)); }
   whyNotReq() {
     if (this.over) return 'none';
     if (!this.roster.some(e => e.left > 0)) return 'empty';
@@ -138,10 +144,41 @@ export class Battle {
     return this.morale >= this.reqCost() ? '' : 'morale';
   }
   canRequest() { return this.whyNotReq() === ''; }
-  request() {
+  request() { return this.spin(); }
+  // 릴에 들어가는 그림들: 명부에서 아직 보낼 수 있는 병종마다 등급만큼, 그리고 군기·엽전
+  reelSyms() {
+    const groups = new Map();
+    for (const e of this.roster) { if (e.left <= 0) continue; const key = e.c.id + '|' + (e.c.br || ''); let q = groups.get(key); if (!q) groups.set(key, q = { key, c: e.c, tier: tierOf(e.c), list: [] }); q.list.push(e); if ((e.c.lv || 1) > (q.c.lv || 1)) q.c = e.c; }
+    const out = []; for (const q of groups.values()) for (let k = 0; k < SYM_N[q.tier]; k++) out.push({ k: 'u', key: q.key, g: q, tier: q.tier });
+    for (let k = 0; k < WILD_N + (this.mods.slotWild || 0); k++) out.push({ k: 'wild' }); for (let k = 0; k < COIN_N; k++) out.push({ k: 'coin' });
+    return out;
+  }
+  // 슬롯을 돌린다
+  spin() {
     if (!this.canRequest()) return false; const cost = this.reqCost();
     if (this.freeReq > 0) this.freeReq--; else this.morale -= cost;
-    this.reqN++; this.coming.push({ at: this.time + REQ_DELAY * (this.mods.reqFast || 1), paid: cost }); this.ev('request', { cost }); return true;
+    this.reqN++; this.spinN = (this.spinN || 0) + 1;
+    const S = this.reelSyms(), pick = () => S[(this.rand() * S.length) | 0], grid = [0, 1, 2].map(() => [pick(), pick(), pick()]);
+    const best = () => { let b = null; for (const row of grid) for (const q of row) if (q.k === 'u' && (!b || TIER_ORDER.indexOf(q.tier) > TIER_ORDER.indexOf(b.tier))) b = q; return b; };
+    // 줄 판정: 군기를 뺀 그림이 모두 같으면 맞다 (모두 군기면 가장 귀한 병종)
+    const lines = [];
+    LINES.forEach((L, li) => { const q = L.map(([r, c]) => grid[r][c]), nw = q.filter(z => z.k !== 'wild');
+      if (!nw.length) { const b = best(); if (b) lines.push({ li, k: 'u', g: b.g }); return; }
+      if (nw.every(z => z.k === 'coin')) lines.push({ li, k: 'coin' });
+      else if (nw.every(z => z.k === 'u' && z.key === nw[0].key)) lines.push({ li, k: 'u', g: nw[0].g }); });
+    const jackpot = lines.length >= 3, mid = lines.find(l => l.li === 1), awards = []; let coin = 0;
+    const center = grid[1][1], cg = center.k === 'u' ? center.g : center.k === 'wild' ? (mid && mid.k === 'u' ? mid.g : (best() || {}).g) : null;
+    if (cg) awards.push({ g: cg, elite: !!(mid && mid.k === 'u') }); else coin += 1;
+    for (const l of lines) { if (l.k === 'coin') coin += 2; else if (l.li !== 1) awards.push({ g: l.g, elite: false }); }
+    if (jackpot) for (const a of awards) a.elite = true;
+    let k = 0; const got = [];
+    for (const a of awards) { const e = a.g.list.filter(q => q.left > 0).sort((p, q) => q.left - p.left)[0]; if (!e) { coin += 1; continue; } e.left--;
+      const m = { id: 'r' + (++this.newN), kind: 'reinf', e, tier: tierOf(e.c), elite: a.elite, at: this.time, free: cost === 0 }; got.push(m);
+      this.coming.push({ at: this.time + SPIN_T * (this.mods.reqFast || 1) + k++ * 0.3, paid: cost, m }); }
+    if (coin) this.morale = Math.min(this.moraleMax, this.morale + coin);
+    const view = grid.map(row => row.map(q => ({ k: q.k, tier: q.tier, c: q.g ? q.g.c : null, key: q.key })));
+    this.lastSpin = { grid: view, lines: lines.map(l => l.li), jackpot, coin, n: got.length, elite: got.some(m => m.elite), at: this.time };
+    this.ev('spin', this.lastSpin); return true;
   }
   // 명부에서 한 명을 고른다: 등급 무게 × 남은 수. 가끔 정예
   rollReinf() {
@@ -169,7 +206,7 @@ export class Battle {
     return { x: x + (this.rand() - 0.5) * 30, y: best };
   }
   // 싸움 중 대기: 오는 장계 처리
-  mailTick() { for (const q of this.coming) if (this.time >= q.at) { q.done = true; const m = this.rollReinf(); if (m) { m.free = !q.paid; this.mail.push(m); this.ev('mail', { tier: m.tier, elite: m.elite, name: cardName(m.e.c) }); } else if (q.paid) this.morale = Math.min(this.moraleMax, this.morale + q.paid); } this.coming = this.coming.filter(q => !q.done); }
+  mailTick() { for (const q of this.coming) if (this.time >= q.at) { q.done = true; const m = q.m || this.rollReinf(); if (m) { m.free = !q.paid; this.mail.push(m); this.ev('mail', { tier: m.tier, elite: m.elite, name: cardName(m.e.c) }); } else if (q.paid && !q.m) this.morale = Math.min(this.moraleMax, this.morale + q.paid); } this.coming = this.coming.filter(q => !q.done); }
   // 격문: 이번 싸움에서 쓰러진 병사 n명이 사기 없이 원군으로 다시 온다
   revive(n) { let k = 0; for (const e of this.roster) while (k < n && e.dead > 0) { e.dead--; e.left++; k++; } this.freeCall(k); return k; }
   // 사기 없이 원군 n을 부른다
@@ -218,7 +255,7 @@ export class Battle {
     this.ev('scavenge', { slot: i, id }); return true;
   }
   // 싸움이 끝나면 쉬던 패가 돌아온다: 전멸했던 부대, (고승의) 지원 패
-  regroup() { for (const e of this.roster) { e.left = Math.min(e.max, e.left + e.dead); e.dead = 0; } this.mail = []; this.coming = []; this.freeReq = 0; if (this.heroCard && !this.hero()) this.deploy(this.heroCard, VIEW.x0 + 250, MID_Y, true);
+  regroup() { this.spinN = 0; for (const e of this.roster) { e.left = Math.min(e.max, e.left + e.dead); e.dead = 0; } this.mail = []; this.coming = []; this.freeReq = 0; if (this.heroCard && !this.hero()) this.deploy(this.heroCard, VIEW.x0 + 250, MID_Y, true);
     const back = this.bench.concat(this.rest); this.bench = []; this.rest = []; this.keptN = 0; for (const c of back) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, c); this.rallied = 0; this.heroLootN = 0; this.fullSaid = false; return back.length; }
   ev(type, o) { const e = o || {}; e.type = type; this.events.push(e); }
   count(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team && !u.def.rescue) n++; return n; }

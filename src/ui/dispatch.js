@@ -2,7 +2,8 @@
 // 아래 띠 가운데에는 원군 명부(누가 올 수 있는지)와 '원군을 청한다' 단추가 있다.
 import { HUD_H, BAR_Y, W } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, FONT, FONT_B, text, rr, ell, line, poly, clamp, easeOutBack } from '../render/draw.js';
-import { HAND, REFILL, TIER, tierOf } from '../sim/battle.js';
+import { HAND, REFILL, TIER, tierOf, SYM_N } from '../sim/battle.js';
+const SYM_N_UI = SYM_N;
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { UNITS } from '../data/units.js';
 import { portrait, lookOf } from '../render/sprites.js';
@@ -30,7 +31,8 @@ const fitLine = (g, s, w, size) => { g.font = `400 ${size}px ${FONT}`; if (g.mea
 export class Dispatch {
   constructor() { this.seen = new Map(); this.out = []; this.fan = null; this.peek = null; this.flash = 0; }
   // 싸움 사건을 받는다: 원군 장계가 오면 등급에 맞춰 환호
-  event(e, view) {
+  event(e, view, b) {
+    if (e.type === 'spin') { this.spin = { grid: e.grid, lines: e.lines, jackpot: e.jackpot, coin: e.coin, t: 0, strip: b ? b.reelSyms().map(q => ({ k: q.k, tier: q.tier, c: q.g ? q.g.c : null })) : [] }; return; }
     if (e.type === 'mail') { if (e.tier === 'epic' || e.tier === 'legend' || e.elite) { this.fan = { tier: e.tier, elite: e.elite, name: e.name || '', t: 0 }; sfx('star'); if (e.tier === 'legend') sfx('win'); } else sfx('card'); }
     else if (e.type === 'reinf' && view) { const big = e.tier === 'epic' || e.tier === 'legend' || e.elite; view.fx.ring(e.x, e.y, big ? 70 : 46, TIER_COL[e.tier], 0.6, big ? 6 : 4); if (big) { view.fx.burst(e.x, e.y - 30, 18, e.tier === 'legend' ? '#f0d264' : '#c9a0ff', 220, 5); view.fx.shake = Math.max(view.fx.shake, 5); } }
   }
@@ -153,35 +155,78 @@ function drawFanfare(g, b, f, T) {
   g.globalAlpha = 1;
 }
 
-// 아래 띠 가운데: 원군 명부와 '원군을 청한다' 단추
+// ───── 아래 띠 가운데: 원군 슬롯 (3×3) ─────
+const SYM_BG = { common: '#e9dcbc', rare: '#d6e4ef', epic: '#e6d8f0', legend: '#f6e2a8' };
+// 칸 하나에 그림 하나: 병사(등급 바탕) · 군기(만능) · 엽전(사기)
+function drawSym(g, q, x, y, w, h, T, lit) {
+  if (!q) return;
+  const bg = q.k === 'u' ? SYM_BG[q.tier] : q.k === 'wild' ? '#f3d0c4' : '#f3e7c0';
+  rr(g, x, y, w, h, 5, bg, lit ? '#e2b85a' : 'rgba(40,28,20,0.6)', lit ? 2.4 : 1);
+  g.save(); g.beginPath(); g.rect(x + 1, y + 1, w - 2, h - 2); g.clip();
+  if (q.k === 'u') { const u = CARDS[q.c.id].unit; portrait(g, lookOf(u, q.c.br), x + w / 2, y + h + 14, 0.62, 0); if (q.tier !== 'common') rr(g, x + 2, y + 2, 6, 6, 3, TIER_COL[q.tier]); }
+  else if (q.k === 'wild') { line(g, [x + w / 2 - 8, y + h - 4, x + w / 2 - 8, y + 5], '#5a3a22', 2.4); poly(g, [x + w / 2 - 7, y + 6, x + w / 2 + 13, y + 9, x + w / 2 + 8, y + 15, x + w / 2 + 14, y + 21, x + w / 2 - 7, y + 20], RED, INK, 1.2); text(g, '군기', x + w / 2 + 2, y + h - 7, { size: 10.5, font: FONT_B, fill: '#6a1f1a' }); }
+  else { icon.coin(g, x + w / 2, y + h / 2 - 2, 10, true); text(g, '사기', x + w / 2, y + h - 6, { size: 10.5, font: FONT_B, fill: '#6a4a1a' }); }
+  g.restore();
+}
 export function drawRoster(s, g, b, i, x, y, w, h, live) {
-  const T = s.T;
+  const T = s.T, D = s.disp, dt = s.dt || 0.016;
   rr(g, x, y, w, h, 10, 'rgba(10,14,28,0.45)', 'rgba(154,166,196,0.35)', 1.2);
-  text(g, '원군 명부', x + 12, y + 14, { size: 15, font: FONT_B, fill: C.gilt, align: 'left' });
-  text(g, '누가 올지는 운 · 귀할수록 드물다', x + 92, y + 14.5, { size: 12, fill: 'rgba(240,226,196,0.65)', align: 'left', weight: 400 });
-  // 명부: 같은 병종·갈래는 한 칸으로 묶는다 (그림, 등급 테, 남은 수)
+  text(g, '원군 슬롯', x + 12, y + 13, { size: 15, font: FONT_B, fill: C.gilt, align: 'left' });
+  text(g, '가운데 칸 → 그 병사 · 맞은 줄마다 한 명 더 · 가운데 줄 정예 · 세 줄 대박', x + 86, y + 13.5, { size: 12, fill: 'rgba(240,226,196,0.7)', align: 'left', weight: 400 });
+  // 기계: 단청 틀 안에 3×3 칸
+  const CW = 50, CH = 34, GP = 4, mx = x + 14, my = y + 26, gw = CW * 3 + GP * 2, gh = CH * 3 + GP * 2;
+  rr(g, mx - 7, my - 5, gw + 14, gh + 10, 8, '#3a1e16', '#e2b85a', 1.6); rr(g, mx - 3, my - 2, gw + 6, gh + 4, 5, '#1a1014');
+  const syms = b.reelSyms().map(q => ({ k: q.k, tier: q.tier, c: q.g ? q.g.c : null })), sp = D.spin;
+  if (sp) sp.t += dt;
+  const fallback = (r, c) => syms.length ? syms[(r * 3 + c * 5 + 1) % syms.length] : null;
+  const view = sp ? sp.grid : (b.lastSpin ? b.lastSpin.grid : null);
+  for (let c = 0; c < 3; c++) {
+    const stop = sp ? 0.5 + c * 0.32 : -1, rolling = sp && sp.t < stop, cx = mx + c * (CW + GP);
+    if (sp && !rolling && !sp['s' + c]) { sp['s' + c] = true; sfx('click'); }
+    g.save(); g.beginPath(); g.rect(cx, my, CW, gh); g.clip();
+    if (rolling) { const pool = sp.strip.length ? sp.strip : syms, off = sp.t * 16 + c * 3.3, base = Math.floor(off), fr = off - base;
+      for (let r = -1; r < 3; r++) { const q = pool[(base + r + c * 7 + pool.length * 4) % pool.length]; g.globalAlpha = 0.85; drawSym(g, q, cx, my + (r + fr) * (CH + GP), CW, CH, T); } g.globalAlpha = 1;
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(cx, my, CW, gh); }
+    else for (let r = 0; r < 3; r++) { const q = view ? view[r][c] : fallback(r, c), bounce = sp && sp.t - stop < 0.15 ? Math.sin((sp.t - stop) / 0.15 * Math.PI) * 3 : 0; drawSym(g, q, cx, my + r * (CH + GP) + bounce, CW, CH, T, r === 1 && c === 1); }
+    g.restore();
+  }
+  // 가운데 줄 표시
+  poly(g, [mx - 12, my + CH * 1.5 + GP - 5, mx - 5, my + CH * 1.5 + GP, mx - 12, my + CH * 1.5 + GP + 5], C.gilt);
+  poly(g, [mx + gw + 12, my + CH * 1.5 + GP - 5, mx + gw + 5, my + CH * 1.5 + GP, mx + gw + 12, my + CH * 1.5 + GP + 5], C.gilt);
+  // 다 멈추면: 맞은 줄에 금빛 선, 대박이면 큰 글씨
+  if (sp && sp.t >= 1.2) {
+    if (!sp.said) { sp.said = true; if (sp.jackpot) { sfx('win'); D.fan = { tier: 'legend', jackpot: true, name: '세 줄이 맞았다', t: 0 }; } else if (sp.lines.length) sfx('star'); if (sp.coin) s.view.fx.txt(mx + gw / 2 + TRAY.w * 0, y - 20, `사기 +${sp.coin}`, C.gilt, 22, 1); }
+    const k = clamp(1 - (sp.t - 3.2) / 0.6, 0, 1), pulse = 0.6 + 0.4 * Math.sin(T * 10);
+    if (k > 0) for (const li of sp.lines) { const L = [[[0, 0], [0, 1], [0, 2]], [[1, 0], [1, 1], [1, 2]], [[2, 0], [2, 1], [2, 2]], [[0, 0], [1, 1], [2, 2]], [[2, 0], [1, 1], [0, 2]]][li], pts = []; for (const [r, c] of L) pts.push(mx + c * (CW + GP) + CW / 2, my + r * (CH + GP) + CH / 2); g.save(); g.globalAlpha = k * pulse; line(g, pts, 'rgba(40,20,0,0.6)', 7); line(g, pts, '#ffd76a', 3.6); g.restore(); }
+    if (sp.jackpot && k > 0) { g.save(); g.globalAlpha = k; text(g, '대박!', mx + gw / 2, my + gh / 2, { size: 34, font: FONT_B, fill: '#ffd76a', stroke: '#3a1e16', lw: 6 }); g.restore(); }
+    if (sp.t > 3.8) D.spin = null;
+  }
+  // 릴의 그림들: 병종마다 몇 칸인지, 이번 싸움에 몇 명 더 올 수 있는지
   const RANK = ['legend', 'epic', 'rare', 'common'], grp = new Map();
-  for (const e of b.roster) { const k = e.c.id + '|' + (e.c.br || ''); const q = grp.get(k) || { c: e.c, left: 0, max: 0, n: 0 }; q.left += e.left; q.max += e.max; q.n++; if ((e.c.lv || 1) > (q.c.lv || 1)) q.c = e.c; grp.set(k, q); }
+  for (const e of b.roster) { const k = e.c.id + '|' + (e.c.br || ''); const q = grp.get(k) || { c: e.c, left: 0, n: 0 }; q.left += e.left; q.n++; if ((e.c.lv || 1) > (q.c.lv || 1)) q.c = e.c; grp.set(k, q); }
   const list = [...grp.values()].sort((p, q) => RANK.indexOf(tierOf(p.c)) - RANK.indexOf(tierOf(q.c)) || q.left - p.left);
-  const bw = 178, room = w - bw - 24, cwMin = 44, fit = Math.max(1, Math.floor(room / cwMin)), shown = list.slice(0, list.length > fit ? fit - 1 : fit), cw = Math.min(54, room / Math.max(1, shown.length + (list.length > shown.length ? 1 : 0))), cy = y + 30, ch = h - 38;
+  const bw = 150, ax = mx + gw + 22, room = x + w - bw - 14 - ax, cwMin = 40, fit = Math.max(1, Math.floor(room / cwMin)), shown = list.slice(0, list.length > fit ? fit - 1 : fit), cw = Math.min(50, room / Math.max(1, shown.length + (list.length > shown.length ? 1 : 0))), cy = y + 26, ch = h - 48;
   shown.forEach((e, k) => {
-    const cx = x + 10 + k * cw, tier = tierOf(e.c), col = TIER_COL[tier], left = e.left;
+    const cx = ax + k * cw, tier = tierOf(e.c), col = TIER_COL[tier], left = e.left;
     rr(g, cx, cy, cw - 4, ch, 6, left ? '#efe3c4' : 'rgba(239,227,196,0.3)', col, tier === 'common' ? 1.2 : 2.6); rr(g, cx, cy, cw - 4, 6, 3, col);
-    g.save(); g.beginPath(); g.rect(cx + 1, cy + 6, cw - 6, ch - 7); g.clip(); g.globalAlpha = left ? 1 : 0.3; const u = CARDS[e.c.id].unit; portrait(g, lookOf(u, e.c.br), cx + (cw - 4) / 2, cy + ch - 6, 0.82, 0); g.restore();
+    g.save(); g.beginPath(); g.rect(cx + 1, cy + 6, cw - 6, ch - 7); g.clip(); g.globalAlpha = left ? 1 : 0.3; const u = CARDS[e.c.id].unit; portrait(g, lookOf(u, e.c.br), cx + (cw - 4) / 2, cy + ch - 4, 0.72, 0); g.restore();
     rr(g, cx + cw - 27, cy + 9, 23, 17, 6, left ? col : '#6a6470'); text(g, '×' + left, cx + cw - 15.5, cy + 17.5, { size: 12, fill: '#fff8e6' });
-    if (live && tapped('ro' + k, cx, cy, cw - 4, ch)) s.toast(`${cardName(e.c)} · ${TIER[tier].name} · 이번 싸움에 ${left}명 더 올 수 있다`, 2.6);
+    text(g, `${left ? SYM_N_UI[tier] : 0}칸`, cx + (cw - 4) / 2, cy + ch + 9, { size: 11.5, fill: left ? 'rgba(240,226,196,0.85)' : 'rgba(240,226,196,0.4)' });
+    if (live && tapped('ro' + k, cx, cy, cw - 4, ch)) s.toast(`${cardName(e.c)} · ${TIER[tier].name} · 릴에 ${left ? SYM_N_UI[tier] : 0}칸 · 이번 싸움에 ${left}명 더 올 수 있다`, 2.8);
   });
-  if (list.length > shown.length) { const cx = x + 10 + shown.length * cw, rest = list.slice(shown.length).reduce((a, q) => a + q.left, 0); rr(g, cx, cy, cw - 4, ch, 6, 'rgba(239,227,196,0.25)', 'rgba(154,166,196,0.5)', 1.2); text(g, `+${list.length - shown.length}`, cx + (cw - 4) / 2, cy + ch / 2 - 8, { size: 16, font: FONT_B, fill: C.cream }); text(g, `×${rest}`, cx + (cw - 4) / 2, cy + ch / 2 + 14, { size: 12, fill: C.cream }); }
-  // 원군을 청한다
-  const bx = x + w - bw - 8, by = y + 26, bh = h - 34, why = b.whyNotReq(), ok = why === '', cost = b.reqCost(), hov = live && i && inRect(i, bx, by, bw, bh);
+  if (list.length > shown.length) { const cx = ax + shown.length * cw, rest = list.slice(shown.length).reduce((a, q) => a + q.left, 0); rr(g, cx, cy, cw - 4, ch, 6, 'rgba(239,227,196,0.25)', 'rgba(154,166,196,0.5)', 1.2); text(g, `+${list.length - shown.length}`, cx + (cw - 4) / 2, cy + ch / 2 - 8, { size: 16, font: FONT_B, fill: C.cream }); text(g, `×${rest}`, cx + (cw - 4) / 2, cy + ch / 2 + 14, { size: 12, fill: C.cream }); }
+  // 손잡이: 슬롯을 돌린다
+  const bx = x + w - bw - 8, by = y + 22, bh = h - 30, why = b.whyNotReq(), spinning = !!(sp && sp.t < 1.2), ok = why === '' && !spinning, cost = b.reqCost(), hov = live && i && inRect(i, bx, by, bw, bh);
   rr(g, bx + 2, by + 4, bw, bh, 10, 'rgba(0,0,0,0.35)');
   rr(g, bx, by, bw, bh, 10, ok ? (hov ? '#c44a3a' : '#a8322a') : '#4a4654', '#1a1010', 1.6); rr(g, bx + 4, by + 4, bw - 8, bh - 8, 7, null, ok ? 'rgba(255,220,150,0.6)' : 'rgba(200,200,210,0.3)', 1.2);
-  text(g, '원군을 청한다', bx + bw / 2, by + 28, { size: 22, font: FONT_B, fill: '#fff4dc' });
-  const sub = why === 'empty' ? '명부가 비었다' : why === 'cap' ? `전장 가득 (${b.fieldCap()}명)` : cost === 0 ? '사기 없이' : `사기 ${cost}`;
-  text(g, sub, bx + bw / 2, by + 54, { size: 15, fill: ok ? '#ffe2a0' : '#c8c0d0' });
-  // 파발: 오는 중인 원군
-  b.coming.forEach((c2, k) => { const p = clamp(1 - (c2.at - b.time) / 1.7, 0, 1), px = bx - 30 - k * 26, py = by + bh - 18; ell(g, px, py, 10, 10, 'rgba(14,10,16,0.6)'); g.beginPath(); g.arc(px, py, 10, -Math.PI / 2, -Math.PI / 2 + TAU * p); g.lineWidth = 3; g.strokeStyle = C.gilt; g.stroke(); text(g, '파발', px, py + 1, { size: 9.5, fill: C.cream }); });
-  if (live && tapped('request', bx, by, bw, bh)) { if (b.request()) { sfx('horn'); s.view.fx.txt(TRAY.w + 120, 470, '파발을 띄웠다!', C.gilt, 22, 0.9); } else { sfx('deny'); s.toast(why === 'empty' ? '이번 싸움에 보낼 병사가 명부에 남지 않았습니다' : why === 'cap' ? `전장에는 병사가 ${b.fieldCap()}명까지 설 수 있습니다` : `사기가 ${cost} 있어야 원군을 청합니다`, 2.2); } }
+  // 손잡이 막대와 구슬 (돌리면 내려갔다 올라온다)
+  const pull = sp ? clamp(1 - Math.abs(sp.t - 0.15) / 0.3, 0, 1) : 0, kx = bx + bw - 18, ky = by + 16 + pull * 40;
+  line(g, [kx, by + 12, kx, by + bh - 12], 'rgba(0,0,0,0.35)', 4); line(g, [kx, ky, kx, by + bh - 12], '#c9a24a', 3); ell(g, kx, ky, 8, 8, RED, INK, 1.4);
+  text(g, '슬롯을 돌린다', bx + (bw - 26) / 2, by + 32, { size: 19, font: FONT_B, fill: '#fff4dc' });
+  const sub = spinning ? '돌아가는 중…' : why === 'empty' ? '명부가 비었다' : why === 'cap' ? `전장 가득 (${b.fieldCap()}명)` : cost === 0 ? '사기 없이' : `사기 ${cost}`;
+  text(g, sub, bx + (bw - 26) / 2, by + 60, { size: 15, fill: ok ? '#ffe2a0' : '#c8c0d0' });
+  if ((b.spinN || 0) % 3 === 2 && cost > 0 && !spinning) text(g, '다음부터 +1', bx + (bw - 26) / 2, by + 82, { size: 11.5, fill: 'rgba(255,226,160,0.7)' });
+  if (live && tapped('request', bx, by, bw, bh)) { if (spinning) return; if (b.spin()) sfx('horn'); else { sfx('deny'); s.toast(why === 'empty' ? '이번 싸움에 보낼 병사가 명부에 남지 않았습니다' : why === 'cap' ? `전장에는 병사가 ${b.fieldCap()}명까지 설 수 있습니다` : `사기가 ${cost} 있어야 슬롯을 돌립니다`, 2.2); } }
 }
 // 투서를 눌렀을 때 위쪽에 자세히
 export function drawPeek(s, g, b) {
