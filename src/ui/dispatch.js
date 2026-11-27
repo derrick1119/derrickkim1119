@@ -159,16 +159,19 @@ export function drawRoster(s, g, b, i, x, y, w, h, live) {
   rr(g, x, y, w, h, 10, 'rgba(10,14,28,0.45)', 'rgba(154,166,196,0.35)', 1.2);
   text(g, '원군 명부', x + 12, y + 14, { size: 15, font: FONT_B, fill: C.gilt, align: 'left' });
   text(g, '누가 올지는 운 · 귀할수록 드물다', x + 92, y + 14.5, { size: 12, fill: 'rgba(240,226,196,0.65)', align: 'left', weight: 400 });
-  // 명부의 줄마다: 그림, 등급 테, 남은 수
-  const list = b.roster.slice().sort((p, q) => ['legend', 'epic', 'rare', 'common'].indexOf(tierOf(p.c)) - ['legend', 'epic', 'rare', 'common'].indexOf(tierOf(q.c)));
-  const bw = 178, cw = Math.min(50, (w - bw - 24) / Math.max(1, list.length)), cy = y + 30;
-  list.forEach((e, k) => {
-    const cx = x + 10 + k * cw, tier = tierOf(e.c), col = TIER_COL[tier], left = e.left, ch = h - 38;
+  // 명부: 같은 병종·갈래는 한 칸으로 묶는다 (그림, 등급 테, 남은 수)
+  const RANK = ['legend', 'epic', 'rare', 'common'], grp = new Map();
+  for (const e of b.roster) { const k = e.c.id + '|' + (e.c.br || ''); const q = grp.get(k) || { c: e.c, left: 0, max: 0, n: 0 }; q.left += e.left; q.max += e.max; q.n++; if ((e.c.lv || 1) > (q.c.lv || 1)) q.c = e.c; grp.set(k, q); }
+  const list = [...grp.values()].sort((p, q) => RANK.indexOf(tierOf(p.c)) - RANK.indexOf(tierOf(q.c)) || q.left - p.left);
+  const bw = 178, room = w - bw - 24, cwMin = 44, fit = Math.max(1, Math.floor(room / cwMin)), shown = list.slice(0, list.length > fit ? fit - 1 : fit), cw = Math.min(54, room / Math.max(1, shown.length + (list.length > shown.length ? 1 : 0))), cy = y + 30, ch = h - 38;
+  shown.forEach((e, k) => {
+    const cx = x + 10 + k * cw, tier = tierOf(e.c), col = TIER_COL[tier], left = e.left;
     rr(g, cx, cy, cw - 4, ch, 6, left ? '#efe3c4' : 'rgba(239,227,196,0.3)', col, tier === 'common' ? 1.2 : 2.6); rr(g, cx, cy, cw - 4, 6, 3, col);
     g.save(); g.beginPath(); g.rect(cx + 1, cy + 6, cw - 6, ch - 7); g.clip(); g.globalAlpha = left ? 1 : 0.3; const u = CARDS[e.c.id].unit; portrait(g, lookOf(u, e.c.br), cx + (cw - 4) / 2, cy + ch - 6, 0.82, 0); g.restore();
     rr(g, cx + cw - 27, cy + 9, 23, 17, 6, left ? col : '#6a6470'); text(g, '×' + left, cx + cw - 15.5, cy + 17.5, { size: 12, fill: '#fff8e6' });
     if (live && tapped('ro' + k, cx, cy, cw - 4, ch)) s.toast(`${cardName(e.c)} · ${TIER[tier].name} · 이번 싸움에 ${left}명 더 올 수 있다`, 2.6);
   });
+  if (list.length > shown.length) { const cx = x + 10 + shown.length * cw, rest = list.slice(shown.length).reduce((a, q) => a + q.left, 0); rr(g, cx, cy, cw - 4, ch, 6, 'rgba(239,227,196,0.25)', 'rgba(154,166,196,0.5)', 1.2); text(g, `+${list.length - shown.length}`, cx + (cw - 4) / 2, cy + ch / 2 - 8, { size: 16, font: FONT_B, fill: C.cream }); text(g, `×${rest}`, cx + (cw - 4) / 2, cy + ch / 2 + 14, { size: 12, fill: C.cream }); }
   // 원군을 청한다
   const bx = x + w - bw - 8, by = y + 26, bh = h - 34, why = b.whyNotReq(), ok = why === '', cost = b.reqCost(), hov = live && i && inRect(i, bx, by, bw, bh);
   rr(g, bx + 2, by + 4, bw, bh, 10, 'rgba(0,0,0,0.35)');
