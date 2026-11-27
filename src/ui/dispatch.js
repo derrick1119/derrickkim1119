@@ -1,7 +1,7 @@
 // 결재함: 전장 왼쪽에 투서(전술 상소)와 장계(원군 도착)가 올라오고, '윤허'·'불허' 도장을 눌러 결재한다.
 // 아래 띠 가운데에는 원군 명부(누가 올 수 있는지)와 '원군을 청한다' 단추가 있다.
 import { HUD_H, BAR_Y, W } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, FONT_B, text, rr, ell, line, poly, clamp, easeOutBack } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, FONT, FONT_B, text, rr, ell, line, poly, clamp, easeOutBack } from '../render/draw.js';
 import { HAND, REFILL, TIER, tierOf } from '../sim/battle.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { UNITS } from '../data/units.js';
@@ -21,7 +21,10 @@ const SENDER = { attack: '선봉장 아룀', support: '군관 아룀', tactic: '
 // 원군을 보내온 고을 (장계를 올린 이)
 const TOWNS = ['남원 현감', '안동 부사', '전주 판관', '강릉 부사', '경주 부윤', '공주 목사', '진주 목사', '해남 현감', '청주 목사', '원주 목사', '나주 목사', '상주 목사'];
 const townOf = id => TOWNS[[...String(id)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % TOWNS.length];
-const lineOf = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+// 두 줄로 나눈다 (넘치면 둘째 줄 끝을 자른다)
+const wrap2 = (g, s, w, size) => { g.font = `400 ${size}px ${FONT}`; if (g.measureText(s).width <= w) return [s, '']; let k = 1; while (k < s.length && g.measureText(s.slice(0, k + 1)).width <= w) k++; const sp = s.lastIndexOf(' ', k); if (sp > k * 0.6) k = sp + 1; return [s.slice(0, k).trim(), fitLine(g, s.slice(k).trim(), w, size)]; };
+// 정해진 폭에 맞게 글자를 자른다 (글씨를 줄이지 않는다)
+const fitLine = (g, s, w, size) => { g.font = `400 ${size}px ${FONT}`; if (g.measureText(s).width <= w) return s; let t = s; while (t.length > 1 && g.measureText(t + '…').width > w) t = t.slice(0, -1); return t + '…'; };
 
 // 결재함의 상태: 투서마다 들어온 시각, 결재해서 나가는 모습
 export class Dispatch {
@@ -88,23 +91,24 @@ function drawLetter(s, g, b, q, x, y, i, live, st) {
   // 첫 줄: 올린 이 · 값
   const sender = reinf ? `${townOf(q.m.id)} 장계` : (SENDER[d.kind] || '군관 아룀');
   text(g, sender, x + 15, y + 13, { size: 12.5, fill: '#6a5a44', align: 'left', weight: 400 });
-  if (reinf) { const tn = TIER[tier].name; rr(g, x + LW - 52, y + 4, 46, 19, 9, col); text(g, q.m.elite ? '정예' : tn, x + LW - 29, y + 13.5, { size: 13, fill: '#fff8e6', font: FONT_B }); }
-  else { const cost = b.free > 0 ? 0 : b.costOf(c), ok = b.canPlay(q.n); icon.coin(g, x + LW - 40, y + 13, 8, true); text(g, String(cost), x + LW - 26, y + 14, { size: 15, font: FONT_B, fill: ok ? INK : '#b84a3a', align: 'left' }); }
+  if (reinf) { const tn = TIER[tier].name; rr(g, x + LW - 98, y + 4, 46, 19, 9, col); text(g, q.m.elite ? '정예' : tn, x + LW - 75, y + 13.5, { size: 13, fill: '#fff8e6', font: FONT_B }); }
+  else { const cost = b.free > 0 ? 0 : b.costOf(c), ok = b.canPlay(q.n); icon.coin(g, x + LW - 86, y + 13, 8, true); text(g, String(cost), x + LW - 72, y + 14, { size: 15, font: FONT_B, fill: ok ? INK : '#b84a3a', align: 'left' }); }
   // 둘째 줄: 그림과 이름
   if (reinf) { const u = CARDS[c.id].unit; g.save(); g.beginPath(); g.rect(x + 9, y + 22, 44, LH - 26); g.clip(); portrait(g, lookOf(u, c.br), x + 31, y + LH - 4, 0.62, T); g.restore(); }
   else cardIcon(g, c.id, x + 30, y + 46, 0.6);
   const nm = reinf ? cardName(Object.assign({}, c, { lv: (c.lv || 1) + (q.m.elite ? 3 : 0) })) : cardName(c);
-  text(g, nm, x + 58, y + 40, { size: 19, font: FONT_B, align: 'left', maxW: LW - 66, fill: reinf && tier !== 'common' ? col : INK });
+  text(g, nm, x + 58, y + 40, { size: 19, font: FONT_B, align: 'left', maxW: LW - 110, fill: reinf && tier !== 'common' ? col : INK });
   // 셋째 줄: 짧은 설명
   const sub = reinf ? `${UNITS[CARDS[c.id].unit].role} · ${UNITS[CARDS[c.id].unit].desc}` : cardText(c, b.power * b.mods.cardPow);
-  text(g, lineOf(sub, 13), x + 58, y + 62, { size: 12, fill: '#5a4a3a', align: 'left', weight: 400, maxW: LW - 150 });
+  const dw = LW - 112, [l1, l2] = wrap2(g, sub, dw, 12), aimedNow = !reinf && s.aim && s.aim.slot === q.n;
+  if (!aimedNow) { text(g, l1, x + 58, y + 63, { size: 12, fill: '#5a4a3a', align: 'left', weight: 400 }); if (l2) text(g, l2, x + 58, y + 79, { size: 12, fill: '#5a4a3a', align: 'left', weight: 400 }); }
   // 도장 둘: 윤허 · 불허
-  const sx = x + LW - 88, sy = y + LH - 40, can = reinf ? b.squadCount() < b.fieldCap() : b.canPlay(q.n);
+  const sx = x + LW - 44, sy = y + 6, can = reinf ? b.squadCount() < b.fieldCap() : b.canPlay(q.n);
   const aimed = !reinf && s.aim && s.aim.slot === q.n;
   const yes = stampBtn(g, 'ys' + q.key, sx, sy, '윤허', can ? RED : '#9a8a7a', i, live, aimed ? 0.5 + 0.5 * Math.sin(T * 9) : 0);
-  const no = stampBtn(g, 'no' + q.key, sx + 44, sy, '불허', '#2a3354', i, live, 0);
+  const no = stampBtn(g, 'no' + q.key, sx, sy + 42, '불허', '#2a3354', i, live, 0);
   if (st.stamped) { g.save(); g.translate(x + LW / 2 + 10, y + LH / 2); g.rotate(-0.18); const yesS = st.stamped === 'yes'; rr(g, -44, -20, 88, 40, 6, null, yesS ? RED : '#2a3354', 4); text(g, yesS ? '윤허' : '불허', 0, 1, { size: 26, font: FONT_B, fill: yesS ? RED : '#2a3354' }); g.restore(); }
-  if (aimed) { rr(g, x + 10, y + LH - 20, 118, 17, 8, 'rgba(184,50,42,0.12)'); text(g, '쓸 자리를 누르세요', x + 69, y + LH - 11, { size: 12, fill: RED }); }
+  if (aimed) { rr(g, x + 56, y + 58, 124, 30, 8, 'rgba(184,50,42,0.12)'); text(g, '전장에서 쓸 자리를', x + 118, y + 66, { size: 12, fill: RED }); text(g, '누르세요', x + 118, y + 81, { size: 12, fill: RED }); }
   if (!i) return;
   // 투서를 누르면 위쪽에 자세한 내용
   if (live && tapped('lt' + q.key, x, y, LW - 92, LH)) { s.disp.peek = { q, t: 4 }; sfx('click'); }
