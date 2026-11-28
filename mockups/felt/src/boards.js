@@ -2,6 +2,7 @@
 import { sheet, felt, stitch, tone, rng } from './felt.js';
 import { W, H, sky, mountain, cloud, water, waterfall, rock, pine, moss, flowers, fern, azalea, rays, grade, layer, wash } from './scene.js';
 import { place, unit } from './units.js';
+import { palisade, banner, drum, jangseung, cairn, arrows, shield, scorch, wisp, deadTree, smoke, fortWall, brokenSpear, club, fire, mud } from './props.js';
 
 let BG = false;
 export function setBgOnly(v) { BG = v; }
@@ -56,6 +57,7 @@ function backdrop(g, o) {
     for (const m of o.far) mountain(x, ...m, { bands: 3, gold: 1.6 });
   });
   layer(g, o.cloudBlur ?? 1.3, x => { for (const c of o.clouds) cloud(x, ...c); });
+  if (o.mid) layer(g, o.midBlur ?? 1.6, o.mid);
   layer(g, o.nearBlur ?? 1.4, x => { for (const m of o.near) mountain(x, ...m, { bands: 4 }); });
 }
 
@@ -99,20 +101,43 @@ export function battleBoard(g) {
     far: [[-60, 260, 300, 90, 120, 1], [170, 470, 300, 330, 150, 2], [820, 1100, 300, 960, 130, 3], [1040, 1340, 300, 1200, 110, 0]],
     clouds: [[90, 245, 1.2, false], [1060, 225, 1.3, true, { gold: true }], [600, 190, 0.8, false], [330, 280, 0.8, true], [870, 290, 0.9, false]],
     near: [[-90, 260, 340, 60, 170, 5], [1050, 1370, 340, 1250, 160, 6]], farBlur: 3, nearBlur: 1.8, cloudBlur: 0.9,
+    // 도깨비 쪽 하늘은 연기로 어둑하다
+    mid: x => { wash(x, 1120, 170, 480, 240, '#6e6474', 0.5, 77, 0, 'multiply'); },
   });
+  layer(g, 1.1, x => { smoke(x, 1000, 320, 260, 1.05, 3); smoke(x, 1180, 318, 230, 0.9, 4); smoke(x, 860, 326, 170, 0.7, 5); smoke(x, 250, 318, 150, 0.55, 6, 0.6); });
   layer(g, 1, x => {
     moss(x, [[-20, 322], [300, 316], [640, 324], [980, 314], [1300, 320]], 52, { n: 5000, back: '#a3b26a' });
-    for (const [px, s, sd] of [[380, 0.42, 12], [520, 0.36, 13], [760, 0.4, 14], [880, 0.34, 15]]) pine(x, px, 326, s, sd);
+    fortWall(x, 170, 330, 326, 18, 5);
+    banner(x, 200, 312, 0.26, '#2c5578', '#e8c25a', 'ring', 1, 0.5); banner(x, 300, 312, 0.26, '#b8352d', '#e8c25a', 'flame', 2, 1.4);
+    for (const [px, s, sd] of [[420, 0.42, 12], [520, 0.36, 13], [760, 0.4, 14], [880, 0.34, 15]]) pine(x, px, 326, s, sd);
     water(x, [[-20, 340], [320, 336], [640, 344], [980, 336], [1300, 342]], [[-20, 376], [320, 372], [640, 382], [980, 372], [1300, 378]], 62);
     rock(x, 120, 344, 120, 50, 121, { moss: true }); waterfall(x, 140, 312, 30, 36, 122);
     rock(x, 1150, 346, 140, 56, 123, { moss: true });
   });
   moss(g, [[-20, 372], [200, 368], [460, 376], [700, 370], [960, 378], [1300, 370]], 72, { n: 26000,
     path: [[-20, 520], [300, 470], [640, 452], [980, 470], [1300, 520], [1300, 600], [980, 548], [640, 528], [300, 548], [-20, 600]] });
-  rock(g, 70, 470, 120, 64, 131, { moss: true }); rock(g, 1220, 460, 130, 70, 132, { moss: true }); rock(g, 640, 410, 60, 30, 133);
-  pine(g, 40, 470, 0.95, 134); pine(g, 1250, 470, 0.9, 135);
-  azalea(g, 160, 480, 0.8, 136); azalea(g, 1120, 470, 0.8, 137); fern(g, 1180, 520, 0.8, 138, -1);
-  flowers(g, 520, 420, 0.8, 139); flowers(g, 760, 560, 0.9, 140, 'yellow'); flowers(g, 300, 590, 0.9, 141);
+  // 도깨비 쪽 들판은 그늘지고 그을렸다
+  wash(g, 1140, 510, 380, 170, '#4e4660', 0.42, 78, 0, 'multiply');
+  // 짓밟힌 진흙: 두 진영이 맞부딪친 가운데
+  mud(g, 640, 500, 170, 50, 21); mud(g, 520, 580, 110, 30, 22); mud(g, 820, 430, 90, 22, 23);
+  scorch(g, 800, 512, 60, 18, 1); scorch(g, 960, 590, 70, 22, 2); scorch(g, 1075, 470, 44, 14, 3); scorch(g, 600, 430, 34, 10, 4);
+  rock(g, 1220, 460, 130, 70, 132, { moss: true });
+  deadTree(g, 1190, 462, 0.95, 7); fern(g, 1180, 520, 0.8, 138, -1);
+  // 가운데: 경계를 지키는 장승 한 쌍과 돌탑
+  jangseung(g, 594, 404, 0.82, '천하대장군'); cairn(g, 640, 406, 0.95, 9); jangseung(g, 688, 406, 0.82, '지하여장군', '#2c4a72');
+  // 아군 진지: 군기, 북, 목책
+  banner(g, 30, 424, 0.95, '#2c5578', '#e8c25a', 'ring', 3, 0.3); banner(g, 96, 460, 1.0, '#b8352d', '#e8c25a', 'flame', 4, 1.2); banner(g, 158, 410, 0.85, '#d8a93c', '#b8352d', 'ring', 5, 2.1);
+  drum(g, 222, 474, 1.15);
+  fire(g, 300, 420, 0.9, 1);
+  palisade(g, [[-10, 432], [52, 456], [96, 512], [118, 600]], 6, 0.95);
+  pine(g, 40, 640, 0.95, 134);
+  // 싸움의 흔적
+  arrows(g, 560, 474, 8, 1.35, 11, -0.5); arrows(g, 728, 548, 7, 1.4, 12, -0.45); arrows(g, 880, 452, 6, 1.2, 13, -0.5); arrows(g, 640, 620, 6, 1.55, 14, -0.4); arrows(g, 1000, 520, 5, 1.3, 15, -0.5);
+  brokenSpear(g, 470, 520, 60, 0.2, 1); brokenSpear(g, 780, 600, 70, -0.15, 2); brokenSpear(g, 900, 500, 54, 2.9, 3);
+  club(g, 690, 470, 1.1, 0.4); club(g, 560, 650, 1.3, -0.3);
+  shield(g, 700, 590, 22, 0.3, 1); shield(g, 520, 548, 18, -0.4, 2); shield(g, 860, 560, 16, 0.9, 3);
+  fire(g, 1110, 610, 1.1, 2);
+  for (const [wx, wy, ws, sd] of [[1105, 420, 1.2, 1], [1210, 540, 1.1, 2], [1010, 560, 0.9, 3], [1240, 640, 1.0, 4]]) wisp(g, wx, wy, ws, sd);
   if (!BG) {
   // 붓으로 그은 자리(먹 자국) — 병사를 세울 때 남는 흔적
   g.save(); g.globalAlpha = 0.28; g.strokeStyle = '#1c1612'; g.lineCap = 'round'; g.lineWidth = 9; g.filter = 'blur(0.8px)'; g.beginPath(); g.moveTo(452, 420); g.bezierCurveTo(470, 470, 440, 520, 470, 590); g.stroke(); g.restore();
