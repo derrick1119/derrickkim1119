@@ -3,6 +3,9 @@ import { sheet, felt, stitch, tone, rng } from './felt.js';
 import { W, H, sky, mountain, cloud, water, waterfall, rock, pine, moss, flowers, fern, azalea, rays, grade, layer, wash } from './scene.js';
 import { place, unit } from './units.js';
 
+let BG = false;
+export function setBgOnly(v) { BG = v; }
+const put = (...a) => { if (!BG) place(...a); };
 const TAU = Math.PI * 2, FB = "'Yeon Sung', 'Gowun Batang', serif", FN = "'Gowun Batang', serif";
 const RR = (x0, y0, w, h, r) => x => x.roundRect(x0, y0, w, h, r);
 
@@ -78,11 +81,12 @@ export function titleBoard(g) {
   azalea(g, 110, 600, 1.3, 93); azalea(g, 1235, 640, 1.2, 94);
   fern(g, 60, 660, 1.1, 95); fern(g, 1250, 690, 1, 96, -1);
   flowers(g, 420, 600, 1.2, 97); flowers(g, 760, 640, 1.1, 98, 'yellow');
-  place(g, 'hero', 560, 625, 1.55, false, 4);
-  place(g, 'tiger', 680, 630, 1.45, false, 4);
+  put(g, 'hero', 560, 625, 1.55, false, 4);
+  put(g, 'tiger', 680, 630, 1.45, false, 4);
   layer(g, 5, x => { rock(x, 80, 760, 230, 120, 101); fern(x, 360, 735, 1.8, 102); rock(x, 1260, 770, 220, 110, 103); });
   rays(g, 330, 120, 0.95, 7, 111, 0.14);
   grade(g, { vig: 0.38 });
+  if (BG) return;
   txt(g, '열두 고개', 640, 300, { size: 132, fill: '#fffdf6', shadow: 'rgba(40,24,10,0.55)', sb: 22, sy: 5 });
   txt(g, '옛이야기 인형극', 640, 384, { size: 28, fill: '#fff6e2', shadow: 'rgba(40,24,10,0.6)', sb: 10 });
   feltPanel(g, 560, 650, 160, 46, '#a33a2e', 14);
@@ -109,22 +113,26 @@ export function battleBoard(g) {
   pine(g, 40, 470, 0.95, 134); pine(g, 1250, 470, 0.9, 135);
   azalea(g, 160, 480, 0.8, 136); azalea(g, 1120, 470, 0.8, 137); fern(g, 1180, 520, 0.8, 138, -1);
   flowers(g, 520, 420, 0.8, 139); flowers(g, 760, 560, 0.9, 140, 'yellow'); flowers(g, 300, 590, 0.9, 141);
+  if (!BG) {
   // 붓으로 그은 자리(먹 자국) — 병사를 세울 때 남는 흔적
   g.save(); g.globalAlpha = 0.28; g.strokeStyle = '#1c1612'; g.lineCap = 'round'; g.lineWidth = 9; g.filter = 'blur(0.8px)'; g.beginPath(); g.moveTo(452, 420); g.bezierCurveTo(470, 470, 440, 520, 470, 590); g.stroke(); g.restore();
+  }
   const sc = y => 0.82 + (y - 400) / 200 * 0.42;
   const units = [
     ['archer', 300, 438, false], ['archer', 250, 520, false], ['hero', 360, 560, false],
     ['spear', 458, 432, false], ['spear', 470, 500, false], ['spear', 462, 578, false], ['tiger', 560, 560, false],
     ['dok', 790, 440, true], ['dokR', 900, 420, true], ['dok', 820, 520, true], ['dokR', 960, 520, true], ['dok', 760, 592, true],
   ].sort((a, b) => a[2] - b[2]);
-  for (const [k, x, y, f] of units) place(g, k, x, y, sc(y) * (k === 'hero' ? 1.08 : 1), f, 3);
+  for (const [k, x, y, f] of units) put(g, k, x, y, sc(y) * (k === 'hero' ? 1.08 : 1), f, 3);
+  if (!BG) {
   // 화살과 솜먼지
   for (const [x0, y0, x1, y1] of [[330, 360, 420, 340], [300, 410, 380, 396]]) { g.save(); g.translate(x1 + 300, y1 + 20); g.rotate(Math.atan2(y1 - y0, x1 - x0) * 0.2); g.strokeStyle = '#6a4a2a'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(-36, 0); g.lineTo(0, 0); g.stroke(); g.fillStyle = '#9aa2a8'; g.beginPath(); g.moveTo(0, -3); g.lineTo(7, 0); g.lineTo(0, 3); g.fill(); g.fillStyle = '#f4efe2'; g.beginPath(); g.moveTo(-36, 0); g.lineTo(-44, -4); g.lineTo(-40, 0); g.lineTo(-44, 4); g.fill(); g.restore(); }
   const R = rng(5);
   for (const [cx, cy] of [[640, 470], [660, 548]]) for (let k = 0; k < 7; k++) { const x = cx + (R() - 0.5) * 50, y = cy + (R() - 0.5) * 24, r = 6 + R() * 10; const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r); gr.addColorStop(0, 'rgba(255,252,244,0.95)'); gr.addColorStop(0.7, 'rgba(240,232,216,0.8)'); gr.addColorStop(1, 'rgba(230,220,200,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+  }
   rays(g, 210, 120, 0.75, 6, 112, 0.12);
   grade(g, { vig: 0.34 });
-  hud(g);
+  if (!BG) hud(g);
 }
 
 function hud(g) {
@@ -169,10 +177,11 @@ export function puppetBoard(g) {
   flowers(g, 300, 650, 1, 153); flowers(g, 920, 660, 1, 154, 'yellow'); fern(g, 1220, 700, 1, 155, -1); fern(g, 40, 700, 1, 156);
   const row = [['hero', 170, '장수', false], ['spear', 365, '창병', false], ['archer', 545, '궁수', false], ['tiger', 760, '호랑이', false], ['dok', 975, '도깨비', true], ['dokR', 1160, '붉은 도깨비', true]];
   for (const [k, x, n, f] of row) {
-    place(g, k, x, 612, k === 'tiger' ? 2.5 : k === 'hero' ? 2.65 : 2.5, f, 6);
+    put(g, k, x, 612, k === 'tiger' ? 2.5 : k === 'hero' ? 2.65 : 2.5, f, 6);
   }
   rays(g, 1080, 120, 2.2, 6, 113, 0.12);
   grade(g, { vig: 0.32 });
+  if (BG) return;
   for (const [k, x, n] of row) { const w = 22 + n.length * 20; feltPanel(g, x - w / 2, 640, w, 40, '#f1e5cb', 10, { thread: 'rgba(140,100,60,0.6)' }); txt(g, n, x, 661, { size: 22, fill: '#2a211b' }); }
   txt(g, '인형 시트', 40, 44, { size: 30, align: 'left', fill: '#fffaf0', shadow: 'rgba(40,24,10,0.6)', sb: 10 });
   txt(g, '양모 펠트 · 유리구슬 눈 · 바느질 땀 · 나무와 쇠 소품', 40, 78, { size: 16, font: FN, align: 'left', fill: '#fff6e4', shadow: 'rgba(40,24,10,0.7)', sb: 8 });
