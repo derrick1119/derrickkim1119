@@ -1,0 +1,10 @@
+html,body{margin:0;background:#1b1a1f;color:#efe6d4;font-family:'Gowun Batang',serif}
+header{max-width:1280px;margin:0 auto;padding:28px 20px 6px}
+h1{font-family:'Yeon Sung','Gowun Batang',serif;font-weight:400;font-size:34px;margin:0 0 6px;color:#f3e3bd}
+header p{margin:0;color:#b9b2a2;font-size:15px}
+main{max-width:1280px;margin:0 auto;padding:10px 20px 40px}
+figure{margin:22px 0 0}
+canvas{width:100%;height:auto;display:block;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+figcaption{margin-top:10px;color:#cfc6b2;font-size:15px;line-height:1.6}
+figcaption b{color:#f3e3bd;font-weight:700}
+.wait{color:#8d8678}
